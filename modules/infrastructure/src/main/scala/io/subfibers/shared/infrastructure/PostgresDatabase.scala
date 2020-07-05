@@ -1,6 +1,6 @@
 package io.subfibers.shared.infrastructure
 
-import cats.effect.{ Async, Blocker, Bracket, ContextShift, Resource, Sync }
+import cats.effect.{ Async, Blocker, ContextShift, Resource, Sync }
 import cats.implicits._
 import doobie._
 import doobie.implicits._
@@ -42,6 +42,6 @@ class PostgresDatabase(config: PostgresConfig) {
 
   def migrate[F[_]: Sync]: F[Unit] = flyway[F].map(_.migrate()).void
 
-  def healthCheck[F[_]: Bracket[*, Throwable]](xa: Transactor[F]): F[String] =
+  def healthCheck[F[_]: Sync](xa: Transactor[F]): F[String] =
     sql"select now()".query[String].unique.transact(xa)
 }

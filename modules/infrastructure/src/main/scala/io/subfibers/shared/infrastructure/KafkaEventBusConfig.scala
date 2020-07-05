@@ -11,10 +11,12 @@ final case class KafkaEventBusConfig(
 ) {
 
   def toConsumerConfig[F[_]: Sync, K: Deserializer[F, *], V: Deserializer[F, *]]: ConsumerSettings[F, K, V] =
-    ConsumerSettings(Deserializer[F, K], Deserializer[F, V])
-      .withBootstrapServers(servers.map { case Server(host, port) => s"${host.value}:${port.value}" }.intercalate(","))
+    ConsumerSettings(Deserializer[F, K], Deserializer[F, V]).withBootstrapServers(
+      servers.map { case Server(host, port) => s"${host.value}:${port.value.toString}" }.intercalate(",")
+    )
 
   def toProducerConfig[F[_]: Sync, K: Serializer[F, *], V: Serializer[F, *]]: ProducerSettings[F, K, V] =
-    ProducerSettings(Serializer[F, K], Serializer[F, V])
-      .withBootstrapServers(servers.map { case Server(host, port) => s"${host.value}:${port.value}" }.intercalate(","))
+    ProducerSettings(Serializer[F, K], Serializer[F, V]).withBootstrapServers(
+      servers.map { case Server(host, port) => s"${host.value}:${port.value.toString}" }.intercalate(",")
+    )
 }
