@@ -90,6 +90,7 @@ object Settings extends Dependencies {
         "-Ywarn-nullary-override",
         "-Ywarn-nullary-unit",
         "-Xlint:by-name-right-associative",
+        "-Xlint:nullary-override",
         "-Xlint:unsound-match",
         "-Xfuture",
         // only for 2.11.x
@@ -135,6 +136,9 @@ object Settings extends Dependencies {
     resolvers ++= commonResolvers,
 
     libraryDependencies ++= mainDeps,
+
+    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
+    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
 
     Compile / scalafmtOnCompile := true,
 
