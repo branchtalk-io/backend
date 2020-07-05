@@ -12,6 +12,7 @@ object Dependencies {
   // libraries versions
   val catsVersion       = "2.1.1"
   val declineVersion    = "1.2.0"
+  val doobieVersion     = "0.8.8"
   val drosteVersion     = "0.8.0"
   val enumeratumVersion = "1.6.1"
   val fs2Version        = "2.4.2"
@@ -46,6 +47,13 @@ object Dependencies {
   val monixExecution = "io.monix" %% "monix-execution" % monixVersion
   val monixEval      = "io.monix" %% "monix-eval" % monixVersion
   val monixBio       = "io.monix" %% "monix-bio" % "0.1.0"
+  // infrastructure
+  val doobie = "org.tpolecat" %% "doobie-core" % doobieVersion
+  val doobieHikari = "org.tpolecat" %% "doobie-hikari" % doobieVersion
+  val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
+  val doobieSpecs2 = "org.tpolecat" %% "doobie-specs2" % doobieVersion
+  val flyway =  "org.flywaydb" % "flyway-core" % "6.5.0"
+  val fs2Kafka = "com.github.fd4s" %% "fs2-kafka" % "1.0.0"
   // config
   val decline     = "com.monovore" %% "decline" % declineVersion
   val scalaConfig = "com.typesafe" % "config" % "1.4.0"
@@ -70,8 +78,6 @@ trait Dependencies {
   val mainDeps = Seq(
     cats,
     enumeratum,
-    fs2,
-    fs2IO,
     magnolia,
     monocle,
     monocleMacro,
@@ -80,11 +86,6 @@ trait Dependencies {
     refinedCats,
     refinedDecline,
     refinedPureConfig,
-    decline,
-    scalaConfig,
-    pureConfig,
-    monixExecution,
-    monixEval,
     scalaLogging,
     logback
   )

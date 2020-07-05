@@ -6,5 +6,5 @@ final case class User(
   id:         ID[User],
   username:   Username,
   createdAt:  CreationTime,
-  modifiedAt: ModificationTime
+  modifiedAt: Option[ModificationTime]
 )

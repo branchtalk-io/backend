@@ -5,7 +5,7 @@ import io.subfibers.discussions.models.{ Comment, Post }
 import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime }
 import io.subfibers.users.models.User
 
-// TODO: modify all events
+// TODO: modify all these events once we set up internal events
 
 sealed trait CommentEvent extends ADT
 object CommentEvent {
