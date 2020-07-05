@@ -1,9 +1,11 @@
 package io.subfibers.discussions.events
 
 import io.subfibers.ADT
-import io.subfibers.discussions.models.{ Comment, CommentContent, Post }
+import io.subfibers.discussions.models.{ Comment, Post }
 import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime }
-import io.subfibers.users.User
+import io.subfibers.users.models.User
+
+// TODO: modify all events
 
 sealed trait CommentEvent extends ADT
 object CommentEvent {
@@ -15,7 +17,7 @@ object CommentEvent {
       id:            ID[Comment],
       authorID:      ID[User],
       commentedPost: ID[Post],
-      content:       CommentContent,
+      content:       Comment.Content,
       replyTo:       Option[ID[Comment]],
       createdAt:     CreationTime
     ) extends V1
@@ -23,7 +25,7 @@ object CommentEvent {
     final case class CommentUpdated(
       id:             ID[Comment],
       editorID:       ID[User],
-      newContent:     Option[CommentContent],
+      newContent:     Option[Comment.Content],
       lastModifiedAt: ModificationTime
     ) extends V1
 

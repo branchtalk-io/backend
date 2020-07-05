@@ -1,9 +1,11 @@
 package io.subfibers.discussions.events
 
 import io.subfibers.ADT
-import io.subfibers.discussions.models.{ Post, PostContent, PostTitle }
+import io.subfibers.discussions.models.Post
 import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime }
-import io.subfibers.users.User
+import io.subfibers.users.models.User
+
+// TODO: modify all events
 
 sealed trait PostEvent extends ADT
 object PostEvent {
@@ -14,16 +16,16 @@ object PostEvent {
     final case class PostCreated(
       id:        ID[Post],
       authorID:  ID[User],
-      title:     PostTitle,
-      content:   PostContent,
+      title:     Post.Title,
+      content:   Post.Content,
       createdAt: CreationTime
     ) extends V1
 
     final case class PostUpdated(
       id:             ID[Post],
       editorID:       ID[User],
-      newTitle:       Option[PostTitle],
-      newContent:     Option[PostContent],
+      newTitle:       Option[Post.Title],
+      newContent:     Option[Post.Content],
       lastModifiedAt: ModificationTime
     ) extends V1
 

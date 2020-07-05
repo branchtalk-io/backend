@@ -16,11 +16,14 @@ package object models {
   object UUID {
 
     def apply(string: String Refined Uuid): UUID = jUUID.fromString(string.value)
+    // TODO: use some UUIDGen type class which could use e.g. time-based UUID generation
+    def create[F[_]: Sync]: F[UUID] = Sync[F].delay(jUUID.randomUUID())
     def parse[F[_]:  Sync](string: String): F[UUID] = Sync[F].delay(jUUID.fromString(string))
-    def random[F[_]: Sync]: F[UUID] = Sync[F].delay(jUUID.randomUUID())
   }
 
   @newtype final case class ID[+Entity](value: UUID)
+
+  // TODO: consider some custom clock(?)
 
   @newtype final case class CreationTime(value: Instant)
   object CreationTime {
