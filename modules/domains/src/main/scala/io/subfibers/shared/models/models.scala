@@ -1,4 +1,4 @@
-package io
+package io.subfibers.shared
 
 import java.time.Instant
 import java.util.{ UUID => jUUID }
@@ -10,7 +10,7 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.Uuid
 import io.estatico.newtype.macros.newtype
 
-package object subfibers {
+package object models {
 
   type UUID = jUUID
   object UUID {
