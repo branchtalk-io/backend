@@ -42,6 +42,5 @@ class PostgresDatabase(config: PostgresConfig) {
 
   def migrate[F[_]: Sync]: F[Unit] = flyway[F].map(_.migrate()).void
 
-  def healthCheck[F[_]: Sync](xa: Transactor[F]): F[String] =
-    sql"select now()".query[String].unique.transact(xa)
+  def healthCheck[F[_]: Sync](xa: Transactor[F]): F[String] = sql"select now()".query[String].unique.transact(xa)
 }

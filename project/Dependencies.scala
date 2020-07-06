@@ -33,6 +33,7 @@ object Dependencies {
   val cats              = "org.typelevel" %% "cats-core" % catsVersion
   val catsEffect        = "org.typelevel" %% "cats-effect" % catsEffectVersion
   val catsLaws          = "org.typelevel" %% "cats-laws" % catsVersion
+  val chimney           = "io.scalaland" %% "chimney" % "0.5.2"
   val droste            = "io.higherkindness" %% "droste-core" % drosteVersion
   val enumeratum        = "com.beachape" %% "enumeratum" % enumeratumVersion
   val fs2               = "co.fs2" %% "fs2-core" % fs2Version
@@ -80,6 +81,7 @@ trait Dependencies {
   val mainDeps = Seq(
     cats,
     catsEffect,
+    chimney,
     enumeratum,
     magnolia,
     monocle,

@@ -8,7 +8,7 @@ object KafkaEventBus {
 
   def producer[F[_]: ConcurrentEffect: ContextShift, K: Serializer[F, *], V: Serializer[F, *]](
     settings: KafkaEventBusConfig
-  ): EventBusPublisher[F, K, V] =
+  ): EventBusProducer[F, K, V] =
     ((_: Stream[F, (K, V)]).map {
       case (key, value) =>
         ProducerRecords.one(ProducerRecord(settings.topic.value.value, key, value))
@@ -16,7 +16,7 @@ object KafkaEventBus {
 
   def consumer[F[_]: ConcurrentEffect: ContextShift: Timer, K: Deserializer[F, *], V: Deserializer[F, *]](
     settings: KafkaEventBusConfig
-  ): EventBusSubscriber[F, K, V] =
+  ): EventBusConsumer[F, K, V] =
     consumerStream(settings.toConsumerConfig[F, K, V])
       .evalTap(_.subscribeTo(settings.topic.value.value))
       .flatMap(_.stream)

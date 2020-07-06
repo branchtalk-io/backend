@@ -10,7 +10,7 @@ import fs2._
 
 abstract class Repository[F[_]: Sync, Entity, Event](
   transator: Transactor[F],
-  publisher: EventBusPublisher[F, UUID, Event]
+  publisher: EventBusProducer[F, UUID, Event]
 ) {
 
   // sending event to internal bus as a part of a write model

@@ -2,9 +2,20 @@ import sbt._
 import Settings._
 
 lazy val root =
-  project.root.setName("subfibers").setDescription("subfibers build").configureRoot.aggregate(common, infrastructure)
+  project.root
+    .setName("subfibers")
+    .setDescription("subfibers build")
+    .configureRoot
+    .aggregate(derivation, domains, infrastructure)
 
-val common = project
+val derivation = project
+  .from("derivation")
+  .setName("derivation")
+  .setDescription("Derivation helpers")
+  .configureModule
+  .settings(libraryDependencies += "io.scalaland" %% "catnip" % "1.0.0")
+
+val domains = project
   .from("domains")
   .setName("domains")
   .setDescription("Domains definitions")
@@ -17,6 +28,7 @@ val common = project
       Seq(file)
     }
   )
+  .dependsOn(derivation)
 
 val infrastructure = project
   .from("infrastructure")
@@ -35,7 +47,7 @@ val infrastructure = project
       Dependencies.fs2Kafka
     )
   )
-  .dependsOn(common)
+  .dependsOn(domains)
 
 addCommandAlias("fullTest", ";test;scalastyle")
 addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate;scalastyle")

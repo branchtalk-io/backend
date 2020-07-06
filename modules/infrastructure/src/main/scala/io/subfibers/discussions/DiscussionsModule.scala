@@ -1,7 +1,7 @@
 package io.subfibers.discussions
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
-import io.subfibers.discussions.events.{ DiscussionEvent, DiscussionInternalEvent }
+import io.subfibers.discussions.events.{ DiscussionCommandEvent, DiscussionEvent }
 import io.subfibers.discussions.infrastructure._
 import io.subfibers.shared.infrastructure._
 import io.subfibers.shared.models._
@@ -9,9 +9,9 @@ import io.subfibers.shared.models._
 final case class DiscussionsModule[F[_]](
   commentRepository: CommentRepository[F],
   postRepository:    PostRepository[F],
-  eventConsumer:     EventBusSubscriber[F, UUID, DiscussionEvent]
+  eventConsumer:     EventBusConsumer[F, UUID, DiscussionEvent]
 )
-object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionInternalEvent] {
+object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommandEvent] {
 
   def apply[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig

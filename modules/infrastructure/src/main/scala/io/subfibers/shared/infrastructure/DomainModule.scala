@@ -7,10 +7,10 @@ import io.subfibers.shared.models.UUID
 
 final case class Infrastructure[F[_], Event, InternalEvent](
   transactor:        Transactor[F],
-  internalPublisher: EventBusPublisher[F, UUID, InternalEvent],
-  internalConsumer:  EventBusSubscriber[F, UUID, InternalEvent],
-  publisher:         EventBusPublisher[F, UUID, Event],
-  consumer:          EventBusSubscriber[F, UUID, Event]
+  internalPublisher: EventBusProducer[F, UUID, InternalEvent],
+  internalConsumer:  EventBusConsumer[F, UUID, InternalEvent],
+  publisher:         EventBusProducer[F, UUID, Event],
+  consumer:          EventBusConsumer[F, UUID, Event]
 )
 abstract class DomainModule[Event, InternalEvent] {
 

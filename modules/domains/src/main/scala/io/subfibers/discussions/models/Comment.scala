@@ -1,38 +1,25 @@
 package io.subfibers.discussions.models
 
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.NonNegative
-import io.estatico.newtype.macros.newtype
-import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime }
+import cats.Eq
+import cats.implicits._
+import io.scalaland.catnip.Semi
+import io.subfibers.shared.derivation.ShowPretty
+import io.subfibers.shared.models._
 import io.subfibers.users.models.User
 
-final case class Comment(
-  id:             ID[Comment],
-  authorID:       ID[User],
-  commentedPost:  ID[Post],
-  content:        Comment.Content,
-  replyTo:        Option[ID[Comment]],
-  nestingLevel:   Comment.NestingLevel,
-  createdAt:      CreationTime,
-  lastModifiedAt: Option[ModificationTime]
+@Semi(Eq, ShowPretty) final case class Comment(
+  id:   ID[Comment],
+  data: Comment.Data
 )
-object Comment {
+object Comment extends CommentProperties with CommentCommands {
 
-  @newtype final case class Content(value:      String)
-  @newtype final case class NestingLevel(value: Int Refined NonNegative)
-
-  final case class Create(
-    authorID:      ID[User],
-    commentedPost: ID[Post],
-    content:       Comment.Content,
-    replyTo:       Option[ID[Comment]]
+  @Semi(Eq, ShowPretty) final case class Data(
+    authorID:       ID[User],
+    commentedPost:  ID[Post],
+    content:        Comment.Content,
+    replyTo:        Option[ID[Comment]],
+    nestingLevel:   Comment.NestingLevel,
+    createdAt:      CreationTime,
+    lastModifiedAt: Option[ModificationTime]
   )
-
-  final case class Update(
-    id:         ID[Comment],
-    editorID:   ID[User],
-    newContent: Option[Comment.Content]
-  )
-
-  @newtype final case class Delete(value: ID[Comment])
 }

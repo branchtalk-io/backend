@@ -11,8 +11,8 @@ package object infrastructure {
 
   @newtype final case class DomainName(value: NonEmptyString)
 
-  type EventBusPublisher[F[_], Key, Event]  = Pipe[F, (Key, Event), ProducerResult[Key, Event, Unit]]
-  type EventBusSubscriber[F[_], Key, Event] = Stream[F, CommittableConsumerRecord[F, Key, Event]]
+  type EventBusProducer[F[_], Key, Event] = Pipe[F, (Key, Event), ProducerResult[Key, Event, Unit]]
+  type EventBusConsumer[F[_], Key, Event] = Stream[F, CommittableConsumerRecord[F, Key, Event]]
 
   @newtype final case class DatabaseURL(value:      NonEmptyString)
   @newtype final case class DatabaseUsername(value: NonEmptyString)
