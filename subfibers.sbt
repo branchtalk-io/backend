@@ -49,5 +49,5 @@ val infrastructure = project
   )
   .dependsOn(domains)
 
-addCommandAlias("fullTest", ";test;scalastyle")
-addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate;scalastyle")
+addCommandAlias("fullTest", ";test")
+addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate")

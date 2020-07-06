@@ -1,4 +1,4 @@
-package io.subfibers.discussions.infrastructure
+package io.subfibers.discussions.writes
 
 import cats.effect.{ Sync, Timer }
 import cats.implicits._
@@ -6,14 +6,14 @@ import doobie._
 import io.scalaland.chimney.dsl._
 import io.subfibers.discussions.events.{ ChannelCommandEvent, DiscussionCommandEvent }
 import io.subfibers.discussions.models.Channel
-import io.subfibers.shared.infrastructure.{ EventBusProducer, Repository }
+import io.subfibers.shared.infrastructure.{ EventBusProducer, Writes }
 import io.subfibers.shared.models._
 
-class ChannelRepositoryImpl[F[_]: Sync: Timer](
+class ChannelWritesImpl[F[_]: Sync: Timer](
   transactor: Transactor[F],
   publisher:  EventBusProducer[F, UUID, DiscussionCommandEvent]
-) extends Repository[F, Channel, DiscussionCommandEvent](transactor, publisher)
-    with ChannelRepository[F] {
+) extends Writes[F, Channel, DiscussionCommandEvent](transactor, publisher)
+    with ChannelWrites[F] {
 
   override def createTopic(newChannel: Channel.Create): F[CreationScheduled[Channel]] =
     for {
@@ -41,6 +41,4 @@ class ChannelRepositoryImpl[F[_]: Sync: Timer](
       command = deletedChannel.into[ChannelCommandEvent.Delete].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForChannel(command))
     } yield DeletionScheduled(id)
-
-  // TODO: define read models
 }

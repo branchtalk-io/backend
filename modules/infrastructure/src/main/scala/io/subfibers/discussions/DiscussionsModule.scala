@@ -2,14 +2,15 @@ package io.subfibers.discussions
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import io.subfibers.discussions.events.{ DiscussionCommandEvent, DiscussionEvent }
-import io.subfibers.discussions.infrastructure._
+import io.subfibers.discussions.writes._
 import io.subfibers.shared.infrastructure._
 import io.subfibers.shared.models._
 
+// TODO: rethink approach when it comes to sharing streams
 final case class DiscussionsModule[F[_]](
-  commentRepository: CommentRepository[F],
-  postRepository:    PostRepository[F],
-  channelRepository: ChannelRepository[F],
+  commentRepository: CommentWrites[F],
+  postRepository:    PostWrites[F],
+  channelRepository: ChannelWrites[F],
   eventConsumer:     EventBusConsumer[F, UUID, DiscussionEvent]
 )
 object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommandEvent] {
@@ -19,9 +20,10 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
   ): Resource[F, DiscussionsModule[F]] =
     setupInfrastructure[F](domainConfig).map {
       case Infrastructure(transactor, internalPublisher, _, _, consumer) =>
-        val commentRepository: CommentRepository[F] = new CommentRepositoryImpl[F](transactor, internalPublisher)
-        val postRepository:    PostRepository[F]    = new PostRepositoryImpl[F](transactor, internalPublisher)
-        val channelRepository: ChannelRepository[F] = new ChannelRepositoryImpl[F](transactor, internalPublisher)
+        val commentRepository: CommentWrites[F] = new CommentWritesImpl[F](transactor, internalPublisher)
+        val postRepository:    PostWrites[F]    = new PostWritesImpl[F](transactor, internalPublisher)
+        val channelRepository: ChannelWrites[F] = new ChannelWritesImpl[F](transactor, internalPublisher)
+        // TODO: add projectors
         DiscussionsModule(commentRepository, postRepository, channelRepository, consumer)
     }
 }

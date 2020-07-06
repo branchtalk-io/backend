@@ -5,7 +5,6 @@ import sbt.Tests.Argument
 import com.typesafe.sbt._
 import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
-import org.scalastyle.sbt.ScalastylePlugin.autoImport._
 import sbtassembly.AssemblyPlugin.autoImport._
 import scoverage._
 import spray.revolver.RevolverPlugin.autoImport._
@@ -142,8 +141,6 @@ object Settings extends Dependencies {
 
     Compile / scalafmtOnCompile := true,
 
-    scalastyleFailOnError := true,
-
     Compile / compile / wartremoverWarnings ++= Warts.allBut(
       Wart.Any,
       Wart.DefaultArguments,
@@ -178,8 +175,6 @@ object Settings extends Dependencies {
       .settings(inConfig(config)(scalafmtConfigSettings))
       .settings(inConfig(config)(Seq(
         scalafmtOnCompile := true,
-        scalastyleConfig := baseDirectory.value / "scalastyle-test-config.xml",
-        scalastyleFailOnError := false,
         fork := requiresFork,
         testFrameworks := Seq(Specs2)
       )))

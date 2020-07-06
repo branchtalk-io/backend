@@ -1,4 +1,4 @@
-package io.subfibers.discussions.infrastructure
+package io.subfibers.discussions.writes
 
 import cats.effect.{ Sync, Timer }
 import cats.implicits._
@@ -6,14 +6,14 @@ import doobie._
 import io.scalaland.chimney.dsl._
 import io.subfibers.discussions.events.{ DiscussionCommandEvent, PostCommandEvent }
 import io.subfibers.discussions.models.Post
-import io.subfibers.shared.infrastructure.{ EventBusProducer, Repository }
+import io.subfibers.shared.infrastructure.{ EventBusProducer, Writes }
 import io.subfibers.shared.models._
 
-class PostRepositoryImpl[F[_]: Sync: Timer](
+class PostWritesImpl[F[_]: Sync: Timer](
   transactor: Transactor[F],
   publisher:  EventBusProducer[F, UUID, DiscussionCommandEvent]
-) extends Repository[F, Post, DiscussionCommandEvent](transactor, publisher)
-    with PostRepository[F] {
+) extends Writes[F, Post, DiscussionCommandEvent](transactor, publisher)
+    with PostWrites[F] {
 
   override def createPost(newPost: Post.Create): F[CreationScheduled[Post]] =
     for {
@@ -41,6 +41,4 @@ class PostRepositoryImpl[F[_]: Sync: Timer](
       command = deletedPost.into[PostCommandEvent.Delete].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
     } yield DeletionScheduled(id)
-
-  // TODO: define read models
 }

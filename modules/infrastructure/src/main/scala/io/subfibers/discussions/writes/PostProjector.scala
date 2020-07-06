@@ -1,4 +1,4 @@
-package io.subfibers.discussions.infrastructure
+package io.subfibers.discussions.writes
 
 import cats.effect.Sync
 import cats.implicits._
