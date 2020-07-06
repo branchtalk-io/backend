@@ -1,7 +1,7 @@
 package io.subfibers.shared.infrastructure
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Timer }
-import fs2.{ Pipe, Stream }
+import fs2.Stream
 import fs2.kafka._
 
 object KafkaEventBus {
