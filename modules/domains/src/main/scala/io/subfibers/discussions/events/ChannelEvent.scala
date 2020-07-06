@@ -9,29 +9,29 @@ import io.subfibers.shared.derivation.ShowPretty
 import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime, OptionUpdatable, Updatable }
 import io.subfibers.users.models.User
 
-@Semi(Eq, ShowPretty) sealed trait ChannelCommandEvent extends ADT
-object ChannelCommandEvent {
+@Semi(Eq, ShowPretty) sealed trait ChannelEvent extends ADT
+object ChannelEvent {
 
-  @Semi(Eq, ShowPretty) final case class Create(
+  @Semi(Eq, ShowPretty) final case class Created(
     id:          ID[Channel],
     authorID:    ID[User],
     urlName:     Channel.UrlName,
     name:        Channel.Name,
     description: Option[Channel.Description],
     createdAt:   CreationTime
-  ) extends ChannelCommandEvent
+  ) extends ChannelEvent
 
-  @Semi(Eq, ShowPretty) final case class Update(
+  @Semi(Eq, ShowPretty) final case class Updated(
     id:          ID[Channel],
     editorID:    ID[User],
     urlName:     Updatable[Channel.UrlName],
     name:        Updatable[Channel.Name],
     description: OptionUpdatable[Channel.Description],
     modifiedAt:  ModificationTime
-  ) extends ChannelCommandEvent
+  ) extends ChannelEvent
 
-  @Semi(Eq, ShowPretty) final case class Delete(
+  @Semi(Eq, ShowPretty) final case class Deleted(
     id:       ID[Channel],
     editorID: ID[User]
-  ) extends ChannelCommandEvent
+  ) extends ChannelEvent
 }

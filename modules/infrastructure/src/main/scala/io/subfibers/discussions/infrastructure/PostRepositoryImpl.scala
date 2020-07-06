@@ -31,7 +31,7 @@ class PostRepositoryImpl[F[_]: Sync: Timer](
     for {
       id <- updatedPost.id.pure[F]
       now <- ModificationTime.now[F]
-      command = updatedPost.into[PostCommandEvent.Update].withFieldConst(_.lastModifiedAt, now).transform
+      command = updatedPost.into[PostCommandEvent.Update].withFieldConst(_.modifiedAt, now).transform
       _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
     } yield UpdateScheduled(id)
 

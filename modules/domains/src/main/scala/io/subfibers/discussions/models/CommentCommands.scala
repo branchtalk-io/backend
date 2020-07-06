@@ -4,7 +4,7 @@ import cats.Eq
 import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.subfibers.shared.derivation.ShowPretty
-import io.subfibers.shared.models.ID
+import io.subfibers.shared.models.{ ID, Updatable }
 import io.subfibers.users.models.User
 
 trait CommentCommands { self: Comment.type =>
@@ -24,7 +24,7 @@ object CommentCommands {
   @Semi(Eq, ShowPretty) final case class Update(
     id:         ID[Comment],
     editorID:   ID[User],
-    newContent: Option[Comment.Content]
+    newContent: Updatable[Comment.Content]
   )
 
   @Semi(Eq, ShowPretty) final case class Delete(

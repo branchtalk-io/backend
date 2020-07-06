@@ -4,7 +4,7 @@ import cats.Eq
 import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.subfibers.shared.derivation.ShowPretty
-import io.subfibers.shared.models.ID
+import io.subfibers.shared.models.{ ID, OptionUpdatable, Updatable }
 import io.subfibers.users.models.User
 
 trait ChannelCommands { self: Channel.type =>
@@ -24,9 +24,9 @@ object ChannelCommands {
   @Semi(Eq, ShowPretty) final case class Update(
     id:          ID[Channel],
     editorID:    ID[User],
-    urlName:     Channel.UrlName,
-    name:        Channel.Name,
-    description: Option[Channel.Description]
+    urlName:     Updatable[Channel.UrlName],
+    name:        Updatable[Channel.Name],
+    description: OptionUpdatable[Channel.Description]
   )
 
   @Semi(Eq, ShowPretty) final case class Delete(

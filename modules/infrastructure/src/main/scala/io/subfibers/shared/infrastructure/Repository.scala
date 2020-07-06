@@ -9,8 +9,8 @@ import io.subfibers.shared.models.{ ID, UUID }
 import fs2._
 
 abstract class Repository[F[_]: Sync, Entity, Event](
-  transator: Transactor[F],
-  publisher: EventBusProducer[F, UUID, Event]
+  transactor: Transactor[F],
+  publisher:  EventBusProducer[F, UUID, Event]
 ) {
 
   // sending event to internal bus as a part of a write model
@@ -20,7 +20,7 @@ abstract class Repository[F[_]: Sync, Entity, Event](
 
   // reading from database as a part of a read model
 
-  protected final def queryOption(query: Query0[Entity]): F[Option[Entity]] = query.option.transact(transator)
-  protected final def queryList(query:   Query0[Entity]): F[List[Entity]]   = query.accumulate[List].transact(transator)
-  protected final def queryStream(query: Query0[Entity]): Stream[F, Entity] = query.stream.transact(transator)
+  protected final def queryOption(query: Query0[Entity]): F[Option[Entity]] = query.option.transact(transactor)
+  protected final def queryList(query:   Query0[Entity]): F[List[Entity]]   = query.accumulate[List].transact(transactor)
+  protected final def queryStream(query: Query0[Entity]): Stream[F, Entity] = query.stream.transact(transactor)
 }

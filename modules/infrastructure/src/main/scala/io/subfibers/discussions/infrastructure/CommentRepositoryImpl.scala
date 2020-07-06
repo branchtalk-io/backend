@@ -31,7 +31,7 @@ class CommentRepositoryImpl[F[_]: Sync: Timer](
     for {
       id <- updatedComment.id.pure[F]
       now <- ModificationTime.now[F]
-      command = updatedComment.into[CommentCommandEvent.Update].withFieldConst(_.lastModifiedAt, now).transform
+      command = updatedComment.into[CommentCommandEvent.Update].withFieldConst(_.modifiedAt, now).transform
       _ <- postEvent(id, DiscussionCommandEvent.ForComment(command))
     } yield UpdateScheduled(id)
 

@@ -1,34 +1,34 @@
 package io.subfibers.discussions.events
 
+import cats.Eq
+import io.scalaland.catnip.Semi
 import io.subfibers.discussions.models.Post
-import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime }
+import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime, Updatable }
 import io.subfibers.users.models.User
 import io.subfibers.ADT
+import io.subfibers.shared.derivation.ShowPretty
 
-sealed trait PostEvent extends ADT
+@Semi(Eq, ShowPretty) sealed trait PostEvent extends ADT
 object PostEvent {
 
-  sealed trait V1 extends PostEvent
-  object V1 {
+  @Semi(Eq, ShowPretty) final case class Created(
+    id:        ID[Post],
+    authorID:  ID[User],
+    title:     Post.Title,
+    content:   Post.Content,
+    createdAt: CreationTime
+  ) extends PostEvent
 
-    final case class PostCreated(
-      id:        ID[Post],
-      authorID:  ID[User],
-      title:     Post.Title,
-      content:   Post.Content,
-      createdAt: CreationTime
-    ) extends V1
+  @Semi(Eq, ShowPretty) final case class Updated(
+    id:         ID[Post],
+    editorID:   ID[User],
+    newTitle:   Updatable[Post.Title],
+    newContent: Updatable[Post.Content],
+    modifiedAt: ModificationTime
+  ) extends PostEvent
 
-    final case class PostUpdated(
-      id:             ID[Post],
-      editorID:       ID[User],
-      newTitle:       Option[Post.Title],
-      newContent:     Option[Post.Content],
-      lastModifiedAt: ModificationTime
-    ) extends V1
-
-    final case class PostDeleted(
-      value: ID[Post]
-    ) extends V1
-  }
+  @Semi(Eq, ShowPretty) final case class Deleted(
+    id:       ID[Post],
+    editorID: ID[User]
+  ) extends PostEvent
 }

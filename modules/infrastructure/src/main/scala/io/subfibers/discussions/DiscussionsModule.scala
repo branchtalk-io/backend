@@ -9,6 +9,7 @@ import io.subfibers.shared.models._
 final case class DiscussionsModule[F[_]](
   commentRepository: CommentRepository[F],
   postRepository:    PostRepository[F],
+  channelRepository: ChannelRepository[F],
   eventConsumer:     EventBusConsumer[F, UUID, DiscussionEvent]
 )
 object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommandEvent] {
@@ -20,6 +21,7 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
       case Infrastructure(transactor, internalPublisher, _, _, consumer) =>
         val commentRepository: CommentRepository[F] = new CommentRepositoryImpl[F](transactor, internalPublisher)
         val postRepository:    PostRepository[F]    = new PostRepositoryImpl[F](transactor, internalPublisher)
-        DiscussionsModule(commentRepository, postRepository, consumer)
+        val channelRepository: ChannelRepository[F] = new ChannelRepositoryImpl[F](transactor, internalPublisher)
+        DiscussionsModule(commentRepository, postRepository, channelRepository, consumer)
     }
 }

@@ -6,7 +6,7 @@ import io.scalaland.catnip.Semi
 import io.subfibers.ADT
 import io.subfibers.discussions.models.Post
 import io.subfibers.shared.derivation.ShowPretty
-import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime }
+import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime, Updatable }
 import io.subfibers.users.models.User
 
 @Semi(Eq, ShowPretty) sealed trait PostCommandEvent extends ADT
@@ -21,11 +21,11 @@ object PostCommandEvent {
   ) extends PostCommandEvent
 
   @Semi(Eq, ShowPretty) final case class Update(
-    id:             ID[Post],
-    editorID:       ID[User],
-    newTitle:       Option[Post.Title],
-    newContent:     Option[Post.Content],
-    lastModifiedAt: ModificationTime
+    id:         ID[Post],
+    editorID:   ID[User],
+    newTitle:   Updatable[Post.Title],
+    newContent: Updatable[Post.Content],
+    modifiedAt: ModificationTime
   ) extends PostCommandEvent
 
   @Semi(Eq, ShowPretty) final case class Delete(

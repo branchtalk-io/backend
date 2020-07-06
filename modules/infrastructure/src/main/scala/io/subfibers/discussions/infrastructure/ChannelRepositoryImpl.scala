@@ -31,7 +31,7 @@ class ChannelRepositoryImpl[F[_]: Sync: Timer](
     for {
       id <- updatedChannel.id.pure[F]
       now <- ModificationTime.now[F]
-      command = updatedChannel.into[ChannelCommandEvent.Update].withFieldConst(_.lastModifiedAt, now).transform
+      command = updatedChannel.into[ChannelCommandEvent.Update].withFieldConst(_.modifiedAt, now).transform
       _ <- postEvent(id, DiscussionCommandEvent.ForChannel(command))
     } yield UpdateScheduled(id)
 

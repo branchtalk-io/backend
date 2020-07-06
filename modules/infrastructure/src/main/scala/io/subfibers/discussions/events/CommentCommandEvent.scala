@@ -6,7 +6,7 @@ import io.scalaland.catnip.Semi
 import io.subfibers.ADT
 import io.subfibers.discussions.models.{ Comment, Post }
 import io.subfibers.shared.derivation.ShowPretty
-import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime }
+import io.subfibers.shared.models.{ CreationTime, ID, ModificationTime, Updatable }
 import io.subfibers.users.models.User
 
 @Semi(Eq, ShowPretty) sealed trait CommentCommandEvent extends ADT
@@ -22,10 +22,10 @@ object CommentCommandEvent {
   ) extends CommentCommandEvent
 
   @Semi(Eq, ShowPretty) final case class Update(
-    id:             ID[Comment],
-    editorID:       ID[User],
-    newContent:     Option[Comment.Content],
-    lastModifiedAt: ModificationTime
+    id:         ID[Comment],
+    editorID:   ID[User],
+    newContent: Updatable[Comment.Content],
+    modifiedAt: ModificationTime
   ) extends CommentCommandEvent
 
   @Semi(Eq, ShowPretty) final case class Delete(
