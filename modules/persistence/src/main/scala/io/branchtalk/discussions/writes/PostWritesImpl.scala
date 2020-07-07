@@ -9,10 +9,8 @@ import io.branchtalk.discussions.models.Post
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.models._
 
-class PostWritesImpl[F[_]: Sync: Timer](
-  transactor: Transactor[F],
-  publisher:  EventBusProducer[F, UUID, DiscussionCommandEvent]
-) extends Writes[F, Post, DiscussionCommandEvent](transactor, publisher)
+final class PostWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, UUID, DiscussionCommandEvent])
+    extends Writes[F, Post, DiscussionCommandEvent](publisher)
     with PostWrites[F] {
 
   override def createPost(newPost: Post.Create): F[CreationScheduled[Post]] =
