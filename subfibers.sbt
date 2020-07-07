@@ -6,7 +6,7 @@ lazy val root =
     .setName("subfibers")
     .setDescription("subfibers build")
     .configureRoot
-    .aggregate(derivation, domains, infrastructure)
+    .aggregate(derivation, common, infrastructure, domains, persistence)
 
 val derivation = project
   .from("derivation")
@@ -15,12 +15,11 @@ val derivation = project
   .configureModule
   .settings(libraryDependencies += "io.scalaland" %% "catnip" % "1.0.0")
 
-val domains = project
-  .from("domains")
-  .setName("domains")
-  .setDescription("Domains definitions")
+val common = project
+  .from("common")
+  .setName("common")
+  .setDescription("Common utilities")
   .configureModule
-  .configureTests()
   .settings(
     Compile / resourceGenerators += task[Seq[File]] {
       val file = (Compile / resourceManaged).value / "subfibers-version.conf"
@@ -47,7 +46,23 @@ val infrastructure = project
       Dependencies.fs2Kafka
     )
   )
-  .dependsOn(domains)
+  .dependsOn(common)
+
+val domains = project
+  .from("domains")
+  .setName("domains")
+  .setDescription("Domains definitions")
+  .configureModule
+  .configureTests()
+  .dependsOn(common)
+
+val persistence = project
+  .from("persistence")
+  .setName("persistence")
+  .setDescription("Writes projections and Reads queries")
+  .configureModule
+  .configureTests()
+  .dependsOn(domains, infrastructure)
 
 addCommandAlias("fullTest", ";test")
 addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate")
