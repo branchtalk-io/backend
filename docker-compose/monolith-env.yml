@@ -1,7 +1,7 @@
 version: '3'
 
 networks:
-  - subfibers-monolith
+  - branchtalk-monolith
 
 services:
   zookeeper:
@@ -13,7 +13,7 @@ services:
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
     networks:
-      - subfibers-monolith
+      - branchtalk-monolith
 
   kafka:
     image: 'docker.io/bitnami/kafka:2-debian-10'
@@ -33,7 +33,7 @@ services:
       timeout: 10s
       retries: 4
     networks:
-      - subfibers-monolith
+      - branchtalk-monolith
 
   kafka-setup:
     image: 'docker.io/bitnami/kafka:2-debian-10'
@@ -51,7 +51,7 @@ services:
       kafka:
         condition: service_healthy
     networks:
-      - subfibers-monolith
+      - branchtalk-monolith
 
 volumes:
   zookeeper_data:

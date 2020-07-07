@@ -15,7 +15,7 @@ object Settings extends Dependencies {
   val FunctionalTest: Configuration = config("fun") extend Test describedAs "Runs only functional tests"
 
   private val commonSettings = Seq(
-    organization := "io.subfibers",
+    organization := "io.branchtalk",
 
     scalaOrganization  := scalaOrganizationUsed,
     scalaVersion       := scalaVersionUsed,
@@ -195,7 +195,7 @@ object Settings extends Dependencies {
     def setDescription(newDescription: String): Project = project.settings(description := newDescription)
 
     def setInitialImport(newInitialCommand: String*): Project =
-      project.settings(initialCommands := s"import ${("io.subfibers._" +: newInitialCommand).mkString(", ")}")
+      project.settings(initialCommands := s"import ${("io.branchtalk._" +: newInitialCommand).mkString(", ")}")
   }
 
   implicit final class RootConfigurator(project: Project) {
