@@ -136,8 +136,8 @@ object Settings extends Dependencies {
 
     libraryDependencies ++= mainDeps,
 
-    addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
-    addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full),
+    addCompilerPlugin(Dependencies.betterMonadicFor),
+    addCompilerPlugin(Dependencies.kindProjector),
 
     Compile / scalafmtOnCompile := true,
 

@@ -3,7 +3,6 @@ package io.branchtalk.discussions.models
 import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models.{ FastEq, ID, OptionUpdatable, ShowPretty, Updatable }
-import io.branchtalk.users.models.User
 
 trait ChannelCommands { self: Channel.type =>
   type Create = ChannelCommands.Create

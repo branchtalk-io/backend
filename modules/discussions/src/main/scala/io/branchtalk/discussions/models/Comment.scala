@@ -3,7 +3,6 @@ package io.branchtalk.discussions.models
 import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models._
-import io.branchtalk.users.models.User
 
 @Semi(FastEq, ShowPretty) final case class Comment(
   id:   ID[Comment],

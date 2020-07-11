@@ -3,7 +3,6 @@ package io.branchtalk.discussions.models
 import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models.{ FastEq, ID, ShowPretty, Updatable }
-import io.branchtalk.users.models.User
 
 trait PostCommands { self: Post.type =>
   type Create = PostCommands.Create

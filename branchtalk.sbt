@@ -6,20 +6,14 @@ lazy val root =
     .setName("branchtalk")
     .setDescription("branchtalk build")
     .configureRoot
-    .aggregate(derivation, common, infrastructure, domains, persistence)
-
-val derivation = project
-  .from("derivation")
-  .setName("derivation")
-  .setDescription("Derivation helpers")
-  .configureModule
-  .settings(libraryDependencies += "io.scalaland" %% "catnip" % "1.0.0")
+    .aggregate(common, infrastructure, discussions, discussionsApi, persistence)
 
 val common = project
   .from("common")
   .setName("common")
   .setDescription("Common utilities")
   .configureModule
+  .settings(libraryDependencies += Dependencies.catnip)
   .settings(
     Compile / resourceGenerators += task[Seq[File]] {
       val file = (Compile / resourceManaged).value / "branchtalk-version.conf"
@@ -27,7 +21,6 @@ val common = project
       Seq(file)
     }
   )
-  .dependsOn(derivation)
 
 val infrastructure = project
   .from("infrastructure")
@@ -48,12 +41,27 @@ val infrastructure = project
   )
   .dependsOn(common)
 
-val domains = project
-  .from("domains")
-  .setName("domains")
-  .setDescription("Domains definitions")
+val discussions = project
+  .from("discussions")
+  .setName("discussions")
+  .setDescription("Discussions' published language")
   .configureModule
   .configureTests()
+  .dependsOn(common)
+
+val discussionsApi = project
+  .from("discussions-api")
+  .setName("discussionsApi")
+  .setDescription("Discussions' API")
+  .configureModule
+  .configureTests()
+  .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.tapir,
+      Dependencies.tapirJsoniter,
+      Dependencies.jsoniterMacro
+    )
+  )
   .dependsOn(common)
 
 val persistence = project
@@ -62,7 +70,7 @@ val persistence = project
   .setDescription("Writes projections and Reads queries")
   .configureModule
   .configureTests()
-  .dependsOn(domains, infrastructure)
+  .dependsOn(infrastructure, discussions)
 
 addCommandAlias("fullTest", ";test")
 addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate")

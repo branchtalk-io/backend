@@ -22,6 +22,7 @@ object Dependencies {
   val monocleVersion    = "2.0.5"
   val refinedVersion    = "0.9.14"
   val specs2Version     = "4.10.0"
+  val tapirVersion      = "0.16.1"
 
   // resolvers
   val resolvers = Seq(
@@ -29,9 +30,16 @@ object Dependencies {
     Resolver typesafeRepo "releases"
   )
 
+  // compiler plugins
+  val betterMonadicFor = "com.olegpy" %% "better-monadic-for" % "0.3.1"
+  val kindProjector    = "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
   // functional libraries
+  val catnip            = "io.scalaland" %% "catnip" % "1.0.0"
   val cats              = "org.typelevel" %% "cats-core" % catsVersion
+  val catsFree          = "org.typelevel" %% "cats-free" % catsVersion
   val catsEffect        = "org.typelevel" %% "cats-effect" % catsEffectVersion
+  val alleycats         = "org.typelevel" %% "alleycats-core" % catsVersion
+  val kittens           = "org.typelevel" %% "kittens" % "2.1.0"
   val catsLaws          = "org.typelevel" %% "cats-laws" % catsVersion
   val chimney           = "io.scalaland" %% "chimney" % "0.5.2"
   val droste            = "io.higherkindness" %% "droste-core" % drosteVersion
@@ -57,6 +65,10 @@ object Dependencies {
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
   val flyway         = "org.flywaydb" % "flyway-core" % "6.5.0"
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.0.0"
+  // API
+  val tapir         = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
+  val tapirJsoniter = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
+  val jsoniterMacro  = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.4.0" % "compile-internal"
   // config
   val decline     = "com.monovore" %% "decline" % declineVersion
   val scalaConfig = "com.typesafe" % "config" % "1.4.0"
@@ -80,7 +92,10 @@ trait Dependencies {
 
   val mainDeps = Seq(
     cats,
+    catsFree,
     catsEffect,
+    alleycats,
+    kittens,
     chimney,
     enumeratum,
     magnolia,

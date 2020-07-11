@@ -3,9 +3,8 @@ package io.branchtalk.discussions.events
 import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.discussions.models.Channel
+import io.branchtalk.discussions.models.{ Channel, User }
 import io.branchtalk.shared.models._
-import io.branchtalk.users.models.User
 
 @Semi(FastEq, ShowPretty) sealed trait ChannelCommandEvent extends ADT
 object ChannelCommandEvent {

@@ -4,9 +4,8 @@ import cats.Eq
 import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.discussions.models.Post
+import io.branchtalk.discussions.models.{ Post, User }
 import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty, Updatable }
-import io.branchtalk.users.models.User
 
 @Semi(FastEq, ShowPretty) sealed trait PostCommandEvent extends ADT
 object PostCommandEvent {
