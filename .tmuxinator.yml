@@ -37,7 +37,7 @@ pre_window:
 # attach: false
 
 windows:
-  - subfibers:
+  - branchtalk:
       root: .
       layout: main-horizontal
       panes:
