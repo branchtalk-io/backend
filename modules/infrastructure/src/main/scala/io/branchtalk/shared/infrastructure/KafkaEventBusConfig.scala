@@ -4,11 +4,11 @@ import cats.data.NonEmptyList
 import cats.effect.Sync
 import cats.implicits._
 import fs2.kafka._
+import io.scalaland.catnip.Semi
 import pureconfig._
 import pureconfig.module.cats._
-import pureconfig.generic.semiauto._
 
-final case class KafkaEventBusConfig(
+@Semi(ConfigReader) final case class KafkaEventBusConfig(
   servers: NonEmptyList[Server],
   topic:   Topic
 ) {
@@ -22,8 +22,4 @@ final case class KafkaEventBusConfig(
     ProducerSettings(Serializer[F, K], Serializer[F, V]).withBootstrapServers(
       servers.map { case Server(host, port) => s"${host.value}:${port.value.toString}" }.intercalate(",")
     )
-}
-object KafkaEventBusConfig {
-
-  implicit val configReader: ConfigReader[KafkaEventBusConfig] = deriveReader[KafkaEventBusConfig]
 }

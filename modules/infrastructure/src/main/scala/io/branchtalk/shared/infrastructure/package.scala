@@ -14,7 +14,7 @@ package object infrastructure {
 
   @newtype final case class DomainName(value: NonEmptyString)
   object DomainName {
-    implicit val configReader: ConfigReader[DomainName] = ConfigReader[NonEmptyString].coerce[ConfigReader[DomainName]]
+    implicit val configReader: ConfigReader[DomainName] = ConfigReader[NonEmptyString].coerce
   }
 
   type EventBusProducer[F[_], Key, Event] = Pipe[F, (Key, Event), ProducerResult[Key, Event, Unit]]
@@ -22,45 +22,37 @@ package object infrastructure {
 
   @newtype final case class DatabaseURL(value: NonEmptyString)
   object DatabaseURL {
-    implicit val configReader: ConfigReader[DatabaseURL] =
-      ConfigReader[NonEmptyString].coerce[ConfigReader[DatabaseURL]]
+    implicit val configReader: ConfigReader[DatabaseURL] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabaseUsername(value: NonEmptyString)
   object DatabaseUsername {
-    implicit val configReader: ConfigReader[DatabaseUsername] =
-      ConfigReader[NonEmptyString].coerce[ConfigReader[DatabaseUsername]]
+    implicit val configReader: ConfigReader[DatabaseUsername] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabasePassword(value: NonEmptyString) {
     override def toString: String = "[PASSWORD]"
   }
   object DatabasePassword {
-    implicit val configReader: ConfigReader[DatabasePassword] =
-      ConfigReader[NonEmptyString].coerce[ConfigReader[DatabasePassword]]
+    implicit val configReader: ConfigReader[DatabasePassword] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabaseSchema(value: NonEmptyString)
   object DatabaseSchema {
-    implicit val configReader: ConfigReader[DatabaseSchema] =
-      ConfigReader[NonEmptyString].coerce[ConfigReader[DatabaseSchema]]
+    implicit val configReader: ConfigReader[DatabaseSchema] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabaseDomain(value: NonEmptyString)
   object DatabaseDomain {
-    implicit val configReader: ConfigReader[DatabaseDomain] =
-      ConfigReader[NonEmptyString].coerce[ConfigReader[DatabaseDomain]]
+    implicit val configReader: ConfigReader[DatabaseDomain] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabaseConnectionPool(value: Int Refined Positive)
   object DatabaseConnectionPool {
-    implicit val configReader: ConfigReader[DatabaseConnectionPool] =
-      ConfigReader[Int Refined Positive].coerce[ConfigReader[DatabaseConnectionPool]]
+    implicit val configReader: ConfigReader[DatabaseConnectionPool] = ConfigReader[Int Refined Positive].coerce
   }
   @newtype final case class DatabaseMigrationOnStart(value: Boolean)
   object DatabaseMigrationOnStart {
-    implicit val configReader: ConfigReader[DatabaseMigrationOnStart] =
-      ConfigReader[Boolean].coerce[ConfigReader[DatabaseMigrationOnStart]]
+    implicit val configReader: ConfigReader[DatabaseMigrationOnStart] = ConfigReader[Boolean].coerce
   }
 
   @newtype final case class Topic(value: NonEmptyString)
   object Topic {
-    implicit val configReader: ConfigReader[Topic] =
-      ConfigReader[NonEmptyString].coerce[ConfigReader[Topic]]
+    implicit val configReader: ConfigReader[Topic] = ConfigReader[NonEmptyString].coerce
   }
 }

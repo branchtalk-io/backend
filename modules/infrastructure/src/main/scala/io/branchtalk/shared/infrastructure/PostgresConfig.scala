@@ -1,9 +1,9 @@
 package io.branchtalk.shared.infrastructure
 
+import io.scalaland.catnip.Semi
 import pureconfig._
-import pureconfig.generic.semiauto._
 
-final case class PostgresConfig(
+@Semi(ConfigReader) final case class PostgresConfig(
   url:              DatabaseURL,
   username:         DatabaseUsername,
   password:         DatabasePassword,
@@ -12,7 +12,3 @@ final case class PostgresConfig(
   connectionPool:   DatabaseConnectionPool,
   migrationOnStart: DatabaseMigrationOnStart
 )
-object PostgresConfig {
-
-  implicit val configReader: ConfigReader[PostgresConfig] = deriveReader[PostgresConfig]
-}
