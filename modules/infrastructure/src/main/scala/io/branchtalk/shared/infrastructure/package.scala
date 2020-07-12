@@ -12,13 +12,13 @@ import pureconfig._
 
 package object infrastructure {
 
+  type EventBusProducer[F[_], Key, Event] = Pipe[F, (Key, Event), ProducerResult[Key, Event, Unit]]
+  type EventBusConsumer[F[_], Key, Event] = Stream[F, CommittableConsumerRecord[F, Key, Event]]
+
   @newtype final case class DomainName(value: NonEmptyString)
   object DomainName {
     implicit val configReader: ConfigReader[DomainName] = ConfigReader[NonEmptyString].coerce
   }
-
-  type EventBusProducer[F[_], Key, Event] = Pipe[F, (Key, Event), ProducerResult[Key, Event, Unit]]
-  type EventBusConsumer[F[_], Key, Event] = Stream[F, CommittableConsumerRecord[F, Key, Event]]
 
   @newtype final case class DatabaseURL(value: NonEmptyString)
   object DatabaseURL {

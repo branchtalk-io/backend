@@ -15,10 +15,10 @@ final case class DiscussionsReads[F[_]](
 )
 
 final case class DiscussionsWrites[F[_]](
-  commentRepository: CommentWrites[F],
-  postRepository:    PostWrites[F],
-  channelRepository: ChannelWrites[F],
-  runProjector:      F[(F[Unit], F[Unit])]
+  commentWrites: CommentWrites[F],
+  postWrites:    PostWrites[F],
+  channelWrites: ChannelWrites[F],
+  runProjector:  F[(F[Unit], F[Unit])]
 )
 
 object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommandEvent] {
