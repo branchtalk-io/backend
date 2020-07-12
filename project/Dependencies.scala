@@ -20,6 +20,7 @@ object Dependencies {
   val libGDXVersion     = "1.9.10"
   val monixVersion      = "3.2.2"
   val monocleVersion    = "2.0.5"
+  val pureConfigVersion = "0.13.0"
   val refinedVersion    = "0.9.14"
   val specs2Version     = "4.10.0"
   val tapirVersion      = "0.16.1"
@@ -67,12 +68,14 @@ object Dependencies {
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.0.0"
   // API
   val tapir         = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
+  val tapirHttp4s   = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
   val tapirJsoniter = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
-  val jsoniterMacro  = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.4.0" % "compile-internal"
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.4.0" % "compile-internal"
   // config
-  val decline     = "com.monovore" %% "decline" % declineVersion
-  val scalaConfig = "com.typesafe" % "config" % "1.4.0"
-  val pureConfig  = "com.github.pureconfig" %% "pureconfig" % "0.13.0"
+  val decline        = "com.monovore" %% "decline" % declineVersion
+  val scalaConfig    = "com.typesafe" % "config" % "1.4.0"
+  val pureConfig     = "com.github.pureconfig" %% "pureconfig" % pureConfigVersion
+  val pureConfigCats = "com.github.pureconfig" %% "pureconfig-cats" % pureConfigVersion
   // logging
   val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
   val logback      = "ch.qos.logback" % "logback-classic" % "1.2.3"
@@ -104,8 +107,6 @@ trait Dependencies {
     newtype,
     refined,
     refinedCats,
-    refinedDecline,
-    refinedPureConfig,
     scalaLogging,
     logback
   )

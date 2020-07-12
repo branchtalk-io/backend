@@ -6,7 +6,7 @@ lazy val root =
     .setName("branchtalk")
     .setDescription("branchtalk build")
     .configureRoot
-    .aggregate(common, infrastructure, discussions, discussionsApi, persistence)
+    .aggregate(common, infrastructure, discussions, discussionsApi, persistence, application)
 
 val common = project
   .from("common")
@@ -36,7 +36,10 @@ val infrastructure = project
       Dependencies.flyway,
       Dependencies.fs2,
       Dependencies.fs2IO,
-      Dependencies.fs2Kafka
+      Dependencies.fs2Kafka,
+      Dependencies.pureConfig,
+      Dependencies.pureConfigCats,
+      Dependencies.refinedPureConfig
     )
   )
   .dependsOn(common)
@@ -71,6 +74,23 @@ val persistence = project
   .configureModule
   .configureTests()
   .dependsOn(infrastructure, discussions)
+
+val application = project
+  .from("app")
+  .setName("app")
+  .setDescription("Backend application")
+  .configureModule
+  .configureTests()
+  .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.decline,
+      Dependencies.refinedDecline,
+      Dependencies.monixExecution,
+      Dependencies.monixEval,
+      Dependencies.tapirHttp4s
+    )
+  )
+  .dependsOn(persistence, discussionsApi)
 
 addCommandAlias("fullTest", ";test")
 addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate")
