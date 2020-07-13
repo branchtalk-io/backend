@@ -24,7 +24,7 @@ object Arguments {
   def parse[F[_]: Sync](args: List[String], env: Map[String, String]): F[Arguments] =
     Sync[F]
       .delay {
-        Command(name = "branchtalk", header = "") {
+        Command(name = "branchtalk", header = "Starts backend server with selected services runnings") {
           monolith.map(_ => Arguments(runApi = true, runDiscussionsProjections = true)).orElse {
             (runApi.orFalse, runDiscussionsWrites.orFalse).mapN(Arguments.apply)
           }
