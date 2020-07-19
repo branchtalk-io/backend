@@ -5,6 +5,8 @@ import cats.implicits._
 import com.monovore.decline._
 
 final case class Arguments(
+  host:                      String  = "localhost",
+  port:                      Int     = 8080,
   runApi:                    Boolean = false,
   runDiscussionsProjections: Boolean = false
 )
@@ -21,12 +23,16 @@ object Arguments {
               short = "d",
               help  = "Have this instance run Discussions write model projections")
 
+  // TODO: parse host-port
+
   def parse[F[_]: Sync](args: List[String], env: Map[String, String]): F[Arguments] =
     Sync[F]
       .delay {
         Command(name = "branchtalk", header = "Starts backend server with selected services runnings") {
           monolith.map(_ => Arguments(runApi = true, runDiscussionsProjections = true)).orElse {
-            (runApi.orFalse, runDiscussionsWrites.orFalse).mapN(Arguments.apply)
+            (runApi.orFalse, runDiscussionsWrites.orFalse).mapN { (runApi, runDiscussionsProjections) =>
+              Arguments(runApi = runApi, runDiscussionsProjections = runDiscussionsProjections)
+            }
           }
         }.parse(args, env)
       }

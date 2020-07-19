@@ -1,8 +1,10 @@
 package io.branchtalk.discussions.api
 
+import cats.effect.IO
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.ADT
+import io.branchtalk.shared.models.UUID
 import sttp.tapir._
 import sttp.tapir.json.jsoniter._
 
@@ -31,10 +33,37 @@ object posts { // scalastyle:ignore
     implicit val codec: JsonValueCodec[CreatePostResponse] = JsonCodecMaker.make[CreatePostResponse]
   }
 
-  val create: Endpoint[CreatePostRequest, PostErrors, CreatePostResponse, Nothing] =
-    endpoint
-      .in("discussions" / "post")
+  val create: Endpoint[(UUID, CreatePostRequest), PostErrors, CreatePostResponse, Nothing] =
+    endpoint.post
+      .in("discussions" / "post" / path[UUID])
       .in(jsonBody[CreatePostRequest])
       .out(jsonBody[CreatePostResponse])
+      .errorOut(jsonBody[PostErrors])
+
+  final case class UpdatePostRequest()
+  object UpdatePostRequest {
+    implicit val codec: JsonValueCodec[UpdatePostRequest] = JsonCodecMaker.make[UpdatePostRequest]
+  }
+  final case class UpdatePostResponse()
+  object UpdatePostResponse {
+    implicit val codec: JsonValueCodec[UpdatePostResponse] = JsonCodecMaker.make[UpdatePostResponse]
+  }
+
+  val update: Endpoint[(UUID, UpdatePostRequest), PostErrors, UpdatePostResponse, Nothing] =
+    endpoint.put
+      .in("discussions" / "post" / path[UUID])
+      .in(jsonBody[UpdatePostRequest])
+      .out(jsonBody[UpdatePostResponse])
+      .errorOut(jsonBody[PostErrors])
+
+  final case class DeletePostResponse()
+  object DeletePostResponse {
+    implicit val codec: JsonValueCodec[DeletePostResponse] = JsonCodecMaker.make[DeletePostResponse]
+  }
+
+  val delete: Endpoint[UUID, PostErrors, DeletePostResponse, Nothing] =
+    endpoint.put
+      .in("discussions" / "post" / path[UUID])
+      .out(jsonBody[DeletePostResponse])
       .errorOut(jsonBody[PostErrors])
 }

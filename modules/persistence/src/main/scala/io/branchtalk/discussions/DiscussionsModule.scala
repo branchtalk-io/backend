@@ -18,7 +18,7 @@ final case class DiscussionsWrites[F[_]](
   commentWrites: CommentWrites[F],
   postWrites:    PostWrites[F],
   channelWrites: ChannelWrites[F],
-  runProjector:  F[(F[Unit], F[Unit])]
+  runProjector:  Resource[F, F[Unit]]
 )
 
 object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommandEvent] {
@@ -48,18 +48,20 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
           )
           .reduce
 
-        val runProjector = KillSwitch[F].map {
-          case KillSwitch(stream, switch) =>
-            internalConsumer
-              .zip(stream)
-              .flatMap {
-                case (event, _) =>
-                  Stream(event.record.value).through(projector).through(publisher).map(_ => event)
-              }
-              .evalMap(event => event.offset.commit)
-              .compile
-              .drain -> switch
-        }
+        val runProjector = projectorAsResource(
+          KillSwitch[F].map {
+            case KillSwitch(stream, switch) =>
+              internalConsumer
+                .zip(stream)
+                .flatMap {
+                  case (event, _) =>
+                    Stream(event.record.value).through(projector).through(publisher).map(_ => event)
+                }
+                .evalMap(event => event.offset.commit)
+                .compile
+                .drain -> switch
+          }
+        )
 
         DiscussionsWrites(commentRepository, postRepository, channelRepository, runProjector)
     }

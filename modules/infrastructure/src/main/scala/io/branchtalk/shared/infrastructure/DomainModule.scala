@@ -1,6 +1,8 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
+import cats.{ Applicative, Functor }
+import cats.implicits._
 import doobie.util.transactor.Transactor
 import fs2.kafka.{ Deserializer, Serializer }
 import io.branchtalk.shared.models.UUID
@@ -44,4 +46,7 @@ trait DomainModule[Event, InternalEvent] {
       internalConsumer  = KafkaEventBus.consumer[F, UUID, InternalEvent](domainConfig.internalEventBus)
       publisher         = KafkaEventBus.producer[F, UUID, Event](domainConfig.publishedEventBus)
     } yield WritesInfrastructure(transactor, internalPublisher, internalConsumer, publisher)
+
+  protected def projectorAsResource[F[_]: Applicative](projector: F[(F[Unit], F[Unit])]): Resource[F, F[Unit]] =
+    Resource.make(projector)(_._2).map(_._1)
 }
