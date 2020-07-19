@@ -11,6 +11,7 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.Uuid
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
+import io.scalaland.chimney.Transformer
 
 package object models {
 
