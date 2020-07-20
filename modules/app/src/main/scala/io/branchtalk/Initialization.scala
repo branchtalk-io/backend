@@ -1,76 +1,85 @@
 package io.branchtalk
 
 import cats.implicits._
-import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Fiber, Resource, Sync, Timer }
+import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.shared.infrastructure.DomainConfig
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
-import pureconfig.{ ConfigReader, ConfigSource }
 
 import scala.concurrent.ExecutionContext
-import scala.reflect.ClassTag
 
 object Initialization {
 
-  def getEnv[F[_]: Sync]: F[Map[String, String]] = Sync[F].delay(sys.env)
+  // TODO: use some logger
 
-  def getConfig[F[_]: Sync, A: ConfigReader: ClassTag](at: String): F[A] =
-    Sync[F].delay(ConfigSource.defaultApplication.at(at).loadOrThrow[A])
-
-  def conditionalResource[F[_]: Concurrent, A](
-    boolean: Boolean
-  )(default: => A)(resource: Resource[F, A]): Resource[F, A] =
-    if (boolean) resource else Resource.pure[F, A](default)
-
-  def initialize[F[_]: ConcurrentEffect: ContextShift: Timer](arguments: Arguments)(
-    discussionsReads:  DiscussionsReads[F],
-    discussionsWrites: DiscussionsWrites[F]
-  ): F[Unit] = {
-    val api = conditionalResource(arguments.runApi)(()) {
-      // TODO: refactor this
-      // TODO: also swagger?
-      val postServer = new PostServer[F](discussionsWrites.postWrites)
-      val httpApp    = postServer.postRoutes.orNotFound
-
-      val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global)
-        .bindHttp(port = arguments.port, host = arguments.host)
-        .withHttpApp(httpApp)
-
-      serverBuilder.resource.void
-    }
-
-    val discussionsProjections = conditionalResource(arguments.runDiscussionsProjections)(().pure[F]) {
-      discussionsWrites.runProjector
-    }
-
-    (api, discussionsProjections).tupled.use {
-      case (_, startDiscussions) =>
-        for {
-          discussionsFiber <- startDiscussions.start
-          _ <- Async[F].never[Unit] // TODO: replace with some nice kill switch, e.g. Ctrl+C or Ctrl+D
-          _ <- discussionsFiber.join
-        } yield ()
-    }
-  }
-
-  def run[F[_]: ConcurrentEffect: ContextShift: Timer](args: List[String]): F[ExitCode] =
+  def runApplication[F[_]: ConcurrentEffect: ContextShift: Timer](args: List[String]): F[ExitCode] =
     (for {
-      env <- getEnv[F]
-      arguments <- Arguments.parse[F](args, env)
-      discussionsConfig <- getConfig[F, DomainConfig]("discussions")
+      env <- Configuration.getEnv[F]
+      appConfig <- AppConfig.parse[F](args, env)
+      discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
       _ <- (
         DiscussionsModule.reads[F](discussionsConfig),
         DiscussionsModule.writes[F](discussionsConfig)
-      ).tupled.use((initialize[F](arguments) _).tupled)
+      ).tupled.use((runModules[F](appConfig, awaitTerminationSignal[F]) _).tupled)
     } yield ExitCode.Success).handleError {
-      case Arguments.ParsingError(help) =>
-        println(help.toString())
-        ExitCode.Error
+      case AppConfig.NoConfig(help) =>
+        // scalastyle:off regex
+        if (help.errors.nonEmpty) {
+          println("Invalid arguments:")
+          println(help.errors.map("  " + _).intercalate("\n"))
+          ExitCode.Error
+        } else {
+          println(help.toString())
+          ExitCode.Success
+        }
+      // scalastyle:on regex
       case error: Throwable =>
         error.printStackTrace()
         ExitCode.Error
     }
+
+  def runModules[F[_]: ConcurrentEffect: ContextShift: Timer](appConfig: AppConfig, terminationSignal: F[Unit])(
+    discussionsReads:  DiscussionsReads[F],
+    discussionsWrites: DiscussionsWrites[F]
+  ): F[Unit] =
+    Sync[F].delay(println("Initializing services")) >> // scalastyle:ignore
+      (
+        conditionalResource(appConfig.runApi)(())(runApi[F](appConfig)(discussionsReads, discussionsWrites)),
+        conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
+      ).tupled.use {
+        case (_, startDiscussions) =>
+          for {
+            discussionsFiber <- startDiscussions.start
+            _ = println("Services initialized") // scalastyle:ignore
+            _ <- terminationSignal // here we are blocking until e.g. user press Ctrl+D or Ctrl+C
+            _ = println("Received exit signal") // scalastyle:ignore
+            _ <- discussionsFiber.join
+          } yield println("Shut down services") // scalastyle:ignore
+      }
+
+  private def runApi[F[_]: ConcurrentEffect: ContextShift: Timer](
+    appConfig:        AppConfig
+  )(discussionsReads: DiscussionsReads[F], discussionsWrites: DiscussionsWrites[F]): Resource[F, Unit] = {
+    // TODO: refactor this
+    // TODO: also swagger?
+    val postServer = new PostServer[F](discussionsWrites.postWrites)
+    val httpApp    = postServer.postRoutes.orNotFound
+
+    val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global) // TODO: configure some thread pool for HTTP
+      .bindHttp(port = appConfig.port, host = appConfig.host)
+      .withHttpApp(httpApp)
+
+    serverBuilder.resource.void
+  }
+
+  // TODO: replace with some nice kill switch, e.g. Ctrl+C or Ctrl+D
+  private def awaitTerminationSignal[F[_]: Async]: F[Unit] = Async[F].never[Unit]
+
+  private def conditionalResource[F[_]: Concurrent, A](
+    boolean: Boolean
+  )(default: => A)(resource: Resource[F, A]): Resource[F, A] =
+    if (boolean) resource else Resource.pure[F, A](default)
 }
