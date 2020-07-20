@@ -1,12 +1,16 @@
 import sbt._
 import Settings._
 
-lazy val root =
-  project.root
-    .setName("branchtalk")
-    .setDescription("branchtalk build")
-    .configureRoot
-    .aggregate(common, infrastructure, discussions, discussionsApi, persistence, application)
+lazy val root = project.root
+  .setName("branchtalk")
+  .setDescription("branchtalk build")
+  .configureRoot
+  .aggregate(common, commonInfrastructure, commonApi, discussions, discussionsApi, discussionsImpl, application)
+
+addCommandAlias("fullTest", ";test")
+addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate")
+
+// commons
 
 val common = project
   .from("common")
@@ -22,9 +26,9 @@ val common = project
     }
   )
 
-val infrastructure = project
-  .from("infrastructure")
-  .setName("infrastructure")
+val commonInfrastructure = project
+  .from("common-infrastructure")
+  .setName("common-infrastructure")
   .setDescription("Infrastructure-dependent implementations")
   .configureModule
   .configureTests()
@@ -44,6 +48,22 @@ val infrastructure = project
   )
   .dependsOn(common)
 
+val commonApi = project
+  .from("common-api")
+  .setName("common-api")
+  .setDescription("Infrastructure-dependent implementations")
+  .configureModule
+  .configureTests()
+  .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.tapir,
+      Dependencies.tapirJsoniter
+    )
+  )
+  .dependsOn(common)
+
+// discussions
+
 val discussions = project
   .from("discussions")
   .setName("discussions")
@@ -54,31 +74,31 @@ val discussions = project
 
 val discussionsApi = project
   .from("discussions-api")
-  .setName("discussionsApi")
-  .setDescription("Discussions' API")
+  .setName("discussions-api")
+  .setDescription("Discussions' HTTP API")
   .configureModule
   .configureTests()
   .settings(
     libraryDependencies ++= Seq(
-      Dependencies.tapir,
-      Dependencies.tapirJsoniter,
       Dependencies.jsoniterMacro
     )
   )
-  .dependsOn(common)
+  .dependsOn(commonApi)
 
-val persistence = project
-  .from("persistence")
-  .setName("persistence")
-  .setDescription("Writes projections and Reads queries")
+val discussionsImpl = project
+  .from("discussions-impl")
+  .setName("discussions-impl")
+  .setDescription("Discussions' Reads, Writes and Services' implementations")
   .configureModule
   .configureTests()
-  .dependsOn(infrastructure, discussions)
+  .dependsOn(commonInfrastructure, discussions)
+
+// application
 
 val application = project
   .from("app")
   .setName("app")
-  .setDescription("Backend application")
+  .setDescription("Branchtalk backend application and business logic")
   .configureModule
   .configureTests()
   .settings(
@@ -90,7 +110,4 @@ val application = project
       Dependencies.tapirHttp4s
     )
   )
-  .dependsOn(persistence, discussionsApi)
-
-addCommandAlias("fullTest", ";test")
-addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate")
+  .dependsOn(discussionsImpl, discussionsApi)
