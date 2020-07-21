@@ -1,5 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
+import cats.Show
+import cats.implicits._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.pureconfig._
@@ -11,3 +13,6 @@ import pureconfig._
   host: NonEmptyString,
   port: Int Refined Positive
 )
+object Server {
+  implicit def show: Show[Server] = (s: Server) => s"${s.host.value}:${s.port.value.show}"
+}

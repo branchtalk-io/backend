@@ -1,7 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
-import eu.timepit.refined.{ pureconfig => _, _ }
 import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.refineV
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
 import pureconfig.ConfigReader
