@@ -31,7 +31,7 @@ val commonInfrastructure = project
   .setName("common-infrastructure")
   .setDescription("Infrastructure-dependent implementations")
   .configureModule
-  .configureTests()
+  .configureIntegrationTests()
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.doobie,
