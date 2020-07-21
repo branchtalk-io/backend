@@ -17,7 +17,12 @@ val common = project
   .setName("common")
   .setDescription("Common utilities")
   .configureModule
-  .settings(libraryDependencies += Dependencies.catnip)
+  .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.catnip
+    ),
+    customPredef("cats.implicits")
+  )
   .settings(
     Compile / resourceGenerators += task[Seq[File]] {
       val file = (Compile / resourceManaged).value / "branchtalk-version.conf"
@@ -44,7 +49,8 @@ val commonInfrastructure = project
       Dependencies.pureConfig,
       Dependencies.pureConfigCats,
       Dependencies.refinedPureConfig
-    )
+    ),
+    customPredef("cats.implicits")
   )
   .dependsOn(common)
 
@@ -58,7 +64,8 @@ val commonApi = project
     libraryDependencies ++= Seq(
       Dependencies.tapir,
       Dependencies.tapirJsoniter
-    )
+    ),
+    customPredef("cats.implicits")
   )
   .dependsOn(common)
 
@@ -70,6 +77,9 @@ val discussions = project
   .setDescription("Discussions' published language")
   .configureModule
   .configureTests()
+  .settings(
+    customPredef("cats.implicits")
+  )
   .dependsOn(common)
 
 val discussionsApi = project
@@ -81,7 +91,8 @@ val discussionsApi = project
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniterMacro
-    )
+    ),
+    customPredef("cats.implicits")
   )
   .dependsOn(commonApi)
 
@@ -91,6 +102,9 @@ val discussionsImpl = project
   .setDescription("Discussions' Reads, Writes and Services' implementations")
   .configureModule
   .configureTests()
+  .settings(
+    customPredef("cats.implicits")
+  )
   .dependsOn(commonInfrastructure, discussions)
 
 // application
@@ -108,6 +122,7 @@ val application = project
       Dependencies.monixExecution,
       Dependencies.monixEval,
       Dependencies.tapirHttp4s
-    )
+    ),
+    customPredef("cats.implicits")
   )
   .dependsOn(discussionsImpl, discussionsApi)

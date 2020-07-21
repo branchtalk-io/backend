@@ -3,7 +3,6 @@ package io.branchtalk.discussions.models
 import java.net.URI
 
 import cats.{ Order, Show }
-import cats.implicits._
 import eu.timepit.refined.types.string.NonEmptyString
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi

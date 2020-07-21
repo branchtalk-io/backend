@@ -1,7 +1,6 @@
 package io.branchtalk.discussions.events
 
 import cats.Eq
-import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
 import io.branchtalk.discussions.models.{ Post, User }

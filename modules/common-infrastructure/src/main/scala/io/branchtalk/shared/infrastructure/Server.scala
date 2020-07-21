@@ -1,7 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.Show
-import cats.implicits._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.pureconfig._

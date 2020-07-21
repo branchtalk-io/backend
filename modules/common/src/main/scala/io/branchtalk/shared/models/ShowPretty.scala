@@ -1,7 +1,6 @@
 package io.branchtalk.shared.models
 
 import cats.Show
-import cats.implicits._
 import magnolia._
 
 import scala.language.experimental.macros

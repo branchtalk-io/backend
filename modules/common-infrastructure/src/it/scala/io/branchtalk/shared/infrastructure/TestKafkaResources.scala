@@ -1,7 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ Resource, Sync }
-import cats.implicits._
 import org.apache.kafka.clients.admin.{ AdminClient, AdminClientConfig }
 
 import scala.jdk.CollectionConverters._

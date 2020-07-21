@@ -1,7 +1,6 @@
 package io.branchtalk.shared.models
 
 import cats.Eq
-import cats.implicits._
 import io.branchtalk.ADT
 
 sealed trait Updatable[+A] extends ADT {

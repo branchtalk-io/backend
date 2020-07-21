@@ -1,7 +1,6 @@
 package io.branchtalk.discussions.writes
 
 import cats.effect.{ Sync, Timer }
-import cats.implicits._
 import doobie._
 import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ ChannelCommandEvent, DiscussionCommandEvent }

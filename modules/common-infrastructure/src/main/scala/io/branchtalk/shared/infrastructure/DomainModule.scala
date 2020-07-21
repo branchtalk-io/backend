@@ -1,8 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
-import cats.{ Applicative, Functor }
-import cats.implicits._
+import cats.Applicative
 import doobie.util.transactor.Transactor
 import fs2.kafka.{ Deserializer, Serializer }
 import io.branchtalk.shared.models.UUID

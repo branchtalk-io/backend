@@ -1,7 +1,6 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.{ ContextShift, Sync }
-import cats.implicits._
 import io.branchtalk.discussions.api.posts.{ PostErrors, SessionID }
 import io.branchtalk.discussions.models.Post
 import io.branchtalk.discussions.writes.PostWrites

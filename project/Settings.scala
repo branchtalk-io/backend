@@ -1,4 +1,4 @@
-import sbt._
+import sbt.{ Def, _ }
 import sbt.Keys._
 import sbt.TestFrameworks.Specs2
 import sbt.Tests.Argument
@@ -16,9 +16,8 @@ object Settings extends Dependencies {
 
   private val commonSettings = Seq(
     organization := "io.branchtalk",
-
-    scalaOrganization  := scalaOrganizationUsed,
-    scalaVersion       := scalaVersionUsed,
+    scalaOrganization := scalaOrganizationUsed,
+    scalaVersion := scalaVersionUsed,
     crossScalaVersions := crossScalaVersionsUsed
   )
 
@@ -28,7 +27,8 @@ object Settings extends Dependencies {
     scalacOptions ++= Seq(
       // standard settings
       "-target:jvm-1.8",
-      "-encoding", "UTF-8",
+      "-encoding",
+      "UTF-8",
       "-unchecked",
       "-deprecation",
       "-explaintypes",
@@ -40,7 +40,8 @@ object Settings extends Dependencies {
       "-language:postfixOps",
       // private options
       "-Xexperimental",
-      "-Ybackend-parallelism", "8",
+      "-Ybackend-parallelism",
+      "8",
       "-Ymacro-annotations",
       "-Yno-adapted-args",
       "-Ypartial-unification",
@@ -80,37 +81,44 @@ object Settings extends Dependencies {
       "-Xlint:type-parameter-shadow",
       "-Xlint:unsound-match"
     ).filterNot(
-      (if (scalaVersion.value.startsWith("2.13")) Set(
-        // removed in 2.13.x
-        "-Yno-adapted-args",
-        "-Ypartial-unification",
-        "-Ywarn-inaccessible",
-        "-Ywarn-infer-any",
-        "-Ywarn-nullary-override",
-        "-Ywarn-nullary-unit",
-        "-Xlint:by-name-right-associative",
-        "-Xlint:nullary-override",
-        "-Xlint:unsound-match",
-        "-Xfuture",
-        // only for 2.11.x
-        "-Xexperimental"
-      ) else if (scalaVersion.value.startsWith("2.12")) Set(
-        // added in 2.13.x
-        "-Ymacro-annotations",
-        // only for 2.11.x
-        "-Xexperimental"
-      ) else if (scalaVersion.value.startsWith("2.11")) Set(
-        // added in 2.13.x
-        "-Ymacro-annotations",
-        // added in 2.12.x
-        "-Ybackend-parallelism", "8",
-        "-Ywarn-extra-implicit",
-        "-Ywarn-macros:after",
-        "-Ywarn-unused:implicits",
-        "-Ywarn-unused:patvars",
-        "-Ywarn-unused:privates",
-        "-Xlint:constant"
-      ) else Set.empty[String]).contains _
+      (if (scalaVersion.value.startsWith("2.13"))
+         Set(
+           // removed in 2.13.x
+           "-Yno-adapted-args",
+           "-Ypartial-unification",
+           "-Ywarn-inaccessible",
+           "-Ywarn-infer-any",
+           "-Ywarn-nullary-override",
+           "-Ywarn-nullary-unit",
+           "-Xlint:by-name-right-associative",
+           "-Xlint:nullary-override",
+           "-Xlint:unsound-match",
+           "-Xfuture",
+           // only for 2.11.x
+           "-Xexperimental"
+         )
+       else if (scalaVersion.value.startsWith("2.12"))
+         Set(
+           // added in 2.13.x
+           "-Ymacro-annotations",
+           // only for 2.11.x
+           "-Xexperimental"
+         )
+       else if (scalaVersion.value.startsWith("2.11"))
+         Set(
+           // added in 2.13.x
+           "-Ymacro-annotations",
+           // added in 2.12.x
+           "-Ybackend-parallelism",
+           "8",
+           "-Ywarn-extra-implicit",
+           "-Ywarn-macros:after",
+           "-Ywarn-unused:implicits",
+           "-Ywarn-unused:patvars",
+           "-Ywarn-unused:privates",
+           "-Xlint:constant"
+         )
+       else Set.empty[String]).contains _
     ),
     console / scalacOptions --= Seq(
       // warnings
@@ -125,22 +133,15 @@ object Settings extends Dependencies {
       // linting
       "-Xlint"
     ),
-
     Global / cancelable := true,
-
     Compile / trapExit := false,
     Compile / connectInput := true,
     Compile / outputStrategy := Some(StdoutOutput),
-
     resolvers ++= commonResolvers,
-
     libraryDependencies ++= mainDeps,
-
     addCompilerPlugin(Dependencies.betterMonadicFor),
     addCompilerPlugin(Dependencies.kindProjector),
-
     Compile / scalafmtOnCompile := true,
-
     Compile / compile / wartremoverWarnings ++= Warts.allBut(
       Wart.Any,
       Wart.DefaultArguments,
@@ -154,38 +155,55 @@ object Settings extends Dependencies {
     )
   )
 
+  def customPredef(imports: String*): Def.Setting[Task[Seq[String]]] =
+    scalacOptions += s"-Yimports:${(Seq("java.lang", "scala", "scala.Predef") ++ imports).mkString(",")}"
+
   implicit final class RunConfigurator(project: Project) {
 
-    def configureRun(main: String): Project = project
-      .settings(inTask(assembly)(Seq(
-        assemblyJarName := s"${name.value}.jar",
-        assemblyMergeStrategy := {
-          case strategy => MergeStrategy.defaultMergeStrategy(strategy)
-        },
-        mainClass := Some(main)
-      )))
-      .settings(Compile / run / mainClass := Some(main))
+    def configureRun(main: String): Project =
+      project
+        .settings(
+          inTask(assembly)(
+            Seq(
+              assemblyJarName := s"${name.value}.jar",
+              assemblyMergeStrategy := {
+                case strategy => MergeStrategy.defaultMergeStrategy(strategy)
+              },
+              mainClass := Some(main)
+            )
+          )
+        )
+        .settings(Compile / run / mainClass := Some(main))
   }
 
   sealed abstract class TestConfigurator(project: Project, config: Configuration) {
 
-    protected def configure(requiresFork: Boolean): Project = project
-      .configs(config)
-      .settings(inConfig(config)(Defaults.testSettings): _*)
-      .settings(inConfig(config)(scalafmtConfigSettings))
-      .settings(inConfig(config)(Seq(
-        scalafmtOnCompile := true,
-        fork := requiresFork,
-        testFrameworks := Seq(Specs2)
-      )))
-      .settings(libraryDependencies ++= testDeps map (_ % config.name))
-      .enablePlugins(ScoverageSbtPlugin)
+    protected def configure(requiresFork: Boolean): Project =
+      project
+        .configs(config)
+        .settings(inConfig(config)(Defaults.testSettings): _*)
+        .settings(inConfig(config)(scalafmtConfigSettings))
+        .settings(
+          inConfig(config)(
+            Seq(
+              scalafmtOnCompile := true,
+              fork := requiresFork,
+              testFrameworks := Seq(Specs2)
+            )
+          )
+        )
+        .settings(libraryDependencies ++= testDeps map (_ % config.name))
+        .enablePlugins(ScoverageSbtPlugin)
 
-    protected def configureSequential(requiresFork: Boolean): Project = configure(requiresFork)
-      .settings(inConfig(config)(Seq(
-        testOptions += Argument(Specs2, "sequential"),
-        parallelExecution  := false
-      )))
+    protected def configureSequential(requiresFork: Boolean): Project =
+      configure(requiresFork).settings(
+        inConfig(config)(
+          Seq(
+            testOptions += Argument(Specs2, "sequential"),
+            parallelExecution := false
+          )
+        )
+      )
   }
 
   implicit final class DataConfigurator(project: Project) {
@@ -222,7 +240,8 @@ object Settings extends Dependencies {
     def configureFunctionalTestsSequential(requiresFork: Boolean = false): Project = configureSequential(requiresFork)
   }
 
-  implicit final class IntegrationTestConfigurator(project: Project) extends TestConfigurator(project, IntegrationTest) {
+  implicit final class IntegrationTestConfigurator(project: Project)
+      extends TestConfigurator(project, IntegrationTest) {
 
     def configureIntegrationTests(requiresFork: Boolean = false): Project = configure(requiresFork)
 

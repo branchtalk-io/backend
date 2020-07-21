@@ -1,7 +1,6 @@
 package io.branchtalk.discussions.models
 
 import cats.{ Eq, Show }
-import cats.implicits._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.NonNegative
 import io.estatico.newtype.macros.newtype

@@ -1,7 +1,6 @@
 package io.branchtalk.discussions.writes
 
 import cats.effect.Sync
-import cats.implicits._
 import doobie.Transactor
 import fs2.Stream
 import io.scalaland.chimney.dsl._

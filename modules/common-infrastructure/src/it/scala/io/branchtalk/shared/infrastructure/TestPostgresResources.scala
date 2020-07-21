@@ -1,7 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ Async, Blocker, ContextShift, Resource }
-import cats.implicits._
 import doobie._
 import doobie.implicits._
 

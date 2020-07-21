@@ -1,7 +1,6 @@
 package io.branchtalk
 
 import cats.effect.Sync
-import cats.implicits._
 import com.monovore.decline._
 
 final case class AppConfig(

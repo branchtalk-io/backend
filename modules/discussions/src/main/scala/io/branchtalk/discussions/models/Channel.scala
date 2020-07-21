@@ -1,6 +1,5 @@
 package io.branchtalk.discussions.models
 
-import cats.implicits._
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty }
 

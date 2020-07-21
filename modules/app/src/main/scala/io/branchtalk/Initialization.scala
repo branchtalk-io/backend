@@ -1,6 +1,5 @@
 package io.branchtalk
 
-import cats.implicits._
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
 import io.branchtalk.discussions.api.PostServer

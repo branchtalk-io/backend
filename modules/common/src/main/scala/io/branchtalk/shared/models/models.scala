@@ -5,13 +5,11 @@ import java.time.format.DateTimeFormatter
 import java.util.{ UUID => jUUID }
 
 import cats.effect.{ Clock, Sync }
-import cats.implicits._
 import cats.{ Eq, Functor, Order, Show }
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.Uuid
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
-import io.scalaland.chimney.Transformer
 
 package object models {
 

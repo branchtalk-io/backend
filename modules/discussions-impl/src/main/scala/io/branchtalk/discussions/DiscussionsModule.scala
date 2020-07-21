@@ -2,7 +2,6 @@ package io.branchtalk.discussions
 
 import cats.data.NonEmptyList
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
-import cats.implicits._
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent }
 import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._

@@ -1,6 +1,5 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.implicits._
 import cats.Monoid
 import fs2._
 
