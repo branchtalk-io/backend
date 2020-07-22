@@ -19,9 +19,10 @@ val common = project
   .configureModule
   .settings(
     libraryDependencies ++= Seq(
-      Dependencies.catnip
+      Dependencies.catnip,
+      Dependencies.sourcecode
     ),
-    customPredef("cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .settings(
     Compile / resourceGenerators += task[Seq[File]] {
@@ -53,7 +54,7 @@ val commonInfrastructure = project
       Dependencies.pureConfigCats,
       Dependencies.refinedPureConfig
     ),
-    customPredef("cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(common)
 
@@ -68,7 +69,7 @@ val commonApi = project
       Dependencies.tapir,
       Dependencies.tapirJsoniter
     ),
-    customPredef("cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(common)
 
@@ -81,7 +82,7 @@ val discussions = project
   .configureModule
   .configureTests()
   .settings(
-    customPredef("cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(common)
 
@@ -95,7 +96,7 @@ val discussionsApi = project
     libraryDependencies ++= Seq(
       Dependencies.jsoniterMacro
     ),
-    customPredef("cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(commonApi)
 
@@ -106,7 +107,7 @@ val discussionsImpl = project
   .configureModule
   .configureTests()
   .settings(
-    customPredef("cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(commonInfrastructure, discussions)
 
@@ -126,6 +127,6 @@ val application = project
       Dependencies.monixEval,
       Dependencies.tapirHttp4s
     ),
-    customPredef("cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(discussionsImpl, discussionsApi)

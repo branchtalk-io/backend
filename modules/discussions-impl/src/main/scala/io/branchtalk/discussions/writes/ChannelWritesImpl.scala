@@ -1,18 +1,18 @@
 package io.branchtalk.discussions.writes
 
 import cats.effect.{ Sync, Timer }
-import doobie._
 import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ ChannelCommandEvent, DiscussionCommandEvent }
 import io.branchtalk.discussions.models.Channel
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.models._
 
-final class ChannelWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, UUID, DiscussionCommandEvent])
-    extends Writes[F, Channel, DiscussionCommandEvent](publisher)
+final class ChannelWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, UUID, DiscussionCommandEvent])(
+  implicit uuidGenerator: UUIDGenerator
+) extends Writes[F, Channel, DiscussionCommandEvent](publisher)
     with ChannelWrites[F] {
 
-  override def createTopic(newChannel: Channel.Create): F[CreationScheduled[Channel]] =
+  override def createChannel(newChannel: Channel.Create): F[CreationScheduled[Channel]] =
     for {
       id <- UUID.create[F].map(ID[Channel])
       now <- CreationTime.now[F]
@@ -24,7 +24,7 @@ final class ChannelWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, 
       _ <- postEvent(id, DiscussionCommandEvent.ForChannel(command))
     } yield CreationScheduled(id)
 
-  override def updateTopic(updatedChannel: Channel.Update): F[UpdateScheduled[Channel]] =
+  override def updateChannel(updatedChannel: Channel.Update): F[UpdateScheduled[Channel]] =
     for {
       id <- updatedChannel.id.pure[F]
       now <- ModificationTime.now[F]
@@ -32,10 +32,17 @@ final class ChannelWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, 
       _ <- postEvent(id, DiscussionCommandEvent.ForChannel(command))
     } yield UpdateScheduled(id)
 
-  override def deleteTopic(deletedChannel: Channel.Delete): F[DeletionScheduled[Channel]] =
+  override def deleteChannel(deletedChannel: Channel.Delete): F[DeletionScheduled[Channel]] =
     for {
       id <- deletedChannel.id.pure[F]
       command = deletedChannel.into[ChannelCommandEvent.Delete].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForChannel(command))
     } yield DeletionScheduled(id)
+
+  override def restoreChannel(restoredChannel: Channel.Restore): F[RestoreScheduled[Channel]] =
+    for {
+      id <- restoredChannel.id.pure[F]
+      command = restoredChannel.into[ChannelCommandEvent.Restore].transform
+      _ <- postEvent(id, DiscussionCommandEvent.ForChannel(command))
+    } yield RestoreScheduled(id)
 }

@@ -1,6 +1,6 @@
 package io.branchtalk.shared.models
 
-import cats.Eq
+import cats.{ Eq, Functor }
 import io.branchtalk.ADT
 
 sealed trait Updatable[+A] extends ADT {
@@ -21,4 +21,5 @@ object Updatable {
 
   implicit def show[A: ShowPretty]: ShowPretty[Updatable[A]] = ShowPretty.semi
   implicit def eq[A:   Eq]:         Eq[Updatable[A]]         = FastEq.semi
+  implicit val functor: Functor[Updatable] = cats.derived.semi.functor[Updatable]
 }

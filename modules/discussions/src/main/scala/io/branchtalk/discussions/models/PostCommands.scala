@@ -7,13 +7,17 @@ trait PostCommands { self: Post.type =>
   type Create = PostCommands.Create
   type Update = PostCommands.Update
   type Delete = PostCommands.Delete
+  val Create = PostCommands.Create
+  val Update = PostCommands.Update
+  val Delete = PostCommands.Delete
 }
 object PostCommands {
 
   @Semi(FastEq, ShowPretty) final case class Create(
-    authorID: ID[User],
-    title:    Post.Title,
-    content:  Post.Content
+    authorID:  ID[User],
+    channelID: ID[Channel],
+    title:     Post.Title,
+    content:   Post.Content
   )
 
   @Semi(FastEq, ShowPretty) final case class Update(
@@ -24,6 +28,11 @@ object PostCommands {
   )
 
   @Semi(FastEq, ShowPretty) final case class Delete(
+    id:       ID[Post],
+    editorID: ID[User]
+  )
+
+  @Semi(FastEq, ShowPretty) final case class Restore(
     id:       ID[Post],
     editorID: ID[User]
   )

@@ -5,6 +5,7 @@ import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent }
 import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._
+import io.branchtalk.shared.models._
 import io.branchtalk.shared.infrastructure._
 import fs2._
 import _root_.io.branchtalk.discussions.reads.ChannelReads
@@ -22,7 +23,9 @@ final case class DiscussionsWrites[F[_]](
 
 object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommandEvent] {
 
-  def reads[F[_]: ConcurrentEffect: ContextShift: Timer](domainConfig: DomainConfig): Resource[F, DiscussionsReads[F]] =
+  def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
+    domainConfig: DomainConfig
+  ): Resource[F, DiscussionsReads[F]] =
     setupReads[F](domainConfig).map {
       case ReadsInfrastructure(transactor, _) =>
         val channelReads: ChannelReads[F] = new ChannelReadsImpl[F](transactor)
@@ -31,8 +34,8 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
     }
 
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
-    domainConfig: DomainConfig
-  ): Resource[F, DiscussionsWrites[F]] =
+    domainConfig:           DomainConfig
+  )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
     setupWrites[F](domainConfig).map {
       case WritesInfrastructure(transactor, internalPublisher, internalConsumer, publisher) =>
         val commentRepository: CommentWrites[F] = new CommentWritesImpl[F](internalPublisher)

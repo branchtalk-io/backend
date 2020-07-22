@@ -24,6 +24,11 @@
   * [ ] kafka events
   * [ ] docker and IT test setup
   * [ ] tests
+* [ ] somewhere
+  * [ ] subscriptions per user
+  * [ ] upvotes/downvotes
+  * [ ] moderation
+  * [ ] channel/post/comment history
 * [ ] application
   * [ ] monitoring
     * [ ] SQL

@@ -46,6 +46,7 @@ object Dependencies {
   val chimney           = "io.scalaland" %% "chimney" % "0.5.2"
   val droste            = "io.higherkindness" %% "droste-core" % drosteVersion
   val enumeratum        = "com.beachape" %% "enumeratum" % enumeratumVersion
+  val fastuuid          = "com.eatthepath" % "fast-uuid" % "0.1"
   val fs2               = "co.fs2" %% "fs2-core" % fs2Version
   val fs2IO             = "co.fs2" %% "fs2-io" % fs2Version
   val magnolia          = "com.propensive" %% "magnolia" % "0.16.0"
@@ -61,6 +62,9 @@ object Dependencies {
   val monixEval      = "io.monix" %% "monix-eval" % monixVersion
   val monixBio       = "io.monix" %% "monix-bio" % "0.1.0"
   // infrastructure
+  val avro4s         = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
+  val avro4sCats     = "com.sksamuel.avro4s" %% "avro4s-cats" % avro4sVersion
+  val avro4sRefined  = "com.sksamuel.avro4s" %% "avro4s-refined" % avro4sVersion
   val doobie         = "org.tpolecat" %% "doobie-core" % doobieVersion
   val doobieHikari   = "org.tpolecat" %% "doobie-hikari" % doobieVersion
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
@@ -69,9 +73,6 @@ object Dependencies {
   val flyway         = "org.flywaydb" % "flyway-core" % "6.5.0"
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.0.0"
   // API
-  val avro4s        = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
-  val avro4sCats    = "com.sksamuel.avro4s" %% "avro4s-cats" % avro4sVersion
-  val avro4sRefined = "com.sksamuel.avro4s" %% "avro4s-refined" % avro4sVersion
   val tapir         = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
   val tapirHttp4s   = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
   val tapirJsoniter = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
@@ -84,6 +85,7 @@ object Dependencies {
   // logging
   val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
   val logback      = "ch.qos.logback" % "logback-classic" % "1.2.3"
+  val sourcecode   = "com.lihaoyi" %% "sourcecode" % "0.2.1"
   // testing
   val spec2Core       = "org.specs2" %% "specs2-core" % specs2Version
   val spec2Scalacheck = "org.specs2" %% "specs2-scalacheck" % specs2Version
@@ -106,6 +108,7 @@ trait Dependencies {
     kittens,
     chimney,
     enumeratum,
+    fastuuid,
     magnolia,
     monocle,
     monocleMacro,

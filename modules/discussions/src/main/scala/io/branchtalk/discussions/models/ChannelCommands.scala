@@ -4,9 +4,10 @@ import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models.{ FastEq, ID, OptionUpdatable, ShowPretty, Updatable }
 
 trait ChannelCommands { self: Channel.type =>
-  type Create = ChannelCommands.Create
-  type Update = ChannelCommands.Update
-  type Delete = ChannelCommands.Delete
+  type Create  = ChannelCommands.Create
+  type Update  = ChannelCommands.Update
+  type Delete  = ChannelCommands.Delete
+  type Restore = ChannelCommands.Restore
 }
 object ChannelCommands {
 
@@ -18,14 +19,19 @@ object ChannelCommands {
   )
 
   @Semi(FastEq, ShowPretty) final case class Update(
-    id:          ID[Channel],
-    editorID:    ID[User],
-    urlName:     Updatable[Channel.UrlName],
-    name:        Updatable[Channel.Name],
-    description: OptionUpdatable[Channel.Description]
+    id:             ID[Channel],
+    editorID:       ID[User],
+    newUrlName:     Updatable[Channel.UrlName],
+    newName:        Updatable[Channel.Name],
+    newDescription: OptionUpdatable[Channel.Description]
   )
 
   @Semi(FastEq, ShowPretty) final case class Delete(
+    id:       ID[Channel],
+    editorID: ID[User]
+  )
+
+  @Semi(FastEq, ShowPretty) final case class Restore(
     id:       ID[Channel],
     editorID: ID[User]
   )

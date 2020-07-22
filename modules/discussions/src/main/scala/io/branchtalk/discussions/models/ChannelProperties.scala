@@ -10,6 +10,9 @@ trait ChannelProperties { self: Channel.type =>
   type UrlName     = ChannelProperties.UrlName
   type Name        = ChannelProperties.Name
   type Description = ChannelProperties.Description
+  val UrlName     = ChannelProperties.UrlName
+  val Name        = ChannelProperties.Name
+  val Description = ChannelProperties.Description
 }
 object ChannelProperties {
 

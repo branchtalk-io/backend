@@ -53,9 +53,9 @@ final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
   def toUpdate(event: ChannelCommandEvent.Update): F[(UUID, ChannelEvent.Updated)] =
     (NonEmptyList
       .of(
-        event.urlName.toUpdateFragment(fr"url_name"),
-        event.name.toUpdateFragment(fr"name"),
-        event.description.toUpdateFragment(fr"description")
+        event.newUrlName.toUpdateFragment(fr"url_name"),
+        event.newName.toUpdateFragment(fr"name"),
+        event.newDescription.toUpdateFragment(fr"description")
       )
       .sequence match {
       case Some(updates) =>

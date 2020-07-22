@@ -5,6 +5,7 @@ import cats.effect.implicits._
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.shared.infrastructure.DomainConfig
+import io.branchtalk.shared.models.UUIDGenerator
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 
@@ -13,6 +14,8 @@ import scala.concurrent.ExecutionContext
 object Initialization {
 
   // TODO: use some logger
+
+  private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
   def runApplication[F[_]: ConcurrentEffect: ContextShift: Timer](args: List[String]): F[ExitCode] =
     (for {

@@ -9,6 +9,8 @@ import io.estatico.newtype.ops._
 trait CommentProperties { self: Comment.type =>
   type Content      = CommentProperties.Content
   type NestingLevel = CommentProperties.NestingLevel
+  val Content      = CommentProperties.Content
+  val NestingLevel = CommentProperties.NestingLevel
 }
 object CommentProperties {
 

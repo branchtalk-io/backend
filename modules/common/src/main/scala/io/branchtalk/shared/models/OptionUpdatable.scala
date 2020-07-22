@@ -1,6 +1,6 @@
 package io.branchtalk.shared.models
 
-import cats.Eq
+import cats.{ Eq, Functor }
 
 sealed trait OptionUpdatable[+A] {
 
@@ -23,4 +23,5 @@ object OptionUpdatable {
 
   implicit def show[A: ShowPretty]: ShowPretty[OptionUpdatable[A]] = ShowPretty.semi
   implicit def eq[A:   Eq]:         Eq[OptionUpdatable[A]]         = FastEq.semi
+  implicit val functor: Functor[OptionUpdatable] = cats.derived.semi.functor[OptionUpdatable]
 }

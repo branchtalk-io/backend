@@ -16,10 +16,12 @@ package object models {
   type UUID = jUUID
   object UUID {
 
-    def apply(string: String Refined Uuid): UUID = jUUID.fromString(string.value)
-    // TODO: use some UUIDGen type class which could use e.g. time-based UUID generation
-    def create[F[_]: Sync]: F[UUID] = Sync[F].delay(jUUID.randomUUID())
-    def parse[F[_]:  Sync](string: String): F[UUID] = Sync[F].delay(jUUID.fromString(string))
+    def apply(string: String Refined Uuid)(implicit uuidGenerator: UUIDGenerator): UUID =
+      uuidGenerator(string)
+    def create[F[_]: Sync](implicit uuidGenerator: UUIDGenerator): F[UUID] =
+      uuidGenerator.create[F]
+    def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[UUID] =
+      uuidGenerator.parse[F](string)
   }
 
   @newtype final case class ID[+Entity](value: UUID)
@@ -68,5 +70,11 @@ package object models {
     implicit def show[Entity]: Show[DeletionScheduled[Entity]] =
       (t: DeletionScheduled[Entity]) => s"DeletionScheduled(${t.id.show})"
     implicit def eq[Entity]: Eq[DeletionScheduled[Entity]] = /*_*/ Eq[ID[Entity]].coerce /*_*/
+  }
+  @newtype final case class RestoreScheduled[Entity](id: ID[Entity])
+  object RestoreScheduled {
+    implicit def show[Entity]: Show[RestoreScheduled[Entity]] =
+      (t: RestoreScheduled[Entity]) => s"RestoreScheduled(${t.id.show})"
+    implicit def eq[Entity]: Eq[RestoreScheduled[Entity]] = /*_*/ Eq[ID[Entity]].coerce /*_*/
   }
 }

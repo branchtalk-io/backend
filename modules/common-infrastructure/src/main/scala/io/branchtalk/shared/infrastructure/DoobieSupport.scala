@@ -1,8 +1,11 @@
 package io.branchtalk.shared.infrastructure
 
+import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.shared.models.{ OptionUpdatable, Updatable }
+import io.branchtalk.shared.models.{ CodePosition, CommonError, ID, OptionUpdatable, Updatable }
 import io.estatico.newtype.Coercible
+
+import scala.reflect.runtime.universe.TypeTag
 
 object DoobieSupport
     extends doobie.Aliases // basic functionalities
@@ -23,8 +26,19 @@ object DoobieSupport
     with doobie.util.meta.MetaConstructors // Java Time extensions
     with doobie.util.meta.TimeMetaInstances {
 
+  // enumeratum automatic support
+
+  implicit def enumeratumMeta[A <: enumeratum.EnumEntry](
+    implicit enum: enumeratum.Enum[A],
+    typeTag:       TypeTag[A]
+  ): Meta[A] =
+    Meta[String].timap(enum.withNameInsensitive)(_.entryName)
+
   // newtype automatic support
+
   implicit def coercibleMeta[R, N](implicit ev: Coercible[Meta[R], Meta[N]], R: Meta[R]): Meta[N] = ev(R)
+
+  // handle updateable
 
   implicit class DoobieUpdatableOps[A](private val updatable: Updatable[A]) extends AnyVal {
 
@@ -37,6 +51,16 @@ object DoobieSupport
     def toUpdateFragment(columnName: Fragment)(implicit meta: Put[A]): Option[Fragment] =
       updatable.fold(value => (columnName ++ fr"= ${value}").some, (columnName ++ fr"= null").some, none[Fragment])
   }
+
+  // handle errors
+
+  implicit class QueryOps[A](private val query: Query0[A]) extends AnyVal {
+
+    def failNotFound(entity: String, id: ID[_])(implicit codePosition: CodePosition): ConnectionIO[A] =
+      query.unique.onUniqueViolation(Sync[ConnectionIO].raiseError(CommonError.NotFound(entity, id, codePosition)))
+  }
+
+  // log results
 
   def doobieLogger(clazz: Class[_]): LogHandler = {
     val logger = Logger(clazz)

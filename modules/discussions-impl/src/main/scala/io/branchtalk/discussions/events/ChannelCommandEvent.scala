@@ -20,12 +20,12 @@ object ChannelCommandEvent {
   ) extends ChannelCommandEvent
 
   @Semi(FastEq, ShowPretty) final case class Update(
-    id:          ID[Channel],
-    editorID:    ID[User],
-    urlName:     Updatable[Channel.UrlName],
-    name:        Updatable[Channel.Name],
-    description: OptionUpdatable[Channel.Description],
-    modifiedAt:  ModificationTime
+    id:             ID[Channel],
+    editorID:       ID[User],
+    newUrlName:     Updatable[Channel.UrlName],
+    newName:        Updatable[Channel.Name],
+    newDescription: OptionUpdatable[Channel.Description],
+    modifiedAt:     ModificationTime
   ) extends ChannelCommandEvent
 
   @Semi(FastEq, ShowPretty) final case class Delete(

@@ -11,6 +11,7 @@ object PostEvent {
   @Semi(FastEq, ShowPretty) final case class Created(
     id:        ID[Post],
     authorID:  ID[User],
+    urlTitle:  Post.UrlTitle,
     title:     Post.Title,
     content:   Post.Content,
     createdAt: CreationTime
@@ -25,6 +26,11 @@ object PostEvent {
   ) extends PostEvent
 
   @Semi(FastEq, ShowPretty) final case class Deleted(
+    id:       ID[Post],
+    editorID: ID[User]
+  ) extends PostEvent
+
+  @Semi(FastEq, ShowPretty) final case class Restored(
     id:       ID[Post],
     editorID: ID[User]
   ) extends PostEvent
