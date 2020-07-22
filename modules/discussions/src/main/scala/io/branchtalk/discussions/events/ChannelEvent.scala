@@ -30,4 +30,9 @@ object ChannelEvent {
     id:       ID[Channel],
     editorID: ID[User]
   ) extends ChannelEvent
+
+  @Semi(FastEq, ShowPretty) final case class Restored(
+    id:       ID[Channel],
+    editorID: ID[User]
+  ) extends ChannelEvent
 }

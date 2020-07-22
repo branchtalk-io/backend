@@ -10,6 +10,7 @@ object Dependencies {
   val crossScalaVersions = Seq("2.13.3")
 
   // libraries versions
+  val avro4sVersion     = "4.0.0-RC2"
   val catsVersion       = "2.1.1"
   val catsEffectVersion = "2.1.3"
   val declineVersion    = "1.2.0"
@@ -63,10 +64,14 @@ object Dependencies {
   val doobie         = "org.tpolecat" %% "doobie-core" % doobieVersion
   val doobieHikari   = "org.tpolecat" %% "doobie-hikari" % doobieVersion
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
+  val doobieRefined  = "org.tpolecat" %% "doobie-refined" % doobieVersion
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
   val flyway         = "org.flywaydb" % "flyway-core" % "6.5.0"
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.0.0"
   // API
+  val avro4s        = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
+  val avro4sCats    = "com.sksamuel.avro4s" %% "avro4s-cats" % avro4sVersion
+  val avro4sRefined = "com.sksamuel.avro4s" %% "avro4s-refined" % avro4sVersion
   val tapir         = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
   val tapirHttp4s   = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
   val tapirJsoniter = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion

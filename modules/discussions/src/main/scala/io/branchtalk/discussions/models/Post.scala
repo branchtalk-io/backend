@@ -3,6 +3,8 @@ package io.branchtalk.discussions.models
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models._
 
+// TODO: channelId
+
 @Semi(FastEq, ShowPretty) final case class Post(
   id:   ID[Post],
   data: Post.Data

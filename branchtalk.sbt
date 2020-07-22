@@ -39,9 +39,12 @@ val commonInfrastructure = project
   .configureIntegrationTests()
   .settings(
     libraryDependencies ++= Seq(
+      Dependencies.avro4s,
+      Dependencies.avro4sRefined,
       Dependencies.doobie,
       Dependencies.doobieHikari,
       Dependencies.doobiePostgres,
+      Dependencies.doobieRefined,
       Dependencies.flyway,
       Dependencies.fs2,
       Dependencies.fs2IO,
