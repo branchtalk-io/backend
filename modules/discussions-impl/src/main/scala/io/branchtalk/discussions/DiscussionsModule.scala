@@ -11,7 +11,9 @@ import fs2._
 import _root_.io.branchtalk.discussions.reads.ChannelReads
 
 final case class DiscussionsReads[F[_]](
-  channelReads: ChannelReads[F]
+  channelReads: ChannelReads[F],
+  postReads:    PostReads[F],
+  commentReads: CommentReads[F]
 )
 
 final case class DiscussionsWrites[F[_]](
@@ -29,8 +31,10 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
     setupReads[F](domainConfig).map {
       case ReadsInfrastructure(transactor, _) =>
         val channelReads: ChannelReads[F] = new ChannelReadsImpl[F](transactor)
+        val postReads:    PostReads[F]    = new PostReadsImpl[F](transactor)
+        val commentReads: CommentReads[F] = new CommentReadsImpl[F](transactor)
 
-        DiscussionsReads(channelReads)
+        DiscussionsReads(channelReads, postReads, commentReads)
     }
 
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
