@@ -2,7 +2,7 @@ package io.branchtalk.discussions.events
 
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.discussions.models.{ Post, User }
+import io.branchtalk.discussions.dao.{ Post, User }
 import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty, Updatable }
 
 @Semi(FastEq, ShowPretty) sealed trait PostCommandEvent extends ADT

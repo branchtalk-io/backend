@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.writes
 
-import io.branchtalk.discussions.models._
+import io.branchtalk.discussions.dao._
 import io.branchtalk.shared.models._
 
 trait PostWrites[F[_]] {

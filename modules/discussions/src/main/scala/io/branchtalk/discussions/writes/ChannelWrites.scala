@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.writes
 
-import io.branchtalk.discussions.models.Channel
+import io.branchtalk.discussions.dao.Channel
 import io.branchtalk.shared.models.{ CreationScheduled, DeletionScheduled, RestoreScheduled, UpdateScheduled }
 
 trait ChannelWrites[F[_]] {

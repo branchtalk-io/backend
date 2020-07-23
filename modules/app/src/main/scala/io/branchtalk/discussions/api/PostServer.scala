@@ -2,7 +2,7 @@ package io.branchtalk.discussions.api
 
 import cats.effect.{ ContextShift, Sync }
 import io.branchtalk.discussions.api.posts.{ PostErrors, SessionID }
-import io.branchtalk.discussions.models.Post
+import io.branchtalk.discussions.dao.Post
 import io.branchtalk.discussions.writes.PostWrites
 import io.branchtalk.shared.models.UUID
 import io.scalaland.chimney.dsl._

@@ -1,4 +1,4 @@
-package io.branchtalk.discussions.models
+package io.branchtalk.discussions.dao
 
 import cats.{ Eq, Show }
 import eu.timepit.refined.api.Refined

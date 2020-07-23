@@ -1,4 +1,4 @@
-package io.branchtalk.discussions.models
+package io.branchtalk.discussions.dao
 
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models._
@@ -11,7 +11,7 @@ object Comment extends CommentProperties with CommentCommands {
 
   @Semi(FastEq, ShowPretty) final case class Data(
     authorID:       ID[User],
-    commentedPost:  ID[Post],
+    postID:         ID[Post],
     content:        Comment.Content,
     replyTo:        Option[ID[Comment]],
     nestingLevel:   Comment.NestingLevel,

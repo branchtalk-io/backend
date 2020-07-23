@@ -3,7 +3,7 @@ package io.branchtalk.discussions.events
 import com.sksamuel.avro4s.SchemaFor
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.discussions.models.{ Channel, User }
+import io.branchtalk.discussions.dao.{ Channel, User }
 import io.branchtalk.shared.infrastructure.AvroSupport._
 import io.branchtalk.shared.models._
 

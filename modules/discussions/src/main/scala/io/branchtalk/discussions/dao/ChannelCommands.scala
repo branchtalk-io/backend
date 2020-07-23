@@ -1,4 +1,4 @@
-package io.branchtalk.discussions.models
+package io.branchtalk.discussions.dao
 
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models.{ FastEq, ID, OptionUpdatable, ShowPretty, Updatable }

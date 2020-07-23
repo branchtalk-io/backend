@@ -1,11 +1,12 @@
 package io.branchtalk.discussions.writes
 
-import io.branchtalk.discussions.models.Comment
-import io.branchtalk.shared.models.{ CreationScheduled, DeletionScheduled, UpdateScheduled }
+import io.branchtalk.discussions.dao.Comment
+import io.branchtalk.shared.models.{ CreationScheduled, DeletionScheduled, RestoreScheduled, UpdateScheduled }
 
 trait CommentWrites[F[_]] {
 
-  def createComment(newComment:     Comment.Create): F[CreationScheduled[Comment]]
-  def updateComment(updatedComment: Comment.Update): F[UpdateScheduled[Comment]]
-  def deleteComment(deletedComment: Comment.Delete): F[DeletionScheduled[Comment]]
+  def createComment(newComment:      Comment.Create):  F[CreationScheduled[Comment]]
+  def updateComment(updatedComment:  Comment.Update):  F[UpdateScheduled[Comment]]
+  def deleteComment(updatedComment:  Comment.Delete):  F[DeletionScheduled[Comment]]
+  def restoreComment(restoreComment: Comment.Restore): F[RestoreScheduled[Comment]]
 }

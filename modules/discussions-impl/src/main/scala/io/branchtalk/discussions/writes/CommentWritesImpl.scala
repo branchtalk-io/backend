@@ -3,7 +3,7 @@ package io.branchtalk.discussions.writes
 import cats.effect.{ Sync, Timer }
 import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ CommentCommandEvent, DiscussionCommandEvent }
-import io.branchtalk.discussions.models.Comment
+import io.branchtalk.discussions.dao.Comment
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.models._
 
@@ -38,4 +38,11 @@ final class CommentWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, 
       command = deletedComment.into[CommentCommandEvent.Delete].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForComment(command))
     } yield DeletionScheduled(id)
+
+  override def restoreComment(restoredComment: Comment.Restore): F[RestoreScheduled[Comment]] =
+    for {
+      id <- restoredComment.id.pure[F]
+      command = restoredComment.into[CommentCommandEvent.Restore].transform
+      _ <- postEvent(id, DiscussionCommandEvent.ForComment(command))
+    } yield RestoreScheduled(id)
 }

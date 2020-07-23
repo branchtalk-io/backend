@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.events
 
 import io.scalaland.catnip.Semi
-import io.branchtalk.discussions.models.{ Post, User }
+import io.branchtalk.discussions.dao.{ Post, User }
 import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty, Updatable }
 import io.branchtalk.ADT
 
