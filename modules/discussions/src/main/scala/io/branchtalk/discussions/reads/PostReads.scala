@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.reads
 
-import io.branchtalk.discussions.dao.{ Channel, Post }
+import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.models.ID
 
 trait PostReads[F[_]] {

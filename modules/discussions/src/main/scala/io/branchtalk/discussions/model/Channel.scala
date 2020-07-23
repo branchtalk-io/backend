@@ -1,4 +1,4 @@
-package io.branchtalk.discussions.dao
+package io.branchtalk.discussions.model
 
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty }

@@ -2,7 +2,7 @@ package io.branchtalk.discussions.events
 
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.discussions.dao.{ Channel, User }
+import io.branchtalk.discussions.model.{ Channel, User }
 import io.branchtalk.shared.models._
 
 @Semi(FastEq, ShowPretty) sealed trait ChannelEvent extends ADT

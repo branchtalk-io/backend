@@ -1,4 +1,4 @@
-package io.branchtalk.discussions.dao
+package io.branchtalk.discussions.model
 
 import io.branchtalk.shared.models.{ CreationTime, ID, ModificationTime }
 import io.scalaland.chimney.dsl._

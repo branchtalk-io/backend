@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.reads
 
 import cats.effect.Sync
-import io.branchtalk.discussions.dao.Channel
+import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.models
 

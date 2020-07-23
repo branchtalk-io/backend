@@ -3,7 +3,7 @@ package io.branchtalk.discussions.writes
 import cats.effect.{ Sync, Timer }
 import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ CommentCommandEvent, DiscussionCommandEvent }
-import io.branchtalk.discussions.dao.Comment
+import io.branchtalk.discussions.model.Comment
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.models._
 

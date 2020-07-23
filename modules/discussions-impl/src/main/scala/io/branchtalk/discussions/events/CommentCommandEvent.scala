@@ -1,11 +1,13 @@
 package io.branchtalk.discussions.events
 
+import com.sksamuel.avro4s.SchemaFor
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.discussions.dao.{ Comment, Post, User }
+import io.branchtalk.discussions.model.{ Comment, Post, User }
+import io.branchtalk.shared.infrastructure.AvroSupport._
 import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty, Updatable }
 
-@Semi(FastEq, ShowPretty) sealed trait CommentCommandEvent extends ADT
+@Semi(FastEq, ShowPretty, SchemaFor) sealed trait CommentCommandEvent extends ADT
 object CommentCommandEvent {
 
   @Semi(FastEq, ShowPretty) final case class Create(

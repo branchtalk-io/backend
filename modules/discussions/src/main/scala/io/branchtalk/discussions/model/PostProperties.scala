@@ -1,4 +1,4 @@
-package io.branchtalk.discussions.dao
+package io.branchtalk.discussions.model
 
 import java.net.URI
 

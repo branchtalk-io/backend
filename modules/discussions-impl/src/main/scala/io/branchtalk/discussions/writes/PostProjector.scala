@@ -6,7 +6,7 @@ import doobie.Transactor
 import fs2.Stream
 import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent, PostCommandEvent, PostEvent }
-import io.branchtalk.discussions.dao.Post
+import io.branchtalk.discussions.model.Post
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.models.UUID

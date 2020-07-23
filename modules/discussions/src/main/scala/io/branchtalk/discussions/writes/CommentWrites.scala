@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.writes
 
-import io.branchtalk.discussions.dao.Comment
+import io.branchtalk.discussions.model.Comment
 import io.branchtalk.shared.models.{ CreationScheduled, DeletionScheduled, RestoreScheduled, UpdateScheduled }
 
 trait CommentWrites[F[_]] {

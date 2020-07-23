@@ -1,5 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
+import java.net.URI
 import java.util
 
 import cats.data.{ NonEmptyList, NonEmptyVector }
@@ -88,4 +89,16 @@ object AvroSupport {
         case other => sys.error("Unsupported type " + other.toString)
       }
     }
+
+  // custom types
+
+  implicit val uriSchema: SchemaFor[URI] = SchemaFor[String].forType[URI]
+  implicit val uriEncoder: Encoder[URI] = new Encoder[URI] {
+    override def encode(value: URI): AnyRef = Encoder[String].encode(value.toString)
+    override def schemaFor: SchemaFor[URI] = uriSchema
+  }
+  implicit val uriDecoder: Decoder[URI] = new Decoder[URI] {
+    override def decode(value: Any): URI = URI.create(Decoder[String].decode(value))
+    override def schemaFor: SchemaFor[URI] = uriSchema
+  }
 }
