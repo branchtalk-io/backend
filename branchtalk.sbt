@@ -105,11 +105,12 @@ val discussionsImpl = project
   .setName("discussions-impl")
   .setDescription("Discussions' Reads, Writes and Services' implementations")
   .configureModule
-  .configureTests()
+  .configureIntegrationTests()
   .settings(
     customPredef("scala.util.chaining", "cats.implicits")
   )
-  .dependsOn(commonInfrastructure, discussions)
+  .compileAndTestDependsOn(commonInfrastructure)
+  .dependsOn(discussions)
 
 // application
 
