@@ -1,11 +1,11 @@
 # TODO
 
 * [ ] discussions domain
-  * [ ] models
+  * [x] models
   * [ ] API
-  * [ ] migrations
-  * [ ] SQL queries
-  * [ ] kafka events
+  * [x] migrations
+  * [x] SQL queries
+  * [x] kafka events
   * [ ] docker and IT test setup
   * [ ] tests
 * [ ] users domain
@@ -24,9 +24,10 @@
   * [ ] kafka events
   * [ ] docker and IT test setup
   * [ ] tests
-* [ ] somewhere
+* [ ] other domains
   * [ ] subscriptions per user
   * [ ] upvotes/downvotes
+  * [ ] notifications
   * [ ] moderation
   * [ ] channel/post/comment history
 * [ ] application
