@@ -43,3 +43,5 @@ CREATE TABLE SUBSCRIPTIONS (
   user_id UUID NOT NULL UNIQUE,
   channel_ids  UUID[] NOT NULL,
 );
+
+-- TODO: add upvotes/downvotes/total to posts and comments, create tables to trace them

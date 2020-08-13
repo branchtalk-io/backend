@@ -8,7 +8,7 @@ import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.models.UUIDGenerator
 import org.specs2.mutable.Specification
 
-class ChannelWritesSpec extends Specification with IOTest with ResourcefulTest {
+final class ChannelWritesSpec extends Specification with IOTest with ResourcefulTest {
 
   private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
@@ -16,7 +16,7 @@ class ChannelWritesSpec extends Specification with IOTest with ResourcefulTest {
   private var transactor:        Transactor[IO]        = null
   private var discussionsWrites: DiscussionsWrites[IO] = null
 
-  override def testResource: Resource[IO, Unit] =
+  override protected def testResource: Resource[IO, Unit] =
     for {
       domainCfg <- TestDiscussionsConfig.loadDomainConfig[IO]
       xa <- new PostgresDatabase(domainCfg.database).transactor[IO]

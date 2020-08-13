@@ -5,7 +5,7 @@ import org.specs2.specification.BeforeAfterAll
 
 trait ResourcefulTest extends BeforeAfterAll {
 
-  def testResource: Resource[IO, Unit] = Resource.pure[IO, Unit](())
+  protected def testResource: Resource[IO, Unit] = Resource.pure[IO, Unit](())
 
   private var release:      IO[Unit] = IO.unit
   override def beforeAll(): Unit     = release = testResource.allocated.unsafeRunSync()._2
