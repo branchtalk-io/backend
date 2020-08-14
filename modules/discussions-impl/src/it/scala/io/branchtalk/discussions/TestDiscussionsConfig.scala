@@ -30,9 +30,7 @@ object TestDiscussionsConfig {
     for {
       TestDiscussionsConfig(dbTestCfg, publishedESTestCfg, internalESTestCfg) <- TestDiscussionsConfig.load[F]
       dbCfg <- TestResources.postgresConfigResource[F](dbTestCfg)
-      publishedESCfg = null
-      internalESCfg  = null
-      //publishedESCfg <- TestResources.kafkaEventBusConfigResource[F](publishedESTestCfg)
-      //internalESCfg <- TestResources.kafkaEventBusConfigResource[F](internalESTestCfg)
+      publishedESCfg <- TestResources.kafkaEventBusConfigResource[F](publishedESTestCfg)
+      internalESCfg <- TestResources.kafkaEventBusConfigResource[F](internalESTestCfg)
     } yield DomainConfig(DomainName("discussions-test"), dbCfg, publishedESCfg, internalESCfg)
 }

@@ -1,4 +1,4 @@
-package io.branchtalk.shared.infrastructure
+package io.branchtalk.shared.models
 
 import java.net.URI
 import java.util
@@ -15,6 +15,16 @@ object AvroSupport {
 
   // newtype
 
+  implicit def coercibleDecoder[R, N](
+    implicit ev: Coercible[Decoder[R], Decoder[N]],
+    R:           Decoder[R]
+  ): Decoder[N] =
+    ev(R)
+  implicit def coercibleEncoder[R, N](
+    implicit ev: Coercible[Encoder[R], Encoder[N]],
+    R:           Encoder[R]
+  ): Encoder[N] =
+    ev(R)
   implicit def coercibleSchemaFor[R, N](
     implicit ev: Coercible[SchemaFor[R], SchemaFor[N]],
     R:           SchemaFor[R]

@@ -19,6 +19,8 @@ val common = project
   .configureModule
   .settings(
     libraryDependencies ++= Seq(
+      Dependencies.avro4s,
+      Dependencies.avro4sRefined,
       Dependencies.catnip,
       Dependencies.sourcecode
     ),
@@ -40,8 +42,6 @@ val commonInfrastructure = project
   .configureIntegrationTests()
   .settings(
     libraryDependencies ++= Seq(
-      Dependencies.avro4s,
-      Dependencies.avro4sRefined,
       Dependencies.doobie,
       Dependencies.doobieHikari,
       Dependencies.doobiePostgres,

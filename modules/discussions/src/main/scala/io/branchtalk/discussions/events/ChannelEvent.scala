@@ -1,14 +1,16 @@
 package io.branchtalk.discussions.events
 
+import com.sksamuel.avro4s._
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
 import io.branchtalk.discussions.model.{ Channel, User }
 import io.branchtalk.shared.models._
+import io.branchtalk.shared.models.AvroSupport._
 
-@Semi(FastEq, ShowPretty) sealed trait ChannelEvent extends ADT
+@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait ChannelEvent extends ADT
 object ChannelEvent {
 
-  @Semi(FastEq, ShowPretty) final case class Created(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Created(
     id:          ID[Channel],
     authorID:    ID[User],
     urlName:     Channel.UrlName,
@@ -17,7 +19,7 @@ object ChannelEvent {
     createdAt:   CreationTime
   ) extends ChannelEvent
 
-  @Semi(FastEq, ShowPretty) final case class Updated(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Updated(
     id:             ID[Channel],
     editorID:       ID[User],
     newUrlName:     Updatable[Channel.UrlName],
@@ -26,12 +28,12 @@ object ChannelEvent {
     modifiedAt:     ModificationTime
   ) extends ChannelEvent
 
-  @Semi(FastEq, ShowPretty) final case class Deleted(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Deleted(
     id:       ID[Channel],
     editorID: ID[User]
   ) extends ChannelEvent
 
-  @Semi(FastEq, ShowPretty) final case class Restored(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Restored(
     id:       ID[Channel],
     editorID: ID[User]
   ) extends ChannelEvent

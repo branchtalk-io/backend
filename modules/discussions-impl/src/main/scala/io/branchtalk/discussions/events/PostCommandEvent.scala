@@ -1,16 +1,16 @@
 package io.branchtalk.discussions.events
 
-import com.sksamuel.avro4s.SchemaFor
+import com.sksamuel.avro4s._
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
 import io.branchtalk.discussions.model.{ Post, User }
-import io.branchtalk.shared.infrastructure.AvroSupport._
-import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty, Updatable }
+import io.branchtalk.shared.models._
+import io.branchtalk.shared.models.AvroSupport._
 
-@Semi(FastEq, ShowPretty, SchemaFor) sealed trait PostCommandEvent extends ADT
+@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait PostCommandEvent extends ADT
 object PostCommandEvent {
 
-  @Semi(FastEq, ShowPretty) final case class Create(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Create(
     id:        ID[Post],
     authorID:  ID[User],
     urlTitle:  Post.UrlTitle,
@@ -19,7 +19,7 @@ object PostCommandEvent {
     createdAt: CreationTime
   ) extends PostCommandEvent
 
-  @Semi(FastEq, ShowPretty) final case class Update(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Update(
     id:          ID[Post],
     editorID:    ID[User],
     newUrlTitle: Updatable[Post.UrlTitle],
@@ -28,12 +28,12 @@ object PostCommandEvent {
     modifiedAt:  ModificationTime
   ) extends PostCommandEvent
 
-  @Semi(FastEq, ShowPretty) final case class Delete(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Delete(
     id:       ID[Post],
     editorID: ID[User]
   ) extends PostCommandEvent
 
-  @Semi(FastEq, ShowPretty) final case class Restore(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Restore(
     id:       ID[Post],
     editorID: ID[User]
   ) extends PostCommandEvent

@@ -12,11 +12,11 @@ trait TestPostgresResources extends TestResourcesHelpers {
   ): Resource[F, PostgresConfig] =
     Resource.liftF(generateRandomSuffix[F]).flatMap { randomSuffix =>
       val schemaCreator = Transactor.fromDriverManager[F](
-        classOf[org.postgresql.Driver].getName, // driver classname
-        testPostgresConfig.url.value.value, // connect URL (driver-specific)
-        "postgres", // user
-        testPostgresConfig.rootPassword.value.value, // password
-        Blocker.liftExecutionContext(ExecutionContexts.synchronous) // just for testing
+        driver  = classOf[org.postgresql.Driver].getName, // driver classname
+        url     = testPostgresConfig.url.value.value, // connect URL (driver-specific)
+        user    = "postgres", // user
+        pass    = testPostgresConfig.rootPassword.value.value, // password
+        blocker = Blocker.liftExecutionContext(ExecutionContexts.synchronous) // just for testing
       )
 
       val cfg      = testPostgresConfig.toPostgresConfig(randomSuffix.toLowerCase)
@@ -24,17 +24,15 @@ trait TestPostgresResources extends TestResourcesHelpers {
       val password = Fragment.const(s"""'${cfg.password.value.value}'""")
       val schema   = Fragment.const(cfg.schema.value.value)
 
+      val createUser   = (fr"CREATE USER" ++ username ++ fr"WITH PASSWORD" ++ password).update.run
+      val createSchema = (fr"CREATE SCHEMA" ++ schema ++ fr"AUTHORIZATION" ++ username).update.run
+
+      val dropSchema = (fr"DROP SCHEMA IF EXISTS" ++ schema ++ fr"CASCADE").update.run
+      val dropUser   = (fr"DROP ROLE IF EXISTS" ++ username).update.run
+
       Resource.make {
-        (
-          (fr"CREATE USER" ++ username ++ fr"WITH PASSWORD" ++ password).update.run >>
-            (fr"CREATE SCHEMA" ++ schema ++ fr"AUTHORIZATION" ++ username).update.run >>
-            cfg.pure[ConnectionIO]
-        ).transact(schemaCreator)
-      } { _ =>
-        (
-          (fr"DROP SCHEMA IF EXISTS" ++ schema ++ fr"CASCADE").update.run >> (fr"DROP ROLE IF EXISTS" ++ username).update.run
-        ).transact(schemaCreator).void
-      }
+        (createUser >> createSchema >> cfg.pure[ConnectionIO]).transact(schemaCreator)
+      }(_ => (dropSchema >> dropUser).transact(schemaCreator).void)
     }
 
   def postgresDatabaseResource[F[_]: Async: ContextShift](

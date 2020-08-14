@@ -1,16 +1,16 @@
 package io.branchtalk.discussions.events
 
-import com.sksamuel.avro4s.SchemaFor
+import com.sksamuel.avro4s._
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
 import io.branchtalk.discussions.model.{ Channel, User }
-import io.branchtalk.shared.infrastructure.AvroSupport._
 import io.branchtalk.shared.models._
+import io.branchtalk.shared.models.AvroSupport._
 
-@Semi(FastEq, ShowPretty, SchemaFor) sealed trait ChannelCommandEvent extends ADT
+@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait ChannelCommandEvent extends ADT
 object ChannelCommandEvent {
 
-  @Semi(FastEq, ShowPretty) final case class Create(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Create(
     id:          ID[Channel],
     authorID:    ID[User],
     urlName:     Channel.UrlName,
@@ -19,7 +19,7 @@ object ChannelCommandEvent {
     createdAt:   CreationTime
   ) extends ChannelCommandEvent
 
-  @Semi(FastEq, ShowPretty) final case class Update(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Update(
     id:             ID[Channel],
     editorID:       ID[User],
     newUrlName:     Updatable[Channel.UrlName],
@@ -28,12 +28,12 @@ object ChannelCommandEvent {
     modifiedAt:     ModificationTime
   ) extends ChannelCommandEvent
 
-  @Semi(FastEq, ShowPretty) final case class Delete(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Delete(
     id:       ID[Channel],
     editorID: ID[User]
   ) extends ChannelCommandEvent
 
-  @Semi(FastEq, ShowPretty) final case class Restore(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Restore(
     id:       ID[Channel],
     editorID: ID[User]
   ) extends ChannelCommandEvent

@@ -1,12 +1,16 @@
+.EXPORT_ALL_VARIABLES:
+
+CONFIG_DIR=docker-compose
+DEV_CONFIGS=--file ${CONFIG_DIR}/monolith-deps.yml --file ${CONFIG_DIR}/monolith-setup.yml
+
 pull:
-	docker-compose -f docker-compose/dev-monolith-env.yml pull
+	docker-compose --project-directory . ${DEV_CONFIGS} pull
 
-dev-monolith-up:
-	docker-compose -f docker-compose/dev-monolith-env.yml up
-dev-monolith-down:
-	docker-compose -f docker-compose/dev-monolith-env.yml down
-
-dev-monolith-start:
-	docker-compose -f docker-compose/dev-monolith-env.yml start
-dev-monolith-stop:
-	docker-compose -f docker-compose/dev-monolith-env.yml stop
+dev-up:
+	docker-compose --project-directory . ${DEV_CONFIGS} up
+dev-down:
+	docker-compose --project-directory . ${DEV_CONFIGS} down --remove-orphans
+dev-ps:
+	docker-compose --project-directory . ${DEV_CONFIGS} ps
+dev-logs:
+	docker-compose --project-directory . ${DEV_CONFIGS} logs ${LOGS}
