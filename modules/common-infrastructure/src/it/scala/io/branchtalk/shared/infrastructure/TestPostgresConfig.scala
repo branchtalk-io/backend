@@ -12,7 +12,7 @@ import pureconfig.ConfigReader
   usernamePrefix: DatabaseUsername,
   password:       DatabasePassword,
   schemaPrefix:   DatabaseSchema,
-  domainPrefix:   DatabaseDomain,
+  domain:         DatabaseDomain,
   connectionPool: DatabaseConnectionPool
 ) {
 
@@ -20,8 +20,6 @@ import pureconfig.ConfigReader
     DatabaseUsername(refineV[NonEmpty](usernamePrefix.value.value + generatedSuffix).getOrElse(???))
   def schema(generatedSuffix: String): DatabaseSchema =
     DatabaseSchema(refineV[NonEmpty](schemaPrefix.value.value + generatedSuffix).getOrElse(???))
-  def domain(generatedSuffix: String): DatabaseDomain =
-    DatabaseDomain(refineV[NonEmpty](domainPrefix.value.value + generatedSuffix).getOrElse(???))
   def migrationOnStart: DatabaseMigrationOnStart = DatabaseMigrationOnStart(true)
 
   def toPostgresConfig(generatedSuffix: String): PostgresConfig =
@@ -29,7 +27,6 @@ import pureconfig.ConfigReader
       .into[PostgresConfig]
       .withFieldConst(_.username, username(generatedSuffix))
       .withFieldConst(_.schema, schema(generatedSuffix))
-      .withFieldConst(_.domain, domain(generatedSuffix))
       .withFieldConst(_.migrationOnStart, migrationOnStart)
       .transform
 }

@@ -25,8 +25,9 @@ services:
   postgres-setup:
     image: 'bitnami/postgresql:12-debian-10'
     command: >
-      sh -c "PGPASSWORD=password psql --host postgres --command=\"CREATE USER discussions WITH PASSWORD 'password'\" &&
-             PGPASSWORD=password psql --host postgres --command=\"CREATE SCHEMA discussions AUTHORIZATION discussions\""
+      sh -c "PGPASSWORD=password psql --host postgres --command=\"CREATE DATABASE discussions\" &&
+             PGPASSWORD=password psql --host postgres --command=\"CREATE USER discussions WITH PASSWORD 'password'\" discussions &&
+             PGPASSWORD=password psql --host postgres --command=\"CREATE SCHEMA discussions AUTHORIZATION discussions\"" discussions
     depends_on:
       postgres:
         condition: service_healthy

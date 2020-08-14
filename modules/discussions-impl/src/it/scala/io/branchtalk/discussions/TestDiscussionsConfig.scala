@@ -22,7 +22,7 @@ object TestDiscussionsConfig {
   def load[F[_]: Sync]: Resource[F, TestDiscussionsConfig] =
     Resource.liftF(
       Sync[F].delay(
-        ConfigSource.resources("discussions-test").at("discussions-test").loadOrThrow[TestDiscussionsConfig]
+        ConfigSource.resources("discussions-test.conf").at("discussions-test").loadOrThrow[TestDiscussionsConfig]
       )
     )
 
@@ -30,7 +30,9 @@ object TestDiscussionsConfig {
     for {
       TestDiscussionsConfig(dbTestCfg, publishedESTestCfg, internalESTestCfg) <- TestDiscussionsConfig.load[F]
       dbCfg <- TestResources.postgresConfigResource[F](dbTestCfg)
-      publishedESCfg <- TestResources.kafkaEventBusConfigResource[F](publishedESTestCfg)
-      internalESCfg <- TestResources.kafkaEventBusConfigResource[F](internalESTestCfg)
+      publishedESCfg = null
+      internalESCfg  = null
+      //publishedESCfg <- TestResources.kafkaEventBusConfigResource[F](publishedESTestCfg)
+      //internalESCfg <- TestResources.kafkaEventBusConfigResource[F](internalESTestCfg)
     } yield DomainConfig(DomainName("discussions-test"), dbCfg, publishedESCfg, internalESCfg)
 }
