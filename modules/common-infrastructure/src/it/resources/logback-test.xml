@@ -12,4 +12,11 @@
     <root level="off">
         <appender-ref ref="STDOUT" />
     </root>
+
+    <!-- suppress Hikari logs -->
+    <logger name="com.zaxxer.hikari.HikariConfig" level="off"/>
+    <logger name="com.zaxxer.hikari.pool.PoolBase" level="off"/>
+    <!-- suppress kafka logs -->
+    <logger name="org.apache.kafka.clients.consumer.ConsumerConfig" level="off"/>
+    <logger name="org.apache.kafka.common.metrics.Metrics" level="off"/>
 </configuration>
