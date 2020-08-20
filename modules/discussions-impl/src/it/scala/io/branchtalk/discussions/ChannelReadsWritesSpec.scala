@@ -41,7 +41,10 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           _ <- projector.start
           scheduled <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
           channels <- scheduled.map(_.id).traverse(discussionsReads.channelReads.requireById).eventually()
-        } yield (scheduled.map(_.id).toSet === channels.map(_.id).toSet)
+        } yield {
+          // then
+          scheduled.map(_.id).toSet === channels.map(_.id).toSet
+        }
       }
     }
   }
