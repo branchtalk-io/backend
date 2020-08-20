@@ -1,6 +1,7 @@
 package io.branchtalk
 
 import cats.effect.{ ContextShift, IO, Timer }
+import org.specs2.specification.core.AsExecution
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -28,5 +29,9 @@ trait IOTest {
         case Right(_)    => ??? // impossible
       }
     }
+  }
+
+  protected implicit def ioAsTest[T: AsExecution]: AsExecution[IO[T]] = new AsExecution[IO[T]] {
+    override def execute(t: => IO[T]) = AsExecution[T].execute(t.unsafeRunSync())
   }
 }

@@ -32,19 +32,17 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
   "Channel Reads & Writes" should {
 
     "create Channel and read it" in {
-      discussionsWrites.runProjector
-        .use { projector =>
-          // given
-          val creationData = List.empty[Channel.Create]
+      discussionsWrites.runProjector.use { projector =>
+        // given
+        val creationData = List.empty[Channel.Create]
 
-          // when
-          for {
-            _ <- projector.start
-            scheduled <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
-            channels <- scheduled.map(_.id).traverse(discussionsReads.channelReads.requireById).eventually()
-          } yield (scheduled.map(_.id).toSet === channels.map(_.id).toSet)
-        }
-        .unsafeRunSync()
+        // when
+        for {
+          _ <- projector.start
+          scheduled <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
+          channels <- scheduled.map(_.id).traverse(discussionsReads.channelReads.requireById).eventually()
+        } yield (scheduled.map(_.id).toSet === channels.map(_.id).toSet)
+      }
     }
   }
 
