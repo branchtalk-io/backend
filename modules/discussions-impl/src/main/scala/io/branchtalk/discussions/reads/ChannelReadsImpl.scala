@@ -10,15 +10,13 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
   private implicit val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
-    fr"""
-      SELECT id,
-             url_name,
-             name,
-             description,
-             created_at,
-             last_modified_at
-      FROM channels
-    """
+    fr"""SELECT id,
+        |       url_name,
+        |       name,
+        |       description,
+        |       created_at,
+        |       last_modified_at
+        |FROM channels""".stripMargin
 
   override def exists(id: models.ID[Channel]): F[Boolean] =
     sql"SELECT EXISTS(SELECT 1 FROM channels WHERE id = ${id})".query[Boolean].unique.transact(transactor)

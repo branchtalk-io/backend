@@ -10,18 +10,16 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
   private implicit val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
-    fr"""
-      SELECT id,
-             author_id,
-             channel_id,
-             url_title,
-             title,
-             content_type,
-             content_raw,
-             created_at,
-             last_modified_at
-      FROM posts
-    """
+    fr"""SELECT id,
+        |       author_id,
+        |       channel_id,
+        |       url_title,
+        |       title,
+        |       content_type,
+        |       content_raw,
+        |       created_at,
+        |       last_modified_at
+        |FROM posts""".stripMargin
 
   override def exists(id: models.ID[Post]): F[Boolean] =
     sql"SELECT EXISTS(SELECT 1 FROM posts WHERE id = ${id})".query[Boolean].unique.transact(transactor)

@@ -87,6 +87,7 @@ object Dependencies {
   val logback      = "ch.qos.logback" % "logback-classic" % "1.2.3"
   val sourcecode   = "com.lihaoyi" %% "sourcecode" % "0.2.1"
   // testing
+  val jfairy          = "io.codearte.jfairy" % "jfairy" % "0.5.9"
   val spec2Core       = "org.specs2" %% "specs2-core" % specs2Version
   val spec2Scalacheck = "org.specs2" %% "specs2-scalacheck" % specs2Version
 }

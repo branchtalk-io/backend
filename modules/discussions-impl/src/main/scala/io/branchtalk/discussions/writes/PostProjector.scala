@@ -30,27 +30,25 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
 
   def toCreate(event: PostCommandEvent.Create): F[(UUID, PostEvent.Created)] = {
     val Post.Content.Tupled(contentType, contentRaw) = event.content
-    sql"""
-      INSERT INTO posts (
-        id,
-        author_id,
-        url_title,
-        title,
-        content_type,
-        content_raw,
-        created_at
-      )
-      VALUE (
-        ${event.id},
-        ${event.authorID},
-        ${event.urlTitle},
-        ${event.title},
-        ${contentType},
-        ${contentRaw},
-        ${event.createdAt}
-      )
-      ON CONFLICT DO NOTHING
-    """.update.run.transact(transactor) >>
+    sql"""INSERT INTO posts (
+         |  id,
+         |  author_id,
+         |  url_title,
+         |  title,
+         |  content_type,
+         |  content_raw,
+         |  created_at
+         |)
+         |VALUES (
+         |  ${event.id},
+         |  ${event.authorID},
+         |  ${event.urlTitle},
+         |  ${event.title},
+         |  ${contentType},
+         |  ${contentRaw},
+         |  ${event.createdAt}
+         |)
+         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.transact(transactor) >>
       (event.id.value -> event.transformInto[PostEvent.Created]).pure[F]
   }
 

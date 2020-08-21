@@ -11,7 +11,7 @@ import io.branchtalk.discussions.model.Post
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, NormalizeForUrl, Writes }
 import io.branchtalk.shared.models._
 
-final class PostWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, UUID, DiscussionCommandEvent])(
+final class PostWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, DiscussionCommandEvent])(
   implicit uuidGenerator: UUIDGenerator
 ) extends Writes[F, Post, DiscussionCommandEvent](publisher)
     with PostWrites[F] {

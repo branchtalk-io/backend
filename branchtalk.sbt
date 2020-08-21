@@ -22,7 +22,8 @@ val common = project
       Dependencies.avro4s,
       Dependencies.avro4sRefined,
       Dependencies.catnip,
-      Dependencies.sourcecode
+      Dependencies.sourcecode,
+      Dependencies.jfairy % Test
     ),
     customPredef("scala.util.chaining", "cats.implicits")
   )
@@ -110,7 +111,7 @@ val discussionsImpl = project
     customPredef("scala.util.chaining", "cats.implicits")
   )
   .compileAndTestDependsOn(commonInfrastructure)
-  .dependsOn(discussions)
+  .dependsOn(discussions, common % "compile->compile;it->test")
 
 // application
 

@@ -8,6 +8,10 @@ trait ChannelCommands { self: Channel.type =>
   type Update  = ChannelCommands.Update
   type Delete  = ChannelCommands.Delete
   type Restore = ChannelCommands.Restore
+  val Create  = ChannelCommands.Create
+  val Update  = ChannelCommands.Update
+  val Delete  = ChannelCommands.Delete
+  val Restore = ChannelCommands.Restore
 }
 object ChannelCommands {
 

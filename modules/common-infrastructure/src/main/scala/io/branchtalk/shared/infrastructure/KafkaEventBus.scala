@@ -1,23 +1,51 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Timer }
+import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import fs2.kafka._
+import io.branchtalk.shared.models.UUID
 
 object KafkaEventBus {
 
-  def producer[F[_]: ConcurrentEffect: ContextShift, K: Serializer[F, *], V: Serializer[F, *]](
-    settings: KafkaEventBusConfig
-  ): EventBusProducer[F, K, V] =
-    ((_: Stream[F, (K, V)]).map {
-      case (key, value) =>
-        ProducerRecords.one(ProducerRecord(settings.topic.value.value, key, value))
-    }) andThen produce(settings.toProducerConfig[F, K, V])
+  private val logger = Logger(getClass)
 
-  def consumer[F[_]: ConcurrentEffect: ContextShift: Timer, K: Deserializer[F, *], V: Deserializer[F, *]](
+  def producer[F[_]: ConcurrentEffect: ContextShift, Event: Serializer[F, *]](
     settings: KafkaEventBusConfig
-  ): EventBusConsumer[F, K, V] =
-    consumerStream(settings.toConsumerConfig[F, K, V])
+  ): EventBusProducer[F, Event] = (events: Stream[F, (UUID, Event)]) => {
+    events
+      .map {
+        case (key, value) =>
+          ProducerRecords.one(ProducerRecord(settings.topic.value.value, key, value))
+      }
+      .through(produce(settings.toProducerConfig[F, Event]))
+      .evalTap(e =>
+        ConcurrentEffect[F]
+          .delay(logger.info(s"${e.records.size.toString} events published to ${settings.topic.value.value}"))
+      )
+  }
+
+  def consumer[F[_]: ConcurrentEffect: ContextShift: Timer, Event: SafeDeserializer[F, *]](
+    settings: KafkaEventBusConfig
+  ): EventBusConsumer[F, Event] =
+    consumerStream(settings.toConsumerConfig[F, Event])
       .evalTap(_.subscribeTo(settings.topic.value.value))
       .flatMap(_.stream)
+      .flatMap { commitable =>
+        commitable.record.value match {
+          case Right(value) =>
+            Stream(copyRecord(commitable, value))
+          case Left(err2) =>
+            logger.error(s"Failed value deserialization: $err2")
+            Stream.empty
+        }
+      }
+
+  private def copyRecord[F[_], V1, V2](
+    commitable: CommittableConsumerRecord[F, UUID, V1],
+    value:      V2
+  ): CommittableConsumerRecord[F, UUID, V2] = {
+    val CommittableConsumerRecord(record, offset) = commitable
+    CommittableConsumerRecord(ConsumerRecord(record.topic, record.partition, record.offset, record.key, value), offset)
+  }
 }

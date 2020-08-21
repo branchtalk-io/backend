@@ -1,6 +1,6 @@
 package io.branchtalk.shared
 
-import java.time.Instant
+import java.time.{ Instant, OffsetDateTime, ZoneId }
 import java.time.format.DateTimeFormatter
 import java.util.{ UUID => jUUID }
 
@@ -26,13 +26,19 @@ package object models {
 
   @newtype final case class ID[+Entity](value: UUID)
   object ID {
+
+    def create[F[_]: Sync, Entity](implicit uuidGenerator: UUIDGenerator): F[ID[Entity]] =
+      UUID.create[F].map(ID[Entity])
+    def parse[F[_]: Sync, Entity](string: String)(implicit uuidGenerator: UUIDGenerator): F[ID[Entity]] =
+      UUID.parse[F](string).map(ID[Entity])
+
     implicit def show[Entity]: Show[ID[Entity]] = (id: ID[Entity]) => s"ID(${id.value.show})"
     implicit def eq[Entity]:   Eq[ID[Entity]]   = /*_*/ Eq[UUID].coerce[Eq[ID[Entity]]] /*_*/
   }
 
   // TODO: consider some custom clock(?)
 
-  @newtype final case class CreationTime(value: Instant)
+  @newtype final case class CreationTime(value: OffsetDateTime)
   object CreationTime {
     implicit val show: Show[CreationTime] =
       (t: CreationTime) => s"CreationTime(${DateTimeFormatter.ISO_INSTANT.format(t.value)})"
@@ -40,9 +46,13 @@ package object models {
       (x: CreationTime, y: CreationTime) => x.value.compareTo(y.value)
 
     def now[F[_]: Functor: Clock]: F[CreationTime] =
-      Clock[F].realTime(scala.concurrent.duration.MILLISECONDS).map(Instant.ofEpochMilli).map(CreationTime(_))
+      Clock[F]
+        .realTime(scala.concurrent.duration.MILLISECONDS)
+        .map(Instant.ofEpochMilli)
+        .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
+        .map(CreationTime(_))
   }
-  @newtype final case class ModificationTime(value: Instant)
+  @newtype final case class ModificationTime(value: OffsetDateTime)
   object ModificationTime {
     implicit val show: Show[ModificationTime] =
       (t: ModificationTime) => s"ModificationTime(${DateTimeFormatter.ISO_INSTANT.format(t.value)})"
@@ -50,7 +60,11 @@ package object models {
       (x: ModificationTime, y: ModificationTime) => x.value.compareTo(y.value)
 
     def now[F[_]: Functor: Clock]: F[ModificationTime] =
-      Clock[F].realTime(scala.concurrent.duration.MILLISECONDS).map(Instant.ofEpochMilli).map(ModificationTime(_))
+      Clock[F]
+        .realTime(scala.concurrent.duration.MILLISECONDS)
+        .map(Instant.ofEpochMilli)
+        .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
+        .map(ModificationTime(_))
   }
 
   @newtype final case class CreationScheduled[Entity](id: ID[Entity])

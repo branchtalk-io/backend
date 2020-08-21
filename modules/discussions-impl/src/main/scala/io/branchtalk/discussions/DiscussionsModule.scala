@@ -1,14 +1,18 @@
 package io.branchtalk.discussions
 
 import cats.data.NonEmptyList
-import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
+import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync, Timer }
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent }
 import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._
 import io.branchtalk.shared.models._
 import io.branchtalk.shared.infrastructure._
 import fs2._
+import fs2.kafka._
 import _root_.io.branchtalk.discussions.reads.ChannelReads
+import com.typesafe.scalalogging.Logger
+
+import scala.concurrent.duration._
 
 final case class DiscussionsReads[F[_]](
   channelReads: ChannelReads[F],
@@ -24,6 +28,8 @@ final case class DiscussionsWrites[F[_]](
 )
 
 object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommandEvent] {
+
+  private val logger = Logger(getClass)
 
   def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig
@@ -46,7 +52,7 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
         val postRepository:    PostWrites[F]    = new PostWritesImpl[F](internalPublisher)
         val channelRepository: ChannelWrites[F] = new ChannelWritesImpl[F](internalPublisher)
 
-        val projector = NonEmptyList
+        val projector: Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList
           .of(
             new ChannelProjector[F](transactor),
             new CommentProjector[F](transactor),
@@ -54,20 +60,21 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
           )
           .reduce
 
-        val runProjector = projectorAsResource(
-          KillSwitch[F].map {
-            case KillSwitch(stream, switch) =>
-              internalConsumer
-                .zip(stream)
-                .flatMap {
-                  case (event, _) =>
-                    Stream(event.record.value).through(projector).through(publisher).map(_ => event)
-                }
-                .evalMap(event => event.offset.commit)
-                .compile
-                .drain -> switch
-          }
-        )
+        val runProjector = KillSwitch.asStream[F, F[Unit]] { stream =>
+          internalConsumer
+            .zip(stream)
+            .flatMap {
+              case (event, _) =>
+                Stream(event.record.value)
+                  .evalTap(_ => Sync[F].delay(logger.info(s"Processing event key = ${event.record.key}")))
+                  .through(projector)
+                  .through(publisher)
+                  .map(_ => event.offset)
+            }
+            .through(domainConfig.internalEventBus.toCommitBatch[F])
+            .compile
+            .drain
+        }
 
         DiscussionsWrites(commentRepository, postRepository, channelRepository, runProjector)
     }

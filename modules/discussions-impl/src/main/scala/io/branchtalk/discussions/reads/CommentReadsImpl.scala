@@ -10,17 +10,15 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
   private implicit val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
-    fr"""
-      SELECT id,
-             author_id,
-             post_id,
-             content,
-             reply_to,
-             nesting_level,
-             created_at,
-             last_modified_at
-      FROM comments
-    """
+    fr"""SELECT id,
+        |       author_id,
+        |       post_id,
+        |       content,
+        |       reply_to,
+        |       nesting_level,
+        |       created_at,
+        |       last_modified_at
+        |FROM comments""".stripMargin
 
   override def exists(id: models.ID[Comment]): F[Boolean] =
     sql"SELECT EXISTS(SELECT 1 FROM comments WHERE id = ${id})".query[Boolean].unique.transact(transactor)

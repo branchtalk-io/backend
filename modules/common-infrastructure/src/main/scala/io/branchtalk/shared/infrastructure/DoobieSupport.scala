@@ -57,7 +57,9 @@ object DoobieSupport
   implicit class QueryOps[A](private val query: Query0[A]) extends AnyVal {
 
     def failNotFound(entity: String, id: ID[_])(implicit codePosition: CodePosition): ConnectionIO[A] =
-      query.unique.onUniqueViolation(Sync[ConnectionIO].raiseError(CommonError.NotFound(entity, id, codePosition)))
+      query.unique.handleErrorWith { _ =>
+        Sync[ConnectionIO].raiseError(CommonError.NotFound(entity, id, codePosition))
+      }
   }
 
   // log results

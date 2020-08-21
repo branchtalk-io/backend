@@ -15,7 +15,7 @@ object CodePosition {
     enclosing:     sourcecode.Enclosing.Machine
   ): CodePosition =
     CodePosition(
-      file    = file.value,
+      file    = new java.io.File(file.value).getName,
       line    = line.value,
       context = enclosing.value
     )

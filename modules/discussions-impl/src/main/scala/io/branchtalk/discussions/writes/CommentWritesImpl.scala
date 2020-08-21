@@ -7,7 +7,7 @@ import io.branchtalk.discussions.model.Comment
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.models._
 
-final class CommentWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, UUID, DiscussionCommandEvent])(
+final class CommentWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, DiscussionCommandEvent])(
   implicit uuidGenerator: UUIDGenerator
 ) extends Writes[F, Comment, DiscussionCommandEvent](publisher)
     with CommentWrites[F] {

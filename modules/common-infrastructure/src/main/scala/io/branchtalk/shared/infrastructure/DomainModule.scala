@@ -1,32 +1,30 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
-import cats.Applicative
-import com.sksamuel.avro4s.{ Decoder, Encoder }
+import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import doobie.util.transactor.Transactor
 import io.branchtalk.shared.infrastructure.KafkaSerialization._
-import io.branchtalk.shared.models.UUID
 
 final case class ReadsInfrastructure[F[_], Event](
   transactor: Transactor[F],
-  consumer:   EventBusConsumer[F, UUID, Event]
+  consumer:   EventBusConsumer[F, Event]
 )
 
 final case class WritesInfrastructure[F[_], Event, InternalEvent](
   transactor:        Transactor[F],
-  internalPublisher: EventBusProducer[F, UUID, InternalEvent],
-  internalConsumer:  EventBusConsumer[F, UUID, InternalEvent],
-  publisher:         EventBusProducer[F, UUID, Event]
+  internalPublisher: EventBusProducer[F, InternalEvent],
+  internalConsumer:  EventBusConsumer[F, InternalEvent],
+  publisher:         EventBusProducer[F, Event]
 )
 
-abstract class DomainModule[Event: Encoder: Decoder, InternalEvent: Encoder: Decoder] {
+abstract class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
 
   protected def setupReads[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig
   ): Resource[F, ReadsInfrastructure[F, Event]] =
     for {
       transactor <- new PostgresDatabase(domainConfig.database).transactor
-      consumer = KafkaEventBus.consumer[F, UUID, Event](domainConfig.publishedEventBus)
+      consumer = KafkaEventBus.consumer[F, Event](domainConfig.publishedEventBus)
     } yield ReadsInfrastructure(transactor, consumer)
 
   protected def setupWrites[F[_]: ConcurrentEffect: ContextShift: Timer](
@@ -34,11 +32,8 @@ abstract class DomainModule[Event: Encoder: Decoder, InternalEvent: Encoder: Dec
   ): Resource[F, WritesInfrastructure[F, Event, InternalEvent]] =
     for {
       transactor <- new PostgresDatabase(domainConfig.database).transactor
-      internalPublisher = KafkaEventBus.producer[F, UUID, InternalEvent](domainConfig.internalEventBus)
-      internalConsumer  = KafkaEventBus.consumer[F, UUID, InternalEvent](domainConfig.internalEventBus)
-      publisher         = KafkaEventBus.producer[F, UUID, Event](domainConfig.publishedEventBus)
+      internalPublisher = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
+      internalConsumer  = KafkaEventBus.consumer[F, InternalEvent](domainConfig.internalEventBus)
+      publisher         = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
     } yield WritesInfrastructure(transactor, internalPublisher, internalConsumer, publisher)
-
-  protected def projectorAsResource[F[_]: Applicative](projector: F[(F[Unit], F[Unit])]): Resource[F, F[Unit]] =
-    Resource.make(projector)(_._2).map(_._1)
 }

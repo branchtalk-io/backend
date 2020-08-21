@@ -1,22 +1,31 @@
 <configuration>
 
-    <!-- Logs internal actions for programmer -->
+  <!-- Logs internal actions for programmer -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} | %-5level %-40logger{38} | %msg%n</pattern>
+    </encoder>
+  </appender>
 
-    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} | %-5level %-40logger{38} | %msg%n</pattern>
-        </encoder>
-    </appender>
+  <root level="info">
+    <appender-ref ref="STDOUT"/>
+  </root>
 
-    <!--<root level="error">-->
-    <root level="off">
-        <appender-ref ref="STDOUT" />
-    </root>
+  <logger name="io.branchtalk" level="error"/>
+  <logger name="io.branchtalk.shared.infrastructure" level="info"/>
+  <logger name="io.branchtalk.discussions.reads" level="off"/>
 
-    <!-- suppress Hikari logs -->
-    <logger name="com.zaxxer.hikari.HikariConfig" level="off"/>
-    <logger name="com.zaxxer.hikari.pool.PoolBase" level="off"/>
-    <!-- suppress kafka logs -->
-    <logger name="org.apache.kafka.clients.consumer.ConsumerConfig" level="off"/>
-    <logger name="org.apache.kafka.common.metrics.Metrics" level="off"/>
+  <!-- suppress Flyway logs -->
+  <logger name="org.flywaydb" level="off"/>
+
+  <!-- suppress Hikari logs -->
+  <logger name="com.zaxxer.hikari" level="off"/>
+
+  <!-- suppress Kafka logs -->
+  <logger name="org.apache.kafka.clients" level="off"/>
+  <logger name="org.apache.kafka.clients.admin" level="off"/>
+  <logger name="org.apache.kafka.clients.consumer" level="off"/>
+  <logger name="org.apache.kafka.clients.producer" level="off"/>
+  <logger name="org.apache.kafka.common.metrics" level="off"/>
+  <logger name="org.apache.kafka.common.utils" level="off"/>
 </configuration>

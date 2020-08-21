@@ -5,15 +5,21 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.types.string.NonEmptyString
 import eu.timepit.refined.pureconfig._
 import fs2.{ Pipe, Stream }
-import fs2.kafka.{ CommittableConsumerRecord, ProducerResult }
+import fs2.kafka.{ CommittableConsumerRecord, Deserializer, ProducerResult }
+import io.branchtalk.shared.models.UUID
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import pureconfig._
 
 package object infrastructure {
 
-  type EventBusProducer[F[_], Key, Event] = Pipe[F, (Key, Event), ProducerResult[Key, Event, Unit]]
-  type EventBusConsumer[F[_], Key, Event] = Stream[F, CommittableConsumerRecord[F, Key, Event]]
+  type EventBusProducer[F[_], Event] = Pipe[F, (UUID, Event), ProducerResult[UUID, Event, Unit]]
+  type EventBusConsumer[F[_], Event] = Stream[F, CommittableConsumerRecord[F, UUID, Event]]
+
+  type SafeDeserializer[F[_], Event] = Deserializer[F, DeserializationError Either Event]
+  object SafeDeserializer {
+    def apply[F[_], Event](implicit sd: SafeDeserializer[F, Event]): SafeDeserializer[F, Event] = sd
+  }
 
   @newtype final case class DomainName(value: NonEmptyString)
   object DomainName {

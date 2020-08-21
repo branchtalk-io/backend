@@ -29,25 +29,21 @@ final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
       }
 
   def toCreate(event: ChannelCommandEvent.Create): F[(UUID, ChannelEvent.Created)] =
-    sql"""
-      INSERT INTO channels (
-        id,
-        author_id,
-        url_name,
-        name,
-        description,
-        created_at
-      )
-      VALUE (
-        ${event.id},
-        ${event.authorID},
-        ${event.urlName},
-        ${event.name},
-        ${event.description},
-        ${event.createdAt}
-      )
-      ON CONFLICT DO NOTHING
-    """.update.run.transact(transactor) >>
+    sql"""INSERT INTO channels (
+         |  id,
+         |  url_name,
+         |  name,
+         |  description,
+         |  created_at
+         |)
+         |VALUES (
+         |  ${event.id},
+         |  ${event.urlName},
+         |  ${event.name},
+         |  ${event.description},
+         |  ${event.createdAt}
+         |)
+         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.transact(transactor) >>
       (event.id.value -> event.transformInto[ChannelEvent.Created]).pure[F]
 
   def toUpdate(event: ChannelCommandEvent.Update): F[(UUID, ChannelEvent.Updated)] =

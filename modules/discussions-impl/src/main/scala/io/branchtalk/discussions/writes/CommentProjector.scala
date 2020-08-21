@@ -30,34 +30,30 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
   def toCreate(event: CommentCommandEvent.Create): F[(UUID, CommentEvent.Created)] =
     event.replyTo
       .fold(0.pure[ConnectionIO]) { replyId =>
-        sql"""
-        SELECT nesting_level + 1
-        FROM comments
-        WHERE id = ${replyId}
-      """.query[Int].option.map(_.getOrElse(0))
+        sql"""SELECT nesting_level + 1
+             |FROM comments
+             |WHERE id = ${replyId}""".stripMargin.query[Int].option.map(_.getOrElse(0))
       }
       .flatMap { nestingLevel =>
-        sql"""
-          INSERT INTO comments (
-            id,
-            author_id,
-            post_id,
-            content,
-            reply_to,
-            nesting_level,
-            created_at
-          )
-          VALUE (
-            ${event.id},
-            ${event.authorID},
-            ${event.postID},
-            ${event.content},
-            ${event.replyTo},
-            ${nestingLevel},
-            ${event.createdAt}
-          )
-          ON CONFLICT DO NOTHING
-        """.update.run
+        sql"""INSERT INTO comments (
+             |  id,
+             |  author_id,
+             |  post_id,
+             |  content,
+             |  reply_to,
+             |  nesting_level,
+             |  created_at
+             |)
+             |VALUES (
+             |  ${event.id},
+             |  ${event.authorID},
+             |  ${event.postID},
+             |  ${event.content},
+             |  ${event.replyTo},
+             |  ${nestingLevel},
+             |  ${event.createdAt}
+             |)
+             |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
       }
       .transact(transactor) >>
       (event.id.value -> event.transformInto[CommentEvent.Created]).pure[F]
