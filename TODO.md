@@ -6,7 +6,7 @@
   * [x] migrations
   * [x] SQL queries
   * [x] kafka events
-  * [ ] docker and IT test setup
+  * [X] docker and IT test setup
   * [ ] tests
 * [ ] users domain
   * [ ] models
@@ -31,10 +31,14 @@
   * [ ] moderation
   * [ ] channel/post/comment history
 * [ ] application
+  * [ ] config
+    * [ ] groupId generation (use in logging)
+    * [ ] commit batch settings
   * [ ] monitoring
     * [ ] SQL
     * [ ] events
     * [ ] endpoints
+    * [ ] coordination id
   * [ ] logging
     * [ ] errors
     * [ ] initialization
