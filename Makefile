@@ -6,6 +6,8 @@ DEV_CONFIGS=--file ${CONFIG_DIR}/monolith-deps.yml --file ${CONFIG_DIR}/monolith
 pull:
 	docker-compose --project-directory . ${DEV_CONFIGS} pull
 
+dev-bg:
+	docker-compose --project-directory . ${DEV_CONFIGS} up --detach --quiet-pull
 dev-up:
 	docker-compose --project-directory . ${DEV_CONFIGS} up
 dev-down:

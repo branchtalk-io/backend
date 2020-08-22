@@ -3,20 +3,25 @@ scala:
               - 2.13.3
 jdk:
               - openjdk8
+services:
+              - docker
 cache:
   directories:
               - $HOME/.ivy2/cache
               - $HOME/.sbt/boot/
 install:
               - sudo apt-get update
-              - sudo apt-get install zsh
+              - sudo apt-get install make zsh
               - sudo chmod +x scripts/*
               - ./sbt ++$TRAVIS_SCALA_VERSION update
+before_script:
+              - make dev-bg
 script:         ./sbt ++$TRAVIS_SCALA_VERSION fullTest # coverage seems to be broken sometimes
 after_script:
               - scripts/prepare-test-results-for-ci.sh
               - find $HOME/.sbt -name "*.lock" | xargs rm
               - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
+              - make dev-down
 notifications:
   email:
     on_success: never

@@ -7,8 +7,8 @@ lazy val root = project.root
   .configureRoot
   .aggregate(common, commonInfrastructure, commonApi, discussions, discussionsApi, discussionsImpl, application)
 
-addCommandAlias("fullTest", ";test")
-addCommandAlias("fullCoverageTest", ";coverage;test;coverageReport;coverageAggregate")
+addCommandAlias("fullTest", ";test;it:test")
+addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
 
 // commons
 
