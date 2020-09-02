@@ -27,14 +27,15 @@ final case class DiscussionsWrites[F[_]](
   runProjector:  Resource[F, F[Unit]]
 )
 
-object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommandEvent] {
+object DiscussionsModule {
 
+  private val module = DomainModule[DiscussionEvent, DiscussionCommandEvent]
   private val logger = Logger(getClass)
 
   def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig
   ): Resource[F, DiscussionsReads[F]] =
-    setupReads[F](domainConfig).map {
+    module.setupReads[F](domainConfig).map {
       case ReadsInfrastructure(transactor, _) =>
         val channelReads: ChannelReads[F] = new ChannelReadsImpl[F](transactor)
         val postReads:    PostReads[F]    = new PostReadsImpl[F](transactor)
@@ -46,7 +47,7 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig:           DomainConfig
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
-    setupWrites[F](domainConfig).map {
+    module.setupWrites[F](domainConfig).map {
       case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer) =>
         val commentRepository: CommentWrites[F] = new CommentWritesImpl[F](internalProducer)
         val postRepository:    PostWrites[F]    = new PostWritesImpl[F](internalProducer)

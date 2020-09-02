@@ -18,10 +18,9 @@ final case class WritesInfrastructure[F[_], Event, InternalEvent](
   internalConsumerStream: ConsumerStream[F, InternalEvent],
   producer:               EventBusProducer[F, Event]
 )
+final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
 
-abstract class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
-
-  protected def setupReads[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def setupReads[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig
   ): Resource[F, ReadsInfrastructure[F, Event]] =
     for {
@@ -29,7 +28,7 @@ abstract class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: E
       consumerStreamBuilder = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus, _)
     } yield ReadsInfrastructure(transactor, consumerStreamBuilder)
 
-  protected def setupWrites[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def setupWrites[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig
   ): Resource[F, WritesInfrastructure[F, Event, InternalEvent]] =
     for {
@@ -39,4 +38,11 @@ abstract class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: E
         .fromConfigs[F, InternalEvent](domainConfig.internalEventBus, domainConfig.internalConsumer)
       producer = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
     } yield WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer)
+}
+object DomainModule {
+
+  def apply[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor]: DomainModule[
+    Event,
+    InternalEvent
+  ] = new DomainModule[Event, InternalEvent]
 }
