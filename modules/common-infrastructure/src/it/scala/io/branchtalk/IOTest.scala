@@ -13,18 +13,16 @@ trait IOTest {
 
   implicit class IOTestOps[T](private val io: IO[T]) {
 
-    def eventually(retries: Int = 40, duration: FiniteDuration = 5.seconds): IO[T] = {
-      val timeout = IO.sleep(duration) >> IO.raiseError(
-        new Exception(s"IO failed to succeed: exceeded duration $duration")
-      )
+    def eventually(retry: Int = 50, timeout: FiniteDuration = 5.seconds, delay: FiniteDuration = 100.millis): IO[T] = {
+      val timeouting = IO.sleep(timeout) >> IO.raiseError(new Exception(s"IO failed: exceeded timeout $timeout"))
 
-      def retry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = {
+      def withRetry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = {
         case cause: Throwable =>
-          if (attemptsLeft <= 0) IO.raiseError(new Exception(s"IO failed to succeed: exceeded retries $retries", cause))
-          else io.handleErrorWith(retry(attemptsLeft - 1))
+          if (attemptsLeft <= 0) IO.raiseError(new Exception(s"IO failed to succeed: exceeded retry $retry", cause))
+          else io.handleErrorWith(withRetry(attemptsLeft - 1)).delayBy(delay)
       }
 
-      IO.race(io.handleErrorWith(retry(retries)), timeout).map {
+      IO.race(io.handleErrorWith(withRetry(retry)), timeouting).map {
         case Left(value) => value
         case Right(_)    => ??? // impossible
       }

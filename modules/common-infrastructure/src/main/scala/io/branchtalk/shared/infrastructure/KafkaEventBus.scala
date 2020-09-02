@@ -26,10 +26,11 @@ object KafkaEventBus {
   }
 
   def consumer[F[_]: ConcurrentEffect: ContextShift: Timer, Event: SafeDeserializer[F, *]](
-    settings: KafkaEventBusConfig
+    busConfig:      KafkaEventBusConfig,
+    consumerConfig: KafkaEventConsumerConfig
   ): EventBusConsumer[F, Event] =
-    consumerStream(settings.toConsumerConfig[F, Event])
-      .evalTap(_.subscribeTo(settings.topic.value.value))
+    consumerStream(busConfig.toConsumerConfig[F, Event](consumerConfig))
+      .evalTap(_.subscribeTo(busConfig.topic.value.value))
       .flatMap(_.stream)
       .flatMap { commitable =>
         commitable.record.value match {

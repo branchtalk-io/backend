@@ -47,7 +47,7 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
     domainConfig:           DomainConfig
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
     setupWrites[F](domainConfig).map {
-      case WritesInfrastructure(transactor, internalPublisher, internalConsumer, publisher) =>
+      case WritesInfrastructure(transactor, internalPublisher, internalConsumerStream, publisher) =>
         val commentRepository: CommentWrites[F] = new CommentWritesImpl[F](internalPublisher)
         val postRepository:    PostWrites[F]    = new PostWritesImpl[F](internalPublisher)
         val channelRepository: ChannelWrites[F] = new ChannelWritesImpl[F](internalPublisher)
@@ -59,22 +59,7 @@ object DiscussionsModule extends DomainModule[DiscussionEvent, DiscussionCommand
             new PostProjector[F](transactor)
           )
           .reduce
-
-        val runProjector = KillSwitch.asStream[F, F[Unit]] { stream =>
-          internalConsumer
-            .zip(stream)
-            .flatMap {
-              case (event, _) =>
-                Stream(event.record.value)
-                  .evalTap(_ => Sync[F].delay(logger.info(s"Processing event key = ${event.record.key}")))
-                  .through(projector)
-                  .through(publisher)
-                  .map(_ => event.offset)
-            }
-            .through(domainConfig.internalEventBus.toCommitBatch[F])
-            .compile
-            .drain
-        }
+        val runProjector = internalConsumerStream.withPipeToResource(logger)(projector andThen publisher)
 
         DiscussionsWrites(commentRepository, postRepository, channelRepository, runProjector)
     }

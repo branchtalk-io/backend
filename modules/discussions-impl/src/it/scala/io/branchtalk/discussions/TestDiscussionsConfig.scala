@@ -5,6 +5,7 @@ import eu.timepit.refined.auto._
 import io.branchtalk.shared.infrastructure.{
   DomainConfig,
   DomainName,
+  KafkaEventConsumerConfig,
   TestKafkaEventBusConfig,
   TestPostgresConfig,
   TestResources
@@ -15,7 +16,8 @@ import pureconfig._
 @Semi(ConfigReader) final case class TestDiscussionsConfig(
   database:          TestPostgresConfig,
   publishedEventBus: TestKafkaEventBusConfig,
-  internalEventBus:  TestKafkaEventBusConfig
+  internalEventBus:  TestKafkaEventBusConfig,
+  consumers:         Map[String, KafkaEventConsumerConfig]
 )
 object TestDiscussionsConfig {
 
@@ -28,9 +30,9 @@ object TestDiscussionsConfig {
 
   def loadDomainConfig[F[_]: Async: ContextShift] =
     for {
-      TestDiscussionsConfig(dbTestCfg, publishedESTestCfg, internalESTestCfg) <- TestDiscussionsConfig.load[F]
-      dbCfg <- TestResources.postgresConfigResource[F](dbTestCfg)
-      publishedESCfg <- TestResources.kafkaEventBusConfigResource[F](publishedESTestCfg)
-      internalESCfg <- TestResources.kafkaEventBusConfigResource[F](internalESTestCfg)
-    } yield DomainConfig(DomainName("discussions-test"), dbCfg, publishedESCfg, internalESCfg)
+      TestDiscussionsConfig(dbTest, publishedESTest, internalESTest, consumers) <- TestDiscussionsConfig.load[F]
+      db <- TestResources.postgresConfigResource[F](dbTest)
+      publishedES <- TestResources.kafkaEventBusConfigResource[F](publishedESTest)
+      internalES <- TestResources.kafkaEventBusConfigResource[F](internalESTest)
+    } yield DomainConfig(DomainName("discussions-test"), db, publishedES, internalES, consumers)
 }

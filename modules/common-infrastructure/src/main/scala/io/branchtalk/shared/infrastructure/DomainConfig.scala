@@ -7,5 +7,10 @@ import pureconfig._
   name:              DomainName,
   database:          PostgresConfig,
   publishedEventBus: KafkaEventBusConfig,
-  internalEventBus:  KafkaEventBusConfig
-)
+  internalEventBus:  KafkaEventBusConfig,
+  consumers:         Map[String, KafkaEventConsumerConfig]
+) {
+
+  // assumes that each config has to have this field
+  def internalConsumer: KafkaEventConsumerConfig = consumers("internal")
+}

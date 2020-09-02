@@ -7,14 +7,14 @@ import io.branchtalk.shared.infrastructure.KafkaSerialization._
 
 final case class ReadsInfrastructure[F[_], Event](
   transactor: Transactor[F],
-  consumer:   EventBusConsumer[F, Event]
+  consumer:   KafkaEventConsumerConfig => ConsumerStream[F, Event]
 )
 
 final case class WritesInfrastructure[F[_], Event, InternalEvent](
-  transactor:        Transactor[F],
-  internalPublisher: EventBusProducer[F, InternalEvent],
-  internalConsumer:  EventBusConsumer[F, InternalEvent],
-  publisher:         EventBusProducer[F, Event]
+  transactor:             Transactor[F],
+  internalPublisher:      EventBusProducer[F, InternalEvent],
+  internalConsumerStream: ConsumerStream[F, InternalEvent],
+  publisher:              EventBusProducer[F, Event]
 )
 
 abstract class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
@@ -24,8 +24,14 @@ abstract class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: E
   ): Resource[F, ReadsInfrastructure[F, Event]] =
     for {
       transactor <- new PostgresDatabase(domainConfig.database).transactor
-      consumer = KafkaEventBus.consumer[F, Event](domainConfig.publishedEventBus)
-    } yield ReadsInfrastructure(transactor, consumer)
+    } yield ReadsInfrastructure(
+      transactor,
+      (cfg: KafkaEventConsumerConfig) =>
+        ConsumerStream(
+          consumer  = KafkaEventBus.consumer[F, Event](domainConfig.publishedEventBus, cfg),
+          committer = domainConfig.internalEventBus.toCommitBatch[F](cfg)
+        )
+    )
 
   protected def setupWrites[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig
@@ -33,7 +39,11 @@ abstract class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: E
     for {
       transactor <- new PostgresDatabase(domainConfig.database).transactor
       internalPublisher = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
-      internalConsumer  = KafkaEventBus.consumer[F, InternalEvent](domainConfig.internalEventBus)
-      publisher         = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
-    } yield WritesInfrastructure(transactor, internalPublisher, internalConsumer, publisher)
+      internalConsumerStream = ConsumerStream(
+        consumer =
+          KafkaEventBus.consumer[F, InternalEvent](domainConfig.internalEventBus, domainConfig.internalConsumer),
+        committer = domainConfig.internalEventBus.toCommitBatch[F](domainConfig.internalConsumer)
+      )
+      publisher = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
+    } yield WritesInfrastructure(transactor, internalPublisher, internalConsumerStream, publisher)
 }
