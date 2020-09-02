@@ -7,9 +7,9 @@ import io.branchtalk.discussions.model.Comment
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.models._
 
-final class CommentWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, DiscussionCommandEvent])(
+final class CommentWritesImpl[F[_]: Sync: Timer](producer: EventBusProducer[F, DiscussionCommandEvent])(
   implicit uuidGenerator: UUIDGenerator
-) extends Writes[F, Comment, DiscussionCommandEvent](publisher)
+) extends Writes[F, Comment, DiscussionCommandEvent](producer)
     with CommentWrites[F] {
 
   override def createComment(newComment: Comment.Create): F[CreationScheduled[Comment]] =

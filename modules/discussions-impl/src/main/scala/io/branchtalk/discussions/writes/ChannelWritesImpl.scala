@@ -7,9 +7,9 @@ import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.models._
 
-final class ChannelWritesImpl[F[_]: Sync: Timer](publisher: EventBusProducer[F, DiscussionCommandEvent])(
+final class ChannelWritesImpl[F[_]: Sync: Timer](producer: EventBusProducer[F, DiscussionCommandEvent])(
   implicit uuidGenerator: UUIDGenerator
-) extends Writes[F, Channel, DiscussionCommandEvent](publisher)
+) extends Writes[F, Channel, DiscussionCommandEvent](producer)
     with ChannelWrites[F] {
 
   override def createChannel(newChannel: Channel.Create): F[CreationScheduled[Channel]] =
