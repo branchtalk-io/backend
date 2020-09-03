@@ -52,6 +52,11 @@ object DoobieSupport
       updatable.fold(value => (columnName ++ fr"= ${value}").some, (columnName ++ fr"= null").some, none[Fragment])
   }
 
+  implicit class FragmentOps(private val fragment: Fragment) extends AnyVal {
+
+    def exists: ConnectionIO[Boolean] = (fr"SELECT EXISTS(" ++ fragment ++ fr")").query[Boolean].unique
+  }
+
   // handle errors
 
   implicit class QueryOps[A](private val query: Query0[A]) extends AnyVal {

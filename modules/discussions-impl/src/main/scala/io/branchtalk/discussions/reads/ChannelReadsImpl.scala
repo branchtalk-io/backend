@@ -20,8 +20,13 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
 
   private def idExists(id: models.ID[Channel]): Fragment = fr"id = ${id} AND deleted = FALSE"
 
+  private def idDeleted(id: models.ID[Channel]): Fragment = fr"id = ${id} AND deleted = TRUE"
+
   override def exists(id: models.ID[Channel]): F[Boolean] =
-    (fr"SELECT EXISTS(SELECT 1 FROM channels WHERE" ++ idExists(id) ++ fr")").query[Boolean].unique.transact(transactor)
+    (fr"SELECT 1 FROM channels WHERE" ++ idExists(id)).exists.transact(transactor)
+
+  override def deleted(id: models.ID[Channel]): F[Boolean] =
+    (fr"SELECT 1 FROM channels WHERE" ++ idDeleted(id)).exists.transact(transactor)
 
   override def getById(id: models.ID[Channel]): F[Option[Channel]] =
     (commonSelect ++ fr"WHERE" ++ idExists(id)).query[Channel].option.transact(transactor)
