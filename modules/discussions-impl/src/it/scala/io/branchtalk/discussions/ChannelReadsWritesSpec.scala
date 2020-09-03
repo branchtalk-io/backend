@@ -33,28 +33,30 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
 
   "Channel Reads & Writes" should {
 
-    "create Channel and eventually read it" in {
+    "create a Channel and eventually read it" in {
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           // when
           _ <- projector.handleError(error => error.printStackTrace()).start
-          scheduled <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
-          ids = scheduled.map(_.id)
+          toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
+          ids = toCreate.map(_.id)
           channels <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
           channelsOpt <- ids.traverse(discussionsReads.channelReads.getById).eventually()
           channelsExist <- ids.traverse(discussionsReads.channelReads.exists).eventually()
+          channelDeleted <- ids.traverse(discussionsReads.channelReads.deleted).eventually()
         } yield {
           // then
           ids.toSet === channels.map(_.id).toSet
           channelsOpt.forall(_.isDefined) must beTrue
           channelsExist.forall(identity) must beTrue
+          channelDeleted.exists(identity) must beFalse
         }
       }
     }
 
-    "allow delete and undelete of a created Channel" in {
+    "allow delete and restore of a created Channel" in {
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
@@ -62,25 +64,33 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           editorID <- editorIDCreate
           // when
           _ <- projector.handleError(error => error.printStackTrace()).start
-          scheduled <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
-          ids = scheduled.map(_.id)
+          toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
+          ids = toCreate.map(_.id)
           _ <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
           _ <- ids.map(Channel.Delete(_, editorID)).traverse(discussionsWrites.channelWrites.deleteChannel)
           _ <- ids
             .traverse(discussionsReads.channelReads.getById)
             .flatTap(results => IO(assert(results.forall(_.isEmpty), "All Channels should be eventually deleted")))
             .eventually()
+          notExist <- ids.traverse(discussionsReads.channelReads.exists)
+          areDeleted <- ids.traverse(discussionsReads.channelReads.deleted)
           _ <- ids.map(Channel.Restore(_, editorID)).traverse(discussionsWrites.channelWrites.restoreChannel)
-          restored <- ids
+          toRestore <- ids
             .traverse(discussionsReads.channelReads.getById)
             .flatTap { results =>
               IO(assert(results.forall(_.isDefined), "All Channels should be eventually restored"))
             }
             .eventually()
-          restoredIds = restored.flatten.map(_.id)
+          restoredIds = toRestore.flatten.map(_.id)
+          areRestored <- ids.traverse(discussionsReads.channelReads.exists)
+          notDeleted <- ids.traverse(discussionsReads.channelReads.deleted)
         } yield {
           // then
           ids.toSet === restoredIds.toSet
+          notExist.exists(identity) must beFalse
+          areDeleted.forall(identity) must beTrue
+          areRestored.forall(identity) must beTrue
+          notDeleted.exists(identity) must beFalse
         }
       }
     }
