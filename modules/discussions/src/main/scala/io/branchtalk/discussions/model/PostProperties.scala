@@ -2,14 +2,16 @@ package io.branchtalk.discussions.model
 
 import java.net.URI
 
+import cats.effect.Sync
 import cats.{ Order, Show }
 import eu.timepit.refined.types.string.NonEmptyString
 import enumeratum._
 import enumeratum.EnumEntry.Hyphencase
+import eu.timepit.refined.collection.NonEmpty
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.shared.models.{ FastEq, ShowPretty }
+import io.branchtalk.shared.models.{ FastEq, ParseRefined, ShowPretty }
 
 trait PostProperties { self: Post.type =>
   type UrlTitle = PostProperties.UrlTitle
@@ -27,12 +29,18 @@ object PostProperties {
 
   @newtype final case class UrlTitle(value: NonEmptyString)
   object UrlTitle {
-    implicit val show:  Show[UrlTitle]  = (t: UrlTitle) => s"Title(${t.value.value.show})"
+    def parse[F[_]: Sync](string: String): F[UrlTitle] =
+      ParseRefined[F].parse[NonEmpty](string).map(UrlTitle.apply)
+
+    implicit val show:  Show[UrlTitle]  = (t: UrlTitle) => s"UrlTitle(${t.value.value.show})"
     implicit val order: Order[UrlTitle] = (x: UrlTitle, y: UrlTitle) => x.value.value compareTo y.value.value
   }
 
   @newtype final case class Title(value: NonEmptyString)
   object Title {
+    def parse[F[_]: Sync](string: String): F[Title] =
+      ParseRefined[F].parse[NonEmpty](string).map(Title.apply)
+
     implicit val show:  Show[Title]  = (t: Title) => s"Title(${t.value.value.show})"
     implicit val order: Order[Title] = (x: Title, y: Title) => x.value.value compareTo y.value.value
   }

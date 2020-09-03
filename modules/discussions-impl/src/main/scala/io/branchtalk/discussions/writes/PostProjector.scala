@@ -6,6 +6,7 @@ import doobie.Transactor
 import fs2.Stream
 import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent, PostCommandEvent, PostEvent }
+import io.branchtalk.discussions.infrastructure.DoobieExtensions._
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
@@ -33,6 +34,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
     sql"""INSERT INTO posts (
          |  id,
          |  author_id,
+         |  channel_id,
          |  url_title,
          |  title,
          |  content_type,
@@ -42,6 +44,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
          |VALUES (
          |  ${event.id},
          |  ${event.authorID},
+         |  ${event.channelID},
          |  ${event.urlTitle},
          |  ${event.title},
          |  ${contentType},

@@ -11,7 +11,7 @@ import io.codearte.jfairy.producer.text.TextProducer
 
 object Fixtures {
 
-  private val fairy = IO(Fairy.create())
+  private val fairy = Fairy.create().pure[IO]
 
   val baseProducer: IO[BaseProducer] = fairy.map(_.baseProducer)
   def company(companyProperties: CompanyProperties.CompanyProperty*): IO[Company] =

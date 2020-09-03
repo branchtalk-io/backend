@@ -16,4 +16,12 @@ trait DiscussionsFixtures {
       nameLike.flatMap(Channel.Name.parse[IO]),
       textProducer.map(_.loremIpsum).flatMap(Channel.Description.parse[IO]).map(Option.apply)
     ).mapN(Channel.Create.apply)
+
+  def postCreate(channelID: ID[Channel])(implicit uuidGenerator: UUIDGenerator): IO[Post.Create] =
+    (
+      ID.create[IO, User],
+      channelID.pure[IO],
+      nameLike.flatMap(Post.Title.parse[IO]),
+      textProducer.map(_.loremIpsum).map(Post.Text(_)).map(Post.Content.Text(_))
+    ).mapN(Post.Create.apply)
 }

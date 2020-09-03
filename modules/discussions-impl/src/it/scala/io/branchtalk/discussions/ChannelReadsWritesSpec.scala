@@ -8,8 +8,6 @@ import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.models.UUIDGenerator
 import org.specs2.mutable.Specification
 
-import scala.concurrent.duration._
-
 final class ChannelReadsWritesSpec extends Specification with IOTest with ResourcefulTest with DiscussionsFixtures {
 
   private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
@@ -37,9 +35,9 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
+          _ <- projector.handleError(_.printStackTrace()).start
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           // when
-          _ <- projector.handleError(error => error.printStackTrace()).start
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
           ids = toCreate.map(_.id)
           channels <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
@@ -60,10 +58,10 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
+          _ <- projector.handleError(_.printStackTrace()).start
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           editorID <- editorIDCreate
           // when
-          _ <- projector.handleError(error => error.printStackTrace()).start
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
           ids = toCreate.map(_.id)
           _ <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
@@ -94,5 +92,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
         }
       }
     }
+
+    // TODO: test update
   }
 }

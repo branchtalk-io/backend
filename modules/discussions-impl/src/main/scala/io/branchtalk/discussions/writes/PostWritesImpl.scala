@@ -55,4 +55,11 @@ final class PostWritesImpl[F[_]: Sync: Timer](producer: EventBusProducer[F, Disc
       command = deletedPost.into[PostCommandEvent.Delete].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
     } yield DeletionScheduled(id)
+
+  override def restorePost(restoredPost: Post.Restore): F[RestoreScheduled[Post]] =
+    for {
+      id <- restoredPost.id.pure[F]
+      command = restoredPost.into[PostCommandEvent.Restore].transform
+      _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
+    } yield RestoreScheduled(id)
 }

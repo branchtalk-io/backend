@@ -3,7 +3,7 @@ package io.branchtalk.discussions.events
 import com.sksamuel.avro4s._
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.discussions.model.{ Post, User }
+import io.branchtalk.discussions.model.{ Channel, Post, User }
 import io.branchtalk.shared.models._
 import io.branchtalk.shared.models.AvroSupport._
 
@@ -13,6 +13,7 @@ object PostCommandEvent {
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Create(
     id:        ID[Post],
     authorID:  ID[User],
+    channelID: ID[Channel],
     urlTitle:  Post.UrlTitle,
     title:     Post.Title,
     content:   Post.Content,

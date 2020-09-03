@@ -4,12 +4,14 @@ import io.scalaland.catnip.Semi
 import io.branchtalk.shared.models.{ FastEq, ID, ShowPretty, Updatable }
 
 trait PostCommands { self: Post.type =>
-  type Create = PostCommands.Create
-  type Update = PostCommands.Update
-  type Delete = PostCommands.Delete
-  val Create = PostCommands.Create
-  val Update = PostCommands.Update
-  val Delete = PostCommands.Delete
+  type Create  = PostCommands.Create
+  type Update  = PostCommands.Update
+  type Delete  = PostCommands.Delete
+  type Restore = PostCommands.Restore
+  val Create  = PostCommands.Create
+  val Update  = PostCommands.Update
+  val Delete  = PostCommands.Delete
+  val Restore = PostCommands.Restore
 }
 object PostCommands {
 
