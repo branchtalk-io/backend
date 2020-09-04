@@ -11,7 +11,11 @@ dev-bg:
 dev-up:
 	docker-compose --project-directory . ${DEV_CONFIGS} up
 dev-down:
-	docker-compose --project-directory . ${DEV_CONFIGS} down --remove-orphans
+	docker-compose --project-directory . ${DEV_CONFIGS} down --remove-orphans || \
+	(docker container rm branchtalk_kafka_1 branchtalk_postgres_1 -f && \
+	 docker network disconnect branchtalk_branchtalk-monolith branchtalk_kafka_1 -f && \
+   docker network disconnect branchtalk_branchtalk-monolith branchtalk_postgres_1 -f && \
+   docker network rm branchtalk_branchtalk-monolith)
 dev-ps:
 	docker-compose --project-directory . ${DEV_CONFIGS} ps
 dev-logs:
