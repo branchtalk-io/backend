@@ -1,8 +1,10 @@
 package io.branchtalk.discussions.model
 
 import cats.{ Eq, Show }
+import cats.effect.Sync
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.NonNegative
+import io.branchtalk.shared.models.ParseRefined
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 
@@ -24,5 +26,8 @@ object CommentProperties {
   object NestingLevel {
     implicit val show: Show[NestingLevel] = (t: NestingLevel) => s"NestingLevel(${t.value.value.show})"
     implicit val eq:   Eq[NestingLevel]   = (x: NestingLevel, y: NestingLevel) => x.value.value === y.value.value
+
+    def parse[F[_]: Sync](int: Int): F[NestingLevel] =
+      ParseRefined[F].parse[NonNegative](int).map(NestingLevel.apply)
   }
 }

@@ -24,4 +24,12 @@ trait DiscussionsFixtures {
       nameLike.flatMap(Post.Title.parse[IO]),
       textProducer.map(_.loremIpsum).map(Post.Text(_)).map(Post.Content.Text(_))
     ).mapN(Post.Create.apply)
+
+  def commentCreate(postID: ID[Post])(implicit uuidGenerator: UUIDGenerator): IO[Comment.Create] =
+    (
+      ID.create[IO, User],
+      postID.pure[IO],
+      textProducer.map(_.loremIpsum).map(Comment.Content(_)),
+      none[ID[Comment]].pure[IO]
+    ).mapN(Comment.Create.apply)
 }

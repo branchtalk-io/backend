@@ -7,7 +7,7 @@ import io.branchtalk.shared.infrastructure._
 import io.branchtalk.shared.models.UUIDGenerator
 import org.specs2.mutable.Specification
 
-class PostReadsWritesSpec extends Specification with IOTest with ResourcefulTest with DiscussionsFixtures {
+final class PostReadsWritesSpec extends Specification with IOTest with ResourcefulTest with DiscussionsFixtures {
 
   private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
@@ -29,6 +29,8 @@ class PostReadsWritesSpec extends Specification with IOTest with ResourcefulTest
     }
 
   "Post Reads & Writes" should {
+
+    // TODO: prevent creation of a post without a channel
 
     "create a Post and eventually read it" in {
       discussionsWrites.runProjector.use { projector =>
