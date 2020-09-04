@@ -19,4 +19,6 @@ abstract class Writes[F[_]: Sync, Entity, Event](producer: EventBusProducer[F, E
         case false => (CommonError.ParentNotExist(entity, parentID, codePosition): Throwable).raiseError[F, Unit]
       }
   }
+
+  // TODO: deleted check, restored check
 }

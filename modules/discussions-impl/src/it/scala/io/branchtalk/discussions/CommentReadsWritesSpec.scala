@@ -109,7 +109,7 @@ final class CommentReadsWritesSpec extends Specification with IOTest with Resour
         }
       }
 
-      // TODO: test update
+      // TODO: test update - if not deleted
     }
   }
 }
