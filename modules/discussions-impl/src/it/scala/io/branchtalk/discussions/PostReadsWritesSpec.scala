@@ -2,9 +2,8 @@ package io.branchtalk.discussions
 
 import cats.effect.{ IO, Resource }
 import io.branchtalk.{ IOTest, ResourcefulTest }
-import io.branchtalk.discussions.model.Post
-import io.branchtalk.shared.infrastructure._
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.discussions.model.{ Channel, Post }
+import io.branchtalk.shared.models.{ ID, UUIDGenerator }
 import org.specs2.mutable.Specification
 
 final class PostReadsWritesSpec extends Specification with IOTest with ResourcefulTest with DiscussionsFixtures {
@@ -12,25 +11,36 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
   private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
   // populated by resources
-  //private var transactor:        Transactor[IO]        = _
   private var discussionsReads:  DiscussionsReads[IO]  = _
   private var discussionsWrites: DiscussionsWrites[IO] = _
 
   override protected def testResource: Resource[IO, Unit] =
     for {
       domainCfg <- TestDiscussionsConfig.loadDomainConfig[IO]
-      _ <- new PostgresDatabase(domainCfg.database).transactor[IO]
       reads <- DiscussionsModule.reads[IO](domainCfg)
       writes <- DiscussionsModule.writes[IO](domainCfg)
     } yield {
-      //transactor        = xa
       discussionsReads  = reads
       discussionsWrites = writes
     }
 
   "Post Reads & Writes" should {
 
-    // TODO: prevent creation of a post without a channel
+    "don't create a Post if there is no Channel for it" in {
+      discussionsWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          channelID <- ID.create[IO, Channel]
+          creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
+          // when
+          toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost(_).attempt)
+        } yield {
+          // then
+          toCreate.forall(_.isLeft) must beTrue
+        }
+      }
+    }
 
     "create a Post and eventually read it" in {
       discussionsWrites.runProjector.use { projector =>

@@ -12,6 +12,6 @@ object CommonError {
     override def getMessage: String = s"Entity $entity id=${id.show} not found at: ${codePosition.show}"
   }
   final case class ParentNotExist(entity: String, id: ID[_], codePosition: CodePosition) extends CommonError {
-    override def getMessage: String = s"Entity $entity id=${id.show} not found at: ${codePosition.show}"
+    override def getMessage: String = s"Entity's parent $entity id=${id.show} not exist at: ${codePosition.show}"
   }
 }
