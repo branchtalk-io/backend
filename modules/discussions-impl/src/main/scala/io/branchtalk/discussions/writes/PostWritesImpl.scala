@@ -7,17 +7,25 @@ import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.types.string.NonEmptyString
 import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, PostCommandEvent }
-import io.branchtalk.discussions.model.Post
+import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, NormalizeForUrl, Writes }
+import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.models._
 
-final class PostWritesImpl[F[_]: Sync: Timer](producer: EventBusProducer[F, DiscussionCommandEvent])(
+final class PostWritesImpl[F[_]: Sync: Timer](
+  producer:   EventBusProducer[F, DiscussionCommandEvent],
+  transactor: Transactor[F]
+)(
   implicit uuidGenerator: UUIDGenerator
 ) extends Writes[F, Post, DiscussionCommandEvent](producer)
     with PostWrites[F] {
 
+  private val channelCheck = new ParentCheck[Channel]("Channel", transactor)
+
   override def createPost(newPost: Post.Create): F[CreationScheduled[Post]] =
     for {
+      _ <- channelCheck(newPost.channelID,
+                        sql"""SELECT 1 FROM channels WHERE id = ${newPost.channelID} AND deleted = false""")
       id <- UUID.create[F].map(ID[Post])
       now <- CreationTime.now[F]
       command = newPost

@@ -2,6 +2,7 @@ package io.branchtalk.discussions.writes
 
 import cats.data.NonEmptyList
 import cats.effect.Sync
+import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
 import io.scalaland.chimney.dsl._
@@ -15,6 +16,10 @@ import io.branchtalk.shared.models.UUID
 final class PostProjector[F[_]: Sync](transactor: Transactor[F])
     extends Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] {
 
+  private val logger = Logger(getClass)
+
+  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+
   override def apply(in: Stream[F, DiscussionCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
     in.collect {
         case DiscussionCommandEvent.ForPost(event) => event
@@ -27,6 +32,10 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
       }
       .map {
         case (key, value) => key -> DiscussionEvent.ForPost(value)
+      }
+      .handleErrorWith { error =>
+        logger.error("Post event processing failed", error)
+        Stream.empty
       }
 
   def toCreate(event: PostCommandEvent.Create): F[(UUID, PostEvent.Created)] = {

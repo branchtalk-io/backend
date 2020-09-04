@@ -2,6 +2,7 @@ package io.branchtalk.discussions.writes
 
 import cats.data.NonEmptyList
 import cats.effect.Sync
+import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ ChannelCommandEvent, ChannelEvent, DiscussionCommandEvent, DiscussionEvent }
@@ -11,6 +12,8 @@ import io.branchtalk.shared.models.UUID
 
 final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
     extends Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] {
+
+  private val logger = Logger(getClass)
 
   private implicit val logHandler: LogHandler = doobieLogger(getClass)
 
@@ -26,6 +29,10 @@ final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
       }
       .map {
         case (key, value) => key -> DiscussionEvent.ForChannel(value)
+      }
+      .handleErrorWith { error =>
+        logger.error("Channel event processing failed", error)
+        Stream.empty
       }
 
   def toCreate(event: ChannelCommandEvent.Create): F[(UUID, ChannelEvent.Created)] =
