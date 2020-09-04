@@ -4,7 +4,6 @@ import cats.effect.{ IO, Resource }
 import io.branchtalk.{ IOTest, ResourcefulTest }
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.infrastructure._
-import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.models.UUIDGenerator
 import org.specs2.mutable.Specification
 
@@ -13,18 +12,18 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
   private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
   // populated by resources
-  private var transactor:        Transactor[IO]        = _
+  //private var transactor:        Transactor[IO]        = _
   private var discussionsReads:  DiscussionsReads[IO]  = _
   private var discussionsWrites: DiscussionsWrites[IO] = _
 
   override protected def testResource: Resource[IO, Unit] =
     for {
       domainCfg <- TestDiscussionsConfig.loadDomainConfig[IO]
-      xa <- new PostgresDatabase(domainCfg.database).transactor[IO]
+      _ <- new PostgresDatabase(domainCfg.database).transactor[IO]
       reads <- DiscussionsModule.reads[IO](domainCfg)
       writes <- DiscussionsModule.writes[IO](domainCfg)
     } yield {
-      transactor        = xa
+      //transactor        = xa
       discussionsReads  = reads
       discussionsWrites = writes
     }

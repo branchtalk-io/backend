@@ -9,6 +9,7 @@ import io.branchtalk.shared.models.UUIDGenerator
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 
+import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 
 object Initialization {
@@ -62,6 +63,7 @@ object Initialization {
           } yield println("Shut down services") // scalastyle:ignore
       }
 
+  @nowarn("cat=unused") // temporarily until we implement the rest
   private def runApi[F[_]: ConcurrentEffect: ContextShift: Timer](
     appConfig:        AppConfig
   )(discussionsReads: DiscussionsReads[F], discussionsWrites: DiscussionsWrites[F]): Resource[F, Unit] = {

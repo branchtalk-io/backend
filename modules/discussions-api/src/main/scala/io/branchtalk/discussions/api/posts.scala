@@ -1,12 +1,13 @@
 package io.branchtalk.discussions.api
 
-import cats.effect.IO
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.ADT
 import io.branchtalk.shared.models.UUID
 import sttp.tapir._
 import sttp.tapir.json.jsoniter._
+
+import scala.annotation.nowarn
 
 @SuppressWarnings(
   // for macros
@@ -39,6 +40,7 @@ object posts { // scalastyle:ignore
   }
   final case class CreatePostResponse()
   object CreatePostResponse {
+    @nowarn("cat=unused")
     implicit val codec: JsonValueCodec[CreatePostResponse] = JsonCodecMaker.make[CreatePostResponse]
   }
 
@@ -56,6 +58,7 @@ object posts { // scalastyle:ignore
   }
   final case class UpdatePostResponse()
   object UpdatePostResponse {
+    @nowarn("cat=unused")
     implicit val codec: JsonValueCodec[UpdatePostResponse] = JsonCodecMaker.make[UpdatePostResponse]
   }
 

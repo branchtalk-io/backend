@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.reads
 
-import io.branchtalk.discussions.model.{ Channel, Comment }
+import io.branchtalk.discussions.model.Comment
 import io.branchtalk.shared.models.ID
 
 trait CommentReads[F[_]] {

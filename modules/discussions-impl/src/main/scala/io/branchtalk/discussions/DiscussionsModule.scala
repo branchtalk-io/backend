@@ -1,18 +1,14 @@
 package io.branchtalk.discussions
 
 import cats.data.NonEmptyList
-import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync, Timer }
+import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent }
 import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._
 import io.branchtalk.shared.models._
 import io.branchtalk.shared.infrastructure._
-import fs2._
-import fs2.kafka._
 import _root_.io.branchtalk.discussions.reads.ChannelReads
 import com.typesafe.scalalogging.Logger
-
-import scala.concurrent.duration._
 
 final case class DiscussionsReads[F[_]](
   channelReads: ChannelReads[F],
@@ -44,6 +40,7 @@ object DiscussionsModule {
         DiscussionsReads(channelReads, postReads, commentReads)
     }
 
+  // writes should test if they can write before they send event to bus
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig:           DomainConfig
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =

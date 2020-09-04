@@ -54,9 +54,10 @@ object Settings extends Dependencies {
       "-Ywarn-nullary-override",
       "-Ywarn-nullary-unit",
       "-Ywarn-numeric-widen",
-      //"-Ywarn-unused:implicits",
-      //"-Ywarn-unused:patvars",
-      //"-Ywarn-unused:privates",
+      "-Ywarn-unused",
+      "-Ywarn-unused:implicits",
+      "-Ywarn-unused:patvars",
+      "-Ywarn-unused:privates",
       "-Ywarn-value-discard",
       // advanced options
       "-Xcheckinit",
