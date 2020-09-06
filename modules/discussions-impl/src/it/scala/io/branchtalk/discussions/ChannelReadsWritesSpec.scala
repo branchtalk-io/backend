@@ -3,7 +3,7 @@ package io.branchtalk.discussions
 import cats.effect.{ IO, Resource }
 import io.branchtalk.{ IOTest, ResourcefulTest }
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.shared.models.{ ID, OptionUpdatable, UUIDGenerator, Updatable }
 import org.specs2.mutable.Specification
 
 final class ChannelReadsWritesSpec extends Specification with IOTest with ResourcefulTest with DiscussionsFixtures {
@@ -54,8 +54,8 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
         for {
           // given
           _ <- projector.handleError(_.printStackTrace()).start
-          creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           editorID <- editorIDCreate
+          creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           // when
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
           ids = toCreate.map(_.id)
@@ -88,6 +88,86 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
       }
     }
 
-    // TODO: test update
+    "don't update a Channel that doesn't exists" in {
+      discussionsWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          editorID <- editorIDCreate
+          creationData <- (0 until 3).toList.traverse(_ => channelCreate)
+          fakeUpdateData <- creationData.traverse { data =>
+            ID.create[IO, Channel].map { id =>
+              Channel.Update(
+                id             = id,
+                editorID       = editorID,
+                newUrlName     = Updatable.Set(data.urlName),
+                newName        = Updatable.Set(data.name),
+                newDescription = OptionUpdatable.setFromOption(data.description)
+              )
+            }
+          }
+          // when
+          toUpdate <- fakeUpdateData.traverse(discussionsWrites.channelWrites.updateChannel(_).attempt)
+        } yield {
+          // then
+          toUpdate.forall(_.isLeft) must beTrue
+        }
+      }
+    }
+
+    "update an existing Channel" in {
+      discussionsWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          editorID <- editorIDCreate
+          creationData <- (0 until 3).toList.traverse(_ => channelCreate)
+          toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
+          ids = toCreate.map(_.id)
+          created <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
+          updateData = created.zipWithIndex.map {
+            case (Channel(id, data), 0) =>
+              Channel.Update(
+                id             = id,
+                editorID       = editorID,
+                newUrlName     = Updatable.Set(data.urlName),
+                newName        = Updatable.Set(data.name),
+                newDescription = OptionUpdatable.setFromOption(data.description)
+              )
+            case (Channel(id, _), 1) =>
+              Channel.Update(
+                id             = id,
+                editorID       = editorID,
+                newUrlName     = Updatable.Keep,
+                newName        = Updatable.Keep,
+                newDescription = OptionUpdatable.Keep
+              )
+            case (Channel(id, _), 2) =>
+              Channel.Update(
+                id             = id,
+                editorID       = editorID,
+                newUrlName     = Updatable.Keep,
+                newName        = Updatable.Keep,
+                newDescription = OptionUpdatable.Erase
+              )
+          }
+          // when
+          toUpdate <- updateData.traverse(discussionsWrites.channelWrites.updateChannel)
+          updated <- ids
+            .traverse(
+              discussionsReads.channelReads.requireById(_).flatMap { current =>
+                if (current.data.lastModifiedAt.isDefined) current.pure[IO]
+                else (new Exception("")).raiseError[IO, Channel]
+              }
+            )
+            .eventually()
+        } yield {
+          // then
+          // TODO: updated contains all ids
+          // TODO: values match
+          toUpdate.forall(_.isLeft) must beTrue
+        }
+      }
+    }
   }
 }

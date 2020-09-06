@@ -23,6 +23,8 @@ object OptionUpdatable {
   case object Erase extends OptionUpdatable[Nothing]
   case object Keep extends OptionUpdatable[Nothing]
 
+  def setFromOption[A](option: Option[A]): OptionUpdatable[A] = option.fold[OptionUpdatable[A]](Erase)(Set(_))
+
   implicit def show[A: ShowPretty]: ShowPretty[OptionUpdatable[A]] = ShowPretty.semi
   implicit def eq[A:   Eq]:         Eq[OptionUpdatable[A]]         = FastEq.semi
   @nowarn("cat=unused")
