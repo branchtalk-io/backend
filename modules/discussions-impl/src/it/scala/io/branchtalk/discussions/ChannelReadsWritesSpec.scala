@@ -125,7 +125,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
           ids = toCreate.map(_.id)
           created <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
-          updateData = created.zipWithIndex.map {
+          updateData = created.zipWithIndex.collect {
             case (Channel(id, data), 0) =>
               Channel.Update(
                 id             = id,
@@ -152,20 +152,32 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
               )
           }
           // when
-          toUpdate <- updateData.traverse(discussionsWrites.channelWrites.updateChannel)
+          _ <- updateData.traverse(discussionsWrites.channelWrites.updateChannel)
           updated <- ids
             .traverse(
               discussionsReads.channelReads.requireById(_).flatMap { current =>
                 if (current.data.lastModifiedAt.isDefined) current.pure[IO]
-                else (new Exception("")).raiseError[IO, Channel]
+                else (new Exception("Not updated")).raiseError[IO, Channel]
               }
             )
             .eventually()
         } yield {
           // then
-          // TODO: updated contains all ids
-          // TODO: values match
-          toUpdate.forall(_.isLeft) must beTrue
+          updated
+            .zip(created)
+            .zipWithIndex
+            .collect {
+              case ((Channel(_, older), Channel(_, newer)), 0) =>
+                // set case
+                older === newer.copy(lastModifiedAt = None)
+              case ((Channel(_, older), Channel(_, newer)), 1) =>
+                // keep case
+                older === newer.copy(lastModifiedAt = None)
+              case ((Channel(_, older), Channel(_, newer)), 2) =>
+                // erase case
+                older.copy(description = None) === newer.copy(lastModifiedAt = None)
+            }
+            .forall(identity) must beTrue
         }
       }
     }

@@ -76,8 +76,8 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
       .sequence match {
       case Some(updates) =>
         (fr"UPDATE posts SET" ++
-          updates.intercalate(fr",") ++
-          fr", last_updated_at = ${event.modifiedAt} WHERE id = ${event.id}").update.run.transact(transactor).void
+          (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
+          fr"WHERE id = ${event.id}").update.run.transact(transactor).void
       case None =>
         ().pure[F]
     }) >>
