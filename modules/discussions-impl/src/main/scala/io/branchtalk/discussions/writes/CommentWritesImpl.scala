@@ -16,7 +16,8 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
 ) extends Writes[F, Comment, DiscussionCommandEvent](producer)
     with CommentWrites[F] {
 
-  private val postCheck = new ParentCheck[Post]("Post", transactor)
+  private val postCheck    = new ParentCheck[Post]("Post", transactor)
+  private val commentCheck = new EntityCheck("Comment", transactor)
 
   override def createComment(newComment: Comment.Create): F[CreationScheduled[Comment]] =
     for {
@@ -35,6 +36,7 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
   override def updateComment(updatedComment: Comment.Update): F[UpdateScheduled[Comment]] =
     for {
       id <- updatedComment.id.pure[F]
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
       now <- ModificationTime.now[F]
       command = updatedComment.into[CommentCommandEvent.Update].withFieldConst(_.modifiedAt, now).transform
       _ <- postEvent(id, DiscussionCommandEvent.ForComment(command))
@@ -43,6 +45,7 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
   override def deleteComment(deletedComment: Comment.Delete): F[DeletionScheduled[Comment]] =
     for {
       id <- deletedComment.id.pure[F]
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
       command = deletedComment.into[CommentCommandEvent.Delete].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForComment(command))
     } yield DeletionScheduled(id)
@@ -50,6 +53,7 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
   override def restoreComment(restoredComment: Comment.Restore): F[RestoreScheduled[Comment]] =
     for {
       id <- restoredComment.id.pure[F]
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = TRUE""")
       command = restoredComment.into[CommentCommandEvent.Restore].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForComment(command))
     } yield RestoreScheduled(id)

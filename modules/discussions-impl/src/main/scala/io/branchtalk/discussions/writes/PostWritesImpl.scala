@@ -21,6 +21,7 @@ final class PostWritesImpl[F[_]: Sync: Timer](
     with PostWrites[F] {
 
   private val channelCheck = new ParentCheck[Channel]("Channel", transactor)
+  private val postCheck    = new EntityCheck("Post", transactor)
 
   override def createPost(newPost: Post.Create): F[CreationScheduled[Post]] =
     for {
@@ -43,6 +44,7 @@ final class PostWritesImpl[F[_]: Sync: Timer](
   override def updatePost(updatedPost: Post.Update): F[UpdateScheduled[Post]] =
     for {
       id <- updatedPost.id.pure[F]
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
       now <- ModificationTime.now[F]
       command = updatedPost
         .into[PostCommandEvent.Update]
@@ -60,6 +62,7 @@ final class PostWritesImpl[F[_]: Sync: Timer](
   override def deletePost(deletedPost: Post.Delete): F[DeletionScheduled[Post]] =
     for {
       id <- deletedPost.id.pure[F]
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
       command = deletedPost.into[PostCommandEvent.Delete].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
     } yield DeletionScheduled(id)
@@ -67,6 +70,7 @@ final class PostWritesImpl[F[_]: Sync: Timer](
   override def restorePost(restoredPost: Post.Restore): F[RestoreScheduled[Post]] =
     for {
       id <- restoredPost.id.pure[F]
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = TRUE""")
       command = restoredPost.into[PostCommandEvent.Restore].transform
       _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
     } yield RestoreScheduled(id)

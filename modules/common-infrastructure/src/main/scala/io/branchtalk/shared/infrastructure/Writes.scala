@@ -12,6 +12,14 @@ abstract class Writes[F[_]: Sync, Entity, Event](producer: EventBusProducer[F, E
   protected final def postEvent(id: ID[Entity], event: Event): F[Unit] =
     producer(Stream[F, (UUID, Event)](id.value -> event)).compile.drain
 
+  protected class EntityCheck(entity: String, transactor: Transactor[F]) {
+    def apply(entityID: ID[Entity], fragment: Fragment)(implicit codePosition: CodePosition): F[Unit] =
+      fragment.exists.transact(transactor).flatMap {
+        case true  => Sync[F].unit
+        case false => (CommonError.NotFound(entity, entityID, codePosition): Throwable).raiseError[F, Unit]
+      }
+  }
+
   protected class ParentCheck[Parent](entity: String, transactor: Transactor[F]) {
     def apply(parentID: ID[Parent], fragment: Fragment)(implicit codePosition: CodePosition): F[Unit] =
       fragment.exists.transact(transactor).flatMap {

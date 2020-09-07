@@ -54,18 +54,19 @@ final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
       (event.id.value -> event.transformInto[ChannelEvent.Created]).pure[F]
 
   def toUpdate(event: ChannelCommandEvent.Update): F[(UUID, ChannelEvent.Updated)] =
-    (NonEmptyList
-      .of(
+    (NonEmptyList.fromList(
+      List(
         event.newUrlName.toUpdateFragment(fr"url_name"),
         event.newName.toUpdateFragment(fr"name"),
         event.newDescription.toUpdateFragment(fr"description")
-      )
-      .sequence match {
+      ).flatten
+    ) match {
       case Some(updates) =>
         (fr"UPDATE channels SET" ++
           (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
           fr"WHERE id = ${event.id}").update.run.transact(transactor).void
       case None =>
+        // TODO: log warning with empty update
         ().pure[F]
     }) >>
       (event.id.value -> event.transformInto[ChannelEvent.Updated]).pure[F]

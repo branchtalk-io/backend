@@ -106,7 +106,7 @@ val discussionsImpl = project
   .setName("discussions-impl")
   .setDescription("Discussions' Reads, Writes and Services' implementations")
   .configureModule
-  .configureIntegrationTests()
+  .configureIntegrationTests(requiresFork = true)
   .settings(
     customPredef("scala.util.chaining", "cats.implicits")
   )

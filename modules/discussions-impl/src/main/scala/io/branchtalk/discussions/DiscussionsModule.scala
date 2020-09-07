@@ -46,7 +46,7 @@ object DiscussionsModule {
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
     module.setupWrites[F](domainConfig).map {
       case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer) =>
-        val channelRepository: ChannelWrites[F] = new ChannelWritesImpl[F](internalProducer)
+        val channelRepository: ChannelWrites[F] = new ChannelWritesImpl[F](internalProducer, transactor)
         val postRepository:    PostWrites[F]    = new PostWritesImpl[F](internalProducer, transactor)
         val commentRepository: CommentWrites[F] = new CommentWritesImpl[F](internalProducer, transactor)
 

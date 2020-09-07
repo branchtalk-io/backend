@@ -154,17 +154,15 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           // when
           _ <- updateData.traverse(discussionsWrites.channelWrites.updateChannel)
           updated <- ids
-            .traverse(
-              discussionsReads.channelReads.requireById(_).flatMap { current =>
-                if (current.data.lastModifiedAt.isDefined) current.pure[IO]
-                else (new Exception("Not updated")).raiseError[IO, Channel]
-              }
-            )
+            .traverse(discussionsReads.channelReads.requireById)
+            .flatTap { current =>
+              IO(assert(current.last.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
+            }
             .eventually()
         } yield {
           // then
-          updated
-            .zip(created)
+          created
+            .zip(updated)
             .zipWithIndex
             .collect {
               case ((Channel(_, older), Channel(_, newer)), 0) =>

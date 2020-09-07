@@ -67,21 +67,21 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
       .transact(transactor) >>
       (event.id.value -> event.transformInto[CommentEvent.Created]).pure[F]
 
-  def toUpdate(event: CommentCommandEvent.Update): F[(UUID, CommentEvent.Updated)] = {
-    (NonEmptyList
-      .of(
+  def toUpdate(event: CommentCommandEvent.Update): F[(UUID, CommentEvent.Updated)] =
+    (NonEmptyList.fromList(
+      List(
         event.newContent.toUpdateFragment(fr"content")
-      )
-      .sequence match {
+      ).flatten
+    ) match {
       case Some(updates) =>
         (fr"UPDATE comments SET" ++
           (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
           fr"WHERE id = ${event.id}").update.run.transact(transactor).void
       case None =>
+        // TODO: log warning with empty update
         ().pure[F]
-    })
-    (event.id.value -> event.transformInto[CommentEvent.Updated]).pure[F]
-  }
+    }) >>
+      (event.id.value -> event.transformInto[CommentEvent.Updated]).pure[F]
 
   def toDelete(event: CommentCommandEvent.Delete): F[(UUID, CommentEvent.Deleted)] =
     sql"UPDATE comments SET deleted = TRUE WHERE id = ${event.id}".update.run.transact(transactor) >>

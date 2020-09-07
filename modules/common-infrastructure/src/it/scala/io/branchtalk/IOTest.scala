@@ -13,7 +13,7 @@ trait IOTest {
 
   implicit class IOTestOps[T](private val io: IO[T]) {
 
-    def eventually(retry: Int = 50, timeout: FiniteDuration = 5.seconds, delay: FiniteDuration = 100.millis): IO[T] = {
+    def eventually(retry: Int = 50, timeout: FiniteDuration = 6.seconds, delay: FiniteDuration = 100.millis): IO[T] = {
       val timeouting = IO.sleep(timeout) >> IO.raiseError(new Exception(s"IO failed: exceeded timeout $timeout"))
 
       def withRetry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = {

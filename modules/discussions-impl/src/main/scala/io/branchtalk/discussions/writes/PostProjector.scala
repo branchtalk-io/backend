@@ -66,19 +66,20 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
 
   def toUpdate(event: PostCommandEvent.Update): F[(UUID, PostEvent.Updated)] = {
     val contentTupled = event.newContent.map(Post.Content.Tupled.unpack)
-    (NonEmptyList
-      .of(
+    (NonEmptyList.fromList(
+      List(
         event.newUrlTitle.toUpdateFragment(fr"url_title"),
         event.newTitle.toUpdateFragment(fr"title"),
         contentTupled.map(_._1).toUpdateFragment(fr"content_type"),
         contentTupled.map(_._2).toUpdateFragment(fr"content_raw")
-      )
-      .sequence match {
+      ).flatten
+    ) match {
       case Some(updates) =>
         (fr"UPDATE posts SET" ++
           (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
           fr"WHERE id = ${event.id}").update.run.transact(transactor).void
       case None =>
+        // TODO: log warning with empty update
         ().pure[F]
     }) >>
       (event.id.value -> event.transformInto[PostEvent.Updated]).pure[F]
