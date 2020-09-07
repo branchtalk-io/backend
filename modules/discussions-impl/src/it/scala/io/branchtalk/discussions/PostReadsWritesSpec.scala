@@ -3,7 +3,7 @@ package io.branchtalk.discussions
 import cats.effect.{ IO, Resource }
 import io.branchtalk.{ IOTest, ResourcefulTest }
 import io.branchtalk.discussions.model.{ Channel, Post }
-import io.branchtalk.shared.models.{ ID, UUIDGenerator }
+import io.branchtalk.shared.models.{ ID, UUIDGenerator, Updatable }
 import org.specs2.mutable.Specification
 
 final class PostReadsWritesSpec extends Specification with IOTest with ResourcefulTest with DiscussionsFixtures {
@@ -67,6 +67,88 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
       }
     }
 
+    "don't update a Post that doesn't exists" in {
+      discussionsWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          editorID <- editorIDCreate
+          creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
+          fakeUpdateData <- creationData.traverse { data =>
+            ID.create[IO, Post].map { id =>
+              Post.Update(
+                id         = id,
+                editorID   = editorID,
+                newTitle   = Updatable.Set(data.title),
+                newContent = Updatable.Set(data.content)
+              )
+            }
+          }
+          // when
+          toUpdate <- fakeUpdateData.traverse(discussionsWrites.postWrites.updatePost(_).attempt)
+        } yield {
+          // then
+          toUpdate.forall(_.isLeft) must beTrue
+        }
+      }
+    }
+
+    "update an existing Post" in {
+      discussionsWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          editorID <- editorIDCreate
+          creationData <- (0 until 2).toList.traverse(_ => postCreate(channelID))
+          toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
+          ids = toCreate.map(_.id)
+          created <- ids.traverse(discussionsReads.postReads.requireById).eventually()
+          updateData = created.zipWithIndex.collect {
+            case (Post(id, data), 0) =>
+              Post.Update(
+                id         = id,
+                editorID   = editorID,
+                newTitle   = Updatable.Set(data.title),
+                newContent = Updatable.Set(data.content)
+              )
+            case (Post(id, _), 1) =>
+              Post.Update(
+                id         = id,
+                editorID   = editorID,
+                newTitle   = Updatable.Keep,
+                newContent = Updatable.Keep
+              )
+          }
+          // when
+          _ <- updateData.traverse(discussionsWrites.postWrites.updatePost)
+          updated <- ids
+            .traverse(discussionsReads.postReads.requireById)
+            .flatTap { current =>
+              IO(assert(current.head.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
+            }
+            .eventually()
+        } yield {
+          // then
+          created
+            .zip(updated)
+            .zipWithIndex
+            .collect {
+              case ((Post(_, older), Post(_, newer)), 0) =>
+                // set case
+                older === newer.copy(lastModifiedAt = None)
+              case ((Post(_, older), Post(_, newer)), 1) =>
+                // keep case
+                older === newer
+            }
+            .forall(identity) must beTrue
+        }
+      }
+    }
+
     "allow delete and restore of a created Post" in {
       discussionsWrites.runProjector.use { projector =>
         for {
@@ -104,8 +186,6 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
           notDeleted.exists(identity) must beFalse
         }
       }
-
-      // TODO: test update
     }
   }
 }
