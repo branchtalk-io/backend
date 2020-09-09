@@ -78,8 +78,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
           (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
           fr"WHERE id = ${event.id}").update.run.transact(transactor).void
       case None =>
-        // TODO: log warning with empty update
-        ().pure[F]
+        Sync[F].delay(logger.warn(s"Comment update ignored as it doesn't contain any modification:\n${event.show}"))
     }) >>
       (event.id.value -> event.transformInto[CommentEvent.Updated]).pure[F]
 
