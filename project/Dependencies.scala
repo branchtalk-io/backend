@@ -11,8 +11,8 @@ object Dependencies {
 
   // libraries versions
   val avro4sVersion     = "4.0.0-RC2"
-  val catsVersion       = "2.1.1"
-  val catsEffectVersion = "2.1.3"
+  val catsVersion       = "2.2.0"
+  val catsEffectVersion = "2.2.0"
   val declineVersion    = "1.2.0"
   val doobieVersion     = "0.8.8"
   val drosteVersion     = "0.8.0"
