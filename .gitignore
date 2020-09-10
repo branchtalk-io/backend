@@ -1,6 +1,9 @@
 .bloop
 .ensime
 .idea
+.metals
+.vscode
+metals.sbt
 target/
 project/target
 *~
