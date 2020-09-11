@@ -67,6 +67,7 @@ val commonApi = project
   .configureTests()
   .settings(
     libraryDependencies ++= Seq(
+      Dependencies.jsoniterMacro,
       Dependencies.tapir,
       Dependencies.tapirJsoniter
     ),

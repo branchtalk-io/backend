@@ -3,7 +3,9 @@ package io.branchtalk.discussions.api
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.ADT
-import io.branchtalk.shared.models.UUID
+import io.branchtalk.api._
+import io.branchtalk.api.AuthenticationSupport._
+import io.branchtalk.shared.models.ID
 import sttp.tapir._
 import sttp.tapir.json.jsoniter._
 
@@ -16,16 +18,7 @@ import scala.annotation.nowarn
         "org.wartremover.warts.Var",
         "org.wartremover.warts.While")
 )
-object posts { // scalastyle:ignore
-
-  // TODO: move to some common
-  final case class SessionID(id: UUID)
-  object SessionID {
-    implicit val codec: Codec[List[String], SessionID, CodecFormat.TextPlain] =
-      implicitly[Codec[List[String], UUID, CodecFormat.TextPlain]].map[SessionID](SessionID(_))(_.id)
-  }
-
-  // TODO: create PostId or sth here
+object posts { // scalastyle:ignore object.name
 
   sealed trait PostErrors extends ADT
   object PostErrors {
@@ -34,7 +27,7 @@ object posts { // scalastyle:ignore
     implicit val codec: JsonValueCodec[PostErrors] = JsonCodecMaker.make[PostErrors]
   }
 
-  final case class CreatePostRequest(id: UUID)
+  final case class CreatePostRequest(id: ID[APIPost])
   object CreatePostRequest {
     implicit val codec: JsonValueCodec[CreatePostRequest] = JsonCodecMaker.make[CreatePostRequest]
   }
@@ -44,15 +37,15 @@ object posts { // scalastyle:ignore
     implicit val codec: JsonValueCodec[CreatePostResponse] = JsonCodecMaker.make[CreatePostResponse]
   }
 
-  val create: Endpoint[(SessionID, UUID, CreatePostRequest), PostErrors, CreatePostResponse, Nothing] =
+  val create: Endpoint[(Authentication, ID[APIPost], CreatePostRequest), PostErrors, CreatePostResponse, Nothing] =
     endpoint.post
-      .in(auth.bearer[SessionID])
-      .in("discussions" / "post" / path[UUID])
+      .in(authHeader)
+      .in("discussions" / "post" / path[ID[APIPost]])
       .in(jsonBody[CreatePostRequest])
       .out(jsonBody[CreatePostResponse])
       .errorOut(jsonBody[PostErrors])
 
-  final case class UpdatePostRequest(id: UUID)
+  final case class UpdatePostRequest(id: ID[APIPost])
   object UpdatePostRequest {
     implicit val codec: JsonValueCodec[UpdatePostRequest] = JsonCodecMaker.make[UpdatePostRequest]
   }
@@ -62,23 +55,23 @@ object posts { // scalastyle:ignore
     implicit val codec: JsonValueCodec[UpdatePostResponse] = JsonCodecMaker.make[UpdatePostResponse]
   }
 
-  val update: Endpoint[(SessionID, UUID, UpdatePostRequest), PostErrors, UpdatePostResponse, Nothing] =
+  val update: Endpoint[(Authentication, ID[APIPost], UpdatePostRequest), PostErrors, UpdatePostResponse, Nothing] =
     endpoint.put
-      .in(auth.bearer[SessionID])
-      .in("discussions" / "post" / path[UUID])
+      .in(authHeader)
+      .in("discussions" / "post" / path[ID[APIPost]])
       .in(jsonBody[UpdatePostRequest])
       .out(jsonBody[UpdatePostResponse])
       .errorOut(jsonBody[PostErrors])
 
-  final case class DeletePostResponse(id: UUID)
+  final case class DeletePostResponse(id: ID[APIPost])
   object DeletePostResponse {
     implicit val codec: JsonValueCodec[DeletePostResponse] = JsonCodecMaker.make[DeletePostResponse]
   }
 
-  val delete: Endpoint[(SessionID, UUID), PostErrors, DeletePostResponse, Nothing] =
+  val delete: Endpoint[(Authentication, ID[APIPost]), PostErrors, DeletePostResponse, Nothing] =
     endpoint.put
-      .in(auth.bearer[SessionID])
-      .in("discussions" / "post" / path[UUID])
+      .in(authHeader)
+      .in("discussions" / "post" / path[ID[APIPost]])
       .out(jsonBody[DeletePostResponse])
       .errorOut(jsonBody[PostErrors])
 }
