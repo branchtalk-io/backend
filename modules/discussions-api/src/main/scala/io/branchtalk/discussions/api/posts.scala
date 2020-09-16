@@ -27,6 +27,10 @@ object posts { // scalastyle:ignore object.name
     implicit val codec: JsonValueCodec[PostErrors] = JsonCodecMaker.make[PostErrors]
   }
 
+  // TODO: new pagination
+  // TODO: hot pagination
+  // TODO: controversial pagination
+
   final case class CreatePostRequest(id: ID[APIPost])
   object CreatePostRequest {
     implicit val codec: JsonValueCodec[CreatePostRequest] = JsonCodecMaker.make[CreatePostRequest]
@@ -40,10 +44,12 @@ object posts { // scalastyle:ignore object.name
   val create: Endpoint[(Authentication, ID[APIPost], CreatePostRequest), PostErrors, CreatePostResponse, Nothing] =
     endpoint.post
       .in(authHeader)
-      .in("discussions" / "post" / path[ID[APIPost]])
+      .in("discussions" / "posts" / path[ID[APIPost]])
       .in(jsonBody[CreatePostRequest])
       .out(jsonBody[CreatePostResponse])
       .errorOut(jsonBody[PostErrors])
+
+  // TODO: show
 
   final case class UpdatePostRequest(id: ID[APIPost])
   object UpdatePostRequest {
@@ -58,7 +64,7 @@ object posts { // scalastyle:ignore object.name
   val update: Endpoint[(Authentication, ID[APIPost], UpdatePostRequest), PostErrors, UpdatePostResponse, Nothing] =
     endpoint.put
       .in(authHeader)
-      .in("discussions" / "post" / path[ID[APIPost]])
+      .in("discussions" / "posts" / path[ID[APIPost]])
       .in(jsonBody[UpdatePostRequest])
       .out(jsonBody[UpdatePostResponse])
       .errorOut(jsonBody[PostErrors])
@@ -71,7 +77,7 @@ object posts { // scalastyle:ignore object.name
   val delete: Endpoint[(Authentication, ID[APIPost]), PostErrors, DeletePostResponse, Nothing] =
     endpoint.put
       .in(authHeader)
-      .in("discussions" / "post" / path[ID[APIPost]])
+      .in("discussions" / "posts" / path[ID[APIPost]])
       .out(jsonBody[DeletePostResponse])
       .errorOut(jsonBody[PostErrors])
 }
