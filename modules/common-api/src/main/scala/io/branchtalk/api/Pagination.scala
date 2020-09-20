@@ -21,6 +21,9 @@ final case class Pagination[A](
 )
 object Pagination {
 
-  implicit def paginationJsoniterValueCodec[A: JsonValueCodec]: JsonValueCodec[Pagination[A]] =
+  implicit def jsoniterValueCodec[A: JsonValueCodec]: JsonValueCodec[Pagination[A]] =
     JsonCodecMaker.make[Pagination[A]]
+
+  // TODO
+//  implicit def schema[A: Schema]: Schema[Pagination[A]] =
 }

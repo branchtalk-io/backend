@@ -69,7 +69,8 @@ val commonApi = project
     libraryDependencies ++= Seq(
       Dependencies.jsoniterMacro,
       Dependencies.tapir,
-      Dependencies.tapirJsoniter
+      Dependencies.tapirJsoniter,
+      Dependencies.tapirRefined
     ),
     customPredef("scala.util.chaining", "cats.implicits")
   )

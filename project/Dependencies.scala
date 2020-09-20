@@ -76,6 +76,7 @@ object Dependencies {
   val tapir         = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
   val tapirHttp4s   = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
   val tapirJsoniter = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
+  val tapirRefined  = "com.softwaremill.sttp.tapir" %% "tapir-refined" % tapirVersion
   val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.4.0" % "compile-internal"
   // config
   val decline        = "com.monovore" %% "decline" % declineVersion
