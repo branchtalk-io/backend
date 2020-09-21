@@ -16,12 +16,17 @@ import sttp.tapir.CodecFormat.TextPlain
 
 package object api {
 
-  def summonCodec[T](implicit codec:   JsonValueCodec[T]): JsonValueCodec[T] = codec
-  def summonSchema[T](implicit schema: Schema[T]):         Schema[T]         = schema
+  // shortcuts
+  type JsCodec[A] = JsonValueCodec[A]
+  type Param[A]   = Codec[String, A, TextPlain]
 
-  implicit class RefineJsoniterValueCodec[T](private val codec: JsonValueCodec[T]) extends AnyVal {
+  def summonCodec[T](implicit codec:   JsCodec[T]): JsCodec[T] = codec
+  def summonParam[T](implicit param:   Param[T]):   Param[T]   = param
+  def summonSchema[T](implicit schema: Schema[T]):  Schema[T]  = schema
 
-    def mapDecode[U](f: T => Either[String, U])(g: U => T): JsonValueCodec[U] = new JsonValueCodec[U] {
+  implicit class RefineCodec[T](private val codec: JsCodec[T]) extends AnyVal {
+
+    def mapDecode[U](f: T => Either[String, U])(g: U => T): JsCodec[U] = new JsCodec[U] {
       override def decodeValue(in: JsonReader, default: U): U = f(codec.decodeValue(in, g(default))) match {
         case Left(error)  => in.decodeError(error)
         case Right(value) => value
@@ -33,26 +38,33 @@ package object api {
       override def nullValue: U = null.asInstanceOf[U] // scalastyle:ignore
     }
 
-    def refine[P: Validate[T, *]]: JsonValueCodec[T Refined P] = mapDecode(refineV[P](_: T))(_.value)
+    def map[U](f: T => U)(g: U => T): JsCodec[U] = new JsCodec[U] {
+      override def decodeValue(in: JsonReader, default: U): U = f(codec.decodeValue(in, g(default)))
 
+      override def encodeValue(x: U, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
+
+      @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
+      override def nullValue: U = null.asInstanceOf[U] // scalastyle:ignore
+    }
+
+    def refine[P: Validate[T, *]]: JsCodec[T Refined P] = mapDecode(refineV[P](_: T))(_.value)
+
+    // this is most likely an abuse that should take some implicit evidence e.g. Coercible[T, N]
     @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-    def asNewtype[N]: JsonValueCodec[N] = codec.asInstanceOf[JsonValueCodec[N]]
+    def asNewtype[N]: JsCodec[N] = codec.asInstanceOf[JsCodec[N]]
   }
 
   implicit class RefineSchema[T](private val schema: Schema[T]) extends AnyVal {
 
+    // this is most likely an abuse that should take some implicit evidence e.g. Coercible[T, N]
     @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
     def asNewtype[N]: Schema[N] = schema.asInstanceOf[Schema[N]]
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def idCodec[A]: Codec[String, ID[A], TextPlain] = Codec.uuid.asInstanceOf[Codec[String, ID[A], TextPlain]]
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def idSchema[A]: Schema[ID[A]] = Schema.schemaForUUID.asNewtype[ID[A]]
-
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
-  implicit def idJsoniterValueCodec[A]: JsonValueCodec[ID[A]] =
-    summonCodec[UUID](JsonCodecMaker.make).asNewtype[ID[A]]
+  implicit def idCodec[A]:  JsCodec[ID[A]] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[ID[A]]
+  implicit def idParam[A]:  Param[ID[A]]   = summonParam[UUID].map[ID[A]](ID[A](_))(_.value)
+  implicit def idSchema[A]: Schema[ID[A]]  = summonSchema[UUID].asNewtype[ID[A]]
 
   @newtype final case class SessionID(value: UUID)
   object SessionID {
@@ -60,8 +72,10 @@ package object api {
       UUID.parse[F](string).map(SessionID(_))
 
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
-    implicit val jsoniterValueCodec: JsonValueCodec[SessionID] =
+    implicit val codec: JsCodec[SessionID] =
       summonCodec[UUID](JsonCodecMaker.make).asNewtype[SessionID]
+    implicit val schema: Schema[SessionID] =
+      summonSchema[UUID].asNewtype[SessionID]
   }
 
   @newtype final case class Username(value: NonEmptyString)
@@ -70,8 +84,10 @@ package object api {
       ParseRefined[F].parse[NonEmpty](string).map(Username(_))
 
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
-    implicit val jsoniterValueCodec: JsonValueCodec[Username] =
+    implicit val codec: JsCodec[Username] =
       summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Username]
+    implicit val schema: Schema[Username] =
+      summonSchema[String Refined NonEmpty].asNewtype[Username]
   }
 
   @newtype final case class Password(value: NonEmptyString)
@@ -80,8 +96,10 @@ package object api {
       ParseRefined[F].parse[NonEmpty](string).map(Password(_))
 
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
-    implicit val jsoniterValueCodec: JsonValueCodec[Password] =
+    implicit val codec: JsCodec[Password] =
       summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Password]
+    implicit val schema: Schema[Password] =
+      summonSchema[String Refined NonEmpty].asNewtype[Password]
   }
 
   @newtype final case class PaginationOffset(value: Int Refined NonNegative)
@@ -89,12 +107,12 @@ package object api {
     def parse[F[_]: Sync](int: Int): F[PaginationOffset] =
       ParseRefined[F].parse[NonNegative](int).map(PaginationOffset(_))
 
-    implicit val jsoniterValueCodec: JsonValueCodec[PaginationOffset] =
+    implicit val codec: JsCodec[PaginationOffset] =
       summonCodec[Int](JsonCodecMaker.make).refine[NonNegative].asNewtype[PaginationOffset]
-    implicit val codec: Codec[String, PaginationOffset, TextPlain] =
-      implicitly[Codec[String, Int Refined NonNegative, TextPlain]].map(PaginationOffset(_))(_.value)
+    implicit val codec2: Param[PaginationOffset] =
+      summonParam[Int Refined NonNegative].map(PaginationOffset(_))(_.value)
     implicit val schema: Schema[PaginationOffset] =
-      implicitly[Schema[Int Refined NonNegative]].asNewtype[PaginationOffset]
+      summonSchema[Int Refined NonNegative].asNewtype[PaginationOffset]
   }
 
   @newtype final case class PaginationLimit(value: Int Refined Positive)
@@ -102,10 +120,10 @@ package object api {
     def parse[F[_]: Sync](int: Int): F[PaginationLimit] =
       ParseRefined[F].parse[Positive](int).map(PaginationLimit(_))
 
-    implicit val jsoniterValueCodec: JsonValueCodec[PaginationLimit] =
+    implicit val codec: JsCodec[PaginationLimit] =
       summonCodec[Int](JsonCodecMaker.make).refine[Positive].asNewtype[PaginationLimit]
-    implicit val codec: Codec[String, PaginationLimit, TextPlain] =
-      implicitly[Codec[String, Int Refined Positive, TextPlain]].map(PaginationLimit(_))(_.value)
+    implicit val codec2: Param[PaginationLimit] =
+      summonParam[Int Refined Positive].map(PaginationLimit(_))(_.value)
     implicit val schema: Schema[PaginationLimit] =
       summonSchema[Int Refined Positive].asNewtype[PaginationLimit]
   }
@@ -113,11 +131,9 @@ package object api {
   @newtype final case class PaginationHasNext(value: Boolean)
   object PaginationHasNext {
 
-    implicit val jsoniterValueCodec: JsonValueCodec[PaginationHasNext] =
+    implicit val codec: JsCodec[PaginationHasNext] =
       summonCodec[Boolean](JsonCodecMaker.make).asNewtype[PaginationHasNext]
-    implicit val codec: Codec[String, PaginationOffset, TextPlain] =
-      implicitly[Codec[String, Int Refined NonNegative, TextPlain]].map(PaginationOffset(_))(_.value)
     implicit val schema: Schema[PaginationHasNext] =
-      summonSchema[Int Refined NonNegative].asNewtype[PaginationHasNext]
+      summonSchema[Boolean].asNewtype[PaginationHasNext]
   }
 }

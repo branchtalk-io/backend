@@ -2,18 +2,19 @@ package io.branchtalk.discussions.api
 
 import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
-import io.branchtalk.discussions.api.models._
+import io.branchtalk.discussions.api.PostModels._
+import io.branchtalk.discussions.model.Post
 import io.branchtalk.shared.models.ID
 import sttp.tapir._
 import sttp.tapir.json.jsoniter._
 
-object posts { // scalastyle:ignore object.name
+object PostAPIs {
 
   private val prefix = "discussions" / "posts"
 
   val newest: Endpoint[
     (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
-    PostErrors,
+    PostError,
     Pagination[APIPost],
     Nothing
   ] = endpoint.get
@@ -22,34 +23,34 @@ object posts { // scalastyle:ignore object.name
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
     .out(jsonBody[Pagination[APIPost]])
-    .errorOut(jsonBody[PostErrors])
+    .errorOut(jsonBody[PostError])
 
   // TODO: hot pagination
   // TODO: controversial pagination
 
-  val create: Endpoint[(Authentication, ID[APIPost], CreatePostRequest), PostErrors, CreatePostResponse, Nothing] =
+  val create: Endpoint[(Authentication, CreatePostRequest), PostError, CreatePostResponse, Nothing] =
     endpoint.post
       .in(authHeader)
-      .in(prefix / path[ID[APIPost]])
+      .in(prefix)
       .in(jsonBody[CreatePostRequest])
       .out(jsonBody[CreatePostResponse])
-      .errorOut(jsonBody[PostErrors])
+      .errorOut(jsonBody[PostError])
 
-  val read: Endpoint[(Option[Authentication], ID[APIPost]), PostErrors, APIPost, Nothing] =
-    endpoint.get.in(optAuthHeader).in(prefix / path[ID[APIPost]]).out(jsonBody[APIPost]).errorOut(jsonBody[PostErrors])
+  val read: Endpoint[(Option[Authentication], ID[Post]), PostError, APIPost, Nothing] =
+    endpoint.get.in(optAuthHeader).in(prefix / path[ID[Post]]).out(jsonBody[APIPost]).errorOut(jsonBody[PostError])
 
-  val update: Endpoint[(Authentication, ID[APIPost], UpdatePostRequest), PostErrors, UpdatePostResponse, Nothing] =
+  val update: Endpoint[(Authentication, ID[Post], UpdatePostRequest), PostError, UpdatePostResponse, Nothing] =
     endpoint.put
       .in(authHeader)
-      .in(prefix / path[ID[APIPost]])
+      .in(prefix / path[ID[Post]])
       .in(jsonBody[UpdatePostRequest])
       .out(jsonBody[UpdatePostResponse])
-      .errorOut(jsonBody[PostErrors])
+      .errorOut(jsonBody[PostError])
 
-  val delete: Endpoint[(Authentication, ID[APIPost]), PostErrors, DeletePostResponse, Nothing] =
+  val delete: Endpoint[(Authentication, ID[Post]), PostError, DeletePostResponse, Nothing] =
     endpoint.put
       .in(authHeader)
-      .in(prefix / path[ID[APIPost]])
+      .in(prefix / path[ID[Post]])
       .out(jsonBody[DeletePostResponse])
-      .errorOut(jsonBody[PostErrors])
+      .errorOut(jsonBody[PostError])
 }

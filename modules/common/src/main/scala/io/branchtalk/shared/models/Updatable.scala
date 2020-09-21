@@ -23,6 +23,6 @@ object Updatable {
 
   implicit def show[A: ShowPretty]: ShowPretty[Updatable[A]] = ShowPretty.semi
   implicit def eq[A:   Eq]:         Eq[Updatable[A]]         = FastEq.semi
-  @nowarn("cat=unused")
+  @nowarn("cat=unused") // macros
   implicit val functor: Functor[Updatable] = cats.derived.semi.functor[Updatable]
 }

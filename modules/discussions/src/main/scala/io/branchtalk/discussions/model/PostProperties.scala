@@ -27,6 +27,7 @@ trait PostProperties { self: Post.type =>
 }
 object PostProperties {
 
+  // TODO: change non-empty to [0;250] or sth
   @newtype final case class UrlTitle(value: NonEmptyString)
   object UrlTitle {
     def parse[F[_]: Sync](string: String): F[UrlTitle] =
