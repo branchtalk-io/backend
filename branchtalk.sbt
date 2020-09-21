@@ -101,7 +101,7 @@ val discussionsApi = project
     ),
     customPredef("scala.util.chaining", "cats.implicits")
   )
-  .dependsOn(commonApi)
+  .dependsOn(commonApi, discussions)
 
 val discussionsImpl = project
   .from("discussions-impl")

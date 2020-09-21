@@ -1,13 +1,20 @@
 package io.branchtalk.discussions.api
 
+import java.net.URI
+
 import cats.data.NonEmptyList
 import com.github.plokhotnyuk.jsoniter_scala.core.JsonValueCodec
 import com.github.plokhotnyuk.jsoniter_scala.macros._
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection.NonEmpty
 import io.branchtalk.ADT
 import io.branchtalk.api._
+import io.branchtalk.discussions.model._
 import io.branchtalk.shared.models.ID
+import sttp.tapir.Schema
 
 import scala.annotation.nowarn
+import scala.util.Try
 
 @SuppressWarnings(
 // for macros
@@ -21,7 +28,27 @@ import scala.annotation.nowarn
 )
 object models { // scalastyle:ignore object.name
 
-  // TODO: all classes basically?
+  // Post properties codecs
+  implicit val postUrlTitleCodec: JsonValueCodec[Post.UrlTitle] =
+    summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Post.UrlTitle]
+  implicit val postTitleCodec: JsonValueCodec[Post.Title] =
+    summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Post.Title]
+  implicit val postURLCodec: JsonValueCodec[Post.URL] =
+    summonCodec[String](JsonCodecMaker.make)
+      .mapDecode[URI](s => Try(URI.create(s)).fold(_ => Left(s"Invalid URI: $s"), Right(_)))(_.toString)
+      .asNewtype[Post.URL]
+  implicit val postTextCodec: JsonValueCodec[Post.Text] =
+    summonCodec[String](JsonCodecMaker.make).asNewtype[Post.Text]
+
+  // Post properties schemas
+  implicit val postUrlTitleSchema: Schema[Post.UrlTitle] =
+    summonSchema[String Refined NonEmpty].asNewtype[Post.UrlTitle]
+  implicit val postTitleSchema: Schema[Post.Title] =
+    summonSchema[String Refined NonEmpty].asNewtype[Post.Title]
+  implicit val postURLSchema: Schema[Post.URL] =
+    summonSchema[String].asNewtype[Post.URL]
+  implicit val postTextSchema: Schema[Post.Text] =
+    summonSchema[String].asNewtype[Post.Text]
 
   sealed trait PostErrors extends ADT
   object PostErrors {
@@ -32,15 +59,17 @@ object models { // scalastyle:ignore object.name
     implicit val codec: JsonValueCodec[PostErrors] = JsonCodecMaker.make[PostErrors]
   }
 
-  // TODO: ApiPost + codec
   final case class APIPost(
-    )
+    channelID: ID[Channel],
+    urlTitle:  Post.UrlTitle,
+    title:     Post.Title,
+    content:   Post.Content
+  )
   object APIPost {
-    @nowarn("cat=unused")
     implicit val codec: JsonValueCodec[APIPost] = JsonCodecMaker.make[APIPost]
   }
 
-  final case class CreatePostRequest(id: ID[APIPost])
+  final case class CreatePostRequest(id: ID[Post])
   object CreatePostRequest {
     implicit val codec: JsonValueCodec[CreatePostRequest] = JsonCodecMaker.make[CreatePostRequest]
   }
