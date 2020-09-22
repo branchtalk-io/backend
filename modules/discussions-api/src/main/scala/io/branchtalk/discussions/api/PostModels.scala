@@ -10,6 +10,7 @@ import io.branchtalk.ADT
 import io.branchtalk.api._
 import io.branchtalk.discussions.model._
 import io.branchtalk.shared.models.{ ID, Updatable }
+import io.scalaland.chimney.dsl._
 import sttp.tapir.Schema
 
 import scala.annotation.nowarn
@@ -60,12 +61,16 @@ object PostModels {
 
   // TODO: consider adding timestamps
   final case class APIPost(
+    id:        ID[Post],
     channelID: ID[Channel],
     urlTitle:  Post.UrlTitle,
     title:     Post.Title,
     content:   Post.Content
   )
   object APIPost {
+
+    def fromDomain(post: Post): APIPost = post.data.into[APIPost].withFieldConst(_.id, post.id).transform
+
     implicit val codec: JsCodec[APIPost] = JsonCodecMaker.make[APIPost]
   }
 

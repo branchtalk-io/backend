@@ -1,8 +1,18 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.Sync
+import cats.effect.{ IO, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.shared.models.{ CodePosition, CommonError, ID, OptionUpdatable, Updatable }
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.numeric.{ NonNegative, Positive }
+import io.branchtalk.shared.models.{
+  CodePosition,
+  CommonError,
+  ID,
+  OptionUpdatable,
+  Paginated,
+  ParseRefined,
+  Updatable
+}
 import io.estatico.newtype.Coercible
 
 import scala.reflect.runtime.universe.TypeTag
@@ -55,6 +65,21 @@ object DoobieSupport
   implicit class FragmentOps(private val fragment: Fragment) extends AnyVal {
 
     def exists: ConnectionIO[Boolean] = (fr"SELECT EXISTS(" ++ fragment ++ fr")").query[Boolean].unique
+
+    def paginate[Entity: Read](offset: Long Refined NonNegative, limit: Int Refined Positive)(
+      implicit logHandler: LogHandler
+    ): ConnectionIO[Paginated[Entity]] = {
+      val o = offset.value
+      val l = limit.value
+      // limit 1 entity more than returned to check if there is a next page in pagination
+      (fragment ++ fr"LIMIT ${l + 1} OFFSET ${o}").query[Entity].to[List].map { entities =>
+        val result = entities.take(l)
+        val nextOffset =
+          if (entities.sizeCompare(l) > 0) ParseRefined[IO].parse[NonNegative](o + l).attempt.unsafeRunSync().toOption
+          else None
+        Paginated(result, nextOffset)
+      }
+    }
   }
 
   // handle errors

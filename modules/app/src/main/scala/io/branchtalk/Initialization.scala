@@ -9,7 +9,6 @@ import io.branchtalk.shared.models.UUIDGenerator
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 
-import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 
 object Initialization {
@@ -63,13 +62,12 @@ object Initialization {
           } yield println("Shut down services") // scalastyle:ignore
       }
 
-  @nowarn("cat=unused") // temporarily until we implement the rest
   private def runApi[F[_]: ConcurrentEffect: ContextShift: Timer](
     appConfig:        AppConfig
   )(discussionsReads: DiscussionsReads[F], discussionsWrites: DiscussionsWrites[F]): Resource[F, Unit] = {
     // TODO: refactor this
     // TODO: also swagger?
-    val postServer = new PostServer[F](discussionsWrites.postWrites)
+    val postServer = new PostServer[F](discussionsReads.postReads, discussionsWrites.postWrites)
     val httpApp    = postServer.postRoutes.orNotFound
 
     val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global) // TODO: configure some thread pool for HTTP

@@ -102,18 +102,20 @@ package object api {
       summonSchema[String Refined NonEmpty].asNewtype[Password]
   }
 
-  @newtype final case class PaginationOffset(value: Int Refined NonNegative)
+  @newtype final case class PaginationOffset(value: Long Refined NonNegative)
   object PaginationOffset {
-    def parse[F[_]: Sync](int: Int): F[PaginationOffset] =
-      ParseRefined[F].parse[NonNegative](int).map(PaginationOffset(_))
+    def parse[F[_]: Sync](long: Long): F[PaginationOffset] =
+      ParseRefined[F].parse[NonNegative](long).map(PaginationOffset(_))
 
     implicit val codec: JsCodec[PaginationOffset] =
-      summonCodec[Int](JsonCodecMaker.make).refine[NonNegative].asNewtype[PaginationOffset]
-    implicit val codec2: Param[PaginationOffset] =
-      summonParam[Int Refined NonNegative].map(PaginationOffset(_))(_.value)
+      summonCodec[Long](JsonCodecMaker.make).refine[NonNegative].asNewtype[PaginationOffset]
+    implicit val param: Param[PaginationOffset] =
+      summonParam[Long Refined NonNegative].map(PaginationOffset(_))(_.value)
     implicit val schema: Schema[PaginationOffset] =
-      summonSchema[Int Refined NonNegative].asNewtype[PaginationOffset]
+      summonSchema[Long Refined NonNegative].asNewtype[PaginationOffset]
   }
+
+  // TODO: validate somewhere max limit, make it configurable?
 
   @newtype final case class PaginationLimit(value: Int Refined Positive)
   object PaginationLimit {
@@ -122,7 +124,7 @@ package object api {
 
     implicit val codec: JsCodec[PaginationLimit] =
       summonCodec[Int](JsonCodecMaker.make).refine[Positive].asNewtype[PaginationLimit]
-    implicit val codec2: Param[PaginationLimit] =
+    implicit val param: Param[PaginationLimit] =
       summonParam[Int Refined Positive].map(PaginationLimit(_))(_.value)
     implicit val schema: Schema[PaginationLimit] =
       summonSchema[Int Refined Positive].asNewtype[PaginationLimit]

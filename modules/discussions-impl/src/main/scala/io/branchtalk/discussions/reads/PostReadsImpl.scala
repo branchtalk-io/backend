@@ -1,10 +1,14 @@
 package io.branchtalk.discussions.reads
 
+import cats.data.NonEmptySet
 import cats.effect.Sync
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.discussions.infrastructure.DoobieExtensions._
-import io.branchtalk.discussions.model.{ Post, PostDao }
+import io.branchtalk.discussions.model.{ Channel, Post, PostDao }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.models
+import io.branchtalk.shared.models.Paginated
 
 final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostReads[F] {
 
@@ -25,6 +29,18 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
   private def idExists(id: models.ID[Post]): Fragment = fr"id = ${id} AND deleted = FALSE"
 
   private def idDeleted(id: models.ID[Post]): Fragment = fr"id = ${id} AND deleted = TRUE"
+
+  // TODO: write tests for it
+
+  override def paginate(
+    channels: NonEmptySet[models.ID[Channel]],
+    offset:   Long Refined NonNegative,
+    limit:    Int Refined Positive
+  ): F[Paginated[Post]] =
+    (commonSelect ++ Fragments.whereAnd(Fragments.in(fr"channel_id", channels), fr"deleted = FALSE"))
+      .paginate[PostDao](offset, limit)
+      .map(_.map(_.toDomain))
+      .transact(transactor)
 
   override def exists(id: models.ID[Post]): F[Boolean] =
     (fr"SELECT 1 FROM posts WHERE" ++ idExists(id)).exists.transact(transactor)

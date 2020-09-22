@@ -1,9 +1,11 @@
 package io.branchtalk.discussions.api
 
+import cats.data.NonEmptySet
 import cats.effect.{ ContextShift, Sync }
-import io.branchtalk.api.Authentication
-import io.branchtalk.discussions.api.PostModels.PostError
-import io.branchtalk.discussions.model.{ Post, User }
+import io.branchtalk.api.{ Authentication, Pagination }
+import io.branchtalk.discussions.api.PostModels.{ APIPost, PostError }
+import io.branchtalk.discussions.model.{ Channel, Post, User }
+import io.branchtalk.discussions.reads.PostReads
 import io.branchtalk.discussions.writes.PostWrites
 import io.branchtalk.shared.models.ID
 import io.branchtalk.shared.models.UUIDGenerator.FastUUIDGenerator
@@ -13,7 +15,9 @@ import sttp.tapir.server.http4s._
 
 import scala.annotation.nowarn
 
-final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](writes: PostWrites[F]) {
+final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](reads: PostReads[F], writes: PostWrites[F]) {
+
+  // TODO: log/measure all access attempts?
 
   // TODO: create some AuthService which would take Authentication and list of accesses to validate
   @nowarn("cat=unused")
@@ -23,6 +27,20 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](writes: Po
 
   // TODO: newest and read
 
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null")) // temporarily
+  private val newest = PostAPIs.newest.toRoutes {
+    case (optAuth, optOffset, optLimit) =>
+      // TODO: validate limit using some config
+      // TODO: default offset and limit
+      val offset = optOffset.getOrElse(???)
+      val limit  = optLimit.getOrElse(???)
+      for {
+        _ <- optAuth.traverse(mockAuth)
+        channelIDs = null.asInstanceOf[NonEmptySet[ID[Channel]]] // scalastyle:ignore
+        paginated <- reads.paginate(channelIDs, offset.value, limit.value)
+      } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit).asRight[PostError]
+  }
+
   private val create = PostAPIs.create.toRoutes {
     case (auth, createData) =>
       for {
@@ -30,6 +48,14 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](writes: Po
         data = createData.into[Post.Create].withFieldConst(_.authorID, userID).transform
         result <- writes.createPost(data)
       } yield PostModels.CreatePostResponse(result.id).asRight[PostError]
+  }
+
+  private val read = PostAPIs.read.toRoutes {
+    case (optAuth, postID) =>
+      for {
+        _ <- optAuth.traverse(mockAuth)
+        result <- reads.requireById(postID)
+      } yield APIPost.fromDomain(result).asRight[PostError]
   }
 
   private val update = PostAPIs.update.toRoutes {
@@ -56,5 +82,5 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](writes: Po
       } yield PostModels.DeletePostResponse(result.id).asRight[PostError]
   }
 
-  val postRoutes: HttpRoutes[F] = create <+> update <+> delete
+  val postRoutes: HttpRoutes[F] = newest <+> create <+> read <+> update <+> delete
 }
