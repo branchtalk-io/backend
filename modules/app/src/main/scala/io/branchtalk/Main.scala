@@ -5,5 +5,5 @@ import monix.eval.{ Task, TaskApp }
 
 object Main extends TaskApp {
 
-  override def run(args: List[String]): Task[ExitCode] = Initialization.runApplication[Task](args)
+  override def run(args: List[String]): Task[ExitCode] = Program.runApplication[Task](args)
 }

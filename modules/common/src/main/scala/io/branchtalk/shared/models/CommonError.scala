@@ -1,5 +1,6 @@
 package io.branchtalk.shared.models
 
+import cats.data.NonEmptyList
 import io.branchtalk.ADT
 import io.scalaland.catnip.Semi
 
@@ -13,5 +14,9 @@ object CommonError {
   }
   final case class ParentNotExist(entity: String, id: ID[_], codePosition: CodePosition) extends CommonError {
     override def getMessage: String = s"Entity's parent $entity id=${id.show} not exist at: ${codePosition.show}"
+  }
+  final case class ValidationFailed(errors: NonEmptyList[String], codePosition: CodePosition) extends CommonError {
+    override def getMessage: String =
+      s"Validation failed at: ${codePosition.show}:\n${errors.mkString_("- ", "\n", "")}"
   }
 }

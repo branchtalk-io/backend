@@ -1,7 +1,6 @@
 package io.branchtalk.discussions
 
 import cats.effect.{ Async, ContextShift, Resource, Sync }
-import eu.timepit.refined.auto._
 import io.branchtalk.shared.infrastructure.{
   DomainConfig,
   DomainName,

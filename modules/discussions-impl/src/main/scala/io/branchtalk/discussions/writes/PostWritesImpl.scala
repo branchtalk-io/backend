@@ -2,7 +2,6 @@ package io.branchtalk.discussions.writes
 
 import cats.effect.{ Sync, Timer }
 import eu.timepit.refined.refineV
-import eu.timepit.refined.auto._
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.types.string.NonEmptyString
 import io.scalaland.chimney.dsl._

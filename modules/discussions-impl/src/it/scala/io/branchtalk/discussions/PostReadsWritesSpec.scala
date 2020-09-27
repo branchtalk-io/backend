@@ -2,7 +2,6 @@ package io.branchtalk.discussions
 
 import cats.data.NonEmptySet
 import cats.effect.{ IO, Resource }
-import eu.timepit.refined.auto._
 import io.branchtalk.{ IOTest, ResourcefulTest }
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.models.{ ID, UUIDGenerator, Updatable }

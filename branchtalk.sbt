@@ -25,7 +25,7 @@ val common = project
       Dependencies.sourcecode,
       Dependencies.jfairy % Test
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .settings(
     Compile / resourceGenerators += task[Seq[File]] {
@@ -56,7 +56,7 @@ val commonInfrastructure = project
       Dependencies.pureConfigEnumeratum,
       Dependencies.refinedPureConfig
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(common)
 
@@ -73,7 +73,7 @@ val commonApi = project
       Dependencies.tapirJsoniter,
       Dependencies.tapirRefined
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(common)
 
@@ -86,7 +86,7 @@ val discussions = project
   .configureModule
   .configureTests()
   .settings(
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(common)
 
@@ -100,7 +100,7 @@ val discussionsApi = project
     libraryDependencies ++= Seq(
       Dependencies.jsoniterMacro
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(commonApi, discussions)
 
@@ -111,7 +111,7 @@ val discussionsImpl = project
   .configureModule
   .configureIntegrationTests(requiresFork = true)
   .settings(
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .compileAndTestDependsOn(commonInfrastructure)
   .dependsOn(discussions, common % "compile->compile;it->test")
@@ -132,6 +132,6 @@ val application = project
       Dependencies.monixEval,
       Dependencies.tapirHttp4s
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(discussionsImpl, discussionsApi)

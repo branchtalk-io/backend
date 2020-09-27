@@ -1,7 +1,7 @@
 package io.branchtalk.configs
 
 import enumeratum._
-import io.branchtalk.api.PaginationLimit
+import io.branchtalk.api.{ PaginationLimit, PaginationOffset }
 import io.scalaland.catnip.Semi
 import pureconfig._
 import pureconfig.error.CannotConvert
@@ -10,7 +10,14 @@ import pureconfig.module.enumeratum._
 @Semi(ConfigReader) final case class PaginationConfig(
   defaultLimit: PaginationLimit,
   maxLimit:     PaginationLimit
-)
+) {
+
+  def resolveOffset(passedOffset: Option[PaginationOffset]): PaginationOffset =
+    passedOffset.getOrElse(PaginationOffset(0L))
+
+  def resolveLimit(passedLimit: Option[PaginationLimit]): PaginationLimit =
+    passedLimit.filter(_.value.value <= maxLimit.value.value).getOrElse(defaultLimit)
+}
 
 sealed trait APIPart extends EnumEntry
 object APIPart extends Enum[APIPart] {

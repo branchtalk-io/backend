@@ -2,7 +2,7 @@ package io.branchtalk
 
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
-import io.branchtalk.configs.{ AppConfig, Configuration }
+import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, Configuration }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.shared.infrastructure.DomainConfig
@@ -12,7 +12,7 @@ import org.http4s.server.blaze.BlazeServerBuilder
 
 import scala.concurrent.ExecutionContext
 
-object Initialization {
+object Program {
 
   // TODO: use some logger
 
@@ -22,11 +22,12 @@ object Initialization {
     (for {
       env <- Configuration.getEnv[F]
       appConfig <- AppConfig.parse[F](args, env)
+      apiConfig <- Configuration.readConfig[F, APIConfig]("api")
       discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
       _ <- (
         DiscussionsModule.reads[F](discussionsConfig),
         DiscussionsModule.writes[F](discussionsConfig)
-      ).tupled.use((runModules[F](appConfig, awaitTerminationSignal[F]) _).tupled)
+      ).tupled.use((runModules[F](appConfig, apiConfig, awaitTerminationSignal[F]) _).tupled)
     } yield ExitCode.Success).handleError {
       case AppConfig.NoConfig(help) =>
         // scalastyle:off regex
@@ -44,13 +45,17 @@ object Initialization {
         ExitCode.Error
     }
 
-  def runModules[F[_]: ConcurrentEffect: ContextShift: Timer](appConfig: AppConfig, terminationSignal: F[Unit])(
+  def runModules[F[_]: ConcurrentEffect: ContextShift: Timer](
+    appConfig:         AppConfig,
+    apiConfig:         APIConfig,
+    terminationSignal: F[Unit]
+  )(
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
   ): F[Unit] =
     Sync[F].delay(println("Initializing services")) >> // scalastyle:ignore
       (
-        conditionalResource(appConfig.runAPI)(())(runApi[F](appConfig)(discussionsReads, discussionsWrites)),
+        conditionalResource(appConfig.runAPI)(())(runApi[F](appConfig, apiConfig)(discussionsReads, discussionsWrites)),
         conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
       ).tupled.use {
         case (_, startDiscussions) =>
@@ -64,12 +69,15 @@ object Initialization {
       }
 
   private def runApi[F[_]: ConcurrentEffect: ContextShift: Timer](
-    appConfig:        AppConfig
+    appConfig:        AppConfig,
+    apiConfig:        APIConfig
   )(discussionsReads: DiscussionsReads[F], discussionsWrites: DiscussionsWrites[F]): Resource[F, Unit] = {
     // TODO: refactor this
     // TODO: also swagger?
-    val postServer = new PostServer[F](discussionsReads.postReads, discussionsWrites.postWrites)
-    val httpApp    = postServer.postRoutes.orNotFound
+    val postServer = new PostServer[F](discussionsReads.postReads,
+                                       discussionsWrites.postWrites,
+                                       apiConfig.safePagination(APIPart.Posts))
+    val httpApp = postServer.postRoutes.orNotFound
 
     val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global) // TODO: configure some thread pool for HTTP
       .bindHttp(port = appConfig.port, host = appConfig.host)
