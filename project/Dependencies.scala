@@ -84,6 +84,8 @@ object Dependencies {
   val pureConfig           = "com.github.pureconfig" %% "pureconfig" % pureConfigVersion
   val pureConfigCats       = "com.github.pureconfig" %% "pureconfig-cats" % pureConfigVersion
   val pureConfigEnumeratum = "com.github.pureconfig" %% "pureconfig-enumeratum" % pureConfigVersion
+  // security
+  val bcrypt = "at.favre.lib" % "bcrypt" % "0.9.0"
   // logging
   val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
   val logback      = "ch.qos.logback" % "logback-classic" % "1.2.3"

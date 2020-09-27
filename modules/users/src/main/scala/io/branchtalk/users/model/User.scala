@@ -13,6 +13,8 @@ object User extends UserProperties with UserCommands {
 
   @Semi(FastEq, ShowPretty) final case class Data(
     email:          User.Email,
+    description:    User.Description,
+    password:       Password,
     createdAt:      CreationTime,
     lastModifiedAt: Option[ModificationTime]
   )

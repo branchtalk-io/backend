@@ -125,6 +125,9 @@ val users = project
   .configureModule
   .configureTests()
   .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.bcrypt
+    ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(common)
