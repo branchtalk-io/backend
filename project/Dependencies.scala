@@ -36,7 +36,7 @@ object Dependencies {
   val betterMonadicFor = "com.olegpy" %% "better-monadic-for" % "0.3.1"
   val kindProjector    = "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
   // functional libraries
-  val catnip            = "io.scalaland" %% "catnip" % "1.0.0"
+  val catnip            = "io.scalaland" %% "catnip" % "1.1.1"
   val cats              = "org.typelevel" %% "cats-core" % catsVersion
   val catsFree          = "org.typelevel" %% "cats-free" % catsVersion
   val catsEffect        = "org.typelevel" %% "cats-effect" % catsEffectVersion

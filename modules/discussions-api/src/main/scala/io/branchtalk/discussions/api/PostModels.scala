@@ -10,22 +10,13 @@ import io.branchtalk.ADT
 import io.branchtalk.api._
 import io.branchtalk.discussions.model._
 import io.branchtalk.shared.models.{ ID, Updatable }
+import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
 import sttp.tapir.Schema
 
-import scala.annotation.nowarn
 import scala.util.Try
 
-@SuppressWarnings(
-// for macros
-  Array(
-    "org.wartremover.warts.Equals",
-    "org.wartremover.warts.Null",
-    "org.wartremover.warts.TraversableOps",
-    "org.wartremover.warts.Var",
-    "org.wartremover.warts.While"
-  )
-)
+@SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object PostModels {
 
   // properties codecs
@@ -50,17 +41,15 @@ object PostModels {
   implicit val postTextSchema: Schema[Post.Text] =
     summonSchema[String].asNewtype[Post.Text]
 
-  sealed trait PostError extends ADT
+  @Semi(JsCodec) sealed trait PostError extends ADT
   object PostError {
 
     final case class NotFound(msg:           String) extends PostError
     final case class ValidationFailed(error: NonEmptyList[String]) extends PostError
-
-    implicit val codec: JsCodec[PostError] = JsonCodecMaker.make[PostError]
   }
 
   // TODO: consider adding timestamps
-  final case class APIPost(
+  @Semi(JsCodec) final case class APIPost(
     id:        ID[Post],
     channelID: ID[Channel],
     urlTitle:  Post.UrlTitle,
@@ -70,41 +59,23 @@ object PostModels {
   object APIPost {
 
     def fromDomain(post: Post): APIPost = post.data.into[APIPost].withFieldConst(_.id, post.id).transform
-
-    implicit val codec: JsCodec[APIPost] = JsonCodecMaker.make[APIPost]
   }
 
-  final case class CreatePostRequest(
+  @Semi(JsCodec) final case class CreatePostRequest(
     channelID: ID[Channel],
     urlTitle:  Post.UrlTitle,
     title:     Post.Title,
     content:   Post.Content
   )
-  object CreatePostRequest {
-    implicit val codec: JsCodec[CreatePostRequest] = JsonCodecMaker.make[CreatePostRequest]
-  }
 
-  final case class CreatePostResponse(id: ID[Post])
-  object CreatePostResponse {
-    implicit val codec: JsCodec[CreatePostResponse] = JsonCodecMaker.make[CreatePostResponse]
-  }
+  @Semi(JsCodec) final case class CreatePostResponse(id: ID[Post])
 
-  final case class UpdatePostRequest(
+  @Semi(JsCodec) final case class UpdatePostRequest(
     title:   Updatable[Post.Title],
     content: Updatable[Post.Content]
   )
-  object UpdatePostRequest {
-    @nowarn("cat=unused") // macros
-    implicit val codec: JsCodec[UpdatePostRequest] = JsonCodecMaker.make[UpdatePostRequest]
-  }
 
-  final case class UpdatePostResponse(id: ID[Post])
-  object UpdatePostResponse {
-    implicit val codec: JsCodec[UpdatePostResponse] = JsonCodecMaker.make[UpdatePostResponse]
-  }
+  @Semi(JsCodec) final case class UpdatePostResponse(id: ID[Post])
 
-  final case class DeletePostResponse(id: ID[Post])
-  object DeletePostResponse {
-    implicit val codec: JsCodec[DeletePostResponse] = JsonCodecMaker.make[DeletePostResponse]
-  }
+  @Semi(JsCodec) final case class DeletePostResponse(id: ID[Post])
 }

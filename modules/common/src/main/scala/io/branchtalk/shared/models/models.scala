@@ -32,8 +32,8 @@ package object models {
     def parse[F[_]: Sync, Entity](string: String)(implicit uuidGenerator: UUIDGenerator): F[ID[Entity]] =
       UUID.parse[F](string).map(ID[Entity])
 
-    implicit def show[Entity]: Show[ID[Entity]] = (id: ID[Entity]) => s"ID(${id.value.show})"
-    implicit def eq[Entity]:   Eq[ID[Entity]]   = /*_*/ Eq[UUID].coerce[Eq[ID[Entity]]] /*_*/
+    implicit def show[Entity]:  Show[ID[Entity]]  = (id: ID[Entity]) => s"ID(${id.value.show})"
+    implicit def order[Entity]: Order[ID[Entity]] = /*_*/ Order[UUID].coerce[Order[ID[Entity]]] /*_*/
   }
 
   // TODO: consider some custom clock(?)

@@ -61,7 +61,7 @@ object Settings extends Dependencies {
       "-Ywarn-value-discard",
       // advanced options
       "-Xcheckinit",
-      "-Xfatal-warnings",
+      // "-Xfatal-warnings", // until we are able to @nowarn code generate by macro annotations :/
       "-Xfuture",
       // linting
       "-Xlint:adapted-args",
