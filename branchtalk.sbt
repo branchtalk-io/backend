@@ -116,6 +116,45 @@ val discussionsImpl = project
   .compileAndTestDependsOn(commonInfrastructure)
   .dependsOn(discussions, common % "compile->compile;it->test")
 
+// users
+
+val users = project
+  .from("users")
+  .setName("users")
+  .setDescription("Users' published language")
+  .configureModule
+  .configureTests()
+  .settings(
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+  )
+  .dependsOn(common)
+
+val usersApi = project
+  .from("users-api")
+  .setName("users-api")
+  .setDescription("Users' HTTP API")
+  .configureModule
+  .configureTests()
+  .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.jsoniterMacro
+    ),
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+  )
+  .dependsOn(commonApi, users)
+
+val usersImpl = project
+  .from("users-impl")
+  .setName("users-impl")
+  .setDescription("Users' Reads, Writes and Services' implementations")
+  .configureModule
+  .configureIntegrationTests(requiresFork = true)
+  .settings(
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+  )
+  .compileAndTestDependsOn(commonInfrastructure)
+  .dependsOn(users, common % "compile->compile;it->test")
+
 // application
 
 val application = project
@@ -134,4 +173,4 @@ val application = project
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
-  .dependsOn(discussionsImpl, discussionsApi)
+  .dependsOn(discussionsImpl, discussionsApi, usersImpl, usersApi)
