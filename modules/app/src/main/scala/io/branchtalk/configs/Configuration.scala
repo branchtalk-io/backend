@@ -1,4 +1,4 @@
-package io.branchtalk
+package io.branchtalk.configs
 
 import cats.effect.Sync
 import pureconfig.{ ConfigReader, ConfigSource }

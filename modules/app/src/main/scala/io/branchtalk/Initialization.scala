@@ -2,6 +2,7 @@ package io.branchtalk
 
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
+import io.branchtalk.configs.{ AppConfig, Configuration }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.shared.infrastructure.DomainConfig
@@ -49,7 +50,7 @@ object Initialization {
   ): F[Unit] =
     Sync[F].delay(println("Initializing services")) >> // scalastyle:ignore
       (
-        conditionalResource(appConfig.runApi)(())(runApi[F](appConfig)(discussionsReads, discussionsWrites)),
+        conditionalResource(appConfig.runAPI)(())(runApi[F](appConfig)(discussionsReads, discussionsWrites)),
         conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
       ).tupled.use {
         case (_, startDiscussions) =>

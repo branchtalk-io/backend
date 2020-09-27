@@ -53,6 +53,7 @@ val commonInfrastructure = project
       Dependencies.fs2Kafka,
       Dependencies.pureConfig,
       Dependencies.pureConfigCats,
+      Dependencies.pureConfigEnumeratum,
       Dependencies.refinedPureConfig
     ),
     customPredef("scala.util.chaining", "cats.implicits")

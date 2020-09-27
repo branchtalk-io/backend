@@ -79,10 +79,11 @@ object Dependencies {
   val tapirRefined  = "com.softwaremill.sttp.tapir" %% "tapir-refined" % tapirVersion
   val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.4.0" % "compile-internal"
   // config
-  val decline        = "com.monovore" %% "decline" % declineVersion
-  val scalaConfig    = "com.typesafe" % "config" % "1.4.0"
-  val pureConfig     = "com.github.pureconfig" %% "pureconfig" % pureConfigVersion
-  val pureConfigCats = "com.github.pureconfig" %% "pureconfig-cats" % pureConfigVersion
+  val decline              = "com.monovore" %% "decline" % declineVersion
+  val scalaConfig          = "com.typesafe" % "config" % "1.4.0"
+  val pureConfig           = "com.github.pureconfig" %% "pureconfig" % pureConfigVersion
+  val pureConfigCats       = "com.github.pureconfig" %% "pureconfig-cats" % pureConfigVersion
+  val pureConfigEnumeratum = "com.github.pureconfig" %% "pureconfig-enumeratum" % pureConfigVersion
   // logging
   val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
   val logback      = "ch.qos.logback" % "logback-classic" % "1.2.3"
