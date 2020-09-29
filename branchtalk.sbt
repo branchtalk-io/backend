@@ -68,6 +68,7 @@ val commonApi = project
   .configureTests()
   .settings(
     libraryDependencies ++= Seq(
+      Dependencies.jsoniter,
       Dependencies.jsoniterMacro,
       Dependencies.tapir,
       Dependencies.tapirJsoniter,
@@ -153,6 +154,10 @@ val usersImpl = project
   .configureModule
   .configureIntegrationTests(requiresFork = true)
   .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.jsoniter,
+      Dependencies.jsoniterMacro
+    ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .compileAndTestDependsOn(commonInfrastructure)

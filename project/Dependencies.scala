@@ -18,6 +18,7 @@ object Dependencies {
   val drosteVersion     = "0.8.0"
   val enumeratumVersion = "1.6.1"
   val fs2Version        = "2.4.2"
+  val jsoniterVersion   = "2.6.0"
   val libGDXVersion     = "1.9.10"
   val monixVersion      = "3.2.2"
   val monocleVersion    = "2.0.5"
@@ -77,7 +78,8 @@ object Dependencies {
   val tapirHttp4s   = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
   val tapirJsoniter = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
   val tapirRefined  = "com.softwaremill.sttp.tapir" %% "tapir-refined" % tapirVersion
-  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.4.0" % "compile-internal"
+  val jsoniter      = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion
+  val jsoniterMacro = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "compile-internal"
   // config
   val decline              = "com.monovore" %% "decline" % declineVersion
   val scalaConfig          = "com.typesafe" % "config" % "1.4.0"
