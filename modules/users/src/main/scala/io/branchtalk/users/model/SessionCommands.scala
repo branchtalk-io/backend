@@ -13,7 +13,7 @@ object SessionCommands {
 
   @Semi(FastEq, ShowPretty) final case class Create(
     userID:    ID[User],
-    ofType:    Session.Type,
+    usage:     Session.Usage,
     expiresAt: Session.ExpirationTime
   )
 

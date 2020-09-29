@@ -4,6 +4,7 @@ import java.security.SecureRandom
 
 import cats.{ Eq, Show }
 import enumeratum.{ Enum, EnumEntry }
+import enumeratum.EnumEntry.Hyphencase
 import io.branchtalk.shared.models.{ FastEq, ShowPretty }
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
@@ -19,7 +20,7 @@ import io.scalaland.catnip.Semi
 }
 object Password {
 
-  @Semi(FastEq, ShowPretty) sealed trait Algorithm extends EnumEntry {
+  @Semi(FastEq, ShowPretty) sealed trait Algorithm extends EnumEntry with Hyphencase {
 
     def createSalt: Password.Salt
     def hashRaw(raw: Password.Raw, salt: Password.Salt): Password.Hash
@@ -49,7 +50,7 @@ object Password {
 
     def default: Algorithm = BCrypt // TODO: use config to change this when more than one option is available
 
-    val values = findValues
+    val values: IndexedSeq[Algorithm] = findValues
   }
 
   @newtype final case class Hash(bytes: Array[Byte])

@@ -25,7 +25,7 @@ object APIPart extends Enum[APIPart] {
   case object Posts extends APIPart
   case object Comments extends APIPart
 
-  val values = findValues
+  val values: IndexedSeq[APIPart] = findValues
 
   // NOTE: there is no derivation for Map[A, B] ConfigReader, only Map[String, A]
   implicit def asMapKey[A](implicit mapReader: ConfigReader[Map[String, A]]): ConfigReader[Map[APIPart, A]] =

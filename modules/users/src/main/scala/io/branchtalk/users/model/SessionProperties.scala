@@ -5,6 +5,8 @@ import java.time.format.DateTimeFormatter
 
 import cats.{ Functor, Order, Show }
 import cats.effect.Clock
+import enumeratum.{ Enum, EnumEntry }
+import enumeratum.EnumEntry.Hyphencase
 import io.branchtalk.ADT
 import io.branchtalk.shared.models.{ FastEq, ShowPretty }
 import io.estatico.newtype.macros.newtype
@@ -12,9 +14,9 @@ import io.scalaland.catnip.Semi
 
 trait SessionProperties {
   type ExpirationTime = SessionProperties.ExpirationTime
-  type Type           = SessionProperties.Type
+  type Usage          = SessionProperties.Usage
   val ExpirationTime = SessionProperties.ExpirationTime
-  val Type           = SessionProperties.Type
+  val Usage          = SessionProperties.Usage
 }
 object SessionProperties {
 
@@ -33,11 +35,33 @@ object SessionProperties {
         .map(ExpirationTime(_))
   }
 
-  @Semi(FastEq, ShowPretty) sealed trait Type extends ADT
-  object Type {
+  @Semi(FastEq, ShowPretty) sealed trait Usage extends ADT
+  object Usage {
 
-    case object UserSession extends Type
-    final case class OAuth(permissions: Permissions) extends Type
+    case object UserSession extends Usage
+    final case class OAuth(permissions: Permissions) extends Usage
     // TODO: investigate if oauth-specific permissions won't work out better here
+
+    @Semi(FastEq, ShowPretty) sealed trait Type extends EnumEntry with Hyphencase
+    object Type extends Enum[Type] {
+      case object UserSession extends Type
+      case object OAuth extends Type
+
+      val values: IndexedSeq[Type] = findValues
+    }
+
+    object Tupled {
+      def apply(usageType: Type, usagePermissions: Permissions): Usage = usageType match {
+        case Type.UserSession => Usage.UserSession
+        case Type.OAuth       => Usage.OAuth(usagePermissions)
+      }
+
+      def unpack(usage: Usage): (Type, Permissions) = usage match {
+        case UserSession        => (Type.UserSession, Permissions(Set.empty))
+        case OAuth(permissions) => (Type.OAuth, permissions)
+      }
+
+      def unapply(usage: Usage): Option[(Type, Permissions)] = unpack(usage).some
+    }
   }
 }

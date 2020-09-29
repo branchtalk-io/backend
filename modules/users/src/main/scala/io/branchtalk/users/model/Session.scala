@@ -11,7 +11,7 @@ object Session extends SessionProperties with SessionCommands {
 
   @Semi(FastEq, ShowPretty) final case class Data(
     userID:    ID[User],
-    ofType:    Session.Type,
+    usage:     Session.Usage,
     expiresAt: Session.ExpirationTime
   )
 }

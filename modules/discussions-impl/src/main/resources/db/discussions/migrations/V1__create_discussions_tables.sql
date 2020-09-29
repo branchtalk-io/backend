@@ -44,4 +44,5 @@ CREATE TABLE SUBSCRIPTIONS (
   channel_ids UUID[] NOT NULL
 );
 
+-- TODO: comment store channel ID to allow easier partitioning
 -- TODO: add upvotes/downvotes/total to posts and comments, create tables to trace them

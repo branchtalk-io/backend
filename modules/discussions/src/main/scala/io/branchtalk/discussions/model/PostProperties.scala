@@ -68,7 +68,7 @@ object PostProperties {
       case object Url extends Type
       case object Text extends Type
 
-      override def values: IndexedSeq[Type] = findValues
+      val values: IndexedSeq[Type] = findValues
     }
     @newtype final case class Raw(value: String)
     object Raw {

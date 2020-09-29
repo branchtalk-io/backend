@@ -15,7 +15,6 @@ object User extends UserProperties with UserCommands {
     description:    Option[User.Description],
     password:       Password,
     permissions:    Permissions,
-    settings:       Settings,
     createdAt:      CreationTime,
     lastModifiedAt: Option[ModificationTime]
   )
