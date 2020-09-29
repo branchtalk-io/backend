@@ -7,11 +7,11 @@ import io.scalaland.catnip.Semi
   id:   ID[Session],
   data: Session.Data
 )
-object Session extends SessionProperties {
+object Session extends SessionProperties with SessionCommands {
 
   @Semi(FastEq, ShowPretty) final case class Data(
-    userID: ID[User]
-    // TODO: when it expires
-    // TODO: does it have extra/only selected permissions, what kind of session is it
+    userID:    ID[User],
+    ofType:    Session.Type,
+    expiresAt: Session.ExpirationTime
   )
 }
