@@ -37,7 +37,7 @@ object PostModels {
   implicit val postTitleSchema: Schema[Post.Title] =
     summonSchema[String Refined NonEmpty].asNewtype[Post.Title]
   implicit val postURLSchema: Schema[Post.URL] =
-    summonSchema[String].asNewtype[Post.URL]
+    summonSchema[URI].asNewtype[Post.URL]
   implicit val postTextSchema: Schema[Post.Text] =
     summonSchema[String].asNewtype[Post.Text]
 

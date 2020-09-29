@@ -5,6 +5,7 @@ import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.models.{ ID, UUID }
 import io.branchtalk.users.model.{ Password, Permission, Permissions, Session }
+import io.estatico.newtype.Coercible
 import org.postgresql.util.PGobject
 
 object DoobieExtensions {
@@ -17,11 +18,14 @@ object DoobieExtensions {
 
   @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
   implicit val permissionsMeta: Meta[Permissions] = {
-    implicit def idCodec[A]: JsonValueCodec[ID[A]] =
-      JsonCodecMaker.make[UUID].asInstanceOf[JsonValueCodec[ID[A]]]
+    implicit def idCodec[A](
+      implicit ev: Coercible[JsonValueCodec[UUID], JsonValueCodec[ID[A]]]
+    ): JsonValueCodec[ID[A]] =
+      ev(JsonCodecMaker.make[UUID])
     implicit val permissionCodec: JsonValueCodec[Permission] = JsonCodecMaker.make[Permission]
     implicit val permissionsCodec: JsonValueCodec[Permissions] =
-      JsonCodecMaker.make[Set[Permission]].asInstanceOf[JsonValueCodec[Permissions]]
+      Coercible[JsonValueCodec[Set[Permission]], JsonValueCodec[Permissions]]
+        .apply(JsonCodecMaker.make[Set[Permission]])
 
     val jsonType = "jsonb"
 

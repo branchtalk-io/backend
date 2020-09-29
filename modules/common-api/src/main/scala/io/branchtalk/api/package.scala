@@ -1,5 +1,7 @@
 package io.branchtalk
 
+import java.net.URI
+
 import cats.effect.Sync
 import com.github.plokhotnyuk.jsoniter_scala.core.{ JsonReader, JsonValueCodec, JsonWriter }
 import com.github.plokhotnyuk.jsoniter_scala.macros._
@@ -10,6 +12,7 @@ import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.shared.models.{ ID, ParseRefined, UUID, UUIDGenerator }
 import io.estatico.newtype.macros.newtype
+import io.estatico.newtype.Coercible
 import sttp.tapir.{ Codec, Schema }
 import sttp.tapir.codec.refined._
 import sttp.tapir.CodecFormat.TextPlain
@@ -49,16 +52,12 @@ package object api {
 
     def refine[P: Validate[T, *]]: JsCodec[T Refined P] = mapDecode(refineV[P](_: T))(_.value)
 
-    // this is most likely an abuse that should take some implicit evidence e.g. Coercible[T, N]
-    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-    def asNewtype[N]: JsCodec[N] = codec.asInstanceOf[JsCodec[N]]
+    def asNewtype[N](implicit ev: Coercible[JsCodec[T], JsCodec[N]]): JsCodec[N] = ev(codec)
   }
 
   implicit class RefineSchema[T](private val schema: Schema[T]) extends AnyVal {
 
-    // this is most likely an abuse that should take some implicit evidence e.g. Coercible[T, N]
-    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-    def asNewtype[N]: Schema[N] = schema.asInstanceOf[Schema[N]]
+    def asNewtype[N](implicit ev: Coercible[Schema[T], Schema[N]]): Schema[N] = ev(schema)
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
@@ -66,16 +65,16 @@ package object api {
   implicit def idParam[A]:  Param[ID[A]]   = summonParam[UUID].map[ID[A]](ID[A](_))(_.value)
   implicit def idSchema[A]: Schema[ID[A]]  = summonSchema[UUID].asNewtype[ID[A]]
 
+  implicit val uriSchema: Schema[URI] = Schema.schemaForString.asInstanceOf[Schema[URI]]
+
   @newtype final case class SessionID(value: UUID)
   object SessionID {
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[SessionID] =
       UUID.parse[F](string).map(SessionID(_))
 
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
-    implicit val codec: JsCodec[SessionID] =
-      summonCodec[UUID](JsonCodecMaker.make).asNewtype[SessionID]
-    implicit val schema: Schema[SessionID] =
-      summonSchema[UUID].asNewtype[SessionID]
+    implicit val codec:  JsCodec[SessionID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[SessionID]
+    implicit val schema: Schema[SessionID]  = summonSchema[UUID].asNewtype[SessionID]
   }
 
   @newtype final case class Username(value: NonEmptyString)
