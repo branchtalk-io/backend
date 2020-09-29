@@ -27,11 +27,7 @@ object DoobieExtensions {
 
     // imap instead of timap because a @newtype cannot have TypeTag
     Meta.Advanced.other[PGobject](jsonType).imap[Permissions](pgObj => readFromString[Permissions](pgObj.getValue)) {
-      permissions =>
-        val pgObj = new PGobject
-        pgObj.setType(jsonType)
-        pgObj.setValue(writeToString(permissions))
-        pgObj
+      permissions => new PGobject().tap(_.setType(jsonType)).tap(_.setValue(writeToString(permissions)))
     }
   }
 }

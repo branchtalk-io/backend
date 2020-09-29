@@ -13,19 +13,19 @@ object Dependencies {
   val avro4sVersion     = "4.0.0-RC2"
   val catsVersion       = "2.2.0"
   val catsEffectVersion = "2.2.0"
-  val declineVersion    = "1.2.0"
-  val doobieVersion     = "0.8.8"
+  val declineVersion    = "1.3.0"
+  val doobieVersion     = "0.9.2"
   val drosteVersion     = "0.8.0"
   val enumeratumVersion = "1.6.1"
   val fs2Version        = "2.4.2"
   val jsoniterVersion   = "2.6.0"
   val libGDXVersion     = "1.9.10"
   val monixVersion      = "3.2.2"
-  val monocleVersion    = "2.0.5"
+  val monocleVersion    = "2.1.0"
   val pureConfigVersion = "0.13.0"
-  val refinedVersion    = "0.9.14"
-  val specs2Version     = "4.10.0"
-  val tapirVersion      = "0.16.1"
+  val refinedVersion    = "0.9.17"
+  val specs2Version     = "4.10.3"
+  val tapirVersion      = "0.16.16"
 
   // resolvers
   val resolvers = Seq(
@@ -44,13 +44,13 @@ object Dependencies {
   val alleycats         = "org.typelevel" %% "alleycats-core" % catsVersion
   val kittens           = "org.typelevel" %% "kittens" % "2.1.0"
   val catsLaws          = "org.typelevel" %% "cats-laws" % catsVersion
-  val chimney           = "io.scalaland" %% "chimney" % "0.5.2"
+  val chimney           = "io.scalaland" %% "chimney" % "0.5.3"
   val droste            = "io.higherkindness" %% "droste-core" % drosteVersion
   val enumeratum        = "com.beachape" %% "enumeratum" % enumeratumVersion
   val fastuuid          = "com.eatthepath" % "fast-uuid" % "0.1"
   val fs2               = "co.fs2" %% "fs2-core" % fs2Version
   val fs2IO             = "co.fs2" %% "fs2-io" % fs2Version
-  val magnolia          = "com.propensive" %% "magnolia" % "0.16.0"
+  val magnolia          = "com.propensive" %% "magnolia" % "0.17.0"
   val monocle           = "com.github.julien-truffaut" %% "monocle-core" % monocleVersion
   val monocleMacro      = "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion
   val newtype           = "io.estatico" %% "newtype" % "0.4.4"

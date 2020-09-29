@@ -31,9 +31,9 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
 
   private def withErrorHandling[A](fa: F[A]): F[Either[PostError, A]] = fa.map(_.asRight[PostError]).handleErrorWith {
     case CommonError.NotFound(what, id, _) =>
-      (PostError.NotFound(s"$what with id=$id could not be found"): PostError).asLeft[A].pure[F]
+      (PostError.NotFound(s"$what with id=${id.show} could not be found"): PostError).asLeft[A].pure[F]
     case CommonError.ParentNotExist(what, id, _) =>
-      (PostError.NotFound(s"Parent $what with id=$id could not be found"): PostError).asLeft[A].pure[F]
+      (PostError.NotFound(s"Parent $what with id=${id.show} could not be found"): PostError).asLeft[A].pure[F]
     case CommonError.ValidationFailed(errors, _) =>
       (PostError.ValidationFailed(errors): PostError).asLeft[A].pure[F]
     case error: Throwable =>
