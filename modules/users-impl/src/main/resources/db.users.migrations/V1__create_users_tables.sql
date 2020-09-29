@@ -17,6 +17,7 @@ CREATE TABLE users (
 CREATE TABLE sessions (
   id          UUID                     PRIMARY KEY,
   user_id     UUID                     NOT NULL REFERENCES users ON DELETE CASCADE ON UPDATE CASCADE,
+  usage_type  SESSION_USAGE_TYPE       NOT NULL,
   permissions JSONB                    NOT NULL,
   expires_at  TIMESTAMP WITH TIME ZONE NOT NULL
 );
