@@ -6,7 +6,7 @@ import io.scalaland.catnip.Semi
 trait UserCommands {
   type Create  = UserCommands.Create
   type Update  = UserCommands.Update
-  type Delete  = UserCommands.Create
+  type Delete  = UserCommands.Delete
   type Restore = UserCommands.Restore
   val Create  = UserCommands.Create
   val Update  = UserCommands.Update
