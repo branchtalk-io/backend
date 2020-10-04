@@ -1,4 +1,4 @@
-package io.branchtalk.users.services
+package io.branchtalk.users.writes
 
 import cats.effect.Sync
 import io.branchtalk.shared.infrastructure.DoobieSupport._
@@ -7,24 +7,19 @@ import io.branchtalk.shared.models.{ ID, UUIDGenerator }
 import io.branchtalk.users.events.{ SessionEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Session, SessionDao }
+import io.branchtalk.users.reads.SessionReadsImpl
 import io.scalaland.chimney.dsl._
 
-final class SessionServicesImpl[F[_]: Sync](
+final class SessionWritesImpl[F[_]: Sync](
   producer:               EventBusProducer[F, UsersEvent],
   transactor:             Transactor[F]
 )(implicit UUIDGenerator: UUIDGenerator)
     extends Writes[F, Session, UsersEvent](producer)
-    with SessionServices[F] {
+    with SessionWrites[F] {
+
+  private val reads = new SessionReadsImpl[F](transactor)
 
   private implicit val logHandler: LogHandler = doobieLogger(getClass)
-
-  private val commonSelect: Fragment =
-    fr"""SELECT id,
-        |       user_id,
-        |       usage_type,
-        |       permissions,
-        |       expires_at
-        |FROM sessions""".stripMargin
 
   override def createSession(newSession: Session.Create): F[Session] =
     for {
@@ -52,15 +47,8 @@ final class SessionServicesImpl[F[_]: Sync](
       _ <- postEvent(id, UsersEvent.ForSession(event))
     } yield session
 
-  override def requireSession(id: ID[Session]): F[Session] =
-    (commonSelect ++ fr"WHERE id = ${id}")
-      .query[SessionDao]
-      .map(_.toDomain)
-      .failNotFound("Session", id)
-      .transact(transactor)
-
   override def deleteSession(deletedSession: Session.Delete): F[Unit] =
-    requireSession(deletedSession.id).attempt.flatMap {
+    reads.requireSession(deletedSession.id).attempt.flatMap {
       case Left(_) =>
         Sync[F].unit
       case Right(session) =>

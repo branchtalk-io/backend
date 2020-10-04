@@ -40,7 +40,7 @@ object DiscussionsModule {
         DiscussionsReads(channelReads, postReads, commentReads)
     }
 
-  // writes should test if they can write before they send event to bus
+  // TODO: writes should test if they can write before they send event to bus
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig:           DomainConfig
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
