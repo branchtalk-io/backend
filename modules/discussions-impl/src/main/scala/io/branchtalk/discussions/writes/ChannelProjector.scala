@@ -4,11 +4,11 @@ import cats.data.NonEmptyList
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
-import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ ChannelCommandEvent, ChannelEvent, DiscussionCommandEvent, DiscussionEvent }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.models.UUID
+import io.scalaland.chimney.dsl._
 
 final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
     extends Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] {

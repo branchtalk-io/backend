@@ -33,9 +33,4 @@ object UserCommandEvent {
     id:          ID[User],
     moderatorID: Option[ID[User]]
   ) extends UserCommandEvent
-
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Restore(
-    id:          ID[User],
-    moderatorID: Option[ID[User]]
-  ) extends UserCommandEvent
 }
