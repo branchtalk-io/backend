@@ -31,6 +31,7 @@ object UserCommandEvent {
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Delete(
     id:          ID[User],
-    moderatorID: Option[ID[User]]
+    moderatorID: Option[ID[User]],
+    deletedAt:   ModificationTime
   ) extends UserCommandEvent
 }
