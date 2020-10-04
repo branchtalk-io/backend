@@ -30,8 +30,6 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
 
   private def idDeleted(id: models.ID[Post]): Fragment = fr"id = ${id} AND deleted = TRUE"
 
-  // TODO: write tests for it
-
   override def paginate(
     channels: NonEmptySet[models.ID[Channel]],
     offset:   Long Refined NonNegative,

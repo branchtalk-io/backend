@@ -3,7 +3,7 @@ package io.branchtalk.discussions.reads
 import cats.effect.Sync
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models
+import io.branchtalk.shared.models._
 
 final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends ChannelReads[F] {
 
@@ -18,19 +18,19 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
         |       last_modified_at
         |FROM channels""".stripMargin
 
-  private def idExists(id: models.ID[Channel]): Fragment = fr"id = ${id} AND deleted = FALSE"
+  private def idExists(id: ID[Channel]): Fragment = fr"id = ${id} AND deleted = FALSE"
 
-  private def idDeleted(id: models.ID[Channel]): Fragment = fr"id = ${id} AND deleted = TRUE"
+  private def idDeleted(id: ID[Channel]): Fragment = fr"id = ${id} AND deleted = TRUE"
 
-  override def exists(id: models.ID[Channel]): F[Boolean] =
+  override def exists(id: ID[Channel]): F[Boolean] =
     (fr"SELECT 1 FROM channels WHERE" ++ idExists(id)).exists.transact(transactor)
 
-  override def deleted(id: models.ID[Channel]): F[Boolean] =
+  override def deleted(id: ID[Channel]): F[Boolean] =
     (fr"SELECT 1 FROM channels WHERE" ++ idDeleted(id)).exists.transact(transactor)
 
-  override def getById(id: models.ID[Channel]): F[Option[Channel]] =
+  override def getById(id: ID[Channel]): F[Option[Channel]] =
     (commonSelect ++ fr"WHERE" ++ idExists(id)).query[Channel].option.transact(transactor)
 
-  override def requireById(id: models.ID[Channel]): F[Channel] =
-    (commonSelect ++ fr"WHERE" ++ idExists(id)).query[Channel].failNotFound("Channel", id).transact(transactor)
+  override def requireById(id: ID[Channel]): F[Channel] =
+    (commonSelect ++ fr"WHERE" ++ idExists(id)).query[Channel].failNotFound("User", id).transact(transactor)
 }

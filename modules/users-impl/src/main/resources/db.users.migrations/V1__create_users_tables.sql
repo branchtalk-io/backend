@@ -14,6 +14,11 @@ CREATE TABLE users (
   last_modified_at TIMESTAMP WITH TIME ZONE
 );
 
+CREATE TABLE deleted_users (
+  id         UUID                     PRIMARY KEY,
+  deleted_at TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
 CREATE TABLE sessions (
   id          UUID                     PRIMARY KEY,
   user_id     UUID                     NOT NULL REFERENCES users ON DELETE CASCADE ON UPDATE CASCADE,
