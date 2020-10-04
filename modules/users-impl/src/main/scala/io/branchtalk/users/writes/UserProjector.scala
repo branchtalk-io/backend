@@ -82,7 +82,7 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
 
   def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
     (sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
-      sql"INSERT INTO deleted_users (id, deleted_at) VALUES (${event.id}, ${event.deletedAt}".update.run)
+      sql"INSERT INTO deleted_users (id, deleted_at) VALUES (${event.id}, ${event.deletedAt})".update.run)
       .transact(transactor) >>
       (event.id.value -> event.transformInto[UserEvent.Deleted]).pure[F]
 }
