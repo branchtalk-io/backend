@@ -1,4 +1,4 @@
-package io.branchtalk.discussions
+package io.branchtalk.users
 
 import cats.effect.{ Async, ContextShift, Resource, Sync }
 import io.branchtalk.shared.infrastructure.{
@@ -10,26 +10,26 @@ import io.branchtalk.shared.infrastructure.{
   TestResources
 }
 import io.scalaland.catnip.Semi
-import pureconfig._
+import pureconfig.{ ConfigReader, ConfigSource }
 
-@Semi(ConfigReader) final case class TestDiscussionsConfig(
+@Semi(ConfigReader) final case class TestUsersConfig(
   database:          TestPostgresConfig,
   publishedEventBus: TestKafkaEventBusConfig,
   internalEventBus:  TestKafkaEventBusConfig,
   consumers:         Map[String, KafkaEventConsumerConfig]
 )
-object TestDiscussionsConfig {
+object TestUsersConfig {
 
-  def load[F[_]: Sync]: Resource[F, TestDiscussionsConfig] =
+  def load[F[_]: Sync]: Resource[F, TestUsersConfig] =
     Resource.liftF(
       Sync[F].delay(
-        ConfigSource.resources("discussions-test.conf").at("discussions-test").loadOrThrow[TestDiscussionsConfig]
+        ConfigSource.resources("users-test.conf").at("users-test").loadOrThrow[TestUsersConfig]
       )
     )
 
   def loadDomainConfig[F[_]: Async: ContextShift]: Resource[F, DomainConfig] =
     for {
-      TestDiscussionsConfig(dbTest, publishedESTest, internalESTest, consumers) <- TestDiscussionsConfig.load[F]
+      TestUsersConfig(dbTest, publishedESTest, internalESTest, consumers) <- TestUsersConfig.load[F]
       db <- TestResources.postgresConfigResource[F](dbTest)
       publishedES <- TestResources.kafkaEventBusConfigResource[F](publishedESTest)
       internalES <- TestResources.kafkaEventBusConfigResource[F](internalESTest)
