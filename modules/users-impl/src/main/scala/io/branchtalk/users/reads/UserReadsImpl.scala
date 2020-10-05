@@ -27,7 +27,13 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
 
   private def idExists(id: ID[User]): Fragment = fr"id = ${id}"
 
-  override def authenticate(email: User.Email, password: Password.Raw): F[User] = ???
+  override def authenticate(email: User.Email, password: Password.Raw): F[User] =
+    (commonSelect ++ fr"email = ${email}").query[UserDao].map(_.toDomain).option.transact(transactor).flatMap {
+      case Some(user) if user.data.password.verify(password) =>
+        user.pure[F]
+      case _ =>
+        (CommonError.InvalidCredentials(CodePosition.providePosition): CommonError).raiseError[F, User]
+    }
 
   override def paginate(
     offset: Long Refined NonNegative,
