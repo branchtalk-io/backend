@@ -30,7 +30,7 @@ object Password {
     private lazy val sr = new SecureRandom()
 
     case object BCrypt extends Algorithm {
-      private val cost = 1000 // TODO: make it configurable or sth?
+      private val cost = 10 // must be between 4 and 31 TODO: make it configurable or sth?
 
       private val hasher   = at.favre.lib.crypto.bcrypt.BCrypt.withDefaults()
       private val verifier = at.favre.lib.crypto.bcrypt.BCrypt.verifyer()
