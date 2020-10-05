@@ -51,7 +51,7 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
           // given
           _ <- projector.handleError(_.printStackTrace()).start
           userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
-          _ <- usersReads.userReads.requireById(userID)
+          _ <- usersReads.userReads.requireById(userID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
           toCreate <- creationData.traverse(usersWrites.sessionWrites.createSession)
           ids = toCreate.map(_.id)

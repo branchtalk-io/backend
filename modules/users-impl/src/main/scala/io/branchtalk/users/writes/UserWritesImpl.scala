@@ -42,7 +42,7 @@ final class UserWritesImpl[F[_]: Sync: Timer](
   override def deleteUser(deletedUser: User.Delete): F[DeletionScheduled[User]] =
     for {
       id <- deletedUser.id.pure[F]
-      _ <- userCheck(id, sql"""SELECT 1 FROM deleted_users WHERE id = ${id}""")
+      _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = ${id}""")
       now <- ModificationTime.now[F]
       command = deletedUser.into[UserCommandEvent.Delete].withFieldConst(_.deletedAt, now).transform
       _ <- postEvent(id, UsersCommandEvent.ForUser(command))

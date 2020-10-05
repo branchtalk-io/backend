@@ -6,6 +6,7 @@ CREATE TABLE users (
   id               UUID                     PRIMARY KEY,
   email            TEXT                     NOT NULL UNIQUE,
   username         TEXT                     NOT NULL UNIQUE,
+  description      TEXT,
   passwd_algorithm PASSWORD_ALGORITHM       NOT NULL,
   passwd_hash      BYTEA                    NOT NULL,
   passwd_salt      BYTEA                    NOT NULL,

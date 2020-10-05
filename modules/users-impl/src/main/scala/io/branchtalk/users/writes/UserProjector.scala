@@ -41,6 +41,7 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
          |  id,
          |  email,
          |  username,
+         |  description,
          |  passwd_algorithm,
          |  passwd_hash,
          |  passwd_salt,
@@ -51,6 +52,7 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
          |  ${event.id},
          |  ${event.email},
          |  ${event.username},
+         |  ${event.description},
          |  ${event.password.algorithm},
          |  ${event.password.hash},
          |  ${event.password.salt},
@@ -64,7 +66,7 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
     (NonEmptyList.fromList(
       List(
         event.newUsername.toUpdateFragment(fr"username"),
-        event.newDescription.toUpdateFragment(fr"name"),
+        event.newDescription.toUpdateFragment(fr"description"),
         event.newPassword.fold(
           pass => fr"passwd_algorithm = ${pass.algorithm}, passwd_hash = ${pass.hash}, passwd_salt = ${pass.salt}".some,
           none[Fragment]
@@ -82,7 +84,7 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
 
   def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
     (sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
-      sql"INSERT INTO deleted_users (id, deleted_at) VALUES (${event.id}, ${event.deletedAt})".update.run)
+      sql"INSERT INTO deleted_users (id, deleted_at) VALUES (${event.id}, ${event.deletedAt}) ON CONFLICT (id) DO NOTHING".update.run)
       .transact(transactor) >>
       (event.id.value -> event.transformInto[UserEvent.Deleted]).pure[F]
 }

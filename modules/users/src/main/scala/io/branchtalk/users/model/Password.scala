@@ -17,6 +17,17 @@ import io.scalaland.catnip.Semi
 
   def update(raw: Password.Raw): Password = copy(hash = algorithm.hashRaw(raw, salt))
   def verify(raw: Password.Raw): Boolean  = algorithm.verify(raw, salt, hash)
+
+  // allows comparison of Passwords which would otherwise use Array's hashCode method
+
+  override def equals(other: Any): Boolean = other match {
+    case Password(`algorithm`, otherHash, otherSalt)
+        if hash.bytes.sameElements(otherHash.bytes) && salt.bytes.sameElements(otherSalt.bytes) =>
+      true
+    case _ => false
+  }
+
+  override def hashCode(): Int = algorithm.hashCode() ^ hash.bytes.toSeq.hashCode() ^ salt.bytes.toSeq.hashCode()
 }
 object Password {
 
@@ -34,6 +45,8 @@ object Password {
 
       private val hasher   = at.favre.lib.crypto.bcrypt.BCrypt.withDefaults()
       private val verifier = at.favre.lib.crypto.bcrypt.BCrypt.verifyer()
+
+      override def entryName: String = "bcrypt"
 
       override def createSalt: Password.Salt = {
         val bytes = new Array[Byte](16) // required by BCrypt to have 16 bytes

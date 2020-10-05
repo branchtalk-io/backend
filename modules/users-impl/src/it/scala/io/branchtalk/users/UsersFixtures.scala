@@ -13,7 +13,7 @@ trait UsersFixtures {
   def userCreate: IO[User.Create] =
     (
       company().map(_.getEmail).flatMap(User.Email.parse[IO]),
-      nameLike.flatMap(User.Name.parse[IO]),
+      textProducer.map(_.randomString(10)).flatMap(User.Name.parse[IO]),
       textProducer.map(_.loremIpsum()).map(User.Description(_).some),
       passwordCreate()
     ).mapN(User.Create.apply)

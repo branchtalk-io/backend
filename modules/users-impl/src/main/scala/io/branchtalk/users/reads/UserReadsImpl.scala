@@ -17,6 +17,7 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
     fr"""SELECT id,
         |       email,
         |       username,
+        |       description,
         |       passwd_algorithm,
         |       passwd_hash,
         |       passwd_salt,
@@ -28,7 +29,7 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
   private def idExists(id: ID[User]): Fragment = fr"id = ${id}"
 
   override def authenticate(email: User.Email, password: Password.Raw): F[User] =
-    (commonSelect ++ fr"email = ${email}").query[UserDao].map(_.toDomain).option.transact(transactor).flatMap {
+    (commonSelect ++ fr"WHERE email = ${email}").query[UserDao].map(_.toDomain).option.transact(transactor).flatMap {
       case Some(user) if user.data.password.verify(password) =>
         user.pure[F]
       case _ =>
