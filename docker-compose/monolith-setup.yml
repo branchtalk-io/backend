@@ -8,7 +8,10 @@ services:
   postgres-setup:
     image: 'bitnami/postgresql:12-debian-10'
     command: >
-      sh -c "(psql --host postgres --command=\"CREATE DATABASE discussions\" || 0) &&
+      sh -c "(psql --host postgres --command=\"CREATE DATABASE users\" || 0) &&
+             (psql --host postgres --command=\"CREATE USER users WITH PASSWORD 'password'\" users || 0) &&
+             (psql --host postgres --command=\"CREATE SCHEMA users AUTHORIZATION users\" users || 0) &&
+             (psql --host postgres --command=\"CREATE DATABASE discussions\" || 0) &&
              (psql --host postgres --command=\"CREATE USER discussions WITH PASSWORD 'password'\" discussions || 0) &&
              (psql --host postgres --command=\"CREATE SCHEMA discussions AUTHORIZATION discussions\" discussions || 0)"
     environment:
