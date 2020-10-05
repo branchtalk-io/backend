@@ -5,7 +5,16 @@ lazy val root = project.root
   .setName("branchtalk")
   .setDescription("branchtalk build")
   .configureRoot
-  .aggregate(common, commonInfrastructure, commonApi, discussions, discussionsApi, discussionsImpl, application)
+  .aggregate(common,
+             commonInfrastructure,
+             commonApi,
+             discussions,
+             discussionsApi,
+             discussionsImpl,
+             users,
+             usersApi,
+             usersImpl,
+             application)
 
 addCommandAlias("fullTest", ";test;it:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")

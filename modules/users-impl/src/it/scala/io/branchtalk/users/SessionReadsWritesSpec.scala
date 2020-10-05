@@ -3,6 +3,7 @@ package io.branchtalk.users
 import cats.effect.{ IO, Resource }
 import io.branchtalk.shared.models.UUIDGenerator
 import io.branchtalk.{ IOTest, ResourcefulTest }
+import io.branchtalk.users.model.Session
 import org.specs2.mutable.Specification
 
 final class SessionReadsWritesSpec extends Specification with IOTest with ResourcefulTest with UsersFixtures {
@@ -26,15 +27,43 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
   "Session Reads & Writes" should {
 
     "create a Session and immediately read it" in {
-      // TODO
-      true must beTrue
-      true must beTrue
+      usersWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
+          // when
+          toCreate <- creationData.traverse(usersWrites.sessionWrites.createSession)
+          ids = toCreate.map(_.id)
+          users <- ids.traverse(usersReads.sessionReads.requireSession)
+        } yield {
+          // then
+          ids.toSet === users.map(_.id).toSet
+        }
+      }
     }
 
-    "allow delete of a created Session" in {
-      // TODO
-      true must beTrue
-      true must beTrue
+    "allow immediate delete of a created Session" in {
+      usersWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
+          _ <- usersReads.userReads.requireById(userID)
+          creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
+          toCreate <- creationData.traverse(usersWrites.sessionWrites.createSession)
+          ids = toCreate.map(_.id)
+          _ <- ids.traverse(usersReads.sessionReads.requireSession)
+          // when
+          _ <- ids.map(Session.Delete.apply).traverse(usersWrites.sessionWrites.deleteSession)
+          sessions <- ids.traverse(usersReads.sessionReads.requireSession(_).attempt)
+        } yield {
+          // then
+          sessions.forall(_.isLeft) must beTrue
+        }
+      }
     }
   }
 }

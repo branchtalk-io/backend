@@ -10,7 +10,7 @@ trait UsersFixtures {
   def passwordCreate(password: String = "pass"): IO[Password] =
     Password.create(Password.Raw(password.getBytes)).pure[IO]
 
-  def userCreate(implicit uuidGenerator: UUIDGenerator): IO[User.Create] =
+  def userCreate: IO[User.Create] =
     (
       company().map(_.getEmail).flatMap(User.Email.parse[IO]),
       nameLike.flatMap(User.Name.parse[IO]),

@@ -2,8 +2,8 @@ package io.branchtalk.users
 
 import cats.effect.{ IO, Resource }
 import io.branchtalk.{ IOTest, ResourcefulTest }
-import io.branchtalk.shared.models.{ ID, OptionUpdatable, UUIDGenerator, Updatable }
-import io.branchtalk.users.model.User
+import io.branchtalk.shared.models.{ CommonError, ID, OptionUpdatable, UUIDGenerator, Updatable }
+import io.branchtalk.users.model.{ Password, User }
 import org.specs2.mutable.Specification
 
 final class UserReadsWritesSpec extends Specification with IOTest with ResourcefulTest with UsersFixtures {
@@ -61,7 +61,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
             ID.create[IO, User].map { id =>
               User.Update(
                 id                = id,
-                moderatorID       = moderatorID,
+                moderatorID       = moderatorID.some,
                 newUsername       = Updatable.Set(data.username),
                 newDescription    = OptionUpdatable.setFromOption(data.description),
                 newPassword       = Updatable.Set(data.password),
@@ -94,7 +94,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
             case (User(id, data), 0) =>
               User.Update(
                 id                = id,
-                moderatorID       = moderatorID,
+                moderatorID       = moderatorID.some,
                 newUsername       = Updatable.Set(data.username),
                 newDescription    = OptionUpdatable.setFromOption(data.description),
                 newPassword       = Updatable.Set(data.password),
@@ -103,7 +103,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
             case (User(id, _), 1) =>
               User.Update(
                 id                = id,
-                moderatorID       = moderatorID,
+                moderatorID       = moderatorID.some,
                 newUsername       = Updatable.Keep,
                 newDescription    = OptionUpdatable.Keep,
                 newPassword       = Updatable.Keep,
@@ -112,7 +112,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
             case (User(id, _), 2) =>
               User.Update(
                 id                = id,
-                moderatorID       = moderatorID,
+                moderatorID       = moderatorID.some,
                 newUsername       = Updatable.Keep,
                 newDescription    = OptionUpdatable.Erase,
                 newPassword       = Updatable.Keep,
@@ -150,7 +150,8 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
 
     "allow delete of a created User" in {
       usersWrites.runProjector.use { projector =>
-        for { // given
+        for {
+          // given
           _ <- projector.handleError(_.printStackTrace()).start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
@@ -159,7 +160,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
           ids = toCreate.map(_.id)
           _ <- ids.traverse(usersReads.userReads.requireById).eventually()
-          _ <- ids.map(User.Delete(_, moderatorID)).traverse(usersWrites.userWrites.deleteUser)
+          _ <- ids.map(User.Delete(_, moderatorID.some)).traverse(usersWrites.userWrites.deleteUser)
           _ <- ids
             .traverse(usersReads.userReads.getById)
             .flatTap(results => IO(assert(results.forall(_.isEmpty), "All Users should be eventually deleted")))
@@ -170,6 +171,25 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           // then
           notExist.exists(identity) must beFalse
           areDeleted.forall(identity) must beTrue
+        }
+      }
+    }
+
+    "allow password checking" in {
+      usersWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          goodPassword <- passwordCreate("password")
+          userId <- userCreate.map(_.copy(password = goodPassword)).flatMap(usersWrites.userWrites.createUser).map(_.id)
+          user <- usersReads.userReads.requireById(userId).eventually()
+          // when
+          ok <- usersReads.userReads.authenticate(user.data.email, Password.Raw("password".getBytes)).attempt
+          fail <- usersReads.userReads.authenticate(user.data.email, Password.Raw("bad".getBytes)).attempt
+        } yield {
+          // then
+          ok must beRight(user)
+          fail must beLeft(anInstanceOf[CommonError.InvalidCredentials])
         }
       }
     }

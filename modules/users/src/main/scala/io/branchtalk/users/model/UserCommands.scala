@@ -10,7 +10,7 @@ trait UserCommands {
   type Restore = UserCommands.Restore
   val Create  = UserCommands.Create
   val Update  = UserCommands.Update
-  val Delete  = UserCommands.Create
+  val Delete  = UserCommands.Delete
   val Restore = UserCommands.Restore
 }
 object UserCommands {
