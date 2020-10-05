@@ -1,11 +1,11 @@
 package io.branchtalk.users
 
-import cats.effect.{IO, Resource}
+import cats.effect.{ IO, Resource }
 import io.branchtalk.shared.models.UUIDGenerator
-import io.branchtalk.{IOTest, ResourcefulTest}
+import io.branchtalk.{ IOTest, ResourcefulTest }
 import org.specs2.mutable.Specification
 
-final class SessionReadsWritesSpec  extends Specification with IOTest with ResourcefulTest with UsersFixtures {
+final class SessionReadsWritesSpec extends Specification with IOTest with ResourcefulTest with UsersFixtures {
 
   private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
