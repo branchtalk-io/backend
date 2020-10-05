@@ -6,23 +6,15 @@
   * [x] migrations
   * [x] SQL queries
   * [x] kafka events
-  * [X] docker and IT test setup
+  * [x] docker and IT test setup
   * [ ] tests
 * [ ] users domain
-  * [ ] models
+  * [X] models
   * [ ] API
-  * [ ] migrations
-  * [ ] SQL queries
-  * [ ] kafka events
-  * [ ] docker and IT test setup
-  * [ ] tests
-* [ ] security domain
-  * [ ] models
-  * [ ] API
-  * [ ] migrations
-  * [ ] SQL queries
-  * [ ] kafka events
-  * [ ] docker and IT test setup
+  * [x] migrations
+  * [x] SQL queries
+  * [x] kafka events
+  * [x] docker and IT test setup
   * [ ] tests
 * [ ] other domains
   * [ ] subscriptions per user
