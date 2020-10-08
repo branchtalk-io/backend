@@ -67,6 +67,9 @@ package object api {
 
   implicit val uriSchema: Schema[URI] = Schema.schemaForString.asInstanceOf[Schema[URI]]
 
+  // TODO: implement codec for non-empty list/chain from cats because the derived is treating NEL as case class
+
+  // TODO: merge this with ID[Session]
   @newtype final case class SessionID(value: UUID)
   object SessionID {
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[SessionID] =
