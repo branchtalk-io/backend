@@ -27,7 +27,7 @@ object UserModels {
   implicit val passwordSaltCodec: JsCodec[Password.Salt] =
     summonCodec[Array[Byte]](JsonCodecMaker.make).asNewtype[Password.Salt]
   implicit val passwordRawCodec: JsCodec[Password.Raw] =
-    summonCodec[Array[Byte]](JsonCodecMaker.make).asNewtype[Password.Raw]
+    summonCodec[Array[Byte]](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Password.Raw]
   implicit val permissionsCodec: JsCodec[Permissions] =
     summonCodec[Set[Permission]](JsonCodecMaker.make).asNewtype[Permissions]
 
@@ -43,7 +43,7 @@ object UserModels {
   implicit val passwordSaltSchema: Schema[Password.Salt] =
     summonSchema[Array[Byte]].asNewtype[Password.Salt]
   implicit val passwordRawSchema: Schema[Password.Raw] =
-    summonSchema[Array[Byte]].asNewtype[Password.Raw]
+    summonSchema[Array[Byte] Refined NonEmpty].asNewtype[Password.Raw]
   implicit val permissionsSchema: Schema[Permissions] =
     summonSchema[Set[Permission]].asNewtype[Permissions]
 

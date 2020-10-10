@@ -16,12 +16,12 @@ object KafkaEventBus {
     events
       .map {
         case (key, value) =>
-          ProducerRecords.one(ProducerRecord(settings.topic.value.value, key, value))
+          ProducerRecords.one(ProducerRecord(settings.topic.nonEmptyString.value, key, value))
       }
       .through(produce(settings.toProducerConfig[F, Event]))
       .evalTap(e =>
         ConcurrentEffect[F]
-          .delay(logger.info(s"${e.records.size.toString} events published to ${settings.topic.value.value}"))
+          .delay(logger.info(s"${e.records.size.toString} events published to ${settings.topic.nonEmptyString.value}"))
       )
   }
 
@@ -30,7 +30,7 @@ object KafkaEventBus {
     consumerConfig: KafkaEventConsumerConfig
   ): EventBusConsumer[F, Event] =
     consumerStream(busConfig.toConsumerConfig[F, Event](consumerConfig))
-      .evalTap(_.subscribeTo(busConfig.topic.value.value))
+      .evalTap(_.subscribeTo(busConfig.topic.nonEmptyString.value))
       .flatMap(_.stream)
       .flatMap { commitable =>
         commitable.record.value match {

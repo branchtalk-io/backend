@@ -3,8 +3,10 @@ package io.branchtalk.api
 import java.util.Base64
 
 import cats.effect.IO
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection.NonEmpty
 import io.branchtalk.api.Authentication.{ Credentials, Session }
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.shared.models.{ ParseRefined, UUIDGenerator }
 import io.branchtalk.shared.models.UUIDGenerator.FastUUIDGenerator
 import sttp.tapir.{ EndpointIO, _ }
 
@@ -21,10 +23,12 @@ object AuthenticationSupport {
   private val basicR = raw"Basic (.+)".r
   private val upR    = raw"([^:]+):(.+)".r
   private object basic { // scalastyle:ignore object.name
-    def apply(username: String, password: String): String = s"""Basic ${base64(s"$username:$password")}"""
-    def unapply(string: String): Option[(String, String)] = string match {
-      case basicR(base64(upR(username, password))) => Some(username.trim -> password.trim)
-      case _                                       => None
+    def apply(username: String, password: Array[Byte] Refined NonEmpty): String =
+      s"""Basic ${base64(s"${username}:${new String(password.value)}")}"""
+    def unapply(string: String): Option[(String, Array[Byte] Refined NonEmpty)] = string match {
+      case basicR(base64(upR(username, password))) =>
+        ParseRefined[IO].parse[NonEmpty](password.getBytes).option.unsafeRunSync().map(username -> _)
+      case _ => None
     }
   }
 
@@ -58,8 +62,8 @@ object AuthenticationSupport {
     case original =>
       DecodeResult.Error(original, new Exception("Unknown authentication type"))
   } {
-    case Session(sessionID)              => bearer(sessionID.value.show)
-    case Credentials(username, password) => basic(username.value.value, password.value.value)
+    case Session(sessionID)              => bearer(sessionID.uuid.show)
+    case Credentials(username, password) => basic(username.nonEmptyString.value, password.nonEmptyBytes)
   }
   val authHeader: EndpointIO.Header[Authentication] = header[String]("Authentication").map(authHeaderMapping)
 

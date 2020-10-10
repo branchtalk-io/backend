@@ -17,9 +17,9 @@ import pureconfig.ConfigReader
 ) {
 
   def username(generatedSuffix: String): DatabaseUsername =
-    DatabaseUsername(refineV[NonEmpty](usernamePrefix.value.value + generatedSuffix).getOrElse(???))
+    DatabaseUsername(refineV[NonEmpty](usernamePrefix.nonEmptyString.value + generatedSuffix).getOrElse(???))
   def schema(generatedSuffix: String): DatabaseSchema =
-    DatabaseSchema(refineV[NonEmpty](schemaPrefix.value.value + generatedSuffix).getOrElse(???))
+    DatabaseSchema(refineV[NonEmpty](schemaPrefix.nonEmptyString.value + generatedSuffix).getOrElse(???))
   def migrationOnStart: DatabaseMigrationOnStart = DatabaseMigrationOnStart(true)
 
   def toPostgresConfig(generatedSuffix: String): PostgresConfig =

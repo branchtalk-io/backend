@@ -3,9 +3,12 @@ package io.branchtalk.users.model
 import java.security.SecureRandom
 
 import cats.{ Eq, Show }
+import cats.effect.Sync
 import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
-import io.branchtalk.shared.models.{ FastEq, ShowPretty }
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection.NonEmpty
+import io.branchtalk.shared.models.{ FastEq, ParseRefined, ShowPretty }
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 
@@ -55,10 +58,10 @@ object Password {
       }
 
       override def hashRaw(raw: Password.Raw, salt: Password.Salt): Password.Hash =
-        Password.Hash(hasher.hashRaw(cost, salt.bytes, raw.bytes).rawHash)
+        Password.Hash(hasher.hashRaw(cost, salt.bytes, raw.nonEmptyBytes).rawHash)
 
       override def verify(raw: Password.Raw, salt: Password.Salt, hash: Password.Hash): Boolean =
-        verifier.verify(raw.bytes, cost, salt.bytes, hash.bytes).verified
+        verifier.verify(raw.nonEmptyBytes, cost, salt.bytes, hash.bytes).verified
     }
 
     def default: Algorithm = BCrypt // TODO: use config to change this when more than one option is available
@@ -80,11 +83,13 @@ object Password {
     implicit val eq:   Eq[Salt]   = (x: Salt, y: Salt) => x.bytes sameElements y.bytes
   }
 
-  @newtype final case class Raw(bytes: Array[Byte])
+  @newtype final case class Raw(nonEmptyBytes: Array[Byte] Refined NonEmpty)
   object Raw {
+    def parse[F[_]: Sync](bytes: Array[Byte]): F[Raw] =
+      ParseRefined[F].parse[NonEmpty](bytes).map(Raw.apply)
 
     implicit val show: Show[Raw] = (_: Raw) => s"Password.Raw(EDITED OUT)"
-    implicit val eq:   Eq[Raw]   = (x: Raw, y: Raw) => x.bytes sameElements y.bytes
+    implicit val eq:   Eq[Raw]   = (x: Raw, y: Raw) => x.nonEmptyBytes.value sameElements y.nonEmptyBytes.value
   }
 
   def create(raw: Password.Raw): Password = {

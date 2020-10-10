@@ -13,16 +13,16 @@ trait TestPostgresResources extends TestResourcesHelpers {
     Resource.liftF(generateRandomSuffix[F]).flatMap { randomSuffix =>
       val schemaCreator = Transactor.fromDriverManager[F](
         driver  = classOf[org.postgresql.Driver].getName, // driver classname
-        url     = testPostgresConfig.url.value.value, // connect URL (driver-specific)
+        url     = testPostgresConfig.url.nonEmptyString.value, // connect URL (driver-specific)
         user    = "postgres", // user
-        pass    = testPostgresConfig.rootPassword.value.value, // password
+        pass    = testPostgresConfig.rootPassword.nonEmptyString.value, // password
         blocker = Blocker.liftExecutionContext(ExecutionContexts.synchronous) // just for testing
       )
 
       val cfg      = testPostgresConfig.toPostgresConfig(randomSuffix.toLowerCase)
-      val username = Fragment.const(cfg.username.value.value)
-      val password = Fragment.const(s"""'${cfg.password.value.value}'""")
-      val schema   = Fragment.const(cfg.schema.value.value)
+      val username = Fragment.const(cfg.username.nonEmptyString.value)
+      val password = Fragment.const(s"""'${cfg.password.nonEmptyString.value}'""")
+      val schema   = Fragment.const(cfg.schema.nonEmptyString.value)
 
       val createUser   = (fr"CREATE USER" ++ username ++ fr"WITH PASSWORD" ++ password).update.run
       val createSchema = (fr"CREATE SCHEMA" ++ schema ++ fr"AUTHORIZATION" ++ username).update.run

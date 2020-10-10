@@ -10,7 +10,7 @@ abstract class Writes[F[_]: Sync, Entity, Event](producer: EventBusProducer[F, E
   // sending event to internal bus as a part of a write model
 
   protected final def postEvent(id: ID[Entity], event: Event): F[Unit] =
-    producer(Stream[F, (UUID, Event)](id.value -> event)).compile.drain
+    producer(Stream[F, (UUID, Event)](id.uuid -> event)).compile.drain
 
   protected class EntityCheck(entity: String, transactor: Transactor[F]) {
     def apply(entityID: ID[Entity], fragment: Fragment)(implicit codePosition: CodePosition): F[Unit] =

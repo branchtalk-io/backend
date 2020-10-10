@@ -13,26 +13,28 @@ class PostgresDatabase(config: PostgresConfig) {
   private def flyway[F[_]: Sync] = Sync[F].delay(
     Flyway
       .configure()
-      .dataSource(config.url.value.value, config.username.value.value, config.password.value.value)
-      .schemas(config.schema.value.value)
-      .table(s"flyway_${config.domain.value.value}_schema_history")
-      .locations(s"db/${config.domain.value.value}/migrations")
+      .dataSource(config.url.nonEmptyString.value,
+                  config.username.nonEmptyString.value,
+                  config.password.nonEmptyString.value)
+      .schemas(config.schema.nonEmptyString.value)
+      .table(s"flyway_${config.domain.nonEmptyString.value}_schema_history")
+      .locations(s"db/${config.domain.nonEmptyString.value}/migrations")
       .load()
   )
 
   def transactor[F[_]: Async: ContextShift]: Resource[F, HikariTransactor[F]] =
     for {
-      connectEC <- doobie.util.ExecutionContexts.fixedThreadPool[F](config.connectionPool.value.value)
+      connectEC <- doobie.util.ExecutionContexts.fixedThreadPool[F](config.connectionPool.positiveInt.value)
       transactEC <- doobie.util.ExecutionContexts.cachedThreadPool[F]
       xa <- HikariTransactor.initial[F](connectEC, Blocker.liftExecutionContext(transactEC))
       _ <- Resource.liftF {
         xa.configure { ds =>
           Async[F].delay {
-            ds.setJdbcUrl(config.url.value.value)
-            ds.setUsername(config.username.value.value)
-            ds.setPassword(config.password.value.value)
+            ds.setJdbcUrl(config.url.nonEmptyString.value)
+            ds.setUsername(config.username.nonEmptyString.value)
+            ds.setPassword(config.password.nonEmptyString.value)
             ds.setMaxLifetime(5 * 60 * 1000)
-            ds.setSchema(config.schema.value.value)
+            ds.setSchema(config.schema.nonEmptyString.value)
           }
         }
       }

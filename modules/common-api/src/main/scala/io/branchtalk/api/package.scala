@@ -62,7 +62,7 @@ package object api {
 
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
   implicit def idCodec[A]:  JsCodec[ID[A]] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[ID[A]]
-  implicit def idParam[A]:  Param[ID[A]]   = summonParam[UUID].map[ID[A]](ID[A](_))(_.value)
+  implicit def idParam[A]:  Param[ID[A]]   = summonParam[UUID].map[ID[A]](ID[A](_))(_.uuid)
   implicit def idSchema[A]: Schema[ID[A]]  = summonSchema[UUID].asNewtype[ID[A]]
 
   implicit val uriSchema: Schema[URI] = Schema.schemaForString.asInstanceOf[Schema[URI]]
@@ -70,7 +70,7 @@ package object api {
   // TODO: implement codec for non-empty list/chain from cats because the derived is treating NEL as case class
 
   // TODO: merge this with ID[Session]
-  @newtype final case class SessionID(value: UUID)
+  @newtype final case class SessionID(uuid: UUID)
   object SessionID {
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[SessionID] =
       UUID.parse[F](string).map(SessionID(_))
@@ -80,7 +80,7 @@ package object api {
     implicit val schema: Schema[SessionID]  = summonSchema[UUID].asNewtype[SessionID]
   }
 
-  @newtype final case class Username(value: NonEmptyString)
+  @newtype final case class Username(nonEmptyString: NonEmptyString)
   object Username {
     def parse[F[_]: Sync](string: String): F[Username] =
       ParseRefined[F].parse[NonEmpty](string).map(Username(_))
@@ -92,19 +92,19 @@ package object api {
       summonSchema[String Refined NonEmpty].asNewtype[Username]
   }
 
-  @newtype final case class Password(value: NonEmptyString)
+  @newtype final case class Password(nonEmptyBytes: Array[Byte] Refined NonEmpty)
   object Password {
-    def parse[F[_]: Sync](string: String): F[Password] =
-      ParseRefined[F].parse[NonEmpty](string).map(Password(_))
+    def parse[F[_]: Sync](bytes: Array[Byte]): F[Password] =
+      ParseRefined[F].parse[NonEmpty](bytes).map(Password(_))
 
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
     implicit val codec: JsCodec[Password] =
-      summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Password]
+      summonCodec[Array[Byte]](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Password]
     implicit val schema: Schema[Password] =
-      summonSchema[String Refined NonEmpty].asNewtype[Password]
+      summonSchema[Array[Byte] Refined NonEmpty].asNewtype[Password]
   }
 
-  @newtype final case class PaginationOffset(value: Long Refined NonNegative)
+  @newtype final case class PaginationOffset(nonNegativeLong: Long Refined NonNegative)
   object PaginationOffset {
     def parse[F[_]: Sync](long: Long): F[PaginationOffset] =
       ParseRefined[F].parse[NonNegative](long).map(PaginationOffset(_))
@@ -112,14 +112,14 @@ package object api {
     implicit val codec: JsCodec[PaginationOffset] =
       summonCodec[Long](JsonCodecMaker.make).refine[NonNegative].asNewtype[PaginationOffset]
     implicit val param: Param[PaginationOffset] =
-      summonParam[Long Refined NonNegative].map(PaginationOffset(_))(_.value)
+      summonParam[Long Refined NonNegative].map(PaginationOffset(_))(_.nonNegativeLong)
     implicit val schema: Schema[PaginationOffset] =
       summonSchema[Long Refined NonNegative].asNewtype[PaginationOffset]
   }
 
   // TODO: validate somewhere max limit, make it configurable?
 
-  @newtype final case class PaginationLimit(value: Int Refined Positive)
+  @newtype final case class PaginationLimit(positiveInt: Int Refined Positive)
   object PaginationLimit {
     def parse[F[_]: Sync](int: Int): F[PaginationLimit] =
       ParseRefined[F].parse[Positive](int).map(PaginationLimit(_))
@@ -127,12 +127,12 @@ package object api {
     implicit val codec: JsCodec[PaginationLimit] =
       summonCodec[Int](JsonCodecMaker.make).refine[Positive].asNewtype[PaginationLimit]
     implicit val param: Param[PaginationLimit] =
-      summonParam[Int Refined Positive].map(PaginationLimit(_))(_.value)
+      summonParam[Int Refined Positive].map(PaginationLimit(_))(_.positiveInt)
     implicit val schema: Schema[PaginationLimit] =
       summonSchema[Int Refined Positive].asNewtype[PaginationLimit]
   }
 
-  @newtype final case class PaginationHasNext(value: Boolean)
+  @newtype final case class PaginationHasNext(bool: Boolean)
   object PaginationHasNext {
 
     implicit val codec: JsCodec[PaginationHasNext] =

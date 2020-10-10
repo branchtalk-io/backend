@@ -33,7 +33,9 @@ final class PostWritesImpl[F[_]: Sync: Timer](
         .withFieldConst(_.id, id)
         .withFieldConst(
           _.urlTitle,
-          Post.UrlTitle(refineV[NonEmpty](NormalizeForUrl(newPost.title.value.value)).getOrElse("post": NonEmptyString))
+          Post.UrlTitle(
+            refineV[NonEmpty](NormalizeForUrl(newPost.title.nonEmptyString.value)).getOrElse("post": NonEmptyString)
+          )
         )
         .withFieldConst(_.createdAt, now)
         .transform
@@ -50,7 +52,9 @@ final class PostWritesImpl[F[_]: Sync: Timer](
         .withFieldConst(
           _.newUrlTitle,
           updatedPost.newTitle.map { title: Post.Title =>
-            Post.UrlTitle(refineV[NonEmpty](NormalizeForUrl(title.value.value)).getOrElse("post": NonEmptyString))
+            Post.UrlTitle(
+              refineV[NonEmpty](NormalizeForUrl(title.nonEmptyString.value)).getOrElse("post": NonEmptyString)
+            )
           }
         )
         .withFieldConst(_.modifiedAt, now)

@@ -20,7 +20,7 @@ import pureconfig.module.cats._
     ConsumerSettings(Deserializer.uuid[F], SafeDeserializer[F, Event])
       .withAutoOffsetReset(AutoOffsetReset.Earliest)
       .withBootstrapServers(servers.map(_.show).intercalate(","))
-      .withGroupId(consumerConfig.consumerGroup.value.value)
+      .withGroupId(consumerConfig.consumerGroup.nonEmptyString.value)
 
   def toProducerConfig[F[_]: Sync, Event: Serializer[F, *]]: ProducerSettings[F, UUID, Event] =
     ProducerSettings(Serializer.uuid[F], Serializer[F, Event])
@@ -29,5 +29,5 @@ import pureconfig.module.cats._
   def toCommitBatch[F[_]: Concurrent: Timer](
     consumerConfig: KafkaEventConsumerConfig
   ): Pipe[F, CommittableOffset[F], Unit] =
-    commitBatchWithin[F](consumerConfig.maxCommitSize.value.value, consumerConfig.maxCommitTime.value)
+    commitBatchWithin[F](consumerConfig.maxCommitSize.positiveInt.value, consumerConfig.maxCommitTime.finiteDuration)
 }

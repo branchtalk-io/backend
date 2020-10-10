@@ -16,7 +16,7 @@ import pureconfig.module.enumeratum._
     passedOffset.getOrElse(PaginationOffset(0L))
 
   def resolveLimit(passedLimit: Option[PaginationLimit]): PaginationLimit =
-    passedLimit.filter(_.value.value <= maxLimit.value.value).getOrElse(defaultLimit)
+    passedLimit.filter(_.positiveInt.value <= maxLimit.positiveInt.value).getOrElse(defaultLimit)
 }
 
 sealed trait APIPart extends EnumEntry

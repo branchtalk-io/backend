@@ -9,6 +9,7 @@ object Defaults {
   val port: Int    = 8080
 
   val runAPI:                    Boolean = false
+  val runUsersProjections:       Boolean = false
   val runDiscussionsProjections: Boolean = false
 
   val defaultPaginationLimit: Int Refined Positive = 50

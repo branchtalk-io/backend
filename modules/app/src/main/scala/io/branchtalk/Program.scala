@@ -7,6 +7,8 @@ import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.shared.infrastructure.DomainConfig
 import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
+import io.branchtalk.users.services.AuthServicesImpl
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 
@@ -23,8 +25,11 @@ object Program {
       env <- Configuration.getEnv[F]
       appConfig <- AppConfig.parse[F](args, env)
       apiConfig <- Configuration.readConfig[F, APIConfig]("api")
+      usersConfig <- Configuration.readConfig[F, DomainConfig]("users")
       discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
       _ <- (
+        UsersModule.reads[F](usersConfig),
+        UsersModule.writes[F](discussionsConfig),
         DiscussionsModule.reads[F](discussionsConfig),
         DiscussionsModule.writes[F](discussionsConfig)
       ).tupled.use((runModules[F](appConfig, apiConfig, awaitTerminationSignal[F]) _).tupled)
@@ -50,15 +55,20 @@ object Program {
     apiConfig:         APIConfig,
     terminationSignal: F[Unit]
   )(
+    usersReads:        UsersReads[F],
+    usersWrites:       UsersWrites[F],
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
   ): F[Unit] =
     Sync[F].delay(println("Initializing services")) >> // scalastyle:ignore
       (
-        conditionalResource(appConfig.runAPI)(())(runApi[F](appConfig, apiConfig)(discussionsReads, discussionsWrites)),
+        conditionalResource(appConfig.runAPI)(())(
+          runApi[F](appConfig, apiConfig)(usersReads, usersWrites, discussionsReads, discussionsWrites)
+        ),
+        conditionalResource(appConfig.runUsersProjections)(().pure[F])(usersWrites.runProjector),
         conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
       ).tupled.use {
-        case (_, startDiscussions) =>
+        case (_, _, startDiscussions) =>
           for {
             discussionsFiber <- startDiscussions.start
             _ = println("Services initialized") // scalastyle:ignore
@@ -69,12 +79,19 @@ object Program {
       }
 
   private def runApi[F[_]: ConcurrentEffect: ContextShift: Timer](
-    appConfig:        AppConfig,
-    apiConfig:        APIConfig
-  )(discussionsReads: DiscussionsReads[F], discussionsWrites: DiscussionsWrites[F]): Resource[F, Unit] = {
+    appConfig: AppConfig,
+    apiConfig: APIConfig
+  )(
+    usersReads:        UsersReads[F],
+    usersWrites:       UsersWrites[F],
+    discussionsReads:  DiscussionsReads[F],
+    discussionsWrites: DiscussionsWrites[F]
+  ): Resource[F, Unit] = {
+    val authServices = new AuthServicesImpl[F](usersReads.userReads, usersReads.sessionReads)
     // TODO: refactor this
     // TODO: also swagger?
-    val postServer = new PostServer[F](discussionsReads.postReads,
+    val postServer = new PostServer[F](authServices,
+                                       discussionsReads.postReads,
                                        discussionsWrites.postWrites,
                                        apiConfig.safePagination(APIPart.Posts))
     val httpApp = postServer.postRoutes.orNotFound

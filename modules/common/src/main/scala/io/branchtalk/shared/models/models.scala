@@ -24,7 +24,7 @@ package object models {
       uuidGenerator.parse[F](string)
   }
 
-  @newtype final case class ID[+Entity](value: UUID)
+  @newtype final case class ID[+Entity](uuid: UUID)
   object ID {
 
     def create[F[_]: Sync, Entity](implicit uuidGenerator: UUIDGenerator): F[ID[Entity]] =
@@ -32,18 +32,18 @@ package object models {
     def parse[F[_]: Sync, Entity](string: String)(implicit uuidGenerator: UUIDGenerator): F[ID[Entity]] =
       UUID.parse[F](string).map(ID[Entity])
 
-    implicit def show[Entity]:  Show[ID[Entity]]  = (id: ID[Entity]) => s"ID(${id.value.show})"
+    implicit def show[Entity]:  Show[ID[Entity]]  = (id: ID[Entity]) => s"ID(${id.uuid.show})"
     implicit def order[Entity]: Order[ID[Entity]] = /*_*/ Order[UUID].coerce[Order[ID[Entity]]] /*_*/
   }
 
   // TODO: consider some custom clock(?)
 
-  @newtype final case class CreationTime(value: OffsetDateTime)
+  @newtype final case class CreationTime(offsetDateTime: OffsetDateTime)
   object CreationTime {
     implicit val show: Show[CreationTime] =
-      (t: CreationTime) => s"CreationTime(${DateTimeFormatter.ISO_INSTANT.format(t.value)})"
+      (t: CreationTime) => s"CreationTime(${DateTimeFormatter.ISO_INSTANT.format(t.offsetDateTime)})"
     implicit val order: Order[CreationTime] =
-      (x: CreationTime, y: CreationTime) => x.value.compareTo(y.value)
+      (x: CreationTime, y: CreationTime) => x.offsetDateTime.compareTo(y.offsetDateTime)
 
     def now[F[_]: Functor: Clock]: F[CreationTime] =
       Clock[F]
@@ -52,12 +52,12 @@ package object models {
         .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
         .map(CreationTime(_))
   }
-  @newtype final case class ModificationTime(value: OffsetDateTime)
+  @newtype final case class ModificationTime(offsetDateTime: OffsetDateTime)
   object ModificationTime {
     implicit val show: Show[ModificationTime] =
-      (t: ModificationTime) => s"ModificationTime(${DateTimeFormatter.ISO_INSTANT.format(t.value)})"
+      (t: ModificationTime) => s"ModificationTime(${DateTimeFormatter.ISO_INSTANT.format(t.offsetDateTime)})"
     implicit val order: Order[ModificationTime] =
-      (x: ModificationTime, y: ModificationTime) => x.value.compareTo(y.value)
+      (x: ModificationTime, y: ModificationTime) => x.offsetDateTime.compareTo(y.offsetDateTime)
 
     def now[F[_]: Functor: Clock]: F[ModificationTime] =
       Clock[F]

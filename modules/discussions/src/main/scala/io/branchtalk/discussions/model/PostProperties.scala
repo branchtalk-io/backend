@@ -28,34 +28,35 @@ trait PostProperties { self: Post.type =>
 object PostProperties {
 
   // TODO: change non-empty to [0;250] or sth
-  @newtype final case class UrlTitle(value: NonEmptyString)
+  @newtype final case class UrlTitle(nonEmptyString: NonEmptyString)
   object UrlTitle {
     def parse[F[_]: Sync](string: String): F[UrlTitle] =
       ParseRefined[F].parse[NonEmpty](string).map(UrlTitle.apply)
 
-    implicit val show:  Show[UrlTitle]  = (t: UrlTitle) => s"UrlTitle(${t.value.value.show})"
-    implicit val order: Order[UrlTitle] = (x: UrlTitle, y: UrlTitle) => x.value.value compareTo y.value.value
+    implicit val show: Show[UrlTitle] = (t: UrlTitle) => s"UrlTitle(${t.nonEmptyString.value.show})"
+    implicit val order: Order[UrlTitle] = (x: UrlTitle, y: UrlTitle) =>
+      x.nonEmptyString.value compareTo y.nonEmptyString.value
   }
 
-  @newtype final case class Title(value: NonEmptyString)
+  @newtype final case class Title(nonEmptyString: NonEmptyString)
   object Title {
     def parse[F[_]: Sync](string: String): F[Title] =
       ParseRefined[F].parse[NonEmpty](string).map(Title.apply)
 
-    implicit val show:  Show[Title]  = (t: Title) => s"Title(${t.value.value.show})"
-    implicit val order: Order[Title] = (x: Title, y: Title) => x.value.value compareTo y.value.value
+    implicit val show:  Show[Title]  = (t: Title) => s"Title(${t.nonEmptyString.value.show})"
+    implicit val order: Order[Title] = (x: Title, y: Title) => x.nonEmptyString.value compareTo y.nonEmptyString.value
   }
 
-  @newtype final case class URL(value: URI)
+  @newtype final case class URL(uri: URI)
   object URL {
-    implicit val show:  Show[URL]  = (t: URL) => t.value.toString
-    implicit val order: Order[URL] = (x: URL, y: URL) => x.value compareTo y.value
+    implicit val show:  Show[URL]  = (t: URL) => t.uri.toString
+    implicit val order: Order[URL] = (x: URL, y: URL) => x.uri compareTo y.uri
   }
 
-  @newtype final case class Text(value: String)
+  @newtype final case class Text(string: String)
   object Text {
-    implicit val show:  Show[Text]  = (t: Text) => t.value
-    implicit val order: Order[Text] = (x: Text, y: Text) => x.value compareTo y.value
+    implicit val show:  Show[Text]  = (t: Text) => t.string
+    implicit val order: Order[Text] = (x: Text, y: Text) => x.string compareTo y.string
   }
 
   @Semi(FastEq, ShowPretty) sealed trait Content extends ADT
@@ -70,21 +71,21 @@ object PostProperties {
 
       val values: IndexedSeq[Type] = findValues
     }
-    @newtype final case class Raw(value: String)
+    @newtype final case class Raw(string: String)
     object Raw {
-      implicit val show:  Show[Raw]  = (t: Raw) => t.value
-      implicit val order: Order[Raw] = (x: Raw, y: Raw) => x.value compareTo y.value
+      implicit val show:  Show[Raw]  = (t: Raw) => t.string
+      implicit val order: Order[Raw] = (x: Raw, y: Raw) => x.string compareTo y.string
     }
 
     object Tupled {
       def apply(contentType: Type, contentText: Raw): Content = contentType match {
-        case Type.Url  => Content.Url(Post.URL(URI.create(contentText.value)))
-        case Type.Text => Content.Text(Post.Text(contentText.value))
+        case Type.Url  => Content.Url(Post.URL(URI.create(contentText.string)))
+        case Type.Text => Content.Text(Post.Text(contentText.string))
       }
 
       def unpack(content: Content): (Type, Raw) = content match {
-        case Content.Url(url)   => Type.Url -> Raw(url.value.toString)
-        case Content.Text(text) => Type.Text -> Raw(text.value)
+        case Content.Url(url)   => Type.Url -> Raw(url.uri.toString)
+        case Content.Text(text) => Type.Text -> Raw(text.string)
       }
 
       def unapply(content: Content): Option[(Type, Raw)] = unpack(content).some

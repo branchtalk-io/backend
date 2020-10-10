@@ -14,7 +14,7 @@ import pureconfig.module.cats._
 ) {
 
   def topic(generatedSuffix: String): Topic =
-    Topic(refineV[NonEmpty](topicPrefix.value.value + generatedSuffix).getOrElse(???))
+    Topic(refineV[NonEmpty](topicPrefix.nonEmptyString.value + generatedSuffix).getOrElse(???))
 
   def toKafkaEventBusConfig(generatedSuffix: String): KafkaEventBusConfig =
     this.into[KafkaEventBusConfig].withFieldConst(_.topic, topic(generatedSuffix)).transform

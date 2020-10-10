@@ -25,8 +25,8 @@ trait TestKafkaResources extends TestResourcesHelpers {
         } { client =>
           Sync[F].delay {
             try {
-              if (client.listTopics().names().get().asScala.contains(cfg.topic.value.value)) {
-                client.deleteTopics(List(cfg.topic.value.value).asJavaCollection)
+              if (client.listTopics().names().get().asScala.contains(cfg.topic.nonEmptyString.value)) {
+                client.deleteTopics(List(cfg.topic.nonEmptyString.value).asJavaCollection)
                 ()
               }
             } finally {

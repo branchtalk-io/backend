@@ -60,7 +60,7 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
          |  ${event.createdAt}
          |)
          |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.transact(transactor) >>
-      (event.id.value -> event.transformInto[UserEvent.Created]).pure[F]
+      (event.id.uuid -> event.transformInto[UserEvent.Created]).pure[F]
 
   def toUpdate(event: UserCommandEvent.Update): F[(UUID, UserEvent.Updated)] =
     (NonEmptyList.fromList(
@@ -80,11 +80,11 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
       case None =>
         Sync[F].delay(logger.warn(s"User update ignored as it doesn't contain any modification:\n${event.show}"))
     }) >>
-      (event.id.value -> event.transformInto[UserEvent.Updated]).pure[F]
+      (event.id.uuid -> event.transformInto[UserEvent.Updated]).pure[F]
 
   def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
     (sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
       sql"INSERT INTO deleted_users (id, deleted_at) VALUES (${event.id}, ${event.deletedAt}) ON CONFLICT (id) DO NOTHING".update.run)
       .transact(transactor) >>
-      (event.id.value -> event.transformInto[UserEvent.Deleted]).pure[F]
+      (event.id.uuid -> event.transformInto[UserEvent.Deleted]).pure[F]
 }

@@ -8,7 +8,7 @@ import io.branchtalk.shared.Fixtures._
 trait UsersFixtures {
 
   def passwordCreate(password: String = "pass"): IO[Password] =
-    Password.create(Password.Raw(password.getBytes)).pure[IO]
+    Password.Raw.parse[IO](password.getBytes).map(Password.create)
 
   def userCreate: IO[User.Create] =
     (

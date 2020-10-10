@@ -184,8 +184,12 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           userId <- userCreate.map(_.copy(password = goodPassword)).flatMap(usersWrites.userWrites.createUser).map(_.id)
           user <- usersReads.userReads.requireById(userId).eventually()
           // when
-          ok <- usersReads.userReads.authenticate(user.data.email, Password.Raw("password".getBytes)).attempt
-          fail <- usersReads.userReads.authenticate(user.data.email, Password.Raw("bad".getBytes)).attempt
+          ok <- usersReads.userReads
+            .authenticate(user.data.username, Password.Raw.parse[IO]("password".getBytes).unsafeRunSync())
+            .attempt
+          fail <- usersReads.userReads
+            .authenticate(user.data.username, Password.Raw.parse[IO]("bad".getBytes).unsafeRunSync())
+            .attempt
         } yield {
           // then
           ok must beRight(user)

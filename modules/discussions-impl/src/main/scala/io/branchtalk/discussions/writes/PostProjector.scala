@@ -61,7 +61,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
          |  ${event.createdAt}
          |)
          |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.transact(transactor) >>
-      (event.id.value -> event.transformInto[PostEvent.Created]).pure[F]
+      (event.id.uuid -> event.transformInto[PostEvent.Created]).pure[F]
   }
 
   def toUpdate(event: PostCommandEvent.Update): F[(UUID, PostEvent.Updated)] = {
@@ -81,14 +81,14 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
       case None =>
         Sync[F].delay(logger.warn(s"Post update ignored as it doesn't contain any modification:\n${event.show}"))
     }) >>
-      (event.id.value -> event.transformInto[PostEvent.Updated]).pure[F]
+      (event.id.uuid -> event.transformInto[PostEvent.Updated]).pure[F]
   }
 
   def toDelete(event: PostCommandEvent.Delete): F[(UUID, PostEvent.Deleted)] =
     sql"UPDATE posts SET deleted = TRUE WHERE id = ${event.id}".update.run.transact(transactor) >>
-      (event.id.value -> event.transformInto[PostEvent.Deleted]).pure[F]
+      (event.id.uuid -> event.transformInto[PostEvent.Deleted]).pure[F]
 
   def toRestore(event: PostCommandEvent.Restore): F[(UUID, PostEvent.Restored)] =
     sql"UPDATE posts SET deleted = FALSE WHERE id = ${event.id}".update.run.transact(transactor) >>
-      (event.id.value -> event.transformInto[PostEvent.Restored]).pure[F]
+      (event.id.uuid -> event.transformInto[PostEvent.Restored]).pure[F]
 }

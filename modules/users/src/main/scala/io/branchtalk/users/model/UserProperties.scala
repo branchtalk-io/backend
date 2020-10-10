@@ -20,28 +20,28 @@ trait UserProperties {
 object UserProperties {
 
   // TODO: make it an ADT with new-confirmed-updated lifecycle
-  @newtype final case class Email(value: String Refined MatchesRegex["(.+)@(.+)"])
+  @newtype final case class Email(string: String Refined MatchesRegex["(.+)@(.+)"])
   object Email {
     def parse[F[_]: Sync](string: String): F[Email] =
       ParseRefined[F].parse[MatchesRegex["(.+)@(.+)"]](string).map(Email.apply)
 
-    implicit val show:  Show[Email]  = (t: Email) => s"Email(${t.value.value.show})"
-    implicit val order: Order[Email] = (x: Email, y: Email) => x.value.value compareTo y.value.value
+    implicit val show:  Show[Email]  = (t: Email) => s"Email(${t.string.value.show})"
+    implicit val order: Order[Email] = (x: Email, y: Email) => x.string.value compareTo y.string.value
   }
 
-  @newtype final case class Name(value: NonEmptyString)
+  @newtype final case class Name(string: NonEmptyString)
   object Name {
     def parse[F[_]: Sync](string: String): F[Name] =
       ParseRefined[F].parse[NonEmpty](string).map(Name.apply)
 
-    implicit val show:  Show[Name]  = (t: Name) => s"User.Name(${t.value.value.show})"
-    implicit val order: Order[Name] = (x: Name, y: Name) => x.value.value compareTo y.value.value
+    implicit val show:  Show[Name]  = (t: Name) => s"User.Name(${t.string.value.show})"
+    implicit val order: Order[Name] = (x: Name, y: Name) => x.string.value compareTo y.string.value
   }
 
-  @newtype final case class Description(value: String)
+  @newtype final case class Description(string: String)
   object Description {
 
-    implicit val show: Show[Description] = (t: Description) => s"Email(${t.value.show})"
-    implicit val eq:   Eq[Description]   = (x: Description, y: Description) => x.value === y.value
+    implicit val show: Show[Description] = (t: Description) => s"Email(${t.string.show})"
+    implicit val eq:   Eq[Description]   = (x: Description, y: Description) => x.string === y.string
   }
 }

@@ -7,7 +7,7 @@ import io.branchtalk.users.model.{ Password, User }
 
 trait UserReads[F[_]] {
 
-  def authenticate(email: User.Email, password: Password.Raw): F[User]
+  def authenticate(username: User.Name, password: Password.Raw): F[User]
 
   def paginate(
     offset: Long Refined NonNegative,

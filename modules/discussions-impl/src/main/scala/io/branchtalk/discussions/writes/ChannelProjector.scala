@@ -51,7 +51,7 @@ final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
          |  ${event.createdAt}
          |)
          |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.transact(transactor) >>
-      (event.id.value -> event.transformInto[ChannelEvent.Created]).pure[F]
+      (event.id.uuid -> event.transformInto[ChannelEvent.Created]).pure[F]
 
   def toUpdate(event: ChannelCommandEvent.Update): F[(UUID, ChannelEvent.Updated)] =
     (NonEmptyList.fromList(
@@ -68,13 +68,13 @@ final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
       case None =>
         Sync[F].delay(logger.warn(s"Channel update ignored as it doesn't contain any modification:\n${event.show}"))
     }) >>
-      (event.id.value -> event.transformInto[ChannelEvent.Updated]).pure[F]
+      (event.id.uuid -> event.transformInto[ChannelEvent.Updated]).pure[F]
 
   def toDelete(event: ChannelCommandEvent.Delete): F[(UUID, ChannelEvent.Deleted)] =
     sql"UPDATE channels SET deleted = TRUE WHERE id = ${event.id}".update.run.transact(transactor) >>
-      (event.id.value -> event.transformInto[ChannelEvent.Deleted]).pure[F]
+      (event.id.uuid -> event.transformInto[ChannelEvent.Deleted]).pure[F]
 
   def toRestore(event: ChannelCommandEvent.Restore): F[(UUID, ChannelEvent.Restored)] =
     sql"UPDATE channels SET deleted = FALSE WHERE id = ${event.id}".update.run.transact(transactor) >>
-      (event.id.value -> event.transformInto[ChannelEvent.Restored]).pure[F]
+      (event.id.uuid -> event.transformInto[ChannelEvent.Restored]).pure[F]
 }
