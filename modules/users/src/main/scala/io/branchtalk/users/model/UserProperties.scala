@@ -19,6 +19,7 @@ trait UserProperties {
 }
 object UserProperties {
 
+  // TODO: make it an ADT with new-confirmed-updated lifecycle
   @newtype final case class Email(value: String Refined MatchesRegex["(.+)@(.+)"])
   object Email {
     def parse[F[_]: Sync](string: String): F[Email] =
