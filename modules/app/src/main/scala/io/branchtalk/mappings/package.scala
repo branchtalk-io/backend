@@ -52,8 +52,8 @@ package object mappings {
   // Users <-> Discussions
 
   val userIDUsers2Discussions: Iso[ID[users.model.User], ID[discussions.model.User]] =
-    Iso[ID[users.model.User], ID[discussions.model.User]](userID => ID[discussions.model.User](userID.uuid)) {
-      userID => ID[users.model.User](userID.uuid)
+    Iso[ID[users.model.User], ID[discussions.model.User]](userID => ID[discussions.model.User](userID.uuid)) { userID =>
+      ID[users.model.User](userID.uuid)
     }
 
   val channelIDUsers2Discussions: Iso[ID[users.model.Channel], ID[discussions.model.Channel]] =

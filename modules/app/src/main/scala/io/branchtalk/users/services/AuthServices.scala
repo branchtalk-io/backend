@@ -37,7 +37,7 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
     (username, password) => authCredentials(username, password).map(user => user -> none[users.model.Session])
   )
 
-  override def authorizeUser(auth: Authentication, requiredPermissions: Permission*): F[users.model.User] =
+  override def authorizeUser(auth: Authentication, permissions: Permission*): F[users.model.User] =
     for {
       (user, sessionOpt) <- authenticateUserWithSessionOpt(auth)
       // TODO: move this logic to sessionReads or something !!!
@@ -48,10 +48,11 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
         case Some(constrained) => all intersect constrained
         case None              => all
       }
-      _ <- if (availablePermissions.allow(requiredPermissions.map(permissionApi2Users.get).toSeq: _*)) Sync[F].unit
+      requiredPermissions = permissions.map(permissionApi2Users.get).toList
+      _ <- if (availablePermissions.allow(requiredPermissions.toSeq: _*)) Sync[F].unit
       else {
         (CommonError.InsufficientPermissions(
-          s"User has insufficient permissions: available ${availablePermissions}, required: $requiredPermissions",
+          s"User has insufficient permissions: available ${availablePermissions.show}, required: ${requiredPermissions.show}",
           CodePosition.providePosition
         ): Throwable).raiseError[F, Unit]
       }

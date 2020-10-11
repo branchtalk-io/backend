@@ -58,6 +58,7 @@ object UserModels {
   object UserError {
 
     final case class BadCredentials(msg:     String) extends UserError
+    final case class NoPermission(msg:       String) extends UserError
     final case class NotFound(msg:           String) extends UserError
     final case class ValidationFailed(error: NonEmptyList[String]) extends UserError
   }

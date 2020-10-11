@@ -44,6 +44,8 @@ object PostModels {
   @Semi(JsCodec) sealed trait PostError extends ADT
   object PostError {
 
+    final case class BadCredentials(msg:     String) extends PostError
+    final case class NoPermission(msg:       String) extends PostError
     final case class NotFound(msg:           String) extends PostError
     final case class ValidationFailed(error: NonEmptyList[String]) extends PostError
   }

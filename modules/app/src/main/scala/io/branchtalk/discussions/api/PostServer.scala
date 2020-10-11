@@ -30,6 +30,10 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     ID[io.branchtalk.discussions.model.User](id.uuid)
 
   private def withErrorHandling[A](fa: F[A]): F[Either[PostError, A]] = fa.map(_.asRight[PostError]).handleErrorWith {
+    case CommonError.InvalidCredentials(_) =>
+      (PostError.BadCredentials("Invalid credentials"): PostError).asLeft[A].pure[F]
+    case CommonError.InsufficientPermissions(msg, _) =>
+      (PostError.NoPermission(msg): PostError).asLeft[A].pure[F]
     case CommonError.NotFound(what, id, _) =>
       (PostError.NotFound(s"$what with id=${id.show} could not be found"): PostError).asLeft[A].pure[F]
     case CommonError.ParentNotExist(what, id, _) =>

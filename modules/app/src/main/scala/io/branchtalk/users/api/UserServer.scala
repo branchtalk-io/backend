@@ -26,6 +26,10 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   private val sessionExpiresInDays = 7L // make it configurable
 
   private def withErrorHandling[A](fa: F[A]): F[Either[UserError, A]] = fa.map(_.asRight[UserError]).handleErrorWith {
+    case CommonError.InvalidCredentials(_) =>
+      (UserError.BadCredentials("Invalid credentials"): UserError).asLeft[A].pure[F]
+    case CommonError.InsufficientPermissions(msg, _) =>
+      (UserError.NoPermission(msg): UserError).asLeft[A].pure[F]
     case CommonError.NotFound(what, id, _) =>
       (UserError.NotFound(s"$what with id=${id.show} could not be found"): UserError).asLeft[A].pure[F]
     case CommonError.ParentNotExist(what, id, _) =>
