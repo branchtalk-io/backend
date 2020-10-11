@@ -5,7 +5,13 @@ import io.estatico.newtype.macros.newtype
 
 package object model {
 
-  @newtype final case class Permissions(set: Set[Permission])
+  @newtype final case class Permissions(set: Set[Permission]) {
+
+    def append(permission: Permission): Permissions = Permissions(set + permission) // scalastyle:ignore method.name
+
+    def allow(permissions:     Permission*): Boolean     = permissions.forall(set)
+    def intersect(permissions: Permissions): Permissions = Permissions(set intersect permissions.set)
+  }
   object Permissions {
     def unapply(permissions: Permissions): Option[Set[Permission]] = permissions.set.some
 

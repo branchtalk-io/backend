@@ -45,7 +45,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     case (optAuth, optOffset, optLimit) =>
       withErrorHandling {
         for {
-          _ <- optAuth.traverse(authServices.authUser) // TODO: so something with it
+          _ <- optAuth.traverse(authServices.authenticateUser) // TODO: so something with it
           offset = paginationConfig.resolveOffset(optOffset)
           limit  = paginationConfig.resolveLimit(optLimit)
           channelIDs <- FastUUIDGenerator
@@ -61,7 +61,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     case (auth, createData) =>
       withErrorHandling {
         for {
-          userID <- authServices.authUser(auth).map(_.id) // TODO: so something with it
+          userID <- authServices.authenticateUser(auth).map(_.id) // TODO: so something with it
           data = createData.into[Post.Create].withFieldConst(_.authorID, mapUserID(userID)).transform
           result <- writes.createPost(data)
         } yield CreatePostResponse(result.id)
@@ -72,7 +72,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     case (optAuth, postID) =>
       withErrorHandling {
         for {
-          _ <- optAuth.traverse(authServices.authUser) // TODO: so something with it
+          _ <- optAuth.traverse(authServices.authenticateUser) // TODO: so something with it
           result <- reads.requireById(postID)
         } yield APIPost.fromDomain(result)
       }
@@ -82,7 +82,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     case (auth, postID, updateData) =>
       withErrorHandling {
         for {
-          userID <- authServices.authUser(auth).map(_.id) // TODO: so something with it
+          userID <- authServices.authenticateUser(auth).map(_.id) // TODO: so something with it
           data = updateData
             .into[Post.Update]
             .withFieldConst(_.id, postID)
@@ -99,7 +99,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     case (auth, postID) =>
       withErrorHandling {
         for {
-          userID <- authServices.authUser(auth).map(_.id) // TODO: so something with it
+          userID <- authServices.authenticateUser(auth).map(_.id) // TODO: so something with it
           data = Post.Delete(postID, mapUserID(userID))
           result <- writes.deletePost(data)
         } yield DeletePostResponse(result.id)

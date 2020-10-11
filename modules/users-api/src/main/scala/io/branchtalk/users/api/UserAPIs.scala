@@ -4,24 +4,13 @@ import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
 import io.branchtalk.shared.models.ID
 import io.branchtalk.users.api.UserModels._
-import io.branchtalk.users.model
-import io.branchtalk.users.model.{ Session, User }
-import monocle.Iso
+import io.branchtalk.users.model.User
 import sttp.tapir._
 import sttp.tapir.json.jsoniter._
 
 object UserAPIs {
 
   private val prefix = "users"
-
-  val usernameMapping: Iso[Username, User.Name] =
-    Iso[Username, User.Name](username => User.Name(username.nonEmptyString))(username => Username(username.string))
-
-  val passwordMapping: Iso[Password, model.Password.Raw] =
-    Iso[Password, model.Password.Raw](pwd => model.Password.Raw(pwd.nonEmptyBytes))(pwd => Password(pwd.nonEmptyBytes))
-
-  val sessionIDMapping: Iso[SessionID, ID[Session]] =
-    Iso[SessionID, ID[Session]](sessionID => ID[Session](sessionID.uuid))(id => SessionID(id.uuid))
 
   // TODO: confirm email endpoint
   // TODO: reset password endpoint

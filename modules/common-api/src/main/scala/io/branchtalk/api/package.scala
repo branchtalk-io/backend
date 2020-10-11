@@ -80,6 +80,28 @@ package object api {
     implicit val schema: Schema[SessionID]  = summonSchema[UUID].asNewtype[SessionID]
   }
 
+  @newtype final case class UserID(uuid: UUID)
+  object UserID {
+    def unapply(userID: UserID): Option[UUID] = userID.uuid.some
+    def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[UserID] =
+      UUID.parse[F](string).map(UserID(_))
+
+    @SuppressWarnings(Array("org.wartremover.warts.Null"))
+    implicit val codec:  JsCodec[UserID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[UserID]
+    implicit val schema: Schema[UserID]  = summonSchema[UUID].asNewtype[UserID]
+  }
+
+  @newtype final case class ChannelID(uuid: UUID)
+  object ChannelID {
+    def unapply(channelID: ChannelID): Option[UUID] = channelID.uuid.some
+    def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[ChannelID] =
+      UUID.parse[F](string).map(ChannelID(_))
+
+    @SuppressWarnings(Array("org.wartremover.warts.Null"))
+    implicit val codec:  JsCodec[ChannelID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[ChannelID]
+    implicit val schema: Schema[ChannelID]  = summonSchema[UUID].asNewtype[ChannelID]
+  }
+
   @newtype final case class Username(nonEmptyString: NonEmptyString)
   object Username {
     def unapply(username: Username): Option[NonEmptyString] = username.nonEmptyString.some

@@ -9,7 +9,7 @@ import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import io.branchtalk.ADT
 import io.branchtalk.api.{ Password => _, Permission => _, _ }
-import io.branchtalk.shared.models.ID
+import io.branchtalk.shared.models.{ ID, OptionUpdatable, Updatable }
 import io.branchtalk.users.model._
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
@@ -97,7 +97,12 @@ object UserModels {
     def fromDomain(user: User): APIUser = user.data.into[APIUser].withFieldConst(_.id, user.id).transform
   }
 
-  @Semi(JsCodec) final case class UpdateUserRequest() // TODO: implement this
+  @Semi(JsCodec) final case class UpdateUserRequest(
+    moderatorID:    Option[ID[User]],
+    newUsername:    Updatable[User.Name],
+    newDescription: OptionUpdatable[User.Description],
+    newPassword:    Updatable[Password]
+  )
   @Semi(JsCodec) final case class UpdateUserResponse(id: ID[User])
 
   @Semi(JsCodec) final case class DeleteUserResponse(id: ID[User])

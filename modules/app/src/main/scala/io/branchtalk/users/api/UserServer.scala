@@ -2,9 +2,11 @@ package io.branchtalk.users.api
 
 import cats.effect.{ Clock, ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
+import io.branchtalk.api
 import io.branchtalk.configs.PaginationConfig
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.mappings._
 import io.branchtalk.shared.models.{ CommonError, ID }
+import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.model.{ Session, User }
 import io.branchtalk.users.services.AuthServices
@@ -46,7 +48,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   private val signIn = UserAPIs.signIn.toRoutes { authentication =>
     withErrorHandling {
       for {
-        (user, sessionOpt) <- authServices.authUserSession(authentication)
+        (user, sessionOpt) <- authServices.authenticateUserWithSessionOpt(authentication)
         session <- sessionOpt match {
           case Some(session) =>
             session.pure[F]
@@ -69,7 +71,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   private val signOut = UserAPIs.signOut.toRoutes { authentication =>
     withErrorHandling {
       for {
-        (user, sessionOpt) <- authServices.authUserSession(authentication)
+        (user, sessionOpt) <- authServices.authenticateUserWithSessionOpt(authentication)
         sessionID <- sessionOpt match {
           case Some(s) => writes.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
           case None    => none[ID[Session]].pure[F]
@@ -78,6 +80,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
+  // TODO: optional auth for logging or sth
   private val fetchProfile = UserAPIs.fetchProfile.toRoutes { userID =>
     withErrorHandling {
       for {
@@ -86,18 +89,33 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  // TODO: updateProfile
+  private val updateProfile = UserAPIs.updateProfile.toRoutes {
+    case (authentication, userID, update) =>
+      withErrorHandling {
+        for {
+          user <- authServices.authorizeUser(authentication, api.Permission.EditProfile(userIDApi2Users(userID)))
+          moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
+          data = update
+            .into[User.Update]
+            .withFieldConst(_.id, userID)
+            .withFieldConst(_.moderatorID, moderatorID)
+            .withFieldConst(_.updatePermissions, List.empty)
+            .transform
+          _ <- writes.userWrites.updateUser(data)
+        } yield UpdateUserResponse(userID)
+      }
+  }
 
   private val deleteProfile = UserAPIs.deleteProfile.toRoutes {
     case (authentication, userID) =>
       withErrorHandling {
         for {
-          user <- authServices.authUser(authentication)
+          user <- authServices.authorizeUser(authentication, api.Permission.EditProfile(userIDApi2Users(userID)))
           moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
           _ <- writes.userWrites.deleteUser(User.Delete(userID, moderatorID))
         } yield DeleteUserResponse(userID)
       }
   }
 
-  val userRoutes: HttpRoutes[F] = signUp <+> signIn <+> signOut <+> fetchProfile <+> deleteProfile
+  val userRoutes: HttpRoutes[F] = signUp <+> signIn <+> signOut <+> fetchProfile <+> updateProfile <+> deleteProfile
 }
