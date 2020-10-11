@@ -32,6 +32,7 @@ object UserAPIs {
     .out(jsonBody[SignUpResponse])
     .errorOut(jsonBody[UserError])
 
+  // TODO: consider returning user data besides session data
   val signIn: Endpoint[Authentication, UserError, SignInResponse, Nothing] =
     endpoint.post.in(authHeader).in(prefix / "sign_up").out(jsonBody[SignInResponse]).errorOut(jsonBody[UserError])
 

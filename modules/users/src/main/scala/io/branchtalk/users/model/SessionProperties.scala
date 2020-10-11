@@ -20,7 +20,10 @@ trait SessionProperties {
 }
 object SessionProperties {
 
-  @newtype final case class ExpirationTime(offsetDateTime: OffsetDateTime)
+  @newtype final case class ExpirationTime(offsetDateTime: OffsetDateTime) {
+
+    def plusDays(days: Long): ExpirationTime = ExpirationTime(offsetDateTime.plusDays(days))
+  }
   object ExpirationTime {
     def unapply(expirationTime: ExpirationTime): Option[OffsetDateTime] = expirationTime.offsetDateTime.some
     def now[F[_]: Functor: Clock]: F[ExpirationTime] =

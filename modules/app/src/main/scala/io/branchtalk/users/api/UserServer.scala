@@ -1,18 +1,19 @@
 package io.branchtalk.users.api
 
-import cats.effect.{ ContextShift, Sync }
+import cats.effect.{ Clock, ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
+import io.branchtalk.api.Authentication
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.shared.models.CommonError
 import io.branchtalk.users.{ UsersReads, UsersWrites }
-import io.branchtalk.users.model.User
+import io.branchtalk.users.model.{ Session, User }
 import io.branchtalk.users.services.AuthServices
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
 
-final class UsersServer[F[_]: Http4sServerOptions: Sync: ContextShift](
+final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   authServices:     AuthServices[F],
   reads:            UsersReads[F],
   writes:           UsersWrites[F],
@@ -20,6 +21,8 @@ final class UsersServer[F[_]: Http4sServerOptions: Sync: ContextShift](
 ) {
 
   private val logger = Logger(getClass)
+
+  private val sessionExpiresInDays = 7L // make it configurable
 
   private def withErrorHandling[A](fa: F[A]): F[Either[UserError, A]] = fa.map(_.asRight[UserError]).handleErrorWith {
     case CommonError.NotFound(what, id, _) =>
@@ -41,5 +44,28 @@ final class UsersServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     }
   }
 
-  val userRoutes: HttpRoutes[F] = signUp
+  private val signIn = UserAPIs.signIn.toRoutes { authentication =>
+    withErrorHandling {
+      for {
+        (user, sessionOpt) <- authServices.authUserSession(authentication)
+        session <- sessionOpt match {
+          case Some(session) =>
+            session.pure[F]
+          case None =>
+            for {
+              expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
+              session <- writes.sessionWrites.createSession(
+                Session.Create(
+                  userID    = user.id,
+                  usage     = Session.Usage.UserSession,
+                  expiresAt = expireAt
+                )
+              )
+            } yield session
+        }
+      } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
+    }
+  }
+
+  val userRoutes: HttpRoutes[F] = signUp <+> signIn
 }

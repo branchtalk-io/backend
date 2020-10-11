@@ -1,5 +1,7 @@
 package io.branchtalk.users.api
 
+import java.time.OffsetDateTime
+
 import cats.data.NonEmptyList
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import eu.timepit.refined.api.Refined
@@ -10,6 +12,7 @@ import io.branchtalk.api.{ Password => _, Permission => _, _ }
 import io.branchtalk.shared.models.ID
 import io.branchtalk.users.model._
 import io.scalaland.catnip.Semi
+import io.scalaland.chimney.dsl._
 import sttp.tapir.Schema
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
@@ -30,6 +33,8 @@ object UserModels {
     summonCodec[Array[Byte]](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Password.Raw]
   implicit val permissionsCodec: JsCodec[Permissions] =
     summonCodec[Set[Permission]](JsonCodecMaker.make).asNewtype[Permissions]
+  implicit val sessionExpirationCodec: JsCodec[Session.ExpirationTime] =
+    summonCodec[OffsetDateTime](JsonCodecMaker.make).asNewtype[Session.ExpirationTime]
 
   // properties schemas
   implicit val userEmailSchema: Schema[User.Email] =
@@ -46,6 +51,8 @@ object UserModels {
     summonSchema[Array[Byte] Refined NonEmpty].asNewtype[Password.Raw]
   implicit val permissionsSchema: Schema[Permissions] =
     summonSchema[Set[Permission]].asNewtype[Permissions]
+  implicit val sessionExpirationSchema: Schema[Session.ExpirationTime] =
+    summonSchema[OffsetDateTime].asNewtype[Session.ExpirationTime]
 
   @Semi(JsCodec) sealed trait UserError extends ADT
   object UserError {
@@ -61,11 +68,21 @@ object UserModels {
     description: Option[User.Description],
     password:    Password
   )
-  @Semi(JsCodec) final case class SignUpResponse(id: ID[User], sessionID: ID[Session])
+  @Semi(JsCodec) final case class SignUpResponse(
+    userID:    ID[User],
+    sessionID: ID[Session]
+  )
 
-  @Semi(JsCodec) final case class SignInResponse(id: ID[Session])
+  @Semi(JsCodec) final case class SignInResponse(
+    userID:    ID[User],
+    sessionID: ID[Session],
+    expiresAt: Session.ExpirationTime
+  )
 
-  @Semi(JsCodec) final case class SignOutResponse()
+  @Semi(JsCodec) final case class SignOutResponse(
+    userID:    ID[User],
+    sessionID: ID[Session]
+  )
 
   @Semi(JsCodec) final case class APIUser(
     id:          ID[User],
@@ -75,8 +92,12 @@ object UserModels {
     password:    Password,
     permissions: Permissions
   )
+  object APIUser {
 
-  @Semi(JsCodec) final case class UpdateUserRequest()
+    def fromDomain(user: User): APIUser = user.data.into[APIUser].withFieldConst(_.id, user.id).transform
+  }
+
+  @Semi(JsCodec) final case class UpdateUserRequest() // TODO: implement this
   @Semi(JsCodec) final case class UpdateUserResponse(id: ID[User])
 
   @Semi(JsCodec) final case class DeleteUserResponse(id: ID[User])
