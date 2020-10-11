@@ -20,7 +20,7 @@ final class ChannelWritesImpl[F[_]: Sync: Timer](
 
   override def createChannel(newChannel: Channel.Create): F[CreationScheduled[Channel]] =
     for {
-      id <- UUID.create[F].map(ID[Channel])
+      id <- ID.create[F, Channel]
       now <- CreationTime.now[F]
       command = newChannel
         .into[ChannelCommandEvent.Create]

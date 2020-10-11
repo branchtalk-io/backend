@@ -36,8 +36,8 @@ final class UsersServer[F[_]: Http4sServerOptions: Sync: ContextShift](
   private val signUp = UserAPIs.signUp.toRoutes { signup =>
     withErrorHandling {
       for {
-        user <- writes.userWrites.createUser(signup.into[User.Create].transform)
-      } yield SignUpResponse(user.id, ???) // TODO: figure out session ID creation
+        (user, session) <- writes.userWrites.createUser(signup.into[User.Create].transform)
+      } yield SignUpResponse(user.id, session.id)
     }
   }
 

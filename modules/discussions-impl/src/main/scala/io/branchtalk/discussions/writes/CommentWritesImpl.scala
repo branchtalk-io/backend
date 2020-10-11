@@ -23,7 +23,7 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
     for {
       _ <- postCheck(newComment.postID,
                      sql"""SELECT 1 FROM posts WHERE id = ${newComment.postID} AND deleted = false""")
-      id <- UUID.create[F].map(ID[Comment])
+      id <- ID.create[F, Comment]
       now <- CreationTime.now[F]
       command = newComment
         .into[CommentCommandEvent.Create]

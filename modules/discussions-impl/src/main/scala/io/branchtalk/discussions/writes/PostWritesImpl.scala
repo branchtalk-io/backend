@@ -26,7 +26,7 @@ final class PostWritesImpl[F[_]: Sync: Timer](
     for {
       _ <- channelCheck(newPost.channelID,
                         sql"""SELECT 1 FROM channels WHERE id = ${newPost.channelID} AND deleted = false""")
-      id <- UUID.create[F].map(ID[Post])
+      id <- ID.create[F, Post]
       now <- CreationTime.now[F]
       command = newPost
         .into[PostCommandEvent.Create]

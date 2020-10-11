@@ -4,7 +4,7 @@ import com.sksamuel.avro4s._
 import io.branchtalk.shared.models._
 import io.branchtalk.shared.models.AvroSupport._
 import io.branchtalk.ADT
-import io.branchtalk.users.model.User
+import io.branchtalk.users.model.{ Session, User }
 import io.scalaland.catnip.Semi
 
 // user events doesn't store any data as they can be sensitive data
@@ -12,8 +12,10 @@ import io.scalaland.catnip.Semi
 object UserEvent {
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Created(
-    id:        ID[User],
-    createdAt: CreationTime
+    id:               ID[User],
+    createdAt:        CreationTime,
+    sessionID:        ID[Session], // session created by registration
+    sessionExpiresAt: Session.ExpirationTime
   ) extends UserEvent
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Updated(

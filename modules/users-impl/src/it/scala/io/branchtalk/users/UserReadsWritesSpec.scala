@@ -34,7 +34,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
           // when
           toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
-          ids = toCreate.map(_.id)
+          ids = toCreate.map(_._1.id)
           users <- ids.traverse(usersReads.userReads.requireById).eventually()
           usersOpt <- ids.traverse(usersReads.userReads.getById).eventually()
           usersExist <- ids.traverse(usersReads.userReads.exists).eventually()
@@ -54,7 +54,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
         for {
           // given
           _ <- projector.handleError(_.printStackTrace()).start
-          moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
+          moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
           fakeUpdateData <- creationData.traverse { data =>
@@ -83,11 +83,11 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
         for {
           // given
           _ <- projector.handleError(_.printStackTrace()).start
-          moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
+          moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
           toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
-          ids = toCreate.map(_.id)
+          ids = toCreate.map(_._1.id)
           created <- ids.traverse(usersReads.userReads.requireById).eventually()
           updateData = created.zipWithIndex.collect {
             // TODO: change this data
@@ -153,12 +153,12 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
         for {
           // given
           _ <- projector.handleError(_.printStackTrace()).start
-          moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
+          moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
           // when
           toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
-          ids = toCreate.map(_.id)
+          ids = toCreate.map(_._1.id)
           _ <- ids.traverse(usersReads.userReads.requireById).eventually()
           _ <- ids.map(User.Delete(_, moderatorID.some)).traverse(usersWrites.userWrites.deleteUser)
           _ <- ids
@@ -181,7 +181,10 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           // given
           _ <- projector.handleError(_.printStackTrace()).start
           goodPassword <- passwordCreate("password")
-          userId <- userCreate.map(_.copy(password = goodPassword)).flatMap(usersWrites.userWrites.createUser).map(_.id)
+          userId <- userCreate
+            .map(_.copy(password = goodPassword))
+            .flatMap(usersWrites.userWrites.createUser)
+            .map(_._1.id)
           user <- usersReads.userReads.requireById(userId).eventually()
           // when
           ok <- usersReads.userReads

@@ -9,7 +9,7 @@ import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.models.UUID
 import io.branchtalk.users.events.{ UserCommandEvent, UserEvent, UsersCommandEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
-import io.branchtalk.users.model.Permissions
+import io.branchtalk.users.model.{ Permissions, Session }
 import io.scalaland.chimney.dsl._
 
 final class UserProjector[F[_]: Sync](transactor: Transactor[F])
@@ -36,7 +36,8 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
         Stream.empty
       }
 
-  def toCreate(event: UserCommandEvent.Create): F[(UUID, UserEvent.Created)] =
+  def toCreate(event: UserCommandEvent.Create): F[(UUID, UserEvent.Created)] = {
+    val Session.Usage.Tupled(sessionType, sessionPermissions) = Session.Usage.UserSession
     sql"""INSERT INTO users (
          |  id,
          |  email,
@@ -59,8 +60,23 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
          |  ${Permissions(Set.empty)},
          |  ${event.createdAt}
          |)
-         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.transact(transactor) >>
-      (event.id.uuid -> event.transformInto[UserEvent.Created]).pure[F]
+         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run >>
+      sql"""INSERT INTO sessions (
+           |  id,
+           |  user_id,
+           |  usage_type,
+           |  permissions,
+           |  expires_at
+           |)
+           |VALUES (
+           |  ${event.sessionID},
+           |  ${event.id},
+           |  ${sessionType},
+           |  ${sessionPermissions},
+           |  ${event.sessionExpiresAt}
+           |)""".stripMargin.update.run
+  }.transact(transactor) >>
+    (event.id.uuid -> event.transformInto[UserEvent.Created]).pure[F]
 
   def toUpdate(event: UserCommandEvent.Update): F[(UUID, UserEvent.Updated)] =
     (NonEmptyList.fromList(

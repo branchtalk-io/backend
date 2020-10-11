@@ -31,7 +31,7 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
         for {
           // given
           _ <- projector.handleError(_.printStackTrace()).start
-          userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
+          userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(userID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
           // when
@@ -50,7 +50,7 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
         for {
           // given
           _ <- projector.handleError(_.printStackTrace()).start
-          userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_.id)
+          userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(userID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
           toCreate <- creationData.traverse(usersWrites.sessionWrites.createSession)
@@ -62,6 +62,24 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
         } yield {
           // then
           sessions.forall(_.isLeft) must beTrue
+        }
+      }
+    }
+
+    "fetch Session created during registration" in {
+      usersWrites.runProjector.use { projector =>
+        for {
+          // given
+          _ <- projector.handleError(_.printStackTrace()).start
+          scheduled <- userCreate.flatMap(usersWrites.userWrites.createUser)
+          userID    = scheduled._1.id
+          sessionID = scheduled._2.id
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          // when
+          session <- usersReads.sessionReads.requireSession(sessionID).attempt
+        } yield {
+          // then
+          session must beRight[Session]
         }
       }
     }
