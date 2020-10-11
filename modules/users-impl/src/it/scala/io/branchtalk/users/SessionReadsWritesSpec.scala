@@ -1,7 +1,7 @@
 package io.branchtalk.users
 
 import cats.effect.{ IO, Resource }
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.shared.models.{ CreationScheduled, UUIDGenerator }
 import io.branchtalk.{ IOTest, ResourcefulTest }
 import io.branchtalk.users.model.Session
 import org.specs2.mutable.Specification
@@ -71,9 +71,9 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
         for {
           // given
           _ <- projector.handleError(_.printStackTrace()).start
-          scheduled <- userCreate.flatMap(usersWrites.userWrites.createUser)
-          userID    = scheduled._1.id
-          sessionID = scheduled._2.id
+          (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
           _ <- usersReads.userReads.requireById(userID).eventually()
           // when
           session <- usersReads.sessionReads.requireSession(sessionID).attempt

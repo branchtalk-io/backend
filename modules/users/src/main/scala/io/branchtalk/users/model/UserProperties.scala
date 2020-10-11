@@ -22,6 +22,7 @@ object UserProperties {
   // TODO: make it an ADT with new-confirmed-updated lifecycle
   @newtype final case class Email(string: String Refined MatchesRegex["(.+)@(.+)"])
   object Email {
+    def unapply(email: Email): Option[String Refined MatchesRegex["(.+)@(.+)"]] = email.string.some
     def parse[F[_]: Sync](string: String): F[Email] =
       ParseRefined[F].parse[MatchesRegex["(.+)@(.+)"]](string).map(Email.apply)
 
@@ -31,6 +32,7 @@ object UserProperties {
 
   @newtype final case class Name(string: NonEmptyString)
   object Name {
+    def unapply(name: Name): Option[NonEmptyString] = name.string.some
     def parse[F[_]: Sync](string: String): F[Name] =
       ParseRefined[F].parse[NonEmpty](string).map(Name.apply)
 
@@ -40,6 +42,7 @@ object UserProperties {
 
   @newtype final case class Description(string: String)
   object Description {
+    def unapply(description: Description): Option[String] = description.string.some
 
     implicit val show: Show[Description] = (t: Description) => s"Email(${t.string.show})"
     implicit val eq:   Eq[Description]   = (x: Description, y: Description) => x.string === y.string

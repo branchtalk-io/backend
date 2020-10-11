@@ -69,9 +69,9 @@ package object api {
 
   // TODO: implement codec for non-empty list/chain from cats because the derived is treating NEL as case class
 
-  // TODO: merge this with ID[Session]
   @newtype final case class SessionID(uuid: UUID)
   object SessionID {
+    def unapply(sessionID: SessionID): Option[UUID] = sessionID.uuid.some
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[SessionID] =
       UUID.parse[F](string).map(SessionID(_))
 
@@ -82,6 +82,7 @@ package object api {
 
   @newtype final case class Username(nonEmptyString: NonEmptyString)
   object Username {
+    def unapply(username: Username): Option[NonEmptyString] = username.nonEmptyString.some
     def parse[F[_]: Sync](string: String): F[Username] =
       ParseRefined[F].parse[NonEmpty](string).map(Username(_))
 
@@ -94,10 +95,11 @@ package object api {
 
   @newtype final case class Password(nonEmptyBytes: Array[Byte] Refined NonEmpty)
   object Password {
+    def unapply(password: Password): Option[Array[Byte] Refined NonEmpty] = password.nonEmptyBytes.some
     def parse[F[_]: Sync](bytes: Array[Byte]): F[Password] =
       ParseRefined[F].parse[NonEmpty](bytes).map(Password(_))
 
-    @SuppressWarnings(Array("org.wartremover.warts.Null"))
+    @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
     implicit val codec: JsCodec[Password] =
       summonCodec[Array[Byte]](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Password]
     implicit val schema: Schema[Password] =
@@ -106,6 +108,7 @@ package object api {
 
   @newtype final case class PaginationOffset(nonNegativeLong: Long Refined NonNegative)
   object PaginationOffset {
+    def unapply(offset: PaginationOffset): Option[Long Refined NonNegative] = offset.nonNegativeLong.some
     def parse[F[_]: Sync](long: Long): F[PaginationOffset] =
       ParseRefined[F].parse[NonNegative](long).map(PaginationOffset(_))
 
@@ -117,10 +120,9 @@ package object api {
       summonSchema[Long Refined NonNegative].asNewtype[PaginationOffset]
   }
 
-  // TODO: validate somewhere max limit, make it configurable?
-
   @newtype final case class PaginationLimit(positiveInt: Int Refined Positive)
   object PaginationLimit {
+    def unapply(limit: PaginationLimit): Option[Int Refined Positive] = limit.positiveInt.some
     def parse[F[_]: Sync](int: Int): F[PaginationLimit] =
       ParseRefined[F].parse[Positive](int).map(PaginationLimit(_))
 
@@ -134,6 +136,7 @@ package object api {
 
   @newtype final case class PaginationHasNext(bool: Boolean)
   object PaginationHasNext {
+    def unapply(hasNext: PaginationHasNext): Option[Boolean] = hasNext.bool.some
 
     implicit val codec: JsCodec[PaginationHasNext] =
       summonCodec[Boolean](JsonCodecMaker.make).asNewtype[PaginationHasNext]

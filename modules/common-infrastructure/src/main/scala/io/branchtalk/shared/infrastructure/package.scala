@@ -26,54 +26,78 @@ package object infrastructure {
 
   @newtype final case class DomainName(nonEmptyString: NonEmptyString)
   object DomainName {
+    def unapply(domainName: DomainName): Option[NonEmptyString] = domainName.nonEmptyString.some
+
     implicit val configReader: ConfigReader[DomainName] = ConfigReader[NonEmptyString].coerce
   }
 
   @newtype final case class DatabaseURL(nonEmptyString: NonEmptyString)
   object DatabaseURL {
+    def unapply(databaseURL: DatabaseURL): Option[NonEmptyString] = databaseURL.nonEmptyString.some
+
     implicit val configReader: ConfigReader[DatabaseURL] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabaseUsername(nonEmptyString: NonEmptyString)
   object DatabaseUsername {
+    def unapply(databaseUsername: DatabaseUsername): Option[NonEmptyString] = databaseUsername.nonEmptyString.some
+
     implicit val configReader: ConfigReader[DatabaseUsername] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabasePassword(nonEmptyString: NonEmptyString) {
     override def toString: String = "[PASSWORD]"
   }
   object DatabasePassword {
+    def unapply(databasePassword: DatabasePassword): Option[NonEmptyString] = databasePassword.nonEmptyString.some
+
     implicit val configReader: ConfigReader[DatabasePassword] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabaseSchema(nonEmptyString: NonEmptyString)
   object DatabaseSchema {
+    def unapply(databaseSchema: DatabaseSchema): Option[NonEmptyString] = databaseSchema.nonEmptyString.some
+
     implicit val configReader: ConfigReader[DatabaseSchema] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabaseDomain(nonEmptyString: NonEmptyString)
   object DatabaseDomain {
+    def unapply(databaseDomain: DatabaseDomain): Option[NonEmptyString] = databaseDomain.nonEmptyString.some
+
     implicit val configReader: ConfigReader[DatabaseDomain] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class DatabaseConnectionPool(positiveInt: Int Refined Positive)
   object DatabaseConnectionPool {
+    def unapply(connectionPool: DatabaseConnectionPool): Option[Int Refined Positive] = connectionPool.positiveInt.some
+
     implicit val configReader: ConfigReader[DatabaseConnectionPool] = ConfigReader[Int Refined Positive].coerce
   }
   @newtype final case class DatabaseMigrationOnStart(bool: Boolean)
   object DatabaseMigrationOnStart {
+    def unapply(migrationOnStart: DatabaseMigrationOnStart): Option[Boolean] = migrationOnStart.bool.some
+
     implicit val configReader: ConfigReader[DatabaseMigrationOnStart] = ConfigReader[Boolean].coerce
   }
 
   @newtype final case class Topic(nonEmptyString: NonEmptyString)
   object Topic {
+    def unapply(topic: Topic): Option[NonEmptyString] = topic.nonEmptyString.some
+
     implicit val configReader: ConfigReader[Topic] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class ConsumerGroup(nonEmptyString: NonEmptyString)
   object ConsumerGroup {
+    def unapply(consumerGroup: ConsumerGroup): Option[NonEmptyString] = consumerGroup.nonEmptyString.some
+
     implicit val configReader: ConfigReader[ConsumerGroup] = ConfigReader[NonEmptyString].coerce
   }
   @newtype final case class MaxCommitSize(positiveInt: Int Refined Positive)
   object MaxCommitSize {
+    def unapply(maxCommitSize: MaxCommitSize): Option[Int Refined Positive] = maxCommitSize.positiveInt.some
+
     implicit val configReader: ConfigReader[MaxCommitSize] = ConfigReader[Int Refined Positive].coerce
   }
   @newtype final case class MaxCommitTime(finiteDuration: FiniteDuration)
   object MaxCommitTime {
+    def unapply(maxCommitTime: MaxCommitTime): Option[FiniteDuration] = maxCommitTime.finiteDuration.some
+
     implicit val configReader: ConfigReader[MaxCommitTime] = ConfigReader[FiniteDuration].coerce
   }
 }

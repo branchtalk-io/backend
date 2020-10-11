@@ -30,6 +30,7 @@ object PostProperties {
   // TODO: change non-empty to [0;250] or sth
   @newtype final case class UrlTitle(nonEmptyString: NonEmptyString)
   object UrlTitle {
+    def unapply(urlTitle: UrlTitle): Option[NonEmptyString] = urlTitle.nonEmptyString.some
     def parse[F[_]: Sync](string: String): F[UrlTitle] =
       ParseRefined[F].parse[NonEmpty](string).map(UrlTitle.apply)
 
@@ -40,6 +41,7 @@ object PostProperties {
 
   @newtype final case class Title(nonEmptyString: NonEmptyString)
   object Title {
+    def unapply(title: Title): Option[NonEmptyString] = title.nonEmptyString.some
     def parse[F[_]: Sync](string: String): F[Title] =
       ParseRefined[F].parse[NonEmpty](string).map(Title.apply)
 
@@ -49,12 +51,16 @@ object PostProperties {
 
   @newtype final case class URL(uri: URI)
   object URL {
+    def unapply(url: URL): Option[URI] = url.uri.some
+
     implicit val show:  Show[URL]  = (t: URL) => t.uri.toString
     implicit val order: Order[URL] = (x: URL, y: URL) => x.uri compareTo y.uri
   }
 
   @newtype final case class Text(string: String)
   object Text {
+    def unapply(text: Text): Option[String] = text.string.some
+
     implicit val show:  Show[Text]  = (t: Text) => t.string
     implicit val order: Order[Text] = (x: Text, y: Text) => x.string compareTo y.string
   }
@@ -73,6 +79,8 @@ object PostProperties {
     }
     @newtype final case class Raw(string: String)
     object Raw {
+      def unapply(raw: Raw): Option[String] = raw.string.some
+
       implicit val show:  Show[Raw]  = (t: Raw) => t.string
       implicit val order: Order[Raw] = (x: Raw, y: Raw) => x.string compareTo y.string
     }

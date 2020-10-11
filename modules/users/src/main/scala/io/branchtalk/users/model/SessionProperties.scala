@@ -20,19 +20,20 @@ trait SessionProperties {
 }
 object SessionProperties {
 
-  @newtype final case class ExpirationTime(value: OffsetDateTime)
+  @newtype final case class ExpirationTime(offsetDateTime: OffsetDateTime)
   object ExpirationTime {
-    implicit val show: Show[ExpirationTime] =
-      (t: ExpirationTime) => s"CreationTime(${DateTimeFormatter.ISO_INSTANT.format(t.value)})"
-    implicit val order: Order[ExpirationTime] =
-      (x: ExpirationTime, y: ExpirationTime) => x.value.compareTo(y.value)
-
+    def unapply(expirationTime: ExpirationTime): Option[OffsetDateTime] = expirationTime.offsetDateTime.some
     def now[F[_]: Functor: Clock]: F[ExpirationTime] =
       Clock[F]
         .realTime(scala.concurrent.duration.MILLISECONDS)
         .map(Instant.ofEpochMilli)
         .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
         .map(ExpirationTime(_))
+
+    implicit val show: Show[ExpirationTime] =
+      (t: ExpirationTime) => s"CreationTime(${DateTimeFormatter.ISO_INSTANT.format(t.offsetDateTime)})"
+    implicit val order: Order[ExpirationTime] =
+      (x: ExpirationTime, y: ExpirationTime) => x.offsetDateTime.compareTo(y.offsetDateTime)
   }
 
   @Semi(FastEq, ShowPretty) sealed trait Usage extends ADT
