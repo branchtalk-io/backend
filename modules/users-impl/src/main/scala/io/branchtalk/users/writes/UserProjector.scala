@@ -98,6 +98,7 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
     }) >>
       (event.id.uuid -> event.transformInto[UserEvent.Updated]).pure[F]
 
+  // TODO: make sure it clears sid cache so that deleted user cannot use thir session anymore
   def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
     (sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
       sql"INSERT INTO deleted_users (id, deleted_at) VALUES (${event.id}, ${event.deletedAt}) ON CONFLICT (id) DO NOTHING".update.run)

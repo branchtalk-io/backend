@@ -2,7 +2,6 @@ package io.branchtalk.users.api
 
 import cats.effect.{ Clock, ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.{ Authentication, SessionID }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.shared.models.{ CommonError, ID }
@@ -79,5 +78,26 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  val userRoutes: HttpRoutes[F] = signUp <+> signIn <+> signOut
+  private val fetchProfile = UserAPIs.fetchProfile.toRoutes { userID =>
+    withErrorHandling {
+      for {
+        user <- reads.userReads.requireById(userID)
+      } yield APIUser.fromDomain(user)
+    }
+  }
+
+  // TODO: updateProfile
+
+  private val deleteProfile = UserAPIs.deleteProfile.toRoutes {
+    case (authentication, userID) =>
+      withErrorHandling {
+        for {
+          user <- authServices.authUser(authentication)
+          moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
+          _ <- writes.userWrites.deleteUser(User.Delete(userID, moderatorID))
+        } yield DeleteUserResponse(userID)
+      }
+  }
+
+  val userRoutes: HttpRoutes[F] = signUp <+> signIn <+> signOut <+> fetchProfile <+> deleteProfile
 }

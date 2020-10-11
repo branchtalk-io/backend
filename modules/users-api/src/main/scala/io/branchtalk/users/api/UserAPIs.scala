@@ -25,6 +25,7 @@ object UserAPIs {
 
   // TODO: confirm email endpoint
   // TODO: reset password endpoint
+  // TODO: list/search users endpoint
 
   val signUp: Endpoint[SignUpRequest, UserError, SignUpResponse, Nothing] = endpoint.post
     .in(prefix / "sign_up")
