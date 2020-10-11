@@ -81,7 +81,7 @@ object UserModels {
 
   @Semi(JsCodec) final case class SignOutResponse(
     userID:    ID[User],
-    sessionID: ID[Session]
+    sessionID: Option[ID[Session]] // in case user wasn't using sessionID
   )
 
   @Semi(JsCodec) final case class APIUser(

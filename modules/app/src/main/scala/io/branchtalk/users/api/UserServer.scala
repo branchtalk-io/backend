@@ -2,10 +2,10 @@ package io.branchtalk.users.api
 
 import cats.effect.{ Clock, ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.Authentication
+import io.branchtalk.api.{ Authentication, SessionID }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.users.api.UserModels._
-import io.branchtalk.shared.models.CommonError
+import io.branchtalk.shared.models.{ CommonError, ID }
 import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.model.{ Session, User }
 import io.branchtalk.users.services.AuthServices
@@ -67,5 +67,17 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  val userRoutes: HttpRoutes[F] = signUp <+> signIn
+  private val signOut = UserAPIs.signOut.toRoutes { authentication =>
+    withErrorHandling {
+      for {
+        (user, sessionOpt) <- authServices.authUserSession(authentication)
+        sessionID <- sessionOpt match {
+          case Some(s) => writes.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
+          case None    => none[ID[Session]].pure[F]
+        }
+      } yield SignOutResponse(userID = user.id, sessionID = sessionID)
+    }
+  }
+
+  val userRoutes: HttpRoutes[F] = signUp <+> signIn <+> signOut
 }
