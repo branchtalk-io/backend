@@ -90,10 +90,13 @@ object Program {
     val authServices = new AuthServicesImpl[F](usersReads.userReads, usersReads.sessionReads)
     // TODO: refactor this
     // TODO: also swagger?
-    val postServer = new PostServer[F](authServices,
-                                       discussionsReads.postReads,
-                                       discussionsWrites.postWrites,
-                                       apiConfig.safePagination(APIPart.Posts))
+    val postServer = new PostServer[F](
+      authServices,
+      discussionsReads.postReads,
+      discussionsWrites.postWrites,
+      discussionsReads.subscriptionReads,
+      apiConfig.safePagination(APIPart.Posts)
+    )
     val httpApp = postServer.postRoutes.orNotFound
 
     val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global) // TODO: configure some thread pool for HTTP

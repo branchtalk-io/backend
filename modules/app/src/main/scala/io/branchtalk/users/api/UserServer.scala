@@ -16,8 +16,8 @@ import sttp.tapir.server.http4s._
 
 final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   authServices:     AuthServices[F],
-  reads:            UsersReads[F],
-  writes:           UsersWrites[F],
+  usersReads:       UsersReads[F],
+  usersWrites:      UsersWrites[F],
   paginationConfig: PaginationConfig
 ) {
 
@@ -44,7 +44,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   private val signUp = UserAPIs.signUp.toRoutes { signup =>
     withErrorHandling {
       for {
-        (user, session) <- writes.userWrites.createUser(signup.into[User.Create].transform)
+        (user, session) <- usersWrites.userWrites.createUser(signup.into[User.Create].transform)
       } yield SignUpResponse(user.id, session.id)
     }
   }
@@ -59,7 +59,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
           case None =>
             for {
               expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
-              session <- writes.sessionWrites.createSession(
+              session <- usersWrites.sessionWrites.createSession(
                 Session.Create(
                   userID    = user.id,
                   usage     = Session.Usage.UserSession,
@@ -77,7 +77,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
       for {
         (user, sessionOpt) <- authServices.authenticateUserWithSessionOpt(authentication)
         sessionID <- sessionOpt match {
-          case Some(s) => writes.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
+          case Some(s) => usersWrites.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
           case None    => none[ID[Session]].pure[F]
         }
       } yield SignOutResponse(userID = user.id, sessionID = sessionID)
@@ -88,7 +88,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   private val fetchProfile = UserAPIs.fetchProfile.toRoutes { userID =>
     withErrorHandling {
       for {
-        user <- reads.userReads.requireById(userID)
+        user <- usersReads.userReads.requireById(userID)
       } yield APIUser.fromDomain(user)
     }
   }
@@ -105,7 +105,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
             .withFieldConst(_.moderatorID, moderatorID)
             .withFieldConst(_.updatePermissions, List.empty)
             .transform
-          _ <- writes.userWrites.updateUser(data)
+          _ <- usersWrites.userWrites.updateUser(data)
         } yield UpdateUserResponse(userID)
       }
   }
@@ -116,7 +116,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
         for {
           user <- authServices.authorizeUser(authentication, api.Permission.EditProfile(userIDApi2Users(userID)))
           moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
-          _ <- writes.userWrites.deleteUser(User.Delete(userID, moderatorID))
+          _ <- usersWrites.userWrites.deleteUser(User.Delete(userID, moderatorID))
         } yield DeleteUserResponse(userID)
       }
   }

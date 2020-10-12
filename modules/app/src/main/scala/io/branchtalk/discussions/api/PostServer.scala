@@ -7,27 +7,29 @@ import io.branchtalk.api.Pagination
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post }
-import io.branchtalk.discussions.reads.PostReads
+import io.branchtalk.discussions.reads.{ PostReads, SubscriptionReads }
 import io.branchtalk.discussions.writes.PostWrites
-import io.branchtalk.shared.models.{ CommonError, ID }
-import io.branchtalk.shared.models.UUIDGenerator.FastUUIDGenerator
+import io.branchtalk.mappings._
+import io.branchtalk.shared.models.{ CommonError, ID, Paginated }
 import io.branchtalk.users.services.AuthServices
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
 
+import scala.collection.immutable.SortedSet
+
 final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
-  authServices:     AuthServices[F],
-  reads:            PostReads[F],
-  writes:           PostWrites[F],
-  paginationConfig: PaginationConfig
+  authServices:      AuthServices[F],
+  usersReads:        PostReads[F],
+  usersWrites:       PostWrites[F],
+  subscriptionReads: SubscriptionReads[F],
+  paginationConfig:  PaginationConfig
 ) {
 
   private val logger = Logger(getClass)
 
-  // translation between domains
-  private def mapUserID(id: ID[io.branchtalk.users.model.User]): ID[io.branchtalk.discussions.model.User] =
-    ID[io.branchtalk.discussions.model.User](id.uuid)
+  // TODO: make it configurable and make new users subscribe to these configured values
+  private def defaultSubscriptions: Set[ID[Channel]] = Set.empty
 
   private def withErrorHandling[A](fa: F[A]): F[Either[PostError, A]] = fa.map(_.asRight[PostError]).handleErrorWith {
     case CommonError.InvalidCredentials(_) =>
@@ -45,19 +47,22 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       error.raiseError[F, Either[PostError, A]]
   }
 
-  // TODO: define subscriptions model
   private val newest = PostAPIs.newest.toRoutes {
     case (optAuth, optOffset, optLimit) =>
       withErrorHandling {
         for {
-          _ <- optAuth.traverse(authServices.authenticateUser) // TODO: so something with it
+          optUser <- optAuth.traverse(authServices.authenticateUser) // TODO: so something with it
           offset = paginationConfig.resolveOffset(optOffset)
           limit  = paginationConfig.resolveLimit(optLimit)
-          channelIDs <- FastUUIDGenerator
-            .create[F] // TODO: fetch from some service
-            .map(ID[Channel])
-            .map(NonEmptySet.one[ID[Channel]])
-          paginated <- reads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+          subscriptionOpt <- optUser
+            .map(_.id)
+            .map(userIDUsers2Discussions.get)
+            .traverse(subscriptionReads.requireForUser)
+          channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(defaultSubscriptions))
+          paginated <- NonEmptySet.fromSet(channelIDS) match {
+            case Some(channelIDs) => usersReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+            case None             => Paginated.empty[Post].pure[F]
+          }
         } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
       }
   }
@@ -67,8 +72,8 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       withErrorHandling {
         for {
           userID <- authServices.authenticateUser(auth).map(_.id) // TODO: so something with it
-          data = createData.into[Post.Create].withFieldConst(_.authorID, mapUserID(userID)).transform
-          result <- writes.createPost(data)
+          data = createData.into[Post.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
+          result <- usersWrites.createPost(data)
         } yield CreatePostResponse(result.id)
       }
   }
@@ -78,7 +83,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       withErrorHandling {
         for {
           _ <- optAuth.traverse(authServices.authenticateUser) // TODO: so something with it
-          result <- reads.requireById(postID)
+          result <- usersReads.requireById(postID)
         } yield APIPost.fromDomain(result)
       }
   }
@@ -92,11 +97,11 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
           data = updateData
             .into[Post.Update]
             .withFieldConst(_.id, postID)
-            .withFieldConst(_.editorID, mapUserID(userID))
+            .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
             .withFieldRenamed(_.content, _.newContent)
             .withFieldRenamed(_.title, _.newTitle)
             .transform
-          result <- writes.updatePost(data)
+          result <- usersWrites.updatePost(data)
         } yield UpdatePostResponse(result.id)
       }
   }
@@ -107,8 +112,8 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       withErrorHandling {
         for {
           userID <- authServices.authenticateUser(auth).map(_.id) // TODO: so something with it
-          data = Post.Delete(postID, mapUserID(userID))
-          result <- writes.deletePost(data)
+          data = Post.Delete(postID, userIDUsers2Discussions.get(userID))
+          result <- usersWrites.deletePost(data)
         } yield DeletePostResponse(result.id)
       }
   }
