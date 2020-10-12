@@ -45,6 +45,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       error.raiseError[F, Either[PostError, A]]
   }
 
+  // TODO: define subscriptions model
   private val newest = PostAPIs.newest.toRoutes {
     case (optAuth, optOffset, optLimit) =>
       withErrorHandling {
@@ -82,6 +83,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
   }
 
+  // TODO: authorize - author or moderator
   private val update = PostAPIs.update.toRoutes {
     case (auth, postID, updateData) =>
       withErrorHandling {
@@ -99,6 +101,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
   }
 
+  // TODO: authorize - author or moderator
   private val delete = PostAPIs.delete.toRoutes {
     case (auth, postID) =>
       withErrorHandling {
