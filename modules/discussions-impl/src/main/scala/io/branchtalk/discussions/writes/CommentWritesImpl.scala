@@ -1,12 +1,12 @@
 package io.branchtalk.discussions.writes
 
 import cats.effect.{ Sync, Timer }
-import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ CommentCommandEvent, DiscussionCommandEvent }
 import io.branchtalk.discussions.model.{ Comment, Post }
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.models._
+import io.scalaland.chimney.dsl._
 
 final class CommentWritesImpl[F[_]: Sync: Timer](
   producer:   EventBusProducer[F, DiscussionCommandEvent],

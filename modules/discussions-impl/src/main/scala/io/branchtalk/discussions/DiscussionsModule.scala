@@ -11,16 +11,18 @@ import _root_.io.branchtalk.discussions.reads.ChannelReads
 import com.typesafe.scalalogging.Logger
 
 final case class DiscussionsReads[F[_]](
-  channelReads: ChannelReads[F],
-  postReads:    PostReads[F],
-  commentReads: CommentReads[F]
+  channelReads:      ChannelReads[F],
+  postReads:         PostReads[F],
+  commentReads:      CommentReads[F],
+  subscriptionReads: SubscriptionReads[F]
 )
 
 final case class DiscussionsWrites[F[_]](
-  commentWrites: CommentWrites[F],
-  postWrites:    PostWrites[F],
-  channelWrites: ChannelWrites[F],
-  runProjector:  Resource[F, F[Unit]]
+  commentWrites:      CommentWrites[F],
+  postWrites:         PostWrites[F],
+  channelWrites:      ChannelWrites[F],
+  subscriptionWrites: SubscriptionWrites[F],
+  runProjector:       Resource[F, F[Unit]]
 )
 
 object DiscussionsModule {
@@ -33,11 +35,12 @@ object DiscussionsModule {
   ): Resource[F, DiscussionsReads[F]] =
     module.setupReads[F](domainConfig).map {
       case ReadsInfrastructure(transactor, _) =>
-        val channelReads: ChannelReads[F] = new ChannelReadsImpl[F](transactor)
-        val postReads:    PostReads[F]    = new PostReadsImpl[F](transactor)
-        val commentReads: CommentReads[F] = new CommentReadsImpl[F](transactor)
+        val channelReads:      ChannelReads[F]      = new ChannelReadsImpl[F](transactor)
+        val postReads:         PostReads[F]         = new PostReadsImpl[F](transactor)
+        val commentReads:      CommentReads[F]      = new CommentReadsImpl[F](transactor)
+        val subscriptionReads: SubscriptionReads[F] = new SubscriptionReadsImpl[F](transactor)
 
-        DiscussionsReads(channelReads, postReads, commentReads)
+        DiscussionsReads(channelReads, postReads, commentReads, subscriptionReads)
     }
 
   // TODO: writes should test if they can write before they send event to bus
@@ -46,19 +49,21 @@ object DiscussionsModule {
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
     module.setupWrites[F](domainConfig).map {
       case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer) =>
-        val channelRepository: ChannelWrites[F] = new ChannelWritesImpl[F](internalProducer, transactor)
-        val postRepository:    PostWrites[F]    = new PostWritesImpl[F](internalProducer, transactor)
-        val commentRepository: CommentWrites[F] = new CommentWritesImpl[F](internalProducer, transactor)
+        val channelRepository:  ChannelWrites[F]      = new ChannelWritesImpl[F](internalProducer, transactor)
+        val postRepository:     PostWrites[F]         = new PostWritesImpl[F](internalProducer, transactor)
+        val commentRepository:  CommentWrites[F]      = new CommentWritesImpl[F](internalProducer, transactor)
+        val subscriptionWrites: SubscriptionWrites[F] = new SubscriptionWritesImpl[F](internalProducer, transactor)
 
         val projector: Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList
           .of(
             new ChannelProjector[F](transactor),
             new CommentProjector[F](transactor),
-            new PostProjector[F](transactor)
+            new PostProjector[F](transactor),
+            new SubscriptionProjector[F](transactor)
           )
           .reduce
         val runProjector = internalConsumerStream.withPipeToResource(logger)(projector andThen producer)
 
-        DiscussionsWrites(commentRepository, postRepository, channelRepository, runProjector)
+        DiscussionsWrites(commentRepository, postRepository, channelRepository, subscriptionWrites, runProjector)
     }
 }

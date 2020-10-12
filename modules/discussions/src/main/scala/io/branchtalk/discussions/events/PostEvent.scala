@@ -1,11 +1,11 @@
 package io.branchtalk.discussions.events
 
 import com.sksamuel.avro4s._
-import io.scalaland.catnip.Semi
+import io.branchtalk.ADT
 import io.branchtalk.discussions.model.{ Post, User }
 import io.branchtalk.shared.models._
 import io.branchtalk.shared.models.AvroSupport._
-import io.branchtalk.ADT
+import io.scalaland.catnip.Semi
 
 @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait PostEvent extends ADT
 object PostEvent {

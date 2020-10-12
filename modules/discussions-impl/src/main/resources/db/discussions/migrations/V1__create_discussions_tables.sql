@@ -40,9 +40,18 @@ CREATE TABLE comments (
 CREATE INDEX comments_post_time_idx ON comments (post_id, created_at);
 
 CREATE TABLE SUBSCRIPTIONS (
-  user_id     UUID   NOT NULL UNIQUE,
-  channel_ids UUID[] NOT NULL
+  subscriber_id     UUID   NOT NULL UNIQUE,
+  subscriptions_ids UUID[] NOT NULL
 );
+
+CREATE FUNCTION array_diff(array1 anyarray, array2 anyarray) RETURNS anyarray $$
+  SELECT COALESCE(array_agg(elem), '{}') FROM unnest(array1) elem WHERE elem <> all(array2);
+$$ LANGUAGE SQL IMMUTABLE;
+
+CREATE FUNCTION array_distinct(anyarray) RETURNS anyarray AS $$
+  SELECT array_agg(DISTINCT x) FROM unnest($1) t(x);
+$$ LANGUAGE SQL IMMUTABLE;
+
 
 -- TODO: comment store channel ID to allow easier partitioning
 -- TODO: add upvotes/downvotes/total to posts and comments, create tables to trace them

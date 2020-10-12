@@ -17,4 +17,7 @@ object DiscussionEvent {
 
   @Semi(FastEq, ShowPretty, SchemaFor)
   final case class ForPost(post: PostEvent) extends DiscussionEvent
+
+  @Semi(FastEq, ShowPretty, SchemaFor)
+  final case class ForSubscription(subscription: SubscriptionEvent) extends DiscussionEvent
 }

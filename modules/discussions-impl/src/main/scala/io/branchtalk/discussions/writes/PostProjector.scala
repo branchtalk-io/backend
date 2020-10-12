@@ -5,13 +5,13 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
-import io.scalaland.chimney.dsl._
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent, PostCommandEvent, PostEvent }
 import io.branchtalk.discussions.infrastructure.DoobieExtensions._
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.models.UUID
+import io.scalaland.chimney.dsl._
 
 final class PostProjector[F[_]: Sync](transactor: Transactor[F])
     extends Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] {

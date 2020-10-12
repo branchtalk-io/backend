@@ -11,6 +11,7 @@ import io.branchtalk.shared.models.{
   OptionUpdatable,
   Paginated,
   ParseRefined,
+  UUID,
   Updatable
 }
 import io.estatico.newtype.Coercible
@@ -47,6 +48,12 @@ object DoobieSupport
   // newtype automatic support
 
   implicit def coercibleMeta[R, N](implicit ev: Coercible[Meta[R], Meta[N]], R: Meta[R]): Meta[N] = ev(R)
+
+  implicit def idArrayMeta[E](
+    implicit to: Coercible[Set[UUID], Set[ID[E]]],
+    from:        Coercible[Set[ID[E]], Set[UUID]]
+  ): Meta[Set[ID[E]]] =
+    unliftedUUIDArrayType.imap[Set[ID[E]]](arr => to(arr.toSet))(set => from(set).toArray)
 
   // handle updateable
 
