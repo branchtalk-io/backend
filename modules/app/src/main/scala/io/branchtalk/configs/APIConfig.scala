@@ -21,6 +21,7 @@ import pureconfig.module.enumeratum._
 
 sealed trait APIPart extends EnumEntry
 object APIPart extends Enum[APIPart] {
+  case object Users extends APIPart
   case object Channels extends APIPart
   case object Posts extends APIPart
   case object Comments extends APIPart

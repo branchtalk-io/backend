@@ -2,6 +2,7 @@ package io.branchtalk.users
 
 import cats.data.NonEmptyList
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
+import com.softwaremill.macwire.wire
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.shared.infrastructure._
 import io.branchtalk.shared.models.{ UUID, UUIDGenerator }
@@ -29,10 +30,10 @@ object UsersModule {
     domainConfig: DomainConfig
   ): Resource[F, UsersReads[F]] = module.setupReads[F](domainConfig).map {
     case ReadsInfrastructure(transactor, _) =>
-      val userReads    = new UserReadsImpl[F](transactor)
-      val sessionReads = new SessionReadsImpl[F](transactor)
+      val userReads:    UserReads[F]    = wire[UserReadsImpl[F]]
+      val sessionReads: SessionReads[F] = wire[SessionReadsImpl[F]]
 
-      UsersReads(userReads, sessionReads)
+      wire[UsersReads[F]]
   }
 
   // TODO: writes should test if they can write before they send event to bus
@@ -40,16 +41,17 @@ object UsersModule {
     domainConfig:           DomainConfig
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, UsersWrites[F]] = module.setupWrites[F](domainConfig).map {
     case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer) =>
-      val userWrites    = new UserWritesImpl[F](internalProducer, transactor)
-      val sessionWrites = new SessionWritesImpl[F](producer, transactor)
+      val userWrites:    UserWrites[F]    = wire[UserWritesImpl[F]]
+      val sessionWrites: SessionWrites[F] = wire[SessionWritesImpl[F]]
 
       val projector: Projector[F, UsersCommandEvent, (UUID, UsersEvent)] = NonEmptyList
         .of(
-          new UserProjector[F](transactor): Projector[F, UsersCommandEvent, (UUID, UsersEvent)]
+          wire[UserProjector[F]]: Projector[F, UsersCommandEvent, (UUID, UsersEvent)]
         )
         .reduce
-      val runProjector = internalConsumerStream.withPipeToResource(logger)(projector andThen producer)
+      val runProjector: Resource[F, F[Unit]] =
+        internalConsumerStream.withPipeToResource(logger)(projector andThen producer)
 
-      UsersWrites(userWrites, sessionWrites, runProjector)
+      wire[UsersWrites[F]]
   }
 }

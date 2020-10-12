@@ -2,13 +2,15 @@ package io.branchtalk
 
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
-import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, Configuration }
+import com.softwaremill.macwire.wire
+import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, Configuration, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.shared.infrastructure.DomainConfig
 import io.branchtalk.shared.models.UUIDGenerator
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
-import io.branchtalk.users.services.AuthServicesImpl
+import io.branchtalk.users.api.UserServer
+import io.branchtalk.users.services.{ AuthServices, AuthServicesImpl }
 import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 
@@ -87,17 +89,25 @@ object Program {
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
   ): Resource[F, Unit] = {
-    val authServices = new AuthServicesImpl[F](usersReads.userReads, usersReads.sessionReads)
+    // this is kind of silly...
+    import usersReads.{ sessionReads, userReads }
+    import usersWrites.{ sessionWrites, userWrites }
+    import discussionsReads.{ channelReads, commentReads, postReads, subscriptionReads }
+    import discussionsWrites.{ channelWrites, commentWrites, postWrites, subscriptionWrites }
+
+    val authServices: AuthServices[F] = wire[AuthServicesImpl[F]]
+
     // TODO: refactor this
     // TODO: also swagger?
-    val postServer = new PostServer[F](
-      authServices,
-      discussionsReads.postReads,
-      discussionsWrites.postWrites,
-      discussionsReads.subscriptionReads,
-      apiConfig.safePagination(APIPart.Posts)
-    )
-    val httpApp = postServer.postRoutes.orNotFound
+    val usersServer: UserServer[F] = {
+      val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Users)
+      wire[UserServer[F]]
+    }
+    val postServer: PostServer[F] = {
+      val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Posts)
+      wire[PostServer[F]]
+    }
+    val httpApp = (usersServer.userRoutes <+> postServer.postRoutes).orNotFound
 
     val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global) // TODO: configure some thread pool for HTTP
       .bindHttp(port = appConfig.port, host = appConfig.host)

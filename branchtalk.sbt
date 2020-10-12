@@ -121,6 +121,7 @@ val discussionsImpl = project
   .configureModule
   .configureIntegrationTests(requiresFork = true)
   .settings(
+    libraryDependencies += Dependencies.macwire,
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .compileAndTestDependsOn(commonInfrastructure)
@@ -165,7 +166,8 @@ val usersImpl = project
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniter,
-      Dependencies.jsoniterMacro
+      Dependencies.jsoniterMacro,
+      Dependencies.macwire
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
@@ -186,7 +188,8 @@ val application = project
       Dependencies.refinedDecline,
       Dependencies.monixExecution,
       Dependencies.monixEval,
-      Dependencies.tapirHttp4s
+      Dependencies.tapirHttp4s,
+      Dependencies.macwire,
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )

@@ -73,6 +73,7 @@ object Dependencies {
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
   val flyway         = "org.flywaydb" % "flyway-core" % "6.5.0"
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.0.0"
+  val macwire        = "com.softwaremill.macwire" %% "macros" % "2.3.6" % "provided"
   // API
   val tapir         = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
   val tapirHttp4s   = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
