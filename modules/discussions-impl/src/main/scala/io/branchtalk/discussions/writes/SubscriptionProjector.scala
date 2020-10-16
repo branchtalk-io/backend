@@ -48,13 +48,13 @@ final class SubscriptionProjector[F[_]: Sync](transactor: Transactor[F])
          |)
          |ON CONFLICT (subscriber_id) DO
          |UPDATE
-         |SET subscriptions_ids = array_distinct(subscriptions_ids || ${event.subscriptions})""".stripMargin.update.run
+         |SET subscriptions_ids = array_distinct(subscriptions.subscriptions_ids || ${event.subscriptions})""".stripMargin.update.run
       .transact(transactor) >>
       (event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Subscribed]).pure[F]
 
-  def toUnsubscribe(event: SubscriptionCommandEvent.Unsubscribe): F[(UUID, SubscriptionEvent.Unsubscribed)] =
+  def toUnsubscribe(event: SubscriptionCommandEvent.Unsubscribe): F[(UUID, SubscriptionEvent.Unsubscribed)] = 
     sql"""UPDATE subscriptions
-         |SET subscriptions_ids = array_diff(subscriptions_ids, ${event.subscriptions})""".stripMargin.update.run
-      .transact(transactor) >>
+         |SET subscriptions_ids = array_diff(subscriptions.subscriptions_ids, ${event.subscriptions})
+         |WHERE subscriber_id = ${event.subscriberID}""".stripMargin.update.run.transact(transactor) >>
       (event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Unsubscribed]).pure[F]
 }

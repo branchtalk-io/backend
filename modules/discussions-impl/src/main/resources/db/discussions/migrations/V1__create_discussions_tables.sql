@@ -45,7 +45,7 @@ CREATE TABLE SUBSCRIPTIONS (
 );
 
 CREATE FUNCTION array_diff(array1 anyarray, array2 anyarray) RETURNS anyarray LANGUAGE SQL IMMUTABLE AS $$
-  SELECT COALESCE(array_agg(elem), '{}') FROM unnest(array1) elem WHERE elem <> all(array2);
+  SELECT COALESCE(array_agg(elements), '{}') FROM (SELECT unnest(array1) EXCEPT SELECT unnest(array2)) t (elements);
 $$;
 
 CREATE FUNCTION array_distinct(array1 anyarray) RETURNS anyarray LANGUAGE SQL IMMUTABLE AS $$

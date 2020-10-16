@@ -38,7 +38,7 @@ final class SubscriptionWritesImpl[F[_]: Sync: Timer](
     for {
       id <- unsubscribe.subscriberID.pure[F]
       now <- ModificationTime.now[F]
-      command = unsubscribe.into[SubscriptionCommandEvent.Subscribe].withFieldConst(_.modifiedAt, now).transform
+      command = unsubscribe.into[SubscriptionCommandEvent.Unsubscribe].withFieldConst(_.modifiedAt, now).transform
       _ <- postEvent(id, DiscussionCommandEvent.ForSubscription(command))
       subscription <- (commonSelect ++ fr"WHERE subscriber_id = ${id}")
         .query[Subscription]
