@@ -3,13 +3,14 @@ package io.branchtalk
 import cats.effect.{ ContextShift, IO, Timer }
 import org.specs2.specification.core.AsExecution
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
 trait IOTest {
 
-  protected implicit val contextShift: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  protected implicit val timer:        Timer[IO]        = IO.timer(ExecutionContext.global)
+  protected implicit val contextShift: ContextShift[IO] =
+    IO.contextShift(scala.concurrent.ExecutionContext.fromExecutor(null))
+  protected implicit val timer: Timer[IO] =
+    IO.timer(scala.concurrent.ExecutionContext.fromExecutor(null))
 
   implicit class IOTestOps[T](private val io: IO[T]) {
 

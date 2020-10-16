@@ -11,7 +11,7 @@
     <appender-ref ref="STDOUT"/>
   </root>
 
-  <logger name="io.branchtalk" level="error"/>
+  <logger name="io.branchtalk" level="off"/>
   <logger name="io.branchtalk.shared.infrastructure" level="off"/>
   <logger name="io.branchtalk.discussions.reads" level="off"/>
   <logger name="io.branchtalk.discussions.writes" level="off"/>
