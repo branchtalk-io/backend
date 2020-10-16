@@ -30,7 +30,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
       usersWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
           // when
           toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
@@ -53,7 +53,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
       usersWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -82,7 +82,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
       usersWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -152,7 +152,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
       usersWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -179,7 +179,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
       usersWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           goodPassword <- passwordCreate("password")
           userId <- userCreate
             .map(_.copy(password = goodPassword))

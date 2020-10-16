@@ -30,7 +30,7 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
       usersWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(userID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
@@ -49,7 +49,7 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
       usersWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(userID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
@@ -70,7 +70,7 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
       usersWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
             usersWrites.userWrites.createUser
           )

@@ -31,7 +31,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           channelID <- ID.create[IO, Channel]
           creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
           // when
@@ -47,7 +47,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
@@ -72,7 +72,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           editorID <- editorIDCreate
@@ -100,7 +100,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           editorID <- editorIDCreate
@@ -154,7 +154,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
@@ -193,7 +193,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)

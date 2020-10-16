@@ -30,7 +30,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           // when
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
@@ -53,7 +53,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           editorID <- editorIDCreate
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           fakeUpdateData <- creationData.traverse { data =>
@@ -80,7 +80,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           editorID <- editorIDCreate
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
@@ -145,7 +145,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
       discussionsWrites.runProjector.use { projector =>
         for {
           // given
-          _ <- projector.handleError(_.printStackTrace()).start
+          _ <- projector.logError("Error reported by projector").start
           editorID <- editorIDCreate
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           // when
