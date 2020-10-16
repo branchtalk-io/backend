@@ -44,13 +44,13 @@ CREATE TABLE SUBSCRIPTIONS (
   subscriptions_ids UUID[] NOT NULL
 );
 
-CREATE FUNCTION array_diff(array1 anyarray, array2 anyarray) RETURNS anyarray $$
+CREATE FUNCTION array_diff(array1 anyarray, array2 anyarray) RETURNS anyarray LANGUAGE SQL IMMUTABLE AS $$
   SELECT COALESCE(array_agg(elem), '{}') FROM unnest(array1) elem WHERE elem <> all(array2);
-$$ LANGUAGE SQL IMMUTABLE;
+$$;
 
-CREATE FUNCTION array_distinct(anyarray) RETURNS anyarray AS $$
-  SELECT array_agg(DISTINCT x) FROM unnest($1) t(x);
-$$ LANGUAGE SQL IMMUTABLE;
+CREATE FUNCTION array_distinct(array1 anyarray) RETURNS anyarray LANGUAGE SQL IMMUTABLE AS $$
+  SELECT array_agg(DISTINCT x) FROM unnest(array1) t(x);
+$$;
 
 
 -- TODO: comment store channel ID to allow easier partitioning
