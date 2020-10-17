@@ -20,7 +20,7 @@
    <parameter name="regex"><![CDATA[println]]></parameter>
   </parameters>
  </check>
- <check level="error" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="true"/>
+ <check level="error" class="org.scalastyle.file.WhitespaceEndOfLineChecker" led="true"/>
  <check level="error" class="org.scalastyle.scalariform.ClassNamesChecker" enabled="true">
   <parameters>
    <parameter name="regex"><![CDATA[[A-Z][A-Za-z]*]]></parameter>
@@ -60,7 +60,7 @@
   </parameters>
  </check>
  <check level="error" class="org.scalastyle.scalariform.NoCloneChecker" enabled="true"/>
- <check level="error" class="org.scalastyle.scalariform.NoWhitespaceAfterLeftBracketChecker" enabled="true"/>
+ <check level="error" class="org.scalastyle.scalariform.NoWhitespaceAfterLeftBracketChecker" enabled="false"/>
  <check level="error" class="org.scalastyle.scalariform.NoWhitespaceBeforeLeftBracketChecker" enabled="true"/>
  <check level="error" class="org.scalastyle.scalariform.NoFinalizeChecker" enabled="true"/>
  <check level="error" class="org.scalastyle.scalariform.NullChecker" enabled="true"/>
