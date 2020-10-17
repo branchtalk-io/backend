@@ -41,7 +41,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           channelDeleted <- ids.traverse(discussionsReads.channelReads.deleted).eventually()
         } yield {
           // then
-          ids.toSet === channels.map(_.id).toSet
+          ids.toSet must_=== channels.map(_.id).toSet
           channelsOpt.forall(_.isDefined) must beTrue
           channelsExist.forall(identity) must beTrue
           channelDeleted.exists(identity) must beFalse
@@ -128,15 +128,16 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
             .collect {
               case ((Channel(_, older), Channel(_, newer)), 0) =>
                 // set case
-                older === newer.copy(lastModifiedAt = None)
+                older must_=== newer.copy(lastModifiedAt = None)
               case ((Channel(_, older), Channel(_, newer)), 1) =>
                 // keep case
-                older === newer
+                older must_=== newer
               case ((Channel(_, older), Channel(_, newer)), 2) =>
                 // erase case
-                older.copy(description = None) === newer.copy(lastModifiedAt = None)
+                older.copy(description = None) must_=== newer.copy(lastModifiedAt = None)
             }
-            .forall(identity) must beTrue
+            .lastOption
+            .getOrElse(true must beFalse)
         }
       }
     }
@@ -171,7 +172,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           notDeleted <- ids.traverse(discussionsReads.channelReads.deleted)
         } yield {
           // then
-          ids.toSet === restoredIds.toSet
+          ids.toSet must_=== restoredIds.toSet
           notExist.exists(identity) must beFalse
           areDeleted.forall(identity) must beTrue
           areRestored.forall(identity) must beTrue

@@ -61,7 +61,7 @@ final class CommentReadsWritesSpec extends Specification with IOTest with Resour
           commentDeleted <- ids.traverse(discussionsReads.commentReads.deleted).eventually()
         } yield {
           // then
-          ids.toSet === comments.map(_.id).toSet
+          ids.toSet must_=== comments.map(_.id).toSet
           commentsOpt.forall(_.isDefined) must beTrue
           commentsExist.forall(identity) must beTrue
           commentDeleted.exists(identity) must beFalse
@@ -141,12 +141,13 @@ final class CommentReadsWritesSpec extends Specification with IOTest with Resour
             .collect {
               case ((Comment(_, older), Comment(_, newer)), 0) =>
                 // set case
-                older === newer.copy(lastModifiedAt = None)
+                older must_=== newer.copy(lastModifiedAt = None)
               case ((Comment(_, older), Comment(_, newer)), 1) =>
                 // keep case
-                older === newer
+                older must_=== newer
             }
-            .forall(identity) must beTrue
+            .lastOption
+            .getOrElse(true must beFalse)
         }
       }
     }
@@ -183,7 +184,7 @@ final class CommentReadsWritesSpec extends Specification with IOTest with Resour
           notDeleted <- ids.traverse(discussionsReads.commentReads.deleted)
         } yield {
           // then
-          ids.toSet === restoredIds.toSet
+          ids.toSet must_=== restoredIds.toSet
           notExist.exists(identity) must beFalse
           areDeleted.forall(identity) must beTrue
           areRestored.forall(identity) must beTrue

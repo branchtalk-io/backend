@@ -60,7 +60,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
           postDeleted <- ids.traverse(discussionsReads.postReads.deleted).eventually()
         } yield {
           // then
-          ids.toSet === posts.map(_.id).toSet
+          ids.toSet must_=== posts.map(_.id).toSet
           postsOpt.forall(_.isDefined) must beTrue
           postsExist.forall(identity) must beTrue
           postDeleted.exists(identity) must beFalse
@@ -140,12 +140,13 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
             .collect {
               case ((Post(_, older), Post(_, newer)), 0) =>
                 // set case
-                older === newer.copy(lastModifiedAt = None)
+                older must_=== newer.copy(lastModifiedAt = None)
               case ((Post(_, older), Post(_, newer)), 1) =>
                 // keep case
-                older === newer
+                older must_=== newer
             }
-            .forall(identity) must beTrue
+            .lastOption
+            .getOrElse(true must beFalse)
         }
       }
     }
@@ -180,7 +181,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
           notDeleted <- ids.traverse(discussionsReads.postReads.deleted)
         } yield {
           // then
-          ids.toSet === restoredIds.toSet
+          ids.toSet must_=== restoredIds.toSet
           notExist.exists(identity) must beFalse
           areDeleted.forall(identity) must beTrue
           areRestored.forall(identity) must beTrue
