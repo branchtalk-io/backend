@@ -4,6 +4,7 @@ import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode
 import cats.effect.implicits._
 import com.softwaremill.macwire.wire
 import com.typesafe.scalalogging.Logger
+import io.branchtalk.api.OpenAPIServer
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, Configuration, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
@@ -98,8 +99,6 @@ object Program {
 
     val authServices: AuthServices[F] = wire[AuthServicesImpl[F]]
 
-    // TODO: refactor this
-    // TODO: also swagger?
     val usersServer: UserServer[F] = {
       val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Users)
       wire[UserServer[F]]
@@ -108,9 +107,16 @@ object Program {
       val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Posts)
       wire[PostServer[F]]
     }
-    val httpApp = (usersServer.userRoutes <+> postServer.postRoutes).orNotFound
+    val openAPIServer: OpenAPIServer[F] = {
+      import apiConfig.info
+      wire[OpenAPIServer[F]]
+    }
+    // TODO: proper auth service
+    // TODO: CORS service
+    val httpApp = (usersServer.userRoutes <+> postServer.postRoutes <+> openAPIServer.openAPIRoutes).orNotFound
 
-    val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global) // TODO: configure some thread pool for HTTP
+    // TODO: resource with a thread pool for HTTP
+    val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global)
       .bindHttp(port = appConfig.port, host = appConfig.host)
       .withHttpApp(httpApp)
 

@@ -39,7 +39,11 @@ val common = project
   .settings(
     Compile / resourceGenerators += task[Seq[File]] {
       val file = (Compile / resourceManaged).value / "branchtalk-version.conf"
-      IO.write(file, s"version=${version.value}")
+      IO.write(file, s"""branchtalk-build {
+                        |  version = ${version.value}
+                        |  commit  = ${git.gitHeadCommit.value.getOrElse("null")}
+                        |  date    = ${git.gitHeadCommitDate.value.getOrElse("null")}
+                        |}""".stripMargin)
       Seq(file)
     }
   )
@@ -185,11 +189,15 @@ val application = project
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.decline,
+      Dependencies.jsoniter,
+      Dependencies.jsoniterMacro,
       Dependencies.refinedDecline,
       Dependencies.monixExecution,
       Dependencies.monixEval,
       Dependencies.tapirHttp4s,
-      Dependencies.macwire,
+      Dependencies.tapirOpenAPI,
+      Dependencies.tapirSwaggerUI,
+      Dependencies.macwire
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )

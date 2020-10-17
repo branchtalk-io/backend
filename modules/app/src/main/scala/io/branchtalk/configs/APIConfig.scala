@@ -3,9 +3,36 @@ package io.branchtalk.configs
 import enumeratum._
 import io.branchtalk.api.{ PaginationLimit, PaginationOffset }
 import io.scalaland.catnip.Semi
+import io.scalaland.chimney.dsl._
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.module.enumeratum._
+import sttp.tapir.openapi.{ Contact, Info, License }
+@Semi(ConfigReader) final case class APIContact(name: String, email: String, url: String) {
+
+  def toOpenAPI: Contact = this.transformInto[Contact]
+}
+@Semi(ConfigReader) final case class APILicense(name: String, url: String) {
+
+  def toOpenAPI: License = this.transformInto[License]
+}
+
+@Semi(ConfigReader) final case class APIInfo(
+  title:          String,
+  version:        String,
+  description:    String,
+  termsOfService: String,
+  contact:        APIContact,
+  license:        APILicense
+) {
+
+  def toOpenAPI: Info =
+    this
+      .into[Info]
+      .withFieldConst(_.contact, contact.toOpenAPI.some)
+      .withFieldConst(_.license, license.toOpenAPI.some)
+      .transform
+}
 
 @Semi(ConfigReader) final case class PaginationConfig(
   defaultLimit: PaginationLimit,
@@ -41,6 +68,7 @@ object APIPart extends Enum[APIPart] {
 }
 
 @Semi(ConfigReader) final case class APIConfig(
+  info:       APIInfo,
   pagination: Map[APIPart, PaginationConfig]
 ) {
 
