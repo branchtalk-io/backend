@@ -19,10 +19,13 @@ final class OpenAPIServer[F[_]: Sync: ContextShift](apiInfo: APIInfo) {
 
   import OpenAPIServer._
 
-  val openAPIJson: String = writeToString((UserAPIs.endpoints ++ PostAPIs.endpoints).toOpenAPI(apiInfo.toOpenAPI))
+  def openAPI: OpenAPI = (UserAPIs.endpoints ++ PostAPIs.endpoints).toOpenAPI(apiInfo.toOpenAPI)
+
+  val openAPIJson: String = writeToString(openAPI)
 
   val openAPIRoutes: HttpRoutes[F] = new SwaggerHttp4s(openAPIJson).routes
 }
+@SuppressWarnings(Array("org.wartremover.warts.All")) // macros
 object OpenAPIServer {
 
   private implicit val openAPIDocsOptions: OpenAPIDocsOptions = OpenAPIDocsOptions.default
