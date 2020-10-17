@@ -3,6 +3,7 @@ package io.branchtalk.users.api
 import cats.effect.{ Clock, ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api
+import io.branchtalk.api.ServerErrorHandling
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.mappings._
 import io.branchtalk.shared.models.{ CommonError, ID }
@@ -25,21 +26,18 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
 
   private val sessionExpiresInDays = 7L // make it configurable
 
-  private def withErrorHandling[A](fa: F[A]): F[Either[UserError, A]] = fa.map(_.asRight[UserError]).handleErrorWith {
+  private val withErrorHandling = ServerErrorHandling.handleCommonErrors[F, UserError] {
     case CommonError.InvalidCredentials(_) =>
-      (UserError.BadCredentials("Invalid credentials"): UserError).asLeft[A].pure[F]
+      UserError.BadCredentials("Invalid credentials")
     case CommonError.InsufficientPermissions(msg, _) =>
-      (UserError.NoPermission(msg): UserError).asLeft[A].pure[F]
+      UserError.NoPermission(msg)
     case CommonError.NotFound(what, id, _) =>
-      (UserError.NotFound(s"$what with id=${id.show} could not be found"): UserError).asLeft[A].pure[F]
+      UserError.NotFound(s"$what with id=${id.show} could not be found")
     case CommonError.ParentNotExist(what, id, _) =>
-      (UserError.NotFound(s"Parent $what with id=${id.show} could not be found"): UserError).asLeft[A].pure[F]
+      UserError.NotFound(s"Parent $what with id=${id.show} could not be found")
     case CommonError.ValidationFailed(errors, _) =>
-      (UserError.ValidationFailed(errors): UserError).asLeft[A].pure[F]
-    case error: Throwable =>
-      logger.warn("Unhandled error in domain code", error)
-      error.raiseError[F, Either[UserError, A]]
-  }
+      UserError.ValidationFailed(errors)
+  }(logger)
 
   private val signUp = UserAPIs.signUp.toRoutes { signup =>
     withErrorHandling {

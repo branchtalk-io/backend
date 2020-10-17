@@ -3,7 +3,7 @@ package io.branchtalk.discussions.api
 import cats.data.NonEmptySet
 import cats.effect.{ ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.Pagination
+import io.branchtalk.api.{ Pagination, ServerErrorHandling }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post }
@@ -31,21 +31,18 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
   // TODO: make it configurable and make new users subscribe to these configured values
   private def defaultSubscriptions: Set[ID[Channel]] = Set.empty
 
-  private def withErrorHandling[A](fa: F[A]): F[Either[PostError, A]] = fa.map(_.asRight[PostError]).handleErrorWith {
+  private val withErrorHandling = ServerErrorHandling.handleCommonErrors[F, PostError] {
     case CommonError.InvalidCredentials(_) =>
-      (PostError.BadCredentials("Invalid credentials"): PostError).asLeft[A].pure[F]
+      PostError.BadCredentials("Invalid credentials")
     case CommonError.InsufficientPermissions(msg, _) =>
-      (PostError.NoPermission(msg): PostError).asLeft[A].pure[F]
+      PostError.NoPermission(msg)
     case CommonError.NotFound(what, id, _) =>
-      (PostError.NotFound(s"$what with id=${id.show} could not be found"): PostError).asLeft[A].pure[F]
+      PostError.NotFound(s"$what with id=${id.show} could not be found")
     case CommonError.ParentNotExist(what, id, _) =>
-      (PostError.NotFound(s"Parent $what with id=${id.show} could not be found"): PostError).asLeft[A].pure[F]
+      PostError.NotFound(s"Parent $what with id=${id.show} could not be found")
     case CommonError.ValidationFailed(errors, _) =>
-      (PostError.ValidationFailed(errors): PostError).asLeft[A].pure[F]
-    case error: Throwable =>
-      logger.warn("Unhandled error in domain code", error)
-      error.raiseError[F, Either[PostError, A]]
-  }
+      PostError.ValidationFailed(errors)
+  }(logger)
 
   private val newest = PostAPIs.newest.toRoutes {
     case (optAuth, optOffset, optLimit) =>
