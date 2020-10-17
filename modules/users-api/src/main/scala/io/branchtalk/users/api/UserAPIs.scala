@@ -13,6 +13,8 @@ object UserAPIs {
 
   private val prefix = "users"
 
+  // TODO: track which requests were already accepted (using request UUID) and return the right response
+
   private val errorMapping = oneOf[UserError](
     statusMapping[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
     statusMapping[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),

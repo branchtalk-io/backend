@@ -4,7 +4,7 @@ import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode
 import cats.effect.implicits._
 import com.softwaremill.macwire.wire
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.OpenAPIServer
+import io.branchtalk.api.{ AppServer, OpenAPIServer }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, Configuration, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
@@ -13,7 +13,6 @@ import io.branchtalk.shared.models.UUIDGenerator
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.branchtalk.users.api.UserServer
 import io.branchtalk.users.services.{ AuthServices, AuthServicesImpl }
-import org.http4s.implicits._
 import org.http4s.server.blaze.BlazeServerBuilder
 
 import scala.concurrent.ExecutionContext
@@ -111,16 +110,15 @@ object Program {
       import apiConfig.info
       wire[OpenAPIServer[F]]
     }
-    // TODO: proper auth service
-    // TODO: CORS service
-    val httpApp = (usersServer.userRoutes <+> postServer.postRoutes <+> openAPIServer.openAPIRoutes).orNotFound
+
+    val appServer = wire[AppServer[F]]
 
     // TODO: resource with a thread pool for HTTP
-    val serverBuilder = BlazeServerBuilder[F](ExecutionContext.global)
+    BlazeServerBuilder[F](ExecutionContext.global)
       .bindHttp(port = appConfig.port, host = appConfig.host)
-      .withHttpApp(httpApp)
-
-    serverBuilder.resource.void
+      .withHttpApp(appServer.routes)
+      .resource
+      .void
   }
 
   // TODO: replace with some nice kill switch, e.g. Ctrl+C or Ctrl+D
