@@ -10,7 +10,7 @@
   * [ ] tests
 * [ ] users domain
   * [X] models
-  * [ ] API
+  * [x] API
   * [x] migrations
   * [x] SQL queries
   * [x] kafka events
