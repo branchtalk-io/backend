@@ -5,12 +5,21 @@ import io.branchtalk.api.AuthenticationSupport._
 import io.branchtalk.shared.models.ID
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.model.User
+import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.json.jsoniter._
 
 object UserAPIs {
 
   private val prefix = "users"
+
+  private val errorMapping = oneOf[UserError](
+    statusMapping[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
+    statusMapping[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
+    statusMapping[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
+    statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed]),
+    statusDefaultMapping[UserError](jsonBody[UserError])
+  )
 
   // TODO: confirm email endpoint
   // TODO: reset password endpoint
@@ -25,7 +34,7 @@ object UserAPIs {
     .in(prefix / "sign_up")
     .in(jsonBody[SignUpRequest])
     .out(jsonBody[SignUpResponse])
-    .errorOut(jsonBody[UserError])
+    .errorOut(errorMapping)
 
   // TODO: consider returning user data besides session data
   val signIn: Endpoint[Authentication, UserError, SignInResponse, Nothing] = endpoint
@@ -37,7 +46,7 @@ object UserAPIs {
     .in(authHeader)
     .in(prefix / "sign_up")
     .out(jsonBody[SignInResponse])
-    .errorOut(jsonBody[UserError])
+    .errorOut(errorMapping)
 
   val signOut: Endpoint[Authentication, UserError, SignOutResponse, Nothing] = endpoint
     .name("Sign out")
@@ -48,7 +57,7 @@ object UserAPIs {
     .in(authHeader)
     .in(prefix / "sign_out")
     .out(jsonBody[SignOutResponse])
-    .errorOut(jsonBody[UserError])
+    .errorOut(errorMapping)
 
   val fetchProfile: Endpoint[ID[User], UserError, APIUser, Nothing] = endpoint
     .name("Fetch profile")
@@ -58,7 +67,7 @@ object UserAPIs {
     .get
     .in(prefix / path[ID[User]])
     .out(jsonBody[APIUser])
-    .errorOut(jsonBody[UserError])
+    .errorOut(errorMapping)
 
   val updateProfile: Endpoint[(Authentication, ID[User], UpdateUserRequest), UserError, UpdateUserResponse, Nothing] =
     endpoint
@@ -71,7 +80,7 @@ object UserAPIs {
       .in(prefix / path[ID[User]])
       .in(jsonBody[UpdateUserRequest])
       .out(jsonBody[UpdateUserResponse])
-      .errorOut(jsonBody[UserError])
+      .errorOut(errorMapping)
 
   val deleteProfile: Endpoint[(Authentication, ID[User]), UserError, DeleteUserResponse, Nothing] = endpoint
     .name("Delete profile")
@@ -82,7 +91,7 @@ object UserAPIs {
     .in(authHeader)
     .in(prefix / path[ID[User]])
     .out(jsonBody[DeleteUserResponse])
-    .errorOut(jsonBody[UserError])
+    .errorOut(errorMapping)
 
   val endpoints: List[Endpoint[_, _, _, _]] = List(signUp, signIn, signOut, fetchProfile, updateProfile, deleteProfile)
 }

@@ -5,12 +5,21 @@ import io.branchtalk.api.AuthenticationSupport._
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.shared.models.ID
+import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.json.jsoniter._
 
 object PostAPIs {
 
   private val prefix = "discussions" / "posts"
+
+  private val errorMapping = oneOf[PostError](
+    statusMapping[PostError.BadCredentials](StatusCode.Unauthorized, jsonBody[PostError.BadCredentials]),
+    statusMapping[PostError.NoPermission](StatusCode.Unauthorized, jsonBody[PostError.NoPermission]),
+    statusMapping[PostError.NotFound](StatusCode.NotFound, jsonBody[PostError.NotFound]),
+    statusMapping[PostError.ValidationFailed](StatusCode.BadRequest, jsonBody[PostError.ValidationFailed]),
+    statusDefaultMapping[PostError](jsonBody[PostError])
+  )
 
   val newest: Endpoint[
     (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
@@ -28,7 +37,7 @@ object PostAPIs {
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
     .out(jsonBody[Pagination[APIPost]])
-    .errorOut(jsonBody[PostError])
+    .errorOut(errorMapping)
 
   // TODO: hot pagination
   // TODO: controversial pagination
@@ -43,7 +52,7 @@ object PostAPIs {
     .in(prefix)
     .in(jsonBody[CreatePostRequest])
     .out(jsonBody[CreatePostResponse])
-    .errorOut(jsonBody[PostError])
+    .errorOut(errorMapping)
 
   val read: Endpoint[(Option[Authentication], ID[Post]), PostError, APIPost, Nothing] = endpoint
     .name("Fetch Posts")
@@ -54,7 +63,7 @@ object PostAPIs {
     .in(optAuthHeader)
     .in(prefix / path[ID[Post]])
     .out(jsonBody[APIPost])
-    .errorOut(jsonBody[PostError])
+    .errorOut(errorMapping)
 
   val update: Endpoint[(Authentication, ID[Post], UpdatePostRequest), PostError, UpdatePostResponse, Nothing] = endpoint
     .name("Update Posts")
@@ -66,7 +75,7 @@ object PostAPIs {
     .in(prefix / path[ID[Post]])
     .in(jsonBody[UpdatePostRequest])
     .out(jsonBody[UpdatePostResponse])
-    .errorOut(jsonBody[PostError])
+    .errorOut(errorMapping)
 
   val delete: Endpoint[(Authentication, ID[Post]), PostError, DeletePostResponse, Nothing] = endpoint
     .name("Delete Posts")
@@ -77,7 +86,7 @@ object PostAPIs {
     .in(authHeader)
     .in(prefix / path[ID[Post]])
     .out(jsonBody[DeletePostResponse])
-    .errorOut(jsonBody[PostError])
+    .errorOut(errorMapping)
 
   val endpoints: List[Endpoint[_, _, _, _]] = List(newest, create, read, update, delete)
 }
