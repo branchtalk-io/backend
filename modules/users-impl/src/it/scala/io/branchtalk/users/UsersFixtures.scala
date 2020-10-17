@@ -2,10 +2,13 @@ package io.branchtalk.users
 
 import cats.effect.{ Clock, IO }
 import io.branchtalk.shared.models._
-import io.branchtalk.users.model.{ Password, Session, User }
+import io.branchtalk.users.model.{ Channel, Password, Session, User }
 import io.branchtalk.shared.Fixtures._
 
 trait UsersFixtures {
+
+  def channelIDCreate(implicit UUIDGenerator: UUIDGenerator): IO[ID[Channel]] =
+    ID.create[IO, Channel]
 
   def passwordCreate(password: String = "pass"): IO[Password] =
     Password.Raw.parse[IO](password.getBytes).map(Password.create)

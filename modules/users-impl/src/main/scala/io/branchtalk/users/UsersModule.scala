@@ -36,7 +36,6 @@ object UsersModule {
       wire[UsersReads[F]]
   }
 
-  // TODO: writes should test if they can write before they send event to bus
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig:           DomainConfig
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, UsersWrites[F]] = module.setupWrites[F](domainConfig).map {

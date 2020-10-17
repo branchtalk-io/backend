@@ -44,7 +44,7 @@ object Password {
     private lazy val sr = new SecureRandom()
 
     case object BCrypt extends Algorithm {
-      private val cost = 10 // must be between 4 and 31 TODO: make it configurable or sth?
+      private val cost = 10 // must be between 4 and 31
 
       private val hasher   = at.favre.lib.crypto.bcrypt.BCrypt.withDefaults()
       private val verifier = at.favre.lib.crypto.bcrypt.BCrypt.verifyer()
@@ -64,7 +64,7 @@ object Password {
         verifier.verify(raw.nonEmptyBytes, cost, salt.bytes, hash.bytes).verified
     }
 
-    def default: Algorithm = BCrypt // TODO: use config to change this when more than one option is available
+    def default: Algorithm = BCrypt
 
     val values: IndexedSeq[Algorithm] = findValues
   }

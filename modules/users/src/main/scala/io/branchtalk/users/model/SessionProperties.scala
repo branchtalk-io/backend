@@ -44,7 +44,6 @@ object SessionProperties {
 
     case object UserSession extends Usage
     final case class OAuth(permissions: Permissions) extends Usage
-    // TODO: investigate if oauth-specific permissions won't work out better here
 
     @Semi(FastEq, ShowPretty) sealed trait Type extends EnumEntry with Hyphencase
     object Type extends Enum[Type] {

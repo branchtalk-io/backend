@@ -16,7 +16,7 @@ object UUIDGenerator {
 
   object FastUUIDGenerator extends UUIDGenerator {
     override def apply(string: Refined[String, Uuid]): UUID = FastUUID.parseUUID(string.value)
-    override def create[F[_]: Sync]: F[UUID] = Sync[F].delay(java.util.UUID.randomUUID()) // TODO: use time-based UUID
+    override def create[F[_]: Sync]: F[UUID] = Sync[F].delay(java.util.UUID.randomUUID())
     override def parse[F[_]:  Sync](string: String): F[UUID] = Sync[F].delay(FastUUID.parseUUID(string))
   }
 }

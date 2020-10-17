@@ -82,7 +82,6 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  // TODO: optional auth for logging or sth
   private val fetchProfile = UserAPIs.fetchProfile.toRoutes { userID =>
     withErrorHandling {
       for {

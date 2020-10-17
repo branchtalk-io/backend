@@ -3,7 +3,7 @@ package io.branchtalk.discussions.api
 import cats.data.NonEmptySet
 import cats.effect.{ ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.{ Pagination, ServerErrorHandling }
+import io.branchtalk.api.{ Pagination, Permission, ServerErrorHandling }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post }
@@ -20,15 +20,14 @@ import scala.collection.immutable.SortedSet
 
 final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
   authServices:      AuthServices[F],
-  usersReads:        PostReads[F],
-  usersWrites:       PostWrites[F],
+  postReads:         PostReads[F],
+  postWrites:        PostWrites[F],
   subscriptionReads: SubscriptionReads[F],
   paginationConfig:  PaginationConfig
 ) {
 
   private val logger = Logger(getClass)
 
-  // TODO: make it configurable and make new users subscribe to these configured values
   private def defaultSubscriptions: Set[ID[Channel]] = Set.empty
 
   private val withErrorHandling = ServerErrorHandling.handleCommonErrors[F, PostError] {
@@ -48,7 +47,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     case (optAuth, optOffset, optLimit) =>
       withErrorHandling {
         for {
-          optUser <- optAuth.traverse(authServices.authenticateUser) // TODO: so something with it
+          optUser <- optAuth.traverse(authServices.authenticateUser)
           offset = paginationConfig.resolveOffset(optOffset)
           limit  = paginationConfig.resolveLimit(optLimit)
           subscriptionOpt <- optUser
@@ -57,7 +56,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
             .traverse(subscriptionReads.requireForUser)
           channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(defaultSubscriptions))
           paginated <- NonEmptySet.fromSet(channelIDS) match {
-            case Some(channelIDs) => usersReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+            case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
             case None             => Paginated.empty[Post].pure[F]
           }
         } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
@@ -68,9 +67,9 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     case (auth, createData) =>
       withErrorHandling {
         for {
-          userID <- authServices.authenticateUser(auth).map(_.id) // TODO: so something with it
+          userID <- authServices.authenticateUser(auth).map(_.id)
           data = createData.into[Post.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
-          result <- usersWrites.createPost(data)
+          result <- postWrites.createPost(data)
         } yield CreatePostResponse(result.id)
       }
   }
@@ -79,18 +78,20 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     case (optAuth, postID) =>
       withErrorHandling {
         for {
-          _ <- optAuth.traverse(authServices.authenticateUser) // TODO: so something with it
-          result <- usersReads.requireById(postID)
+          _ <- optAuth.traverse(authServices.authenticateUser)
+          result <- postReads.requireById(postID)
         } yield APIPost.fromDomain(result)
       }
   }
 
-  // TODO: authorize - author or moderator
   private val update = PostAPIs.update.toRoutes {
     case (auth, postID, updateData) =>
       withErrorHandling {
         for {
-          userID <- authServices.authenticateUser(auth).map(_.id) // TODO: so something with it
+          post <- postReads.requireById(postID)
+          userID <- authServices
+            .authorizeUser(auth, Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID)))
+            .map(_.id)
           data = updateData
             .into[Post.Update]
             .withFieldConst(_.id, postID)
@@ -98,19 +99,21 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
             .withFieldRenamed(_.content, _.newContent)
             .withFieldRenamed(_.title, _.newTitle)
             .transform
-          result <- usersWrites.updatePost(data)
+          result <- postWrites.updatePost(data)
         } yield UpdatePostResponse(result.id)
       }
   }
 
-  // TODO: authorize - author or moderator
   private val delete = PostAPIs.delete.toRoutes {
     case (auth, postID) =>
       withErrorHandling {
         for {
-          userID <- authServices.authenticateUser(auth).map(_.id) // TODO: so something with it
+          post <- postReads.requireById(postID)
+          userID <- authServices
+            .authorizeUser(auth, Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID)))
+            .map(_.id)
           data = Post.Delete(postID, userIDUsers2Discussions.get(userID))
-          result <- usersWrites.deletePost(data)
+          result <- postWrites.deletePost(data)
         } yield DeletePostResponse(result.id)
       }
   }

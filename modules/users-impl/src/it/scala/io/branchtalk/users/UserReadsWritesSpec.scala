@@ -3,7 +3,8 @@ package io.branchtalk.users
 import cats.effect.{ IO, Resource }
 import io.branchtalk.{ IOTest, ResourcefulTest }
 import io.branchtalk.shared.models.{ CommonError, ID, OptionUpdatable, UUIDGenerator, Updatable }
-import io.branchtalk.users.model.{ Password, User }
+import io.branchtalk.users.model.{ Password, Permission, Permissions, User }
+import monocle.macros.syntax.lens._
 import org.specs2.mutable.Specification
 
 final class UserReadsWritesSpec extends Specification with IOTest with ResourcefulTest with UsersFixtures {
@@ -90,7 +91,6 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           ids = toCreate.map(_._1.id)
           created <- ids.traverse(usersReads.userReads.requireById).eventually()
           updateData = created.zipWithIndex.collect {
-            // TODO: change this data
             case (User(id, data), 0) =>
               User.Update(
                 id                = id,
@@ -98,7 +98,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
                 newUsername       = Updatable.Set(data.username),
                 newDescription    = OptionUpdatable.setFromOption(data.description),
                 newPassword       = Updatable.Set(data.password),
-                updatePermissions = List.empty // TODO
+                updatePermissions = List(Permission.Update.Add(Permission.EditProfile(id)))
               )
             case (User(id, _), 1) =>
               User.Update(
@@ -107,7 +107,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
                 newUsername       = Updatable.Keep,
                 newDescription    = OptionUpdatable.Keep,
                 newPassword       = Updatable.Keep,
-                updatePermissions = List.empty // TODO
+                updatePermissions = List.empty
               )
             case (User(id, _), 2) =>
               User.Update(
@@ -116,7 +116,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
                 newUsername       = Updatable.Keep,
                 newDescription    = OptionUpdatable.Erase,
                 newPassword       = Updatable.Keep,
-                updatePermissions = List.empty // TODO
+                updatePermissions = List(Permission.Update.Add(Permission.ModerateUsers))
               )
           }
           // when
@@ -133,17 +133,24 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
             .zip(updated)
             .zipWithIndex
             .collect {
-              case ((User(_, older), User(_, newer)), 0) =>
+              case ((User(id, older), User(_, newer)), 0) =>
                 // set case
-                older === newer.copy(lastModifiedAt = None)
+                older.lens(_.permissions).set(Permissions.empty.append(Permission.EditProfile(id))) must_=== newer
+                  .lens(_.lastModifiedAt)
+                  .set(None)
               case ((User(_, older), User(_, newer)), 1) =>
                 // keep case
-                older === newer
+                older must_=== newer
               case ((User(_, older), User(_, newer)), 2) =>
                 // erase case
-                older.copy(description = None) === newer.copy(lastModifiedAt = None)
+                older
+                  .lens(_.permissions)
+                  .set(Permissions.empty.append(Permission.ModerateUsers))
+                  .lens(_.description)
+                  .set(None) must_=== newer.lens(_.lastModifiedAt).set(None)
             }
-            .forall(identity) must beTrue
+            .lastOption
+            .getOrElse(true must beFalse)
         }
       }
     }

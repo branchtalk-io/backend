@@ -27,7 +27,6 @@ trait PostProperties { self: Post.type =>
 }
 object PostProperties {
 
-  // TODO: change non-empty to [0;250] or sth
   @newtype final case class UrlTitle(nonEmptyString: NonEmptyString)
   object UrlTitle {
     def unapply(urlTitle: UrlTitle): Option[NonEmptyString] = urlTitle.nonEmptyString.some

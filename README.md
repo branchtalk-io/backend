@@ -5,7 +5,7 @@ in Scala to demonstrate some patterns and principles.
 
 ## Status
 
-Work-in-progress, see [TODO](TODO.md)
+Work-in-progress.
 
 ## Development
 

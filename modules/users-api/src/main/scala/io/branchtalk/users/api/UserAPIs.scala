@@ -13,8 +13,6 @@ object UserAPIs {
 
   private val prefix = "users"
 
-  // TODO: track which requests were already accepted (using request UUID) and return the right response
-
   private val errorMapping = oneOf[UserError](
     statusMapping[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
     statusMapping[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
@@ -22,10 +20,6 @@ object UserAPIs {
     statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed]),
     statusDefaultMapping[UserError](jsonBody[UserError])
   )
-
-  // TODO: confirm email endpoint
-  // TODO: reset password endpoint
-  // TODO: list/search users endpoint
 
   val signUp: Endpoint[SignUpRequest, UserError, SignUpResponse, Nothing] = endpoint
     .name("Sign up")
@@ -38,7 +32,6 @@ object UserAPIs {
     .out(jsonBody[SignUpResponse])
     .errorOut(errorMapping)
 
-  // TODO: consider returning user data besides session data
   val signIn: Endpoint[Authentication, UserError, SignInResponse, Nothing] = endpoint
     .name("Sign in")
     .summary("Allows logging into existing User's account")

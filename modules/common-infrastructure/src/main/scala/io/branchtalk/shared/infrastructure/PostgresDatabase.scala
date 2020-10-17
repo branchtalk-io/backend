@@ -6,9 +6,7 @@ import doobie.implicits._
 import doobie.hikari.HikariTransactor
 import org.flywaydb.core.Flyway
 
-class PostgresDatabase(config: PostgresConfig) {
-
-  // TODO: add loggers
+final class PostgresDatabase(config: PostgresConfig) {
 
   private def flyway[F[_]: Sync] = Sync[F].delay(
     Flyway

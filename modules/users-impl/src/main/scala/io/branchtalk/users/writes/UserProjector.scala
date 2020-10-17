@@ -9,7 +9,7 @@ import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.models.UUID
 import io.branchtalk.users.events.{ UserCommandEvent, UserEvent, UsersCommandEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
-import io.branchtalk.users.model.{ Permissions, Session }
+import io.branchtalk.users.model.{ Permission, Permissions, Session }
 import io.scalaland.chimney.dsl._
 
 final class UserProjector[F[_]: Sync](transactor: Transactor[F])
@@ -78,30 +78,52 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
   }.transact(transactor) >>
     (event.id.uuid -> event.transformInto[UserEvent.Created]).pure[F]
 
-  def toUpdate(event: UserCommandEvent.Update): F[(UUID, UserEvent.Updated)] =
-    (NonEmptyList.fromList(
-      List(
-        event.newUsername.toUpdateFragment(fr"username"),
-        event.newDescription.toUpdateFragment(fr"description"),
-        event.newPassword.fold(
-          pass => fr"passwd_algorithm = ${pass.algorithm}, passwd_hash = ${pass.hash}, passwd_salt = ${pass.salt}".some,
-          none[Fragment]
-        )
-      ).flatten
-    ) match {
-      case Some(updates) =>
-        (fr"UPDATE users SET" ++
-          (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
-          fr"WHERE id = ${event.id}").update.run.transact(transactor).void
-      case None =>
-        Sync[F].delay(logger.warn(s"User update ignored as it doesn't contain any modification:\n${event.show}"))
-    }) >>
-      (event.id.uuid -> event.transformInto[UserEvent.Updated]).pure[F]
+  def toUpdate(event: UserCommandEvent.Update): F[(UUID, UserEvent.Updated)] = {
+    import event._
+    val defaultPermissions   = Permissions.empty
+    val permissionsUpdateNel = NonEmptyList.fromList(updatePermissions)
 
-  // TODO: make sure it clears sid cache so that deleted user cannot use thir session anymore
-  def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
-    (sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
-      sql"INSERT INTO deleted_users (id, deleted_at) VALUES (${event.id}, ${event.deletedAt}) ON CONFLICT (id) DO NOTHING".update.run)
-      .transact(transactor) >>
-      (event.id.uuid -> event.transformInto[UserEvent.Deleted]).pure[F]
+    val fetchPermissionsIfNecessary = permissionsUpdateNel.fold(defaultPermissions.pure[ConnectionIO]) { _ =>
+      sql"""SELECT permissions FROM users WHERE id = ${id}"""
+        .query[Permissions]
+        .option
+        .map(_.getOrElse(defaultPermissions))
+    }
+
+    def updateUser(existingPermissions: Permissions) =
+      List(
+        newUsername.toUpdateFragment(fr"username"),
+        newDescription.toUpdateFragment(fr"description"),
+        newPassword.fold(
+          p => fr"passwd_algorithm = ${p.algorithm}, passwd_hash = ${p.hash}, passwd_salt = ${p.salt}".some,
+          none[Fragment]
+        ),
+        permissionsUpdateNel.map { nel =>
+          fr"""permissions = ${nel.foldLeft(existingPermissions) {
+            case (permissions, Permission.Update.Add(permission))    => permissions.append(permission)
+            case (permissions, Permission.Update.Remove(permission)) => permissions.remove(permission)
+          }}"""
+        }
+      ).flatten.pipe(NonEmptyList.fromList) match {
+        case Some(updates) =>
+          (fr"UPDATE users SET" ++
+            (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
+            fr"WHERE id = ${event.id}").update.run.void
+        case None =>
+          Sync[ConnectionIO].delay(
+            logger.warn(s"User update ignored as it doesn't contain any modification:\n${event.show}")
+          )
+      }
+
+    fetchPermissionsIfNecessary.flatMap(updateUser).transact(transactor) >>
+      (id.uuid -> event.transformInto[UserEvent.Updated]).pure[F]
+  }
+
+  def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] = {
+    sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
+      sql"""INSERT INTO deleted_users (id, deleted_at)
+           |VALUES (${event.id}, ${event.deletedAt})
+           ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
+  }.transact(transactor) >>
+    (event.id.uuid -> event.transformInto[UserEvent.Deleted]).pure[F]
 }

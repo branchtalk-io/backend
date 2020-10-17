@@ -36,8 +36,6 @@ package object models {
     implicit def order[Entity]: Order[ID[Entity]] = /*_*/ Order[UUID].coerce[Order[ID[Entity]]] /*_*/
   }
 
-  // TODO: consider some custom clock(?)
-
   @newtype final case class CreationTime(offsetDateTime: OffsetDateTime)
   object CreationTime {
     def unapply(creationTime: CreationTime): Option[OffsetDateTime] = creationTime.offsetDateTime.some

@@ -9,7 +9,6 @@ import io.scalaland.catnip.Semi
 )
 object Session extends SessionProperties with SessionCommands {
 
-  // TODO: maybe some meta information: IP/client/system?
   @Semi(FastEq, ShowPretty) final case class Data(
     userID:    ID[User],
     usage:     Session.Usage,

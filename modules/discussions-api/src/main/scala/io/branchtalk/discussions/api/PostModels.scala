@@ -50,7 +50,6 @@ object PostModels {
     @Semi(JsCodec) final case class ValidationFailed(error: NonEmptyList[String]) extends PostError
   }
 
-  // TODO: consider adding timestamps
   @Semi(JsCodec) final case class APIPost(
     id:        ID[Post],
     channelID: ID[Channel],

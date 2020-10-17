@@ -44,15 +44,14 @@ object DiscussionsModule {
         wire[DiscussionsReads[F]]
     }
 
-  // TODO: writes should test if they can write before they send event to bus
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig:           DomainConfig
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
     module.setupWrites[F](domainConfig).map {
       case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer) =>
-        val channelRepository:  ChannelWrites[F]      = wire[ChannelWritesImpl[F]]
-        val postRepository:     PostWrites[F]         = wire[PostWritesImpl[F]]
-        val commentRepository:  CommentWrites[F]      = wire[CommentWritesImpl[F]]
+        val channelWrites:      ChannelWrites[F]      = wire[ChannelWritesImpl[F]]
+        val postWrites:         PostWrites[F]         = wire[PostWritesImpl[F]]
+        val commentWrites:      CommentWrites[F]      = wire[CommentWritesImpl[F]]
         val subscriptionWrites: SubscriptionWrites[F] = wire[SubscriptionWritesImpl[F]]
 
         val projector: Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList

@@ -19,7 +19,6 @@ trait UserProperties {
 }
 object UserProperties {
 
-  // TODO: make it an ADT with new-confirmed-updated lifecycle
   @newtype final case class Email(string: String Refined MatchesRegex["(.+)@(.+)"])
   object Email {
     def unapply(email: Email): Option[String Refined MatchesRegex["(.+)@(.+)"]] = email.string.some

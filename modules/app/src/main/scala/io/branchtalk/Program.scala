@@ -113,7 +113,6 @@ object Program {
 
     val appServer = wire[AppServer[F]]
 
-    // TODO: resource with a thread pool for HTTP
     BlazeServerBuilder[F](ExecutionContext.global)
       .bindHttp(port = appConfig.port, host = appConfig.host)
       .withHttpApp(appServer.routes)
@@ -121,7 +120,6 @@ object Program {
       .void
   }
 
-  // TODO: replace with some nice kill switch, e.g. Ctrl+C or Ctrl+D
   private def awaitTerminationSignal[F[_]: Async]: F[Unit] = Async[F].never[Unit]
 
   private def conditionalResource[F[_]: Concurrent, A](

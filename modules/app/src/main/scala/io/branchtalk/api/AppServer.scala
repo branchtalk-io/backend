@@ -13,9 +13,6 @@ final class AppServer[F[_]: Sync](
   openAPIServer: OpenAPIServer[F]
 ) {
 
-  // TODO: proper auth service with would maybe as middleware, it should check required permissions before running F
-  // TODO: CORS service (HTTP4s has a middleware for it)
-  // TODO: Prometheus (HTTP4s has a middleware for it as well)
   val routes: Kleisli[F, Request[F], Response[F]] =
     NonEmptyList.of(usesServer.userRoutes, postServer.postRoutes, openAPIServer.openAPIRoutes).reduceK.orNotFound
 }

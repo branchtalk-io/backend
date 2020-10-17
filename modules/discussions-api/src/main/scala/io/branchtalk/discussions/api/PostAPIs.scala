@@ -39,9 +39,6 @@ object PostAPIs {
     .out(jsonBody[Pagination[APIPost]])
     .errorOut(errorMapping)
 
-  // TODO: hot pagination
-  // TODO: controversial pagination
-
   val create: Endpoint[(Authentication, CreatePostRequest), PostError, CreatePostResponse, Nothing] = endpoint
     .name("Create Post")
     .summary("Creates Post")

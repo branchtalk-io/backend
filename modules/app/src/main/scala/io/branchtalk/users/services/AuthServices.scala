@@ -40,7 +40,6 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
   override def authorizeUser(auth: Authentication, permissions: Permission*): F[users.model.User] =
     for {
       (user, sessionOpt) <- authenticateUserWithSessionOpt(auth)
-      // TODO: move this logic to sessionReads or something !!!
       all = user.data.permissions.append(users.model.Permission.EditProfile(user.id))
       availablePermissions = sessionOpt.map(_.data.usage).collect {
         case users.model.SessionProperties.Usage.OAuth(permissions) => permissions
