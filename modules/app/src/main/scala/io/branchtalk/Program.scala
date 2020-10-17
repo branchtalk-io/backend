@@ -3,6 +3,7 @@ package io.branchtalk
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
 import com.softwaremill.macwire.wire
+import com.typesafe.scalalogging.Logger
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, Configuration, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
@@ -18,7 +19,7 @@ import scala.concurrent.ExecutionContext
 
 object Program {
 
-  // TODO: use some logger
+  private val logger = Logger(getClass)
 
   private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
@@ -62,23 +63,23 @@ object Program {
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
   ): F[Unit] =
-    Sync[F].delay(println("Initializing services")) >> // scalastyle:ignore
-      (
-        conditionalResource(appConfig.runAPI)(())(
-          runApi[F](appConfig, apiConfig)(usersReads, usersWrites, discussionsReads, discussionsWrites)
-        ),
-        conditionalResource(appConfig.runUsersProjections)(().pure[F])(usersWrites.runProjector),
-        conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
-      ).tupled.use {
-        case (_, _, startDiscussions) =>
-          for {
-            discussionsFiber <- startDiscussions.start
-            _ = println("Services initialized") // scalastyle:ignore
-            _ <- terminationSignal // here we are blocking until e.g. user press Ctrl+D or Ctrl+C
-            _ = println("Received exit signal") // scalastyle:ignore
-            _ <- discussionsFiber.join
-          } yield println("Shut down services") // scalastyle:ignore
-      }
+    Sync[F].delay(logger.info("Initializing services")) >> (
+      conditionalResource(appConfig.runAPI)(())(
+        runApi[F](appConfig, apiConfig)(usersReads, usersWrites, discussionsReads, discussionsWrites)
+      ),
+      conditionalResource(appConfig.runUsersProjections)(().pure[F])(usersWrites.runProjector),
+      conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
+    ).tupled.use {
+      case (_, _, startDiscussions) =>
+        for {
+          discussionsFiber <- startDiscussions.start
+          _ <- Sync[F].delay(logger.info("Services initialized"))
+          _ <- terminationSignal // here we are blocking until e.g. user press Ctrl+D or Ctrl+C
+          _ <- Sync[F].delay(logger.info("Received exit signal"))
+          _ <- discussionsFiber.join
+          _ <- Sync[F].delay(logger.info("Shut down services"))
+        } yield ()
+    }
 
   private def runApi[F[_]: ConcurrentEffect: ContextShift: Timer](
     appConfig: AppConfig,

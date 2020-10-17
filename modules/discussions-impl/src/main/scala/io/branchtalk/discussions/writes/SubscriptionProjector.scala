@@ -52,7 +52,7 @@ final class SubscriptionProjector[F[_]: Sync](transactor: Transactor[F])
       .transact(transactor) >>
       (event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Subscribed]).pure[F]
 
-  def toUnsubscribe(event: SubscriptionCommandEvent.Unsubscribe): F[(UUID, SubscriptionEvent.Unsubscribed)] = 
+  def toUnsubscribe(event: SubscriptionCommandEvent.Unsubscribe): F[(UUID, SubscriptionEvent.Unsubscribed)] =
     sql"""UPDATE subscriptions
          |SET subscriptions_ids = array_diff(subscriptions.subscriptions_ids, ${event.subscriptions})
          |WHERE subscriber_id = ${event.subscriberID}""".stripMargin.update.run.transact(transactor) >>
