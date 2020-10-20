@@ -50,7 +50,7 @@ final class SubscriptionReadsWritesSpec
             .eventually()
         } yield {
           // then
-          subscription === Subscription(subscriberID, ids.toSet)
+          subscription must_=== Subscription(subscriberID, ids.toSet)
         }
       }
     }
@@ -89,7 +89,7 @@ final class SubscriptionReadsWritesSpec
             .eventually()
         } yield {
           // then
-          subscription === Subscription(subscriberID, idsToKeep.toSet)
+          subscription must_=== Subscription(subscriberID, idsToKeep.toSet)
         }
       }
     }

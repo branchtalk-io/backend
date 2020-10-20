@@ -13,13 +13,12 @@ object KillSwitch {
   def apply[F[_]: Sync]: F[KillSwitch[F]] =
     Ref.of(true).map(switch => KillSwitch(Stream.repeatEval(switch.get).takeWhile(identity).void, switch.set(false)))
 
-  // Create a stream that is emmiting Units until you exit the resource.
+  // Create a stream that is emitting Units until you exit the resource.
   // Intended usage: zip stream  with event consumer on a separate thread, and stop consuming
   // when application terminates.
-  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def asStream[F[_]: Sync, A](f: Stream[F, Unit] => A): Resource[F, A] =
     Resource.make(apply[F])(_.switch).map(_.stream).map(f).handleErrorWith { error: Throwable =>
       logger.error("Error terminated computations before kill-switch was triggered", error)
-      throw error
+      Resource.liftF(Sync[F].raiseError(error))
     }
 }

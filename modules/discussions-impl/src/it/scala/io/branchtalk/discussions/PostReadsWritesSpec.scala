@@ -38,7 +38,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
           toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost(_).attempt)
         } yield {
           // then
-          toCreate.forall(_.isLeft) must beTrue
+          toCreate must contain(beLeft[Throwable]).foreach
         }
       }
     }
@@ -60,10 +60,10 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
           postDeleted <- ids.traverse(discussionsReads.postReads.deleted).eventually()
         } yield {
           // then
-          ids.toSet must_=== posts.map(_.id).toSet
-          postsOpt.forall(_.isDefined) must beTrue
-          postsExist.forall(identity) must beTrue
-          postDeleted.exists(identity) must beFalse
+          ids must containTheSameElementsAs(posts.map(_.id))
+          postsOpt must contain(beSome[Post]).foreach
+          postsExist must contain(beTrue).foreach
+          postDeleted must not(contain(beTrue).atLeastOnce)
         }
       }
     }
@@ -91,7 +91,7 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
           toUpdate <- fakeUpdateData.traverse(discussionsWrites.postWrites.updatePost(_).attempt)
         } yield {
           // then
-          toUpdate.forall(_.isLeft) must beTrue
+          toUpdate must contain(beLeft[Throwable]).foreach
         }
       }
     }
@@ -181,11 +181,11 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
           notDeleted <- ids.traverse(discussionsReads.postReads.deleted)
         } yield {
           // then
-          ids.toSet must_=== restoredIds.toSet
-          notExist.exists(identity) must beFalse
-          areDeleted.forall(identity) must beTrue
-          areRestored.forall(identity) must beTrue
-          notDeleted.exists(identity) must beFalse
+          ids must containTheSameElementsAs(restoredIds)
+          notExist must contain(beFalse).foreach
+          areDeleted must contain(beTrue).foreach
+          areRestored must contain(beTrue).foreach
+          notDeleted must contain(beFalse).foreach
         }
       }
     }
@@ -210,9 +210,9 @@ final class PostReadsWritesSpec extends Specification with IOTest with Resourcef
           pagination2 <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), 10L, 10)
         } yield {
           // then
-          pagination.entities.size must_=== 10
+          pagination.entities must haveSize(10)
           pagination.nextOffset.map(_.value) must beSome(10)
-          pagination2.entities.size must_=== 10
+          pagination2.entities must haveSize(10)
           pagination2.nextOffset.map(_.value) must beNone
         }
       }

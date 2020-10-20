@@ -41,10 +41,10 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           channelDeleted <- ids.traverse(discussionsReads.channelReads.deleted).eventually()
         } yield {
           // then
-          ids.toSet must_=== channels.map(_.id).toSet
-          channelsOpt.forall(_.isDefined) must beTrue
-          channelsExist.forall(identity) must beTrue
-          channelDeleted.exists(identity) must beFalse
+          ids must containTheSameElementsAs(channels.map(_.id))
+          channelsOpt must contain(beSome[Channel]).foreach
+          channelsExist must contain(beTrue).foreach
+          channelDeleted must not(contain(beTrue).atLeastOnce)
         }
       }
     }
@@ -71,7 +71,7 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           toUpdate <- fakeUpdateData.traverse(discussionsWrites.channelWrites.updateChannel(_).attempt)
         } yield {
           // then
-          toUpdate.forall(_.isLeft) must beTrue
+          toUpdate must contain(beLeft[Throwable]).foreach
         }
       }
     }
@@ -172,11 +172,11 @@ final class ChannelReadsWritesSpec extends Specification with IOTest with Resour
           notDeleted <- ids.traverse(discussionsReads.channelReads.deleted)
         } yield {
           // then
-          ids.toSet must_=== restoredIds.toSet
-          notExist.exists(identity) must beFalse
-          areDeleted.forall(identity) must beTrue
-          areRestored.forall(identity) must beTrue
-          notDeleted.exists(identity) must beFalse
+          ids must containTheSameElementsAs(restoredIds)
+          notExist must contain(beFalse).foreach
+          areDeleted must contain(beTrue).foreach
+          areRestored must contain(beTrue).foreach
+          notDeleted must contain(beFalse).foreach
         }
       }
     }

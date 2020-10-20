@@ -40,7 +40,7 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
           users <- ids.traverse(usersReads.sessionReads.requireSession)
         } yield {
           // then
-          ids.toSet === users.map(_.id).toSet
+          ids must containTheSameElementsAs(users.map(_.id))
         }
       }
     }
@@ -61,7 +61,7 @@ final class SessionReadsWritesSpec extends Specification with IOTest with Resour
           sessions <- ids.traverse(usersReads.sessionReads.requireSession(_).attempt)
         } yield {
           // then
-          sessions.forall(_.isLeft) must beTrue
+          sessions must contain(beLeft[Throwable]).foreach
         }
       }
     }

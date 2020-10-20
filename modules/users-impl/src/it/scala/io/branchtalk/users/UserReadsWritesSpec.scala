@@ -42,10 +42,10 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           userDeleted <- ids.traverse(usersReads.userReads.deleted).eventually()
         } yield {
           // then
-          ids.toSet === users.map(_.id).toSet
-          usersOpt.forall(_.isDefined) must beTrue
-          usersExist.forall(identity) must beTrue
-          userDeleted.exists(identity) must beFalse
+          ids must containTheSameElementsAs(users.map(_.id))
+          usersOpt must contain(beSome[User]).foreach
+          usersExist must contain(beTrue).foreach
+          userDeleted must not(contain(beTrue).atLeastOnce)
         }
       }
     }
@@ -74,7 +74,7 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           toUpdate <- fakeUpdateData.traverse(usersWrites.userWrites.updateUser(_).attempt)
         } yield {
           // then
-          toUpdate.forall(_.isLeft) must beTrue
+          toUpdate must contain(beLeft[Throwable]).foreach
         }
       }
     }
@@ -176,8 +176,8 @@ final class UserReadsWritesSpec extends Specification with IOTest with Resourcef
           areDeleted <- ids.traverse(usersReads.userReads.deleted)
         } yield {
           // then
-          notExist.exists(identity) must beFalse
-          areDeleted.forall(identity) must beTrue
+          notExist must contain(beFalse).foreach
+          areDeleted must contain(beTrue).foreach
         }
       }
     }

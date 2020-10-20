@@ -21,19 +21,14 @@ trait IOTest {
 
   implicit class IOTestOps[T](private val io: IO[T]) {
 
-    def eventually(retry: Int = 90, delay: FiniteDuration = 100.millis, timeout: FiniteDuration = 15.seconds): IO[T] = {
-      val timeouting = IO.sleep(timeout) >> IO.raiseError(new Exception(s"IO failed: exceeded timeout $timeout"))
-
+    def eventually(retry: Int = 50, delay: FiniteDuration = 250.millis, timeout: FiniteDuration = 15.seconds): IO[T] = {
       def withRetry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = {
         case cause: Throwable =>
           if (attemptsLeft <= 0) IO.raiseError(new Exception(s"IO failed to succeed: exceeded retry $retry", cause))
           else io.handleErrorWith(withRetry(attemptsLeft - 1)).delayBy(delay)
       }
 
-      IO.race(io.handleErrorWith(withRetry(retry)), timeouting).map {
-        case Left(value) => value
-        case Right(_)    => ??? // impossible
-      }
+      io.handleErrorWith(withRetry(retry)).timeout(timeout)
     }
 
     def logError(msg: String): IO[T] = io.handleErrorWith { error =>

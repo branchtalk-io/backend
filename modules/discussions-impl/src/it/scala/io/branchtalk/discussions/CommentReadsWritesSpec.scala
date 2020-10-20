@@ -37,7 +37,7 @@ final class CommentReadsWritesSpec extends Specification with IOTest with Resour
           toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment(_).attempt)
         } yield {
           // then
-          toCreate.forall(_.isLeft) must beTrue
+          toCreate must contain(beLeft[Throwable]).foreach
         }
       }
     }
@@ -61,10 +61,10 @@ final class CommentReadsWritesSpec extends Specification with IOTest with Resour
           commentDeleted <- ids.traverse(discussionsReads.commentReads.deleted).eventually()
         } yield {
           // then
-          ids.toSet must_=== comments.map(_.id).toSet
-          commentsOpt.forall(_.isDefined) must beTrue
-          commentsExist.forall(identity) must beTrue
-          commentDeleted.exists(identity) must beFalse
+          ids must containTheSameElementsAs(comments.map(_.id))
+          commentsOpt must contain(beSome[Comment]).foreach
+          commentsExist must contain(beTrue).foreach
+          commentDeleted must not(contain(beTrue).atLeastOnce)
         }
       }
     }
@@ -92,7 +92,7 @@ final class CommentReadsWritesSpec extends Specification with IOTest with Resour
           toUpdate <- fakeUpdateData.traverse(discussionsWrites.commentWrites.updateComment(_).attempt)
         } yield {
           // then
-          toUpdate.forall(_.isLeft) must beTrue
+          toUpdate must contain(beLeft[Throwable]).foreach
         }
       }
     }
@@ -184,11 +184,11 @@ final class CommentReadsWritesSpec extends Specification with IOTest with Resour
           notDeleted <- ids.traverse(discussionsReads.commentReads.deleted)
         } yield {
           // then
-          ids.toSet must_=== restoredIds.toSet
-          notExist.exists(identity) must beFalse
-          areDeleted.forall(identity) must beTrue
-          areRestored.forall(identity) must beTrue
-          notDeleted.exists(identity) must beFalse
+          ids must containTheSameElementsAs(restoredIds)
+          notExist must contain(beFalse).foreach
+          areDeleted must contain(beTrue).foreach
+          areRestored must contain(beTrue).foreach
+          notDeleted must contain(beFalse).foreach
         }
       }
     }
