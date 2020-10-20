@@ -185,7 +185,8 @@ val application = project
   .setName("app")
   .setDescription("Branchtalk backend application and business logic")
   .configureModule
-  .configureTests()
+  .configureIntegrationTests(requiresFork = true)
+  .configureRun("io.branchtalk.Main")
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.decline,
@@ -201,4 +202,5 @@ val application = project
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
-  .dependsOn(discussionsImpl, discussionsApi, usersImpl, usersApi)
+  .compileAndTestDependsOn(discussionsImpl, usersImpl)
+  .dependsOn(discussionsApi, usersApi)
