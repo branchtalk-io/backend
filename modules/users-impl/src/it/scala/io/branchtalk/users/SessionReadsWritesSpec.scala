@@ -1,28 +1,12 @@
 package io.branchtalk.users
 
-import cats.effect.{ IO, Resource }
 import io.branchtalk.shared.models.{ CreationScheduled, UUIDGenerator }
-import io.branchtalk.{ IOTest, ResourcefulTest }
 import io.branchtalk.users.model.Session
 import org.specs2.mutable.Specification
 
-final class SessionReadsWritesSpec extends Specification with IOTest with ResourcefulTest with UsersFixtures {
+final class SessionReadsWritesSpec extends Specification with UsersIOTest with UsersFixtures {
 
-  private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
-
-  // populated by resources
-  private var usersReads:  UsersReads[IO]  = _
-  private var usersWrites: UsersWrites[IO] = _
-
-  override protected def testResource: Resource[IO, Unit] =
-    for {
-      domainCfg <- TestUsersConfig.loadDomainConfig[IO]
-      reads <- UsersModule.reads[IO](domainCfg)
-      writes <- UsersModule.writes[IO](domainCfg)
-    } yield {
-      usersReads  = reads
-      usersWrites = writes
-    }
+  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
   "Session Reads & Writes" should {
 

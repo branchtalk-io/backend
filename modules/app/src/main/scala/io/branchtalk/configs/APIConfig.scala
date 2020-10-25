@@ -8,10 +8,12 @@ import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.module.enumeratum._
 import sttp.tapir.openapi.{ Contact, Info, License }
+
 @Semi(ConfigReader) final case class APIContact(name: String, email: String, url: String) {
 
   def toOpenAPI: Contact = this.transformInto[Contact]
 }
+
 @Semi(ConfigReader) final case class APILicense(name: String, url: String) {
 
   def toOpenAPI: License = this.transformInto[License]

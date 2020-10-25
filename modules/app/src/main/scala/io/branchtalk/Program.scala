@@ -2,26 +2,19 @@ package io.branchtalk
 
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
-import com.softwaremill.macwire.wire
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.{ AppServer, OpenAPIServer }
-import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, Configuration, PaginationConfig }
-import io.branchtalk.discussions.api.PostServer
+import io.branchtalk.api.AppServer
+import io.branchtalk.configs.{ APIConfig, AppConfig, Configuration }
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.shared.infrastructure.DomainConfig
 import io.branchtalk.shared.models.UUIDGenerator
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
-import io.branchtalk.users.api.UserServer
-import io.branchtalk.users.services.{ AuthServices, AuthServicesImpl }
-import org.http4s.server.blaze.BlazeServerBuilder
-
-import scala.concurrent.ExecutionContext
 
 object Program {
 
   private val logger = Logger(getClass)
 
-  private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
   def runApplication[F[_]: ConcurrentEffect: ContextShift: Timer](args: List[String]): F[ExitCode] =
     (for {
@@ -65,7 +58,16 @@ object Program {
   ): F[Unit] =
     Sync[F].delay(logger.info("Initializing services")) >> (
       conditionalResource(appConfig.runAPI)(())(
-        runApi[F](appConfig, apiConfig)(usersReads, usersWrites, discussionsReads, discussionsWrites)
+        AppServer
+          .asResource(
+            appConfig         = appConfig,
+            apiConfig         = apiConfig,
+            usersReads        = usersReads,
+            usersWrites       = usersWrites,
+            discussionsReads  = discussionsReads,
+            discussionsWrites = discussionsWrites
+          )
+          .void
       ),
       conditionalResource(appConfig.runUsersProjections)(().pure[F])(usersWrites.runProjector),
       conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
@@ -80,45 +82,6 @@ object Program {
           _ <- Sync[F].delay(logger.info("Shut down services"))
         } yield ()
     }
-
-  private def runApi[F[_]: ConcurrentEffect: ContextShift: Timer](
-    appConfig: AppConfig,
-    apiConfig: APIConfig
-  )(
-    usersReads:        UsersReads[F],
-    usersWrites:       UsersWrites[F],
-    discussionsReads:  DiscussionsReads[F],
-    discussionsWrites: DiscussionsWrites[F]
-  ): Resource[F, Unit] = {
-    // this is kind of silly...
-    import usersReads.{ sessionReads, userReads }
-    import usersWrites.{ sessionWrites, userWrites }
-    import discussionsReads.{ channelReads, commentReads, postReads, subscriptionReads }
-    import discussionsWrites.{ channelWrites, commentWrites, postWrites, subscriptionWrites }
-
-    val authServices: AuthServices[F] = wire[AuthServicesImpl[F]]
-
-    val usersServer: UserServer[F] = {
-      val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Users)
-      wire[UserServer[F]]
-    }
-    val postServer: PostServer[F] = {
-      val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Posts)
-      wire[PostServer[F]]
-    }
-    val openAPIServer: OpenAPIServer[F] = {
-      import apiConfig.info
-      wire[OpenAPIServer[F]]
-    }
-
-    val appServer = wire[AppServer[F]]
-
-    BlazeServerBuilder[F](ExecutionContext.global)
-      .bindHttp(port = appConfig.port, host = appConfig.host)
-      .withHttpApp(appServer.routes)
-      .resource
-      .void
-  }
 
   private def awaitTerminationSignal[F[_]: Async]: F[Unit] = Async[F].never[Unit]
 

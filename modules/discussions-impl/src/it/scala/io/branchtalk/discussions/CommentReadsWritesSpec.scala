@@ -1,28 +1,13 @@
 package io.branchtalk.discussions
 
-import cats.effect.{ IO, Resource }
-import io.branchtalk.{ IOTest, ResourcefulTest }
+import cats.effect.IO
 import io.branchtalk.discussions.model.{ Comment, Post }
 import io.branchtalk.shared.models.{ ID, UUIDGenerator, Updatable }
 import org.specs2.mutable.Specification
 
-final class CommentReadsWritesSpec extends Specification with IOTest with ResourcefulTest with DiscussionsFixtures {
+final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  private implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
-
-  // populated by resources
-  private var discussionsReads:  DiscussionsReads[IO]  = _
-  private var discussionsWrites: DiscussionsWrites[IO] = _
-
-  override protected def testResource: Resource[IO, Unit] =
-    for {
-      domainCfg <- TestDiscussionsConfig.loadDomainConfig[IO]
-      reads <- DiscussionsModule.reads[IO](domainCfg)
-      writes <- DiscussionsModule.writes[IO](domainCfg)
-    } yield {
-      discussionsReads  = reads
-      discussionsWrites = writes
-    }
+  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
   "Comment Reads & Writes" should {
 
