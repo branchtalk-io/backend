@@ -4,6 +4,7 @@ import cats.effect.{ IO, Resource }
 import io.branchtalk.discussions.DiscussionsIOTest
 import io.branchtalk.users.UsersIOTest
 import org.http4s.server.Server
+import org.specs2.matcher.{ OptionLikeCheckedMatcher, OptionLikeMatcher, ValueCheck }
 import sttp.client.{ Response, SttpBackend }
 import sttp.client.asynchttpclient.WebSocketHandler
 import sttp.client.asynchttpclient.cats.AsyncHttpClientCatsBackend
@@ -44,4 +45,27 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
     def toTestCall(input: I): IO[Response[DecodeResult[Either[E, O]]]] =
       endpoint.toSttpRequest(sttpBaseUri).apply(input).send[IO]()(backend = client, isIdInRequest = implicitly)
   }
+
+  import org.specs2.control.ImplicitParameters._
+  def beValid[T](t:          ValueCheck[T]): ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
+  def beValid[T](implicit p: ImplicitParam = implicitParameter): ValidResultMatcher[T] = use(p)(ValidResultMatcher[T]())
 }
+
+final case class ValidResultMatcher[T]()
+    extends OptionLikeMatcher[DecodeResult, T, T](
+      "DecodeResult.Value",
+      (_: DecodeResult[T]).pipe {
+        case DecodeResult.Value(t) => t.some
+        case _                     => none[T]
+      }
+    )
+
+final case class ValidResultCheckedMatcher[T](check: ValueCheck[T])
+    extends OptionLikeCheckedMatcher[DecodeResult, T, T](
+      "DecodeResult.Value",
+      (_: DecodeResult[T]).pipe {
+        case DecodeResult.Value(t) => t.some
+        case _                     => none[T]
+      },
+      check
+    )

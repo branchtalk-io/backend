@@ -5,8 +5,8 @@ import eu.timepit.refined.auto._
 import io.branchtalk.api.ServerIOTest
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.shared.models.UUIDGenerator
-import io.branchtalk.users.api.UserModels.SignUpRequest
 import io.branchtalk.users.UsersFixtures
+import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.model.Password
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
@@ -37,6 +37,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               )
             } yield {
               result.code must_=== StatusCode.Ok
+              result.body must beValid(beRight(anInstanceOf[SignUpResponse]))
             }
         }
       }
