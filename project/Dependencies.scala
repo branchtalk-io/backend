@@ -75,12 +75,14 @@ object Dependencies {
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.0.0"
   val macwire        = "com.softwaremill.macwire" %% "macros" % "2.3.6" % "provided"
   // API
+  val sttpCats       = "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.2.5" // same as the one used by tapir
   val tapir          = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
   val tapirHttp4s    = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
   val tapirJsoniter  = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
   val tapirRefined   = "com.softwaremill.sttp.tapir" %% "tapir-refined" % tapirVersion
   val tapirOpenAPI   = "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % tapirVersion
   val tapirSwaggerUI = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-http4s" % tapirVersion
+  val tapirSTTP      = "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion
   val jsoniter       = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion
   val jsoniterMacro  = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "compile-internal"
   // config

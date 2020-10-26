@@ -12,10 +12,10 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
   "Channel Reads & Writes" should {
 
     "create a Channel and eventually read it" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           // when
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
@@ -35,10 +35,10 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
     }
 
     "don't update a Channel that doesn't exists" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           editorID <- editorIDCreate
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           fakeUpdateData <- creationData.traverse { data =>
@@ -62,10 +62,10 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
     }
 
     "update an existing Channel" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           editorID <- editorIDCreate
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
@@ -128,10 +128,10 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
     }
 
     "allow delete and restore of a created Channel" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           editorID <- editorIDCreate
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           // when

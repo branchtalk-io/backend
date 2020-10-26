@@ -6,6 +6,7 @@ import com.softwaremill.macwire.wire
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
+import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.users.api.UserServer
 import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.services.{ AuthServices, AuthServicesImpl }

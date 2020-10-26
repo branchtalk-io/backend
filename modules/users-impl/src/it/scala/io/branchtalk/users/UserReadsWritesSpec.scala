@@ -13,10 +13,10 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
   "User Reads & Writes" should {
 
     "create a User and eventually read it" in {
-      usersWrites.runProjector.use { projector =>
+      usersWrites.runProjector.use { usersProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- usersProjector.logError("Error reported by Users projector").start
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
           // when
           toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
@@ -36,10 +36,10 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "don't update a User that doesn't exists" in {
-      usersWrites.runProjector.use { projector =>
+      usersWrites.runProjector.use { usersProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- usersProjector.logError("Error reported by Users projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -65,10 +65,10 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "update an existing User" in {
-      usersWrites.runProjector.use { projector =>
+      usersWrites.runProjector.use { usersProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- usersProjector.logError("Error reported by Users projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -141,10 +141,10 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "allow delete of a created User" in {
-      usersWrites.runProjector.use { projector =>
+      usersWrites.runProjector.use { usersProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- usersProjector.logError("Error reported by Users projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -168,10 +168,10 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "allow password checking" in {
-      usersWrites.runProjector.use { projector =>
+      usersWrites.runProjector.use { usersProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- usersProjector.logError("Error reported by Users projector").start
           goodPassword <- passwordCreate("password")
           userId <- userCreate
             .map(_.copy(password = goodPassword))

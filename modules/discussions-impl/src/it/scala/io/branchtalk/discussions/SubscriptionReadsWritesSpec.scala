@@ -12,10 +12,10 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
   "Subscription Reads & Writes" should {
 
     "add Subscription and eventually read it" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           subscriberID <- subscriberIDCreate
           ids <- (0 until 3).toList.traverse { _ =>
             channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
@@ -38,10 +38,10 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
 
     "remove Subscription and eventually read it" in {
 
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           subscriberID <- subscriberIDCreate
           idsToKeep <- (0 until 3).toList.traverse { _ =>
             channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)

@@ -13,10 +13,10 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
   "Post Reads & Writes" should {
 
     "don't create a Post if there is no Channel for it" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- ID.create[IO, Channel]
           creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
           // when
@@ -29,10 +29,10 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     }
 
     "create a Post and eventually read it" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
@@ -54,10 +54,10 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     }
 
     "don't update a Post that doesn't exists" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           editorID <- editorIDCreate
@@ -82,10 +82,10 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     }
 
     "update an existing Post" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           editorID <- editorIDCreate
@@ -137,10 +137,10 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     }
 
     "allow delete and restore of a created Post" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
@@ -176,10 +176,10 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     }
 
     "paginate newest Posts by Channels" in {
-      discussionsWrites.runProjector.use { projector =>
+      discussionsWrites.runProjector.use { discussionsProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)

@@ -63,7 +63,10 @@ object APIPart extends Enum[APIPart] {
       map.toList
         .traverse {
           case (key, value) =>
-            withNameEither(key).map(_ -> value).left.map(error => CannotConvert(key, "APIPart", error.getMessage()))
+            withNameInsensitiveEither(key)
+              .map(_ -> value)
+              .left
+              .map(error => CannotConvert(key, "APIPart", error.getMessage()))
         }
         .map(_.toMap)
     }

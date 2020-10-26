@@ -11,10 +11,10 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
   "Session Reads & Writes" should {
 
     "create a Session and immediately read it" in {
-      usersWrites.runProjector.use { projector =>
+      usersWrites.runProjector.use { usersProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- usersProjector.logError("Error reported by Users projector").start
           userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(userID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
@@ -30,10 +30,10 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
     }
 
     "allow immediate delete of a created Session" in {
-      usersWrites.runProjector.use { projector =>
+      usersWrites.runProjector.use { usersProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- usersProjector.logError("Error reported by Users projector").start
           userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(userID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
@@ -51,10 +51,10 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
     }
 
     "fetch Session created during registration" in {
-      usersWrites.runProjector.use { projector =>
+      usersWrites.runProjector.use { usersProjector =>
         for {
           // given
-          _ <- projector.logError("Error reported by projector").start
+          _ <- usersProjector.logError("Error reported by Users projector").start
           (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
             usersWrites.userWrites.createUser
           )
