@@ -6,6 +6,12 @@ import scala.annotation.nowarn
 
 sealed trait OptionUpdatable[+A] {
 
+  def map[B](f: A => B): OptionUpdatable[B] = this match {
+    case OptionUpdatable.Set(value) => OptionUpdatable.Set(f(value))
+    case OptionUpdatable.Erase      => OptionUpdatable.Erase
+    case OptionUpdatable.Keep       => OptionUpdatable.Keep
+  }
+
   def fold[B](set: A => B, keep: => B, erase: => B): B = this match {
     case OptionUpdatable.Set(value) => set(value)
     case OptionUpdatable.Erase      => keep

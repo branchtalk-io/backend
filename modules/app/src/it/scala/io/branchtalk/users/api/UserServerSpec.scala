@@ -32,15 +32,11 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                   email       = userData.email,
                   username    = userData.username,
                   description = userData.description,
-                  password    = userData.password.update(password)
+                  password    = password
                 )
               )
             } yield {
-              println(result)
-              println(result.body)
               result.code must_=== StatusCode.Ok
-              //              result.body.
-              true must beTrue // TODO
             }
         }
       }

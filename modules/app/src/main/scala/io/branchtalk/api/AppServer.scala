@@ -1,8 +1,9 @@
 package io.branchtalk.api
 
-import cats.data.{ Kleisli, NonEmptyList }
+import cats.data.{ Kleisli, NonEmptyList, OptionT }
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync, Timer }
 import com.softwaremill.macwire.wire
+import com.typesafe.scalalogging.Logger
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
@@ -23,8 +24,25 @@ final class AppServer[F[_]: Sync](
   openAPIServer: OpenAPIServer[F]
 ) {
 
+  private val logger = Logger(getClass)
+
   val routes: Kleisli[F, Request[F], Response[F]] =
-    NonEmptyList.of(usesServer.userRoutes, postServer.postRoutes, openAPIServer.openAPIRoutes).reduceK.orNotFound
+    NonEmptyList
+      .of(usesServer.userRoutes, postServer.postRoutes, openAPIServer.openAPIRoutes)
+      .reduceK
+      .local { req: Request[F] =>
+        logger.info(s"Received request ${req.method.name.toUpperCase} ${req.uri}")
+        req
+      }
+      .map { response =>
+        logger.info(s"Received succeeded with ${response.status}")
+        response
+      }
+      .handleErrorWith { error: Throwable =>
+        logger.error(s"Request failed with error", error)
+        Kleisli.liftF(error.raiseError[OptionT[F, *], Response[F]])
+      }
+      .orNotFound
 }
 object AppServer {
 

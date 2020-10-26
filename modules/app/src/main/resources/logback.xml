@@ -11,15 +11,17 @@
     <appender-ref ref="STDOUT"/>
   </root>
 
-  <logger name="io.branchtalk" level="warn"/>
-  <logger name="io.branchtalk.shared.infrastructure" level="warn"/>
-  <logger name="io.branchtalk.discussions.reads" level="warn"/>
-  <logger name="io.branchtalk.discussions.writes" level="warn"/>
-  <logger name="io.branchtalk.users.reads" level="warn"/>
-  <logger name="io.branchtalk.users.writes" level="warn"/>
+  <!-- control Branchtalk logs -->
+  <logger name="io.branchtalk" level="info"/>
+  <logger name="io.branchtalk.shared.infrastructure" level="info"/>
+  <logger name="io.branchtalk.discussions.reads" level="info"/>
+  <logger name="io.branchtalk.discussions.writes" level="info"/>
+  <logger name="io.branchtalk.users.reads" level="info"/>
+  <logger name="io.branchtalk.users.writes" level="info"/>
 
   <!-- control HTTP4s logs -->
-  <logger name="org.http4s.blaze.channel.nio1" level="error"/>
+  <logger name="org.http4s.blaze.BlazeServerBuilder" level="off"/>
+  <logger name="org.http4s.blaze.channel" level="error"/>
   <logger name="org.http4s.server.blaze" level="error"/>
 
   <!-- control Flyway logs -->

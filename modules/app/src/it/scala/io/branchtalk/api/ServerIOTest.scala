@@ -16,7 +16,7 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   // populated by resources
   protected var server: Server[IO]                                 = _
   protected var client: SttpBackend[IO, Nothing, WebSocketHandler] = _
-  protected lazy val tapirBaseUri = Uri.unsafeApply(
+  protected lazy val sttpBaseUri = Uri.unsafeApply(
     scheme = server.baseUri.scheme.fold(???)(_.value),
     host   = server.baseUri.host.fold(???)(_.value),
     port   = server.baseUri.port.fold(???)(_.intValue())
@@ -42,6 +42,6 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Nothing]) {
 
     def toTestCall(input: I): IO[Response[DecodeResult[Either[E, O]]]] =
-      endpoint.toSttpRequest(tapirBaseUri).apply(input).send[IO]()(backend = client, isIdInRequest = implicitly)
+      endpoint.toSttpRequest(sttpBaseUri).apply(input).send[IO]()(backend = client, isIdInRequest = implicitly)
   }
 }

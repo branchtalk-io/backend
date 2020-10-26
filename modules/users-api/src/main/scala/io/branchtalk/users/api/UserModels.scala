@@ -15,6 +15,8 @@ import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
 import sttp.tapir.Schema
 
+// TODO: test codecs - take model, serialize it, deserialize it, check if results match
+
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object UserModels {
 
@@ -25,12 +27,11 @@ object UserModels {
     summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[User.Name]
   implicit val userDescriptionCodec: JsCodec[User.Description] =
     summonCodec[String](JsonCodecMaker.make).asNewtype[User.Description]
-  implicit val passwordHashCodec: JsCodec[Password.Hash] =
-    summonCodec[Array[Byte]](JsonCodecMaker.make).asNewtype[Password.Hash]
-  implicit val passwordSaltCodec: JsCodec[Password.Salt] =
-    summonCodec[Array[Byte]](JsonCodecMaker.make).asNewtype[Password.Salt]
   implicit val passwordRawCodec: JsCodec[Password.Raw] =
-    summonCodec[Array[Byte]](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Password.Raw]
+    summonCodec[String](JsonCodecMaker.make)
+      .map[Array[Byte]](_.getBytes)(new String(_)) // I wanted to avoid that but the result is ugly :/
+      .refine[NonEmpty] // I'll try to revisit that someday and e.g. use Base64 here?
+      .asNewtype[Password.Raw]
   implicit val permissionsCodec: JsCodec[Permissions] =
     summonCodec[Set[Permission]](JsonCodecMaker.make).asNewtype[Permissions]
   implicit val sessionExpirationCodec: JsCodec[Session.ExpirationTime] =
@@ -43,10 +44,6 @@ object UserModels {
     summonSchema[String Refined NonEmpty].asNewtype[User.Name]
   implicit val userDescriptionSchema: Schema[User.Description] =
     summonSchema[String].asNewtype[User.Description]
-  implicit val passwordHashSchema: Schema[Password.Hash] =
-    summonSchema[Array[Byte]].asNewtype[Password.Hash]
-  implicit val passwordSaltSchema: Schema[Password.Salt] =
-    summonSchema[Array[Byte]].asNewtype[Password.Salt]
   implicit val passwordRawSchema: Schema[Password.Raw] =
     summonSchema[Array[Byte] Refined NonEmpty].asNewtype[Password.Raw]
   implicit val permissionsSchema: Schema[Permissions] =
@@ -67,7 +64,7 @@ object UserModels {
     email:       User.Email,
     username:    User.Name,
     description: Option[User.Description],
-    password:    Password
+    password:    Password.Raw
   )
   @Semi(JsCodec) final case class SignUpResponse(
     userID:    ID[User],
@@ -90,7 +87,6 @@ object UserModels {
     email:       User.Email,
     username:    User.Name,
     description: Option[User.Description],
-    password:    Password,
     permissions: Permissions
   )
   object APIUser {
@@ -102,7 +98,7 @@ object UserModels {
     moderatorID:    Option[ID[User]],
     newUsername:    Updatable[User.Name],
     newDescription: OptionUpdatable[User.Description],
-    newPassword:    Updatable[Password]
+    newPassword:    Updatable[Password.Raw]
   )
   @Semi(JsCodec) final case class UpdateUserResponse(id: ID[User])
 

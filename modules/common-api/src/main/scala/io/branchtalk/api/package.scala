@@ -27,27 +27,42 @@ package object api {
   def summonParam[T](implicit param:   Param[T]):   Param[T]   = param
   def summonSchema[T](implicit schema: Schema[T]):  Schema[T]  = schema
 
+  @SuppressWarnings(Array("org.wartremover.warts.All")) // handling valid null values
   implicit class RefineCodec[T](private val codec: JsCodec[T]) extends AnyVal {
 
     def mapDecode[U](f: T => Either[String, U])(g: U => T): JsCodec[U] = new JsCodec[U] {
-      override def decodeValue(in: JsonReader, default: U): U = f(codec.decodeValue(in, g(default))) match {
-        case Left(error)  => in.decodeError(error)
-        case Right(value) => value
-      }
+      override def decodeValue(in: JsonReader, default: U): U =
+        codec.decodeValue(in, if (default != null) g(default) else null.asInstanceOf[T]) match {
+          case null => null.asInstanceOf[U]
+          case t =>
+            f(t) match {
+              case null         => null.asInstanceOf[U]
+              case Left(error)  => in.decodeError(error)
+              case Right(value) => value
+            }
+        }
 
       override def encodeValue(x: U, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
 
-      @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
-      override def nullValue: U = null.asInstanceOf[U] // scalastyle:ignore
+      override def nullValue: U = codec.nullValue match {
+        case null => null.asInstanceOf[U]
+        case u    => f(u).getOrElse(null.asInstanceOf[U]) // scalastyle:ignore
+      }
     }
 
     def map[U](f: T => U)(g: U => T): JsCodec[U] = new JsCodec[U] {
-      override def decodeValue(in: JsonReader, default: U): U = f(codec.decodeValue(in, g(default)))
+      override def decodeValue(in: JsonReader, default: U): U =
+        codec.decodeValue(in, if (default != null) g(default) else null.asInstanceOf[T]) match {
+          case null => null.asInstanceOf[U]
+          case t    => f(t)
+        }
 
       override def encodeValue(x: U, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
 
-      @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null"))
-      override def nullValue: U = null.asInstanceOf[U] // scalastyle:ignore
+      override def nullValue: U = codec.nullValue match {
+        case null => null.asInstanceOf[U]
+        case u    => f(u)
+      }
     }
 
     def refine[P: Validate[T, *]]: JsCodec[T Refined P] = mapDecode(refineV[P](_: T))(_.value)

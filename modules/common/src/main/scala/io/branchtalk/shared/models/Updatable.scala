@@ -7,6 +7,11 @@ import scala.annotation.nowarn
 
 sealed trait Updatable[+A] extends ADT {
 
+  def map[B](f: A => B): Updatable[B] = this match {
+    case Updatable.Set(value) => Updatable.Set(f(value))
+    case Updatable.Keep       => Updatable.Keep
+  }
+
   def fold[B](set: A => B, keep: => B): B = this match {
     case Updatable.Set(value) => set(value)
     case Updatable.Keep       => keep

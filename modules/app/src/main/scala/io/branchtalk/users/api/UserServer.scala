@@ -9,7 +9,7 @@ import io.branchtalk.mappings._
 import io.branchtalk.shared.models.{ CommonError, ID }
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.{ UsersReads, UsersWrites }
-import io.branchtalk.users.model.{ Session, User }
+import io.branchtalk.users.model.{ Password, Session, User }
 import io.branchtalk.users.services.AuthServices
 import io.scalaland.chimney.dsl._
 import org.http4s._
@@ -42,7 +42,9 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   private val signUp = UserAPIs.signUp.toRoutes { signup =>
     withErrorHandling {
       for {
-        (user, session) <- usersWrites.userWrites.createUser(signup.into[User.Create].transform)
+        (user, session) <- usersWrites.userWrites.createUser(
+          signup.into[User.Create].withFieldConst(_.password, Password.create(signup.password)).transform
+        )
       } yield SignUpResponse(user.id, session.id)
     }
   }
@@ -100,6 +102,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
             .into[User.Update]
             .withFieldConst(_.id, userID)
             .withFieldConst(_.moderatorID, moderatorID)
+            .withFieldConst(_.newPassword, update.newPassword.map(Password.create))
             .withFieldConst(_.updatePermissions, List.empty)
             .transform
           _ <- usersWrites.userWrites.updateUser(data)
