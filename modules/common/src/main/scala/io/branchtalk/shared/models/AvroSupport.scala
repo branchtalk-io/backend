@@ -3,6 +3,7 @@ package io.branchtalk.shared.models
 import java.net.URI
 import java.util
 
+import cats.Id
 import cats.data.{ NonEmptyList, NonEmptyVector }
 import com.sksamuel.avro4s._
 import eu.timepit.refined.api.{ RefType, Validate }
@@ -13,89 +14,80 @@ import scala.jdk.CollectionConverters._
 
 object AvroSupport {
 
-  // newtype
+  // newtype - order of implicits is necessary (swapping them would break derivations, so we can't use typeclass syntax)
 
-  implicit def coercibleDecoder[R, N](
-    implicit ev: Coercible[Decoder[R], Decoder[N]],
-    R:           Decoder[R]
-  ): Decoder[N] =
-    ev(R)
-  implicit def coercibleEncoder[R, N](
-    implicit ev: Coercible[Encoder[R], Encoder[N]],
-    R:           Encoder[R]
-  ): Encoder[N] =
-    ev(R)
-  implicit def coercibleSchemaFor[R, N](
-    implicit ev: Coercible[SchemaFor[R], SchemaFor[N]],
-    R:           SchemaFor[R]
-  ): SchemaFor[N] =
-    ev(R)
+  implicit def coercibleDecoder[R, N](implicit ev: Coercible[R, N], R: Decoder[R]): Decoder[N] =
+    Coercible.unsafeWrapMM[Decoder, Id, R, N].apply(R)
+  implicit def coercibleEncoder[R, N](implicit ev: Coercible[R, N], R: Encoder[R]): Encoder[N] =
+    Coercible.unsafeWrapMM[Encoder, Id, R, N].apply(R)
+  implicit def coercibleSchemaFor[R, N](implicit ev: Coercible[R, N], R: SchemaFor[R]): SchemaFor[N] =
+    Coercible.unsafeWrapMM[SchemaFor, Id, R, N].apply(R)
 
   // refined (redirections)
 
-  implicit def refinedSchemaFor[T, P, F[_, _]](implicit schemaFor: SchemaFor[T]): SchemaFor[F[T, P]] =
+  implicit def refinedSchemaFor[T: SchemaFor, P, F[_, _]]: SchemaFor[F[T, P]] =
     refined.refinedSchemaFor[T, P, F]
 
   implicit def refinedEncoder[T: Encoder, P, F[_, _]: RefType]: Encoder[F[T, P]] =
     refined.refinedEncoder[T, P, F]
 
-  implicit def refinedDecoder[T: Decoder, P, F[_, _]: RefType](implicit validate: Validate[T, P]): Decoder[F[T, P]] =
+  implicit def refinedDecoder[T: Decoder, P: Validate[T, *], F[_, _]: RefType]: Decoder[F[T, P]] =
     refined.refinedDecoder[T, P, F]
 
   // cats (copy-paste as cats module isn't released)
 
-  implicit def nonEmptyListSchemaFor[T](implicit schemaFor: SchemaFor[T]): SchemaFor[NonEmptyList[T]] =
-    SchemaFor(Schema.createArray(schemaFor.schema))
+  implicit def nonEmptyListSchemaFor[T: SchemaFor]: SchemaFor[NonEmptyList[T]] =
+    SchemaFor(Schema.createArray(SchemaFor[T].schema))
 
-  implicit def nonEmptyVectorSchemaFor[T](implicit schemaFor: SchemaFor[T]): SchemaFor[NonEmptyVector[T]] =
-    SchemaFor(Schema.createArray(schemaFor.schema))
+  implicit def nonEmptyVectorSchemaFor[T: SchemaFor]: SchemaFor[NonEmptyVector[T]] =
+    SchemaFor(Schema.createArray(SchemaFor[T].schema))
 
-  implicit def nonEmptyListEncoder[T](implicit encoder: Encoder[T]): Encoder[NonEmptyList[T]] =
+  implicit def nonEmptyListEncoder[T: Encoder]: Encoder[NonEmptyList[T]] =
     new Encoder[NonEmptyList[T]] {
 
-      val schemaFor: SchemaFor[NonEmptyList[T]] = nonEmptyListSchemaFor(encoder.schemaFor)
+      val schemaFor: SchemaFor[NonEmptyList[T]] = nonEmptyListSchemaFor(Encoder[T].schemaFor)
 
       @SuppressWarnings(Array("org.wartremover.warts.Equals", "org.wartremover.warts.Null"))
       override def encode(ts: NonEmptyList[T]): java.util.List[AnyRef] = {
         require(schema != null)
-        ts.map(encoder.encode).toList.asJava
+        ts.map(Encoder[T].encode).toList.asJava
       }
     }
 
-  implicit def nonEmptyVectorEncoder[T](implicit encoder: Encoder[T]): Encoder[NonEmptyVector[T]] =
+  implicit def nonEmptyVectorEncoder[T: Encoder]: Encoder[NonEmptyVector[T]] =
     new Encoder[NonEmptyVector[T]] {
 
-      val schemaFor: SchemaFor[NonEmptyVector[T]] = nonEmptyVectorSchemaFor(encoder.schemaFor)
+      val schemaFor: SchemaFor[NonEmptyVector[T]] = nonEmptyVectorSchemaFor(Encoder[T].schemaFor)
 
       @SuppressWarnings(Array("org.wartremover.warts.Equals", "org.wartremover.warts.Null"))
       override def encode(ts: NonEmptyVector[T]): java.util.List[AnyRef] = {
         require(schema != null)
-        ts.map(encoder.encode).toVector.asJava
+        ts.map(Encoder[T].encode).toVector.asJava
       }
     }
 
-  implicit def nonEmptyListDecoder[T](implicit decoder: Decoder[T]): Decoder[NonEmptyList[T]] =
+  implicit def nonEmptyListDecoder[T: Decoder]: Decoder[NonEmptyList[T]] =
     new Decoder[NonEmptyList[T]] {
 
-      val schemaFor: SchemaFor[NonEmptyList[T]] = nonEmptyListSchemaFor(decoder.schemaFor)
+      val schemaFor: SchemaFor[NonEmptyList[T]] = nonEmptyListSchemaFor(Decoder[T].schemaFor)
 
       @SuppressWarnings(Array("org.wartremover.warts.ToString"))
       override def decode(value: Any): NonEmptyList[T] = value match {
-        case array: Array[_]           => NonEmptyList.fromListUnsafe(array.toList.map(decoder.decode))
-        case list:  util.Collection[_] => NonEmptyList.fromListUnsafe(list.asScala.map(decoder.decode).toList)
+        case array: Array[_]           => NonEmptyList.fromListUnsafe(array.toList.map(Decoder[T].decode))
+        case list:  util.Collection[_] => NonEmptyList.fromListUnsafe(list.asScala.map(Decoder[T].decode).toList)
         case other => sys.error("Unsupported type " + other.toString)
       }
     }
 
-  implicit def nonEmptyVectorDecoder[T](implicit decoder: Decoder[T]): Decoder[NonEmptyVector[T]] =
+  implicit def nonEmptyVectorDecoder[T: Decoder]: Decoder[NonEmptyVector[T]] =
     new Decoder[NonEmptyVector[T]] {
 
-      val schemaFor: SchemaFor[NonEmptyVector[T]] = nonEmptyVectorSchemaFor(decoder.schemaFor)
+      val schemaFor: SchemaFor[NonEmptyVector[T]] = nonEmptyVectorSchemaFor(Decoder[T].schemaFor)
 
       @SuppressWarnings(Array("org.wartremover.warts.ToString"))
       override def decode(value: Any): NonEmptyVector[T] = value match {
-        case array: Array[_]           => NonEmptyVector.fromVectorUnsafe(array.toVector.map(decoder.decode))
-        case list:  util.Collection[_] => NonEmptyVector.fromVectorUnsafe(list.asScala.map(decoder.decode).toVector)
+        case array: Array[_]           => NonEmptyVector.fromVectorUnsafe(array.toVector.map(Decoder[T].decode))
+        case list:  util.Collection[_] => NonEmptyVector.fromVectorUnsafe(list.asScala.map(Decoder[T].decode).toVector)
         case other => sys.error("Unsupported type " + other.toString)
       }
     }

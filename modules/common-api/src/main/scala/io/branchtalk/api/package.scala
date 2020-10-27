@@ -2,6 +2,7 @@ package io.branchtalk
 
 import java.net.URI
 
+import cats.Id
 import cats.effect.Sync
 import com.github.plokhotnyuk.jsoniter_scala.core.{ JsonReader, JsonValueCodec, JsonWriter }
 import com.github.plokhotnyuk.jsoniter_scala.macros._
@@ -67,12 +68,12 @@ package object api {
 
     def refine[P: Validate[T, *]]: JsCodec[T Refined P] = mapDecode(refineV[P](_: T))(_.value)
 
-    def asNewtype[N](implicit ev: Coercible[JsCodec[T], JsCodec[N]]): JsCodec[N] = ev(codec)
+    def asNewtype[N: Coercible[T, *]]: JsCodec[N] = Coercible.unsafeWrapMM[JsCodec, Id, T, N].apply(codec)
   }
 
   implicit class RefineSchema[T](private val schema: Schema[T]) extends AnyVal {
 
-    def asNewtype[N](implicit ev: Coercible[Schema[T], Schema[N]]): Schema[N] = ev(schema)
+    def asNewtype[N: Coercible[T, *]]: Schema[N] = Coercible.unsafeWrapMM[Schema, Id, T, N].apply(schema)
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Null"))

@@ -1,5 +1,6 @@
 package io.branchtalk.users.infrastructure
 
+import cats.Id
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.shared.infrastructure.DoobieSupport._
@@ -18,14 +19,11 @@ object DoobieExtensions {
 
   @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
   implicit val permissionsMeta: Meta[Permissions] = {
-    implicit def idCodec[A](
-      implicit ev: Coercible[JsonValueCodec[UUID], JsonValueCodec[ID[A]]]
-    ): JsonValueCodec[ID[A]] =
-      ev(JsonCodecMaker.make[UUID])
+    implicit def idCodec[A](implicit ev: Coercible[UUID, ID[A]]): JsonValueCodec[ID[A]] =
+      Coercible.unsafeWrapMM[JsonValueCodec, Id, UUID, ID[A]].apply(JsonCodecMaker.make)
     implicit val permissionCodec: JsonValueCodec[Permission] = JsonCodecMaker.make[Permission]
     implicit val permissionsCodec: JsonValueCodec[Permissions] =
-      Coercible[JsonValueCodec[Set[Permission]], JsonValueCodec[Permissions]]
-        .apply(JsonCodecMaker.make[Set[Permission]])
+      Coercible[JsonValueCodec[Set[Permission]], JsonValueCodec[Permissions]].apply(JsonCodecMaker.make)
 
     val jsonType = "jsonb"
 
