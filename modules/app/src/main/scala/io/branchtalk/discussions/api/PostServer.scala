@@ -1,9 +1,10 @@
 package io.branchtalk.discussions.api
 
-import cats.data.NonEmptySet
+import cats.data.{ NonEmptyList, NonEmptySet }
 import cats.effect.{ ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.{ Pagination, Permission, ServerErrorHandling }
+import io.branchtalk.api.{ Authentication, Pagination, Permission, ServerErrorHandling }
+import io.branchtalk.api
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post }
@@ -15,6 +16,7 @@ import io.branchtalk.users.services.AuthServices
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
+import sttp.tapir.server.ServerEndpoint
 
 import scala.collection.immutable.SortedSet
 
@@ -43,7 +45,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       PostError.ValidationFailed(errors)
   }(logger)
 
-  private val newest = PostAPIs.newest.toRoutes {
+  private val newest = PostAPIs.newest.serverLogic {
     case (optAuth, optOffset, optLimit) =>
       withErrorHandling {
         for {
@@ -63,7 +65,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
   }
 
-  private val create = PostAPIs.create.toRoutes {
+  private val create = PostAPIs.create.serverLogic {
     case (auth, createData) =>
       withErrorHandling {
         for {
@@ -74,7 +76,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
   }
 
-  private val read = PostAPIs.read.toRoutes {
+  private val read = PostAPIs.read.serverLogic {
     case (optAuth, postID) =>
       withErrorHandling {
         for {
@@ -84,7 +86,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
   }
 
-  private val update = PostAPIs.update.toRoutes {
+  private val update = PostAPIs.update.serverLogic {
     case (auth, postID, updateData) =>
       withErrorHandling {
         for {
@@ -104,7 +106,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
   }
 
-  private val delete = PostAPIs.delete.toRoutes {
+  private val delete = PostAPIs.delete.serverLogic {
     case (auth, postID) =>
       withErrorHandling {
         for {
@@ -118,5 +120,13 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
   }
 
-  val postRoutes: HttpRoutes[F] = newest <+> create <+> read <+> update <+> delete
+  def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Nothing, F]] = NonEmptyList.of(
+    newest,
+    create,
+    read,
+    update,
+    delete
+  )
+
+  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
 }

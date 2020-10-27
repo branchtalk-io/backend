@@ -18,6 +18,7 @@ object Dependencies {
   val drosteVersion     = "0.8.0"
   val enumeratumVersion = "1.6.1"
   val fs2Version        = "2.4.2"
+  val http4sVersion     = "0.21.7"
   val jsoniterVersion   = "2.6.0"
   val libGDXVersion     = "1.9.10"
   val monixVersion      = "3.2.2"
@@ -76,6 +77,7 @@ object Dependencies {
   val macwire        = "com.softwaremill.macwire" %% "macros" % "2.3.6" % "provided"
   // API
   val sttpCats       = "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.2.5" // same as the one used by tapir
+  val http4sPrometheus = "org.http4s" %% "http4s-prometheus-metrics" % http4sVersion
   val tapir          = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
   val tapirHttp4s    = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
   val tapirJsoniter  = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion

@@ -196,6 +196,7 @@ val application = project
       Dependencies.monixExecution,
       Dependencies.monixEval,
       Dependencies.sttpCats % IntegrationTest,
+      Dependencies.http4sPrometheus,
       Dependencies.tapirHttp4s,
       Dependencies.tapirOpenAPI,
       Dependencies.tapirSwaggerUI,

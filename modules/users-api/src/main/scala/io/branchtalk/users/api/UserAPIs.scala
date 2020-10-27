@@ -87,6 +87,4 @@ object UserAPIs {
     .in(prefix / path[ID[User]])
     .out(jsonBody[DeleteUserResponse])
     .errorOut(errorMapping)
-
-  val endpoints: List[Endpoint[_, _, _, _]] = List(signUp, signIn, signOut, fetchProfile, updateProfile, deleteProfile)
 }

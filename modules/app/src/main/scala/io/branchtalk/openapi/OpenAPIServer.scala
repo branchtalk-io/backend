@@ -1,29 +1,32 @@
 package io.branchtalk.openapi
 
+import cats.data.NonEmptyList
 import cats.effect.{ ContextShift, Sync }
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.api._
 import io.branchtalk.configs.APIInfo
-import io.branchtalk.discussions.api.PostAPIs
-import io.branchtalk.users.api.UserAPIs
 import org.http4s.HttpRoutes
 import sttp.tapir.docs.openapi._
 import sttp.tapir.openapi._
 import sttp.tapir.openapi.OpenAPI.ReferenceOr
+import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.swagger.http4s.SwaggerHttp4s
 
 import scala.collection.immutable.ListMap
 
-final class OpenAPIServer[F[_]: Sync: ContextShift](apiInfo: APIInfo) {
+final class OpenAPIServer[F[_]: Sync: ContextShift](
+  apiInfo:   APIInfo,
+  endpoints: NonEmptyList[ServerEndpoint[_, _, _, Nothing, F]]
+) {
 
   import OpenAPIServer._
 
-  def openAPI: OpenAPI = (UserAPIs.endpoints ++ PostAPIs.endpoints).toOpenAPI(apiInfo.toOpenAPI)
+  def openAPI: OpenAPI = endpoints.toList.toOpenAPI(apiInfo.toOpenAPI)
 
   val openAPIJson: String = writeToString(openAPI)
 
-  val openAPIRoutes: HttpRoutes[F] = new SwaggerHttp4s(yaml = openAPIJson, yamlName = "swagger.json").routes
+  val routes: HttpRoutes[F] = new SwaggerHttp4s(yaml = openAPIJson, yamlName = "swagger.json").routes
 }
 @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
 object OpenAPIServer {

@@ -1,5 +1,6 @@
 package io.branchtalk.users.api
 
+import cats.data.NonEmptyList
 import cats.effect.{ Clock, ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api
@@ -14,6 +15,7 @@ import io.branchtalk.users.services.AuthServices
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
+import sttp.tapir.server.ServerEndpoint
 
 final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
   authServices:     AuthServices[F],
@@ -39,7 +41,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
       UserError.ValidationFailed(errors)
   }(logger)
 
-  private val signUp = UserAPIs.signUp.toRoutes { signup =>
+  private val signUp = UserAPIs.signUp.serverLogic { signup =>
     withErrorHandling {
       for {
         (user, session) <- usersWrites.userWrites.createUser(
@@ -49,7 +51,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  private val signIn = UserAPIs.signIn.toRoutes { authentication =>
+  private val signIn = UserAPIs.signIn.serverLogic { authentication =>
     withErrorHandling {
       for {
         (user, sessionOpt) <- authServices.authenticateUserWithSessionOpt(authentication)
@@ -72,7 +74,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  private val signOut = UserAPIs.signOut.toRoutes { authentication =>
+  private val signOut = UserAPIs.signOut.serverLogic { authentication =>
     withErrorHandling {
       for {
         (user, sessionOpt) <- authServices.authenticateUserWithSessionOpt(authentication)
@@ -84,7 +86,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  private val fetchProfile = UserAPIs.fetchProfile.toRoutes { userID =>
+  private val fetchProfile = UserAPIs.fetchProfile.serverLogic { userID =>
     withErrorHandling {
       for {
         user <- usersReads.userReads.requireById(userID)
@@ -92,7 +94,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  private val updateProfile = UserAPIs.updateProfile.toRoutes {
+  private val updateProfile = UserAPIs.updateProfile.serverLogic {
     case (authentication, userID, update) =>
       withErrorHandling {
         for {
@@ -110,7 +112,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
       }
   }
 
-  private val deleteProfile = UserAPIs.deleteProfile.toRoutes {
+  private val deleteProfile = UserAPIs.deleteProfile.serverLogic {
     case (authentication, userID) =>
       withErrorHandling {
         for {
@@ -121,5 +123,14 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
       }
   }
 
-  val userRoutes: HttpRoutes[F] = signUp <+> signIn <+> signOut <+> fetchProfile <+> updateProfile <+> deleteProfile
+  def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Nothing, F]] = NonEmptyList.of(
+    signUp,
+    signIn,
+    signOut,
+    fetchProfile,
+    updateProfile,
+    deleteProfile
+  )
+
+  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
 }

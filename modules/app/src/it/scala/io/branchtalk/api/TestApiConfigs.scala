@@ -1,7 +1,7 @@
 package io.branchtalk.api
 
 import cats.effect.{ Resource, Sync, Timer }
-import io.branchtalk.configs.{ APIConfig, APIContact, APIInfo, APILicense, AppConfig }
+import io.branchtalk.configs.{ APIConfig, APIContact, APIHttp, APIInfo, APILicense, AppConfig }
 
 import scala.collection.mutable
 import scala.concurrent.duration.DurationInt
@@ -43,9 +43,14 @@ object TestApiConfigs {
         title          = "test",
         version        = "test",
         description    = "test",
-        termsOfService = "test",
-        contact        = APIContact(name = "test", email = "test@brachtalk.io", url = s"http://$host:$port"),
-        license        = APILicense(name = "test", url = s"http://$host:$port")
+        termsOfService = "http://branchtalk.io",
+        contact        = APIContact(name = "test", email = "test@brachtalk.io", url = "http://branchtalk.io"),
+        license        = APILicense(name = "test", url = "http://branchtalk.io")
+      ),
+      http = APIHttp(
+        http2Enabled         = true,
+        maxHeaderLineLength  = 512,
+        maxRequestLineLength = 1024
       ),
       pagination = Map.empty
     )

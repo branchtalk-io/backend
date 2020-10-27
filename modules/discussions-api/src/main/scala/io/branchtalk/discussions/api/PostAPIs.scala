@@ -84,6 +84,4 @@ object PostAPIs {
     .in(prefix / path[ID[Post]])
     .out(jsonBody[DeletePostResponse])
     .errorOut(errorMapping)
-
-  val endpoints: List[Endpoint[_, _, _, _]] = List(newest, create, read, update, delete)
 }

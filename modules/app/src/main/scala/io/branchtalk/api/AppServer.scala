@@ -1,9 +1,8 @@
 package io.branchtalk.api
 
-import cats.data.{ Kleisli, NonEmptyList, OptionT }
+import cats.data.NonEmptyList
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync, Timer }
 import com.softwaremill.macwire.wire
-import com.typesafe.scalalogging.Logger
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
@@ -11,40 +10,44 @@ import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.users.api.UserServer
 import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.services.{ AuthServices, AuthServicesImpl }
+import org.http4s._
 import org.http4s.implicits._
-import org.http4s.{ Request, Response }
+import org.http4s.metrics.prometheus.Prometheus
+import org.http4s.metrics.MetricsOps
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.Server
+import sttp.tapir.server.ServerEndpoint
+import org.http4s.server.middleware._
 
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
 
-final class AppServer[F[_]: Sync](
+final class AppServer[F[_]: Sync: Timer](
   usesServer:    UserServer[F],
   postServer:    PostServer[F],
-  openAPIServer: OpenAPIServer[F]
+  openAPIServer: OpenAPIServer[F],
+  metricsOps:    MetricsOps[F]
 ) {
 
-  private val logger = Logger(getClass)
+  // TODO: pass configuration
+  private val corsConfig = CORSConfig(anyOrigin = true, allowCredentials = true, maxAge = 1.day.toSeconds)
 
-  val routes: Kleisli[F, Request[F], Response[F]] =
+  val routes: HttpApp[F] =
     NonEmptyList
-      .of(usesServer.userRoutes, postServer.postRoutes, openAPIServer.openAPIRoutes)
+      .of(usesServer.routes, postServer.routes, openAPIServer.routes)
       .reduceK
-      .local { req: Request[F] =>
-        logger.info(s"Received request ${req.method.name.toUpperCase} ${req.uri}")
-        req
-      }
-      .map { response =>
-        logger.info(s"Received succeeded with ${response.status}")
-        response
-      }
-      .handleErrorWith { error: Throwable =>
-        logger.error(s"Request failed with error", error)
-        Kleisli.liftF(error.raiseError[OptionT[F, *], Response[F]])
-      }
+      .pipe(GZip(_))
+      .pipe(CORS(_, corsConfig))
+      .pipe(Metrics[F](metricsOps))
       .orNotFound
 }
 object AppServer {
+
+  private def prometheusMetrics[F[_]: Sync]: Resource[F, MetricsOps[F]] =
+    for {
+      registry <- Prometheus.collectorRegistry[F]
+      metrics <- Prometheus.metricsOps[F](registry, "server")
+    } yield metrics
 
   def asResource[F[_]: ConcurrentEffect: ContextShift: Timer](
     appConfig:         AppConfig,
@@ -53,7 +56,7 @@ object AppServer {
     usersWrites:       UsersWrites[F],
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
-  ): Resource[F, Server[F]] = {
+  ): Resource[F, Server[F]] = prometheusMetrics[F].flatMap { metricsOps =>
     // this is kind of silly...
     import usersReads.{ sessionReads, userReads }
     import usersWrites.{ sessionWrites, userWrites }
@@ -72,12 +75,17 @@ object AppServer {
     }
     val openAPIServer: OpenAPIServer[F] = {
       import apiConfig.info
+      val endpoints: NonEmptyList[ServerEndpoint[_, _, _, Nothing, F]] =
+        NonEmptyList.of(usersServer.endpoints, postServer.endpoints).reduceK
       wire[OpenAPIServer[F]]
     }
 
     val appServer = wire[AppServer[F]]
 
-    BlazeServerBuilder[F](ExecutionContext.global)
+    BlazeServerBuilder[F](ExecutionContext.global) // TODO: make configurable
+      .enableHttp2(apiConfig.http.http2Enabled)
+      .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength.value,
+                        maxHeadersLen     = apiConfig.http.maxHeaderLineLength.value)
       .bindHttp(port = appConfig.port, host = appConfig.host)
       .withHttpApp(appServer.routes)
       .resource

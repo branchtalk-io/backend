@@ -1,40 +1,66 @@
 package io.branchtalk.configs
 
 import enumeratum._
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.numeric.Positive
+import eu.timepit.refined.string.{ MatchesRegex, Url }
+import eu.timepit.refined.pureconfig._
 import io.branchtalk.api.{ PaginationLimit, PaginationOffset }
 import io.scalaland.catnip.Semi
-import io.scalaland.chimney.dsl._
 import pureconfig._
 import pureconfig.error.CannotConvert
 import pureconfig.module.enumeratum._
 import sttp.tapir.openapi.{ Contact, Info, License }
 
-@Semi(ConfigReader) final case class APIContact(name: String, email: String, url: String) {
+@Semi(ConfigReader) final case class APIContact(
+  name:  String,
+  email: String Refined MatchesRegex["(.+)@(.+)"],
+  url:   String Refined Url
+) {
 
-  def toOpenAPI: Contact = this.transformInto[Contact]
+  def toOpenAPI: Contact = Contact(
+    name  = name.some,
+    email = email.value.some,
+    url   = url.value.some
+  )
 }
 
-@Semi(ConfigReader) final case class APILicense(name: String, url: String) {
+@Semi(ConfigReader) final case class APILicense(
+  name: String,
+  url:  String Refined Url
+) {
 
-  def toOpenAPI: License = this.transformInto[License]
+  def toOpenAPI: License = License(
+    name = name,
+    url  = url.value.some
+  )
 }
 
 @Semi(ConfigReader) final case class APIInfo(
-  title:          String,
-  version:        String,
-  description:    String,
-  termsOfService: String,
+  title:          String Refined NonEmpty,
+  version:        String Refined NonEmpty,
+  description:    String Refined NonEmpty,
+  termsOfService: String Refined Url, // URI
   contact:        APIContact,
   license:        APILicense
 ) {
 
-  def toOpenAPI: Info =
-    this
-      .into[Info]
-      .withFieldConst(_.contact, contact.toOpenAPI.some)
-      .withFieldConst(_.license, license.toOpenAPI.some)
-      .transform
+  def toOpenAPI: Info = Info(
+    title          = title.value,
+    version        = version.value,
+    description    = description.value.some,
+    termsOfService = termsOfService.value.some,
+    contact        = contact.toOpenAPI.some,
+    license        = license.toOpenAPI.some
+  )
 }
+
+@Semi(ConfigReader) final case class APIHttp(
+  http2Enabled:         Boolean,
+  maxHeaderLineLength:  Int Refined Positive,
+  maxRequestLineLength: Int Refined Positive
+)
 
 @Semi(ConfigReader) final case class PaginationConfig(
   defaultLimit: PaginationLimit,
@@ -74,6 +100,7 @@ object APIPart extends Enum[APIPart] {
 
 @Semi(ConfigReader) final case class APIConfig(
   info:       APIInfo,
+  http:       APIHttp,
   pagination: Map[APIPart, PaginationConfig]
 ) {
 
