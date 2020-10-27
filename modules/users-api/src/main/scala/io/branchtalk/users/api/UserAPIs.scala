@@ -39,7 +39,7 @@ object UserAPIs {
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .post
     .in(authHeader)
-    .in(prefix / "sign_up")
+    .in(prefix / "sign_in")
     .out(jsonBody[SignInResponse])
     .errorOut(errorMapping)
 

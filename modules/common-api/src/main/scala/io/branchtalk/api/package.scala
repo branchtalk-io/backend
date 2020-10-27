@@ -14,11 +14,19 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.shared.models.{ ID, ParseRefined, UUID, UUIDGenerator }
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.Coercible
-import sttp.tapir.{ Codec, Schema }
+import sttp.tapir.{ Codec, DecodeResult, Schema }
 import sttp.tapir.codec.refined._
 import sttp.tapir.CodecFormat.TextPlain
 
 package object api {
+
+  implicit class TapirResultOps[A](private val decodeResult: DecodeResult[A]) extends AnyVal {
+
+    def toOption: Option[A] = decodeResult match {
+      case DecodeResult.Value(v) => v.some
+      case _                     => none[A]
+    }
+  }
 
   // shortcuts
   type JsCodec[A] = JsonValueCodec[A]
@@ -137,7 +145,7 @@ package object api {
 
     @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
     implicit val codec: JsCodec[Password] =
-      summonCodec[Array[Byte]](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Password]
+      summonCodec[String](JsonCodecMaker.make).map(_.getBytes)(new String(_)).refine[NonEmpty].asNewtype[Password]
     implicit val schema: Schema[Password] =
       summonSchema[Array[Byte] Refined NonEmpty].asNewtype[Password]
   }

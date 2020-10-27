@@ -3,8 +3,7 @@ package io.branchtalk.discussions.api
 import cats.data.{ NonEmptyList, NonEmptySet }
 import cats.effect.{ ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.{ Authentication, Pagination, Permission, ServerErrorHandling }
-import io.branchtalk.api
+import io.branchtalk.api._
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post }

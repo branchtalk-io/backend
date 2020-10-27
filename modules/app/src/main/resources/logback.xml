@@ -13,6 +13,7 @@
 
   <!-- control Branchtalk logs -->
   <logger name="io.branchtalk" level="info"/>
+  <logger name="io.branchtalk.api" level="info"/>
   <logger name="io.branchtalk.shared.infrastructure" level="info"/>
   <logger name="io.branchtalk.discussions.reads" level="info"/>
   <logger name="io.branchtalk.discussions.writes" level="info"/>

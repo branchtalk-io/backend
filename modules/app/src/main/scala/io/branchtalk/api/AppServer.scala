@@ -1,7 +1,8 @@
 package io.branchtalk.api
 
+import cats.arrow.FunctionK
 import cats.data.NonEmptyList
-import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync, Timer }
+import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Sync, Timer }
 import com.softwaremill.macwire.wire
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
@@ -22,16 +23,19 @@ import org.http4s.server.middleware._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 
-final class AppServer[F[_]: Sync: Timer](
+final class AppServer[F[_]: Concurrent: Timer](
   usesServer:    UserServer[F],
   postServer:    PostServer[F],
   openAPIServer: OpenAPIServer[F],
   metricsOps:    MetricsOps[F]
 ) {
 
+  private val logger = com.typesafe.scalalogging.Logger(getClass)
+
   // TODO: pass configuration
   private val corsConfig = CORSConfig(anyOrigin = true, allowCredentials = true, maxAge = 1.day.toSeconds)
 
+  // TODO: X-Request-ID, then cache X-Request-ID to make it idempotent
   val routes: HttpApp[F] =
     NonEmptyList
       .of(usesServer.routes, postServer.routes, openAPIServer.routes)
@@ -40,6 +44,12 @@ final class AppServer[F[_]: Sync: Timer](
       .pipe(CORS(_, corsConfig))
       .pipe(Metrics[F](metricsOps))
       .orNotFound
+      .pipe(
+        Logger[F, F](logHeaders = true,
+                     logBody    = true,
+                     fk         = FunctionK.id,
+                     logAction  = ((s: String) => Sync[F].delay(logger.info(s))).some)(_)
+      )
 }
 object AppServer {
 
