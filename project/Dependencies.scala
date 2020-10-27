@@ -76,17 +76,19 @@ object Dependencies {
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.0.0"
   val macwire        = "com.softwaremill.macwire" %% "macros" % "2.3.6" % "provided"
   // API
-  val sttpCats       = "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.2.5" // same as the one used by tapir
+  val sttpCats =
+    "com.softwaremill.sttp.client" %% "async-http-client-backend-cats" % "2.2.5" // same as the one used by tapir
   val http4sPrometheus = "org.http4s" %% "http4s-prometheus-metrics" % http4sVersion
-  val tapir          = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
-  val tapirHttp4s    = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
-  val tapirJsoniter  = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
-  val tapirRefined   = "com.softwaremill.sttp.tapir" %% "tapir-refined" % tapirVersion
-  val tapirOpenAPI   = "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % tapirVersion
-  val tapirSwaggerUI = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-http4s" % tapirVersion
-  val tapirSTTP      = "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion
-  val jsoniter       = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion
-  val jsoniterMacro  = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "compile-internal"
+  val tapir            = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
+  val tapirHttp4s      = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
+  val tapirJsoniter    = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
+  val tapirRefined     = "com.softwaremill.sttp.tapir" %% "tapir-refined" % tapirVersion
+  val tapirOpenAPI     = "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % tapirVersion
+  val tapirSwaggerUI   = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-http4s" % tapirVersion
+  val tapirSTTP        = "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion
+  val jsoniter         = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion
+  val jsoniterMacro =
+    "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "compile-internal"
   // config
   val decline              = "com.monovore" %% "decline" % declineVersion
   val scalaConfig          = "com.typesafe" % "config" % "1.4.0"
@@ -96,9 +98,11 @@ object Dependencies {
   // security
   val bcrypt = "at.favre.lib" % "bcrypt" % "0.9.0"
   // logging
-  val scalaLogging = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
-  val logback      = "ch.qos.logback" % "logback-classic" % "1.2.3"
-  val sourcecode   = "com.lihaoyi" %% "sourcecode" % "0.2.1"
+  val scalaLogging       = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
+  val logback            = "ch.qos.logback" % "logback-classic" % "1.2.3"
+  val logbackJackson     = "ch.qos.logback.contrib" % "logback-jackson" % "0.1.5"
+  val logbackJsonClassic = "ch.qos.logback.contrib" % "logback-json-classic" % "0.1.5"
+  val sourcecode         = "com.lihaoyi" %% "sourcecode" % "0.2.1"
   // testing
   val jfairy          = "io.codearte.jfairy" % "jfairy" % "0.5.9"
   val spec2Core       = "org.specs2" %% "specs2-core" % specs2Version

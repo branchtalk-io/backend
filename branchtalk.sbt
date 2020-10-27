@@ -190,6 +190,8 @@ val application = project
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.decline,
+      Dependencies.logbackJackson,
+      Dependencies.logbackJsonClassic,
       Dependencies.jsoniter,
       Dependencies.jsoniterMacro,
       Dependencies.refinedDecline,
