@@ -43,7 +43,11 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Nothing]) {
 
     def toTestCall(input: I): IO[Response[DecodeResult[Either[E, O]]]] =
-      endpoint.toSttpRequest(sttpBaseUri).apply(input).send[IO]()(backend = client, isIdInRequest = implicitly)
+      endpoint
+        .toSttpRequest(sttpBaseUri)
+        .apply(input)
+        .acceptEncoding("deflate") // helps debugging request in logs
+        .send[IO]()(backend = client, isIdInRequest = implicitly)
   }
 
   import org.specs2.control.ImplicitParameters._

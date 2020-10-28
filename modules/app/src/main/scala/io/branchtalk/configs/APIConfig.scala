@@ -13,6 +13,8 @@ import pureconfig.error.CannotConvert
 import pureconfig.module.enumeratum._
 import sttp.tapir.openapi.{ Contact, Info, License }
 
+import scala.concurrent.duration.FiniteDuration
+
 @Semi(ConfigReader) final case class APIContact(
   name:  String,
   email: String Refined MatchesRegex["(.+)@(.+)"],
@@ -57,7 +59,12 @@ import sttp.tapir.openapi.{ Contact, Info, License }
 }
 
 @Semi(ConfigReader) final case class APIHttp(
+  logHeaders:           Boolean,
+  logBody:              Boolean,
   http2Enabled:         Boolean,
+  corsAnyOrigin:        Boolean,
+  corsAllowCredentials: Boolean,
+  corsMaxAge:           FiniteDuration,
   maxHeaderLineLength:  Int Refined Positive,
   maxRequestLineLength: Int Refined Positive
 )

@@ -4,7 +4,7 @@ import cats.effect.{ Resource, Sync, Timer }
 import io.branchtalk.configs.{ APIConfig, APIContact, APIHttp, APIInfo, APILicense, AppConfig }
 
 import scala.collection.mutable
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration._
 
 object TestApiConfigs {
 
@@ -48,7 +48,12 @@ object TestApiConfigs {
         license        = APILicense(name = "test", url = "http://branchtalk.io")
       ),
       http = APIHttp(
+        logHeaders           = true,
+        logBody              = true,
         http2Enabled         = true,
+        corsAnyOrigin        = true,
+        corsAllowCredentials = true,
+        corsMaxAge           = 1.day,
         maxHeaderLineLength  = 512,
         maxRequestLineLength = 1024
       ),

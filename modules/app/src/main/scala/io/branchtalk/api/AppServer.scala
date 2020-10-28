@@ -27,13 +27,11 @@ final class AppServer[F[_]: Concurrent: Timer](
   usesServer:    UserServer[F],
   postServer:    PostServer[F],
   openAPIServer: OpenAPIServer[F],
-  metricsOps:    MetricsOps[F]
+  metricsOps:    MetricsOps[F],
+  apiConfig:     APIConfig
 ) {
 
   private val logger = com.typesafe.scalalogging.Logger(getClass)
-
-  // TODO: pass configuration
-  private val corsConfig = CORSConfig(anyOrigin = true, allowCredentials = true, maxAge = 1.day.toSeconds)
 
   // TODO: X-Request-ID, then cache X-Request-ID to make it idempotent
   val routes: HttpApp[F] =
@@ -41,14 +39,25 @@ final class AppServer[F[_]: Concurrent: Timer](
       .of(usesServer.routes, postServer.routes, openAPIServer.routes)
       .reduceK
       .pipe(GZip(_))
-      .pipe(CORS(_, corsConfig))
+      .pipe(
+        CORS(
+          _,
+          CORSConfig(
+            anyOrigin        = apiConfig.http.corsAnyOrigin,
+            allowCredentials = apiConfig.http.corsAllowCredentials,
+            maxAge           = apiConfig.http.corsMaxAge.toSeconds
+          )
+        )
+      )
       .pipe(Metrics[F](metricsOps))
       .orNotFound
       .pipe(
-        Logger[F, F](logHeaders = true,
-                     logBody    = true,
-                     fk         = FunctionK.id,
-                     logAction  = ((s: String) => Sync[F].delay(logger.info(s))).some)(_)
+        Logger[F, F](
+          logHeaders = apiConfig.http.logHeaders,
+          logBody    = apiConfig.http.logBody,
+          fk         = FunctionK.id,
+          logAction  = ((s: String) => Sync[F].delay(logger.info(s))).some
+        )(_)
       )
 }
 object AppServer {
