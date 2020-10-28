@@ -27,7 +27,7 @@ object UserAPIs {
     .description("Scheduled User creation and returns future User's ID as well as future Session's handler")
     .tags(List(UsersTags.domain, UsersTags.users, UsersTags.sessions))
     .post
-    .in(prefix / "sign_up")
+    .in(prefix)
     .in(jsonBody[SignUpRequest])
     .out(jsonBody[SignUpResponse])
     .errorOut(errorMapping)
@@ -39,7 +39,7 @@ object UserAPIs {
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .post
     .in(authHeader)
-    .in(prefix / "sign_in")
+    .in(prefix / "session")
     .out(jsonBody[SignInResponse])
     .errorOut(errorMapping)
 
@@ -50,7 +50,7 @@ object UserAPIs {
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .delete
     .in(authHeader)
-    .in(prefix / "sign_out")
+    .in(prefix / "session")
     .out(jsonBody[SignOutResponse])
     .errorOut(errorMapping)
 

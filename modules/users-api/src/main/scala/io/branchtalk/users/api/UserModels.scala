@@ -95,7 +95,6 @@ object UserModels {
   }
 
   @Semi(JsCodec) final case class UpdateUserRequest(
-    moderatorID:    Option[ID[User]],
     newUsername:    Updatable[User.Name],
     newDescription: OptionUpdatable[User.Description],
     newPassword:    Updatable[Password.Raw]
