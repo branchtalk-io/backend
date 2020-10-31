@@ -50,26 +50,28 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
         .send[IO]()(backend = client, isIdInRequest = implicitly)
   }
 
+  import ServerIOTest._
+
+  implicit def toDecoderResultOps[A](result: DecodeResult[A]): DecodeResultOps[A] = new DecodeResultOps[A](result)
+
   import org.specs2.control.ImplicitParameters._
   def beValid[T](t:          ValueCheck[T]): ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
   def beValid[T](implicit p: ImplicitParam = implicitParameter): ValidResultMatcher[T] = use(p)(ValidResultMatcher[T]())
 }
 
-final case class ValidResultMatcher[T]()
-    extends OptionLikeMatcher[DecodeResult, T, T](
-      "DecodeResult.Value",
-      (_: DecodeResult[T]).pipe {
-        case DecodeResult.Value(t) => t.some
-        case _                     => none[T]
-      }
-    )
+object ServerIOTest {
 
-final case class ValidResultCheckedMatcher[T](check: ValueCheck[T])
-    extends OptionLikeCheckedMatcher[DecodeResult, T, T](
-      "DecodeResult.Value",
-      (_: DecodeResult[T]).pipe {
-        case DecodeResult.Value(t) => t.some
-        case _                     => none[T]
-      },
-      check
-    )
+  implicit class DecodeResultOps[A](private val result: DecodeResult[A]) extends AnyVal {
+
+    def toValidOpt: Option[A] = result match {
+      case DecodeResult.Value(t) => t.some
+      case _                     => none[A]
+    }
+  }
+
+  final case class ValidResultMatcher[T]()
+      extends OptionLikeMatcher[DecodeResult, T, T]("DecodeResult.Value", (_: DecodeResult[T]).toValidOpt)
+
+  final case class ValidResultCheckedMatcher[T](check: ValueCheck[T])
+      extends OptionLikeCheckedMatcher[DecodeResult, T, T]("DecodeResult.Value", (_: DecodeResult[T]).toValidOpt, check)
+}

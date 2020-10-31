@@ -9,5 +9,5 @@ final case class Paginated[+Entity](entities: List[Entity], nextOffset: Option[L
 }
 object Paginated {
 
-  def empty[Nothing]: Paginated[Nothing] = Paginated(entities = List.empty, nextOffset = None)
+  def empty[Entity]: Paginated[Entity] = Paginated(entities = List.empty, nextOffset = None)
 }

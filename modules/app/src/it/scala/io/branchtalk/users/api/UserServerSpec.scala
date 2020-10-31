@@ -1,7 +1,6 @@
 package io.branchtalk.users.api
 
 import cats.effect.IO
-import eu.timepit.refined.auto._
 import io.branchtalk.api._
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings._
@@ -66,11 +65,10 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersProjector.logError("Error reported by Users projector").start
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
               password <- Password.Raw.parse[IO]("password".getBytes)
-              creationData <- userCreate.map(_.copy(password = Password.create(password)))
-              (CreationScheduled(userID), CreationScheduled(sessionID)) <- usersWrites.userWrites.createUser(
-                creationData
-              )
-              _ <- usersReads.userReads.requireById(userID).eventually()
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate
+                .map(_.copy(password = Password.create(password)))
+                .flatMap(usersWrites.userWrites.createUser)
+              user <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               // when
               sessionResponse <- UserAPIs.signIn.toTestCall(
@@ -78,7 +76,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               )
               credentialsResponse <- UserAPIs.signIn.toTestCall(
                 Authentication.Credentials(
-                  username = usernameApi2Users.reverseGet(creationData.username),
+                  username = usernameApi2Users.reverseGet(user.data.username),
                   password = passwordApi2Users.reverseGet(password)
                 )
               )
@@ -103,11 +101,10 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersProjector.logError("Error reported by Users projector").start
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
               password <- Password.Raw.parse[IO]("password".getBytes)
-              creationData <- userCreate.map(_.copy(password = Password.create(password)))
-              (CreationScheduled(userID), CreationScheduled(sessionID)) <- usersWrites.userWrites.createUser(
-                creationData
-              )
-              _ <- usersReads.userReads.requireById(userID).eventually()
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate
+                .map(_.copy(password = Password.create(password)))
+                .flatMap(usersWrites.userWrites.createUser)
+              user <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               // when
               sessionResponse <- UserAPIs.signOut.toTestCall(
@@ -115,7 +112,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               )
               credentialsResponse <- UserAPIs.signOut.toTestCall(
                 Authentication.Credentials(
-                  username = usernameApi2Users.reverseGet(creationData.username),
+                  username = usernameApi2Users.reverseGet(user.data.username),
                   password = passwordApi2Users.reverseGet(password)
                 )
               )
@@ -139,9 +136,8 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               // given
               _ <- usersProjector.logError("Error reported by Users projector").start
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-              creationData <- userCreate
-              (CreationScheduled(userID), CreationScheduled(sessionID)) <- usersWrites.userWrites.createUser(
-                creationData
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+                usersWrites.userWrites.createUser
               )
               user <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
@@ -165,9 +161,8 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               // given
               _ <- usersProjector.logError("Error reported by Users projector").start
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-              creationData <- userCreate
-              (CreationScheduled(userID), CreationScheduled(sessionID)) <- usersWrites.userWrites.createUser(
-                creationData
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+                usersWrites.userWrites.createUser
               )
               user <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
@@ -218,9 +213,8 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               // given
               _ <- usersProjector.logError("Error reported by Users projector").start
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-              creationData <- userCreate
-              (CreationScheduled(userID), CreationScheduled(sessionID)) <- usersWrites.userWrites.createUser(
-                creationData
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+                usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
