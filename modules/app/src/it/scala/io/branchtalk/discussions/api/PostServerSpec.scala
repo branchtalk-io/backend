@@ -6,14 +6,14 @@ import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels.APIPost
 import io.branchtalk.discussions.model.Subscription
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models.{ CreationScheduled, UUIDGenerator }
+import io.branchtalk.shared.models.{ CreationScheduled, TestUUIDGenerator }
 import io.branchtalk.users.UsersFixtures
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
 final class PostServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "PostServer-provided endpoints" should {
 

@@ -2,12 +2,12 @@ package io.branchtalk.discussions
 
 import cats.effect.IO
 import io.branchtalk.discussions.model.Subscription
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.shared.models.TestUUIDGenerator
 import org.specs2.mutable.Specification
 
 final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Subscription Reads & Writes" should {
 

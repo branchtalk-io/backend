@@ -17,7 +17,7 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   // populated by resources
   protected var server: Server[IO]                                 = _
   protected var client: SttpBackend[IO, Nothing, WebSocketHandler] = _
-  protected lazy val sttpBaseUri = Uri.unsafeApply(
+  protected lazy val sttpBaseUri: Uri = Uri.unsafeApply(
     scheme = server.baseUri.scheme.fold(???)(_.value),
     host   = server.baseUri.host.fold(???)(_.value),
     port   = server.baseUri.port.fold(???)(_.intValue())

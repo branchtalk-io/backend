@@ -1,14 +1,14 @@
 package io.branchtalk.openapi
 
 import io.branchtalk.api.ServerIOTest
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.shared.models.TestUUIDGenerator
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 import sttp.client._
 
 final class OpenAPIServerSpec extends Specification with ServerIOTest {
 
-  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "OpenAPIServer" should {
 

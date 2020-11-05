@@ -6,7 +6,7 @@ import org.specs2.mutable.Specification
 
 final class SessionReadsWritesSpec extends Specification with UsersIOTest with UsersFixtures {
 
-  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Session Reads & Writes" should {
 

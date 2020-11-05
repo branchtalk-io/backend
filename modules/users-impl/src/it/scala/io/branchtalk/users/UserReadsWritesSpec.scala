@@ -1,14 +1,14 @@
 package io.branchtalk.users
 
 import cats.effect.IO
-import io.branchtalk.shared.models.{ CommonError, ID, OptionUpdatable, UUIDGenerator, Updatable }
+import io.branchtalk.shared.models.{ CommonError, ID, OptionUpdatable, TestUUIDGenerator, Updatable }
 import io.branchtalk.users.model.{ Password, Permission, Permissions, User }
 import monocle.macros.syntax.lens._
 import org.specs2.mutable.Specification
 
 final class UserReadsWritesSpec extends Specification with UsersIOTest with UsersFixtures {
 
-  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "User Reads & Writes" should {
 

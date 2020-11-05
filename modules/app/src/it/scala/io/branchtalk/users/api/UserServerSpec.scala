@@ -4,7 +4,7 @@ import cats.effect.IO
 import io.branchtalk.api._
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models.{ CreationScheduled, OptionUpdatable, UUIDGenerator, Updatable }
+import io.branchtalk.shared.models.{ CreationScheduled, OptionUpdatable, TestUUIDGenerator, Updatable }
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.model.{ Password, Session, User }
@@ -14,7 +14,7 @@ import sttp.model.StatusCode
 
 final class UserServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "UserServer-provided endpoints" should {
 

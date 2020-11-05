@@ -2,12 +2,12 @@ package io.branchtalk.discussions
 
 import cats.effect.IO
 import io.branchtalk.discussions.model.{ Comment, Post }
-import io.branchtalk.shared.models.{ ID, UUIDGenerator, Updatable }
+import io.branchtalk.shared.models.{ ID, TestUUIDGenerator, Updatable }
 import org.specs2.mutable.Specification
 
 final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Comment Reads & Writes" should {
 
