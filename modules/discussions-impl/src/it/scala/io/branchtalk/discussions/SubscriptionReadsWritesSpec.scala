@@ -1,6 +1,5 @@
 package io.branchtalk.discussions
 
-import cats.effect.IO
 import io.branchtalk.discussions.model.Subscription
 import io.branchtalk.shared.models.TestUUIDGenerator
 import org.specs2.mutable.Specification
@@ -25,9 +24,7 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
           _ <- discussionsWrites.subscriptionWrites.subscribe(Subscription.Subscribe(subscriberID, ids.toSet))
           subscription <- discussionsReads.subscriptionReads
             .requireForUser(subscriberID)
-            .flatTap { subscription =>
-              IO(assert(subscription.subscriptions === ids.toSet, "Subscriptions should be eventually added"))
-            }
+            .assert("Subscriptions should be eventually added")(_.subscriptions === ids.toSet)
             .eventually()
         } yield
         // then
@@ -53,9 +50,7 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
           _ <- discussionsWrites.subscriptionWrites.subscribe(Subscription.Subscribe(subscriberID, ids.toSet))
           _ <- discussionsReads.subscriptionReads
             .requireForUser(subscriberID)
-            .flatTap { subscription =>
-              IO(assert(subscription.subscriptions === ids.toSet, "Subscriptions should be eventually added"))
-            }
+            .assert("Subscriptions should be eventually added")(_.subscriptions === ids.toSet)
             .eventually()
           // when
           _ <- discussionsWrites.subscriptionWrites.unsubscribe(
@@ -63,9 +58,7 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
           )
           subscription <- discussionsReads.subscriptionReads
             .requireForUser(subscriberID)
-            .flatTap { subscription =>
-              IO(assert(subscription.subscriptions === idsToKeep.toSet, "Subscriptions should be eventually deleted"))
-            }
+            .assert("Subscriptions should be eventually deleted")(_.subscriptions === idsToKeep.toSet)
             .eventually()
         } yield
         // then

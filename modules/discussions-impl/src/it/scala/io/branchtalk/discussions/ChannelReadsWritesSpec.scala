@@ -100,9 +100,7 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
           _ <- updateData.traverse(discussionsWrites.channelWrites.updateChannel)
           updated <- ids
             .traverse(discussionsReads.channelReads.requireById)
-            .flatTap { current =>
-              IO(assert(current.last.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
-            }
+            .assert("Updated entity should have lastModifiedAt set")(_.last.data.lastModifiedAt.isDefined)
             .eventually()
         } yield
         // then
@@ -139,16 +137,14 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
           _ <- ids.map(Channel.Delete(_, editorID)).traverse(discussionsWrites.channelWrites.deleteChannel)
           _ <- ids
             .traverse(discussionsReads.channelReads.getById)
-            .flatTap(results => IO(assert(results.forall(_.isEmpty), "All Channels should be eventually deleted")))
+            .assert("All Channels should be eventually deleted")(_.forall(_.isEmpty))
             .eventually()
           notExist <- ids.traverse(discussionsReads.channelReads.exists)
           areDeleted <- ids.traverse(discussionsReads.channelReads.deleted)
           _ <- ids.map(Channel.Restore(_, editorID)).traverse(discussionsWrites.channelWrites.restoreChannel)
           toRestore <- ids
             .traverse(discussionsReads.channelReads.getById)
-            .flatTap { results =>
-              IO(assert(results.forall(_.isDefined), "All Channels should be eventually restored"))
-            }
+            .assert("All Channels should be eventually restored")(_.forall(_.isDefined))
             .eventually()
           restoredIds = toRestore.flatten.map(_.id)
           areRestored <- ids.traverse(discussionsReads.channelReads.exists)

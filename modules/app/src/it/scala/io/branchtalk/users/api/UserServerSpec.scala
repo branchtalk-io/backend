@@ -225,7 +225,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               )
               _ <- usersReads.userReads
                 .deleted(userID)
-                .flatTap(current => IO(assert(current, "User should be eventually deleted")))
+                .assert("User should be eventually deleted")(identity)
                 .eventually()
             } yield {
               // then

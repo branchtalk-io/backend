@@ -4,13 +4,13 @@ import cats.data.{ NonEmptyList, NonEmptySet }
 import cats.effect.{ ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api._
-import io.branchtalk.configs.PaginationConfig
+import io.branchtalk.configs.{ APIConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostModels._
-import io.branchtalk.discussions.model.{ Channel, Post }
+import io.branchtalk.discussions.model.Post
 import io.branchtalk.discussions.reads.{ PostReads, SubscriptionReads }
 import io.branchtalk.discussions.writes.PostWrites
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models.{ CommonError, ID, Paginated }
+import io.branchtalk.shared.models.{ CommonError, Paginated }
 import io.branchtalk.users.services.AuthServices
 import io.scalaland.chimney.dsl._
 import org.http4s._
@@ -24,12 +24,11 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
   postReads:         PostReads[F],
   postWrites:        PostWrites[F],
   subscriptionReads: SubscriptionReads[F],
+  apiConfig:         APIConfig,
   paginationConfig:  PaginationConfig
 ) {
 
   private val logger = Logger(getClass)
-
-  private def defaultSubscriptions: Set[ID[Channel]] = Set.empty
 
   private val withErrorHandling = ServerErrorHandling.handleCommonErrors[F, PostError] {
     case CommonError.InvalidCredentials(_) =>
@@ -51,7 +50,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
         offset = paginationConfig.resolveOffset(optOffset)
         limit  = paginationConfig.resolveLimit(optLimit)
         subscriptionOpt <- optUser.map(_.id).map(userIDUsers2Discussions.get).traverse(subscriptionReads.requireForUser)
-        channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(defaultSubscriptions))
+        channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(apiConfig.signedOutSubscriptions))
         paginated <- NonEmptySet.fromSet(channelIDS) match {
           case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
           case None             => Paginated.empty[Post].pure[F]

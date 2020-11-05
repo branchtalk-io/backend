@@ -7,6 +7,8 @@ import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.string.{ MatchesRegex, Url }
 import eu.timepit.refined.pureconfig._
 import io.branchtalk.api.{ PaginationLimit, PaginationOffset }
+import io.branchtalk.discussions.model.Channel
+import io.branchtalk.shared.models.{ ID, UUID, UUIDGenerator }
 import io.scalaland.catnip.Semi
 import pureconfig._
 import pureconfig.error.CannotConvert
@@ -105,10 +107,13 @@ object APIPart extends Enum[APIPart] {
 }
 
 @Semi(ConfigReader) final case class APIConfig(
-  info:       APIInfo,
-  http:       APIHttp,
-  pagination: Map[APIPart, PaginationConfig]
+  info:            APIInfo,
+  http:            APIHttp,
+  defaultChannels: List[UUID],
+  pagination:      Map[APIPart, PaginationConfig]
 ) {
+
+  val signedOutSubscriptions: Set[ID[Channel]] = defaultChannels.map(ID[Channel]).toSet
 
   val safePagination: Map[APIPart, PaginationConfig] =
     pagination.withDefaultValue(

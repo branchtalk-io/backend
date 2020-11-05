@@ -107,9 +107,7 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           _ <- updateData.traverse(usersWrites.userWrites.updateUser)
           updated <- ids
             .traverse(usersReads.userReads.requireById)
-            .flatTap { current =>
-              IO(assert(current.last.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
-            }
+            .assert("Updated entity should have lastModifiedAt set")(_.last.data.lastModifiedAt.isDefined)
             .eventually()
         } yield
         // then
@@ -153,7 +151,7 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           _ <- ids.map(User.Delete(_, moderatorID.some)).traverse(usersWrites.userWrites.deleteUser)
           _ <- ids
             .traverse(usersReads.userReads.getById)
-            .flatTap(results => IO(assert(results.forall(_.isEmpty), "All Users should be eventually deleted")))
+            .assert("All Users should be eventually deleted")(_.forall(_.isEmpty))
             .eventually()
           notExist <- ids.traverse(usersReads.userReads.exists)
           areDeleted <- ids.traverse(usersReads.userReads.deleted)

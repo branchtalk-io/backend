@@ -2,7 +2,7 @@ package io.branchtalk
 
 import cats.effect.{ ContextShift, IO, Timer }
 import com.typesafe.scalalogging.Logger
-import org.specs2.specification.core.AsExecution
+import org.specs2.specification.core.{ AsExecution, Execution }
 
 import scala.concurrent.duration._
 
@@ -32,9 +32,12 @@ trait IOTest {
     def logError(msg: String): IO[T] = io.handleErrorWith { error =>
       (if (ignoreErrorForLogging.isDefinedAt(error)) IO.unit else IO(logger.error(msg, error))) >> IO.raiseError(error)
     }
+
+    def assert(msg: String)(condition: T => Boolean): IO[T] =
+      io.flatTap(current => IO(scala.Predef.assert(condition(current), msg)))
   }
 
   implicit protected def ioAsTest[T: AsExecution]: AsExecution[IO[T]] = new AsExecution[IO[T]] {
-    override def execute(t: => IO[T]) = AsExecution[T].execute(t.unsafeRunSync())
+    override def execute(t: => IO[T]): Execution = AsExecution[T].execute(t.unsafeRunSync())
   }
 }

@@ -111,9 +111,7 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           _ <- updateData.traverse(discussionsWrites.postWrites.updatePost)
           updated <- ids
             .traverse(discussionsReads.postReads.requireById)
-            .flatTap { current =>
-              IO(assert(current.head.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
-            }
+            .assert("Updated entity should have lastModifiedAt set")(_.head.data.lastModifiedAt.isDefined)
             .eventually()
         } yield
         // then
@@ -149,14 +147,14 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           _ <- ids.map(Post.Delete(_, editorID)).traverse(discussionsWrites.postWrites.deletePost)
           _ <- ids
             .traverse(discussionsReads.postReads.getById)
-            .flatTap(results => IO(assert(results.forall(_.isEmpty), "All Posts should be eventually deleted")))
+            .assert("All Posts should be eventually deleted")(_.forall(_.isEmpty))
             .eventually()
           notExist <- ids.traverse(discussionsReads.postReads.exists)
           areDeleted <- ids.traverse(discussionsReads.postReads.deleted)
           _ <- ids.map(Post.Restore(_, editorID)).traverse(discussionsWrites.postWrites.restorePost)
           toRestore <- ids
             .traverse(discussionsReads.postReads.getById)
-            .flatTap(results => IO(assert(results.forall(_.isDefined), "All Posts should be eventually restored")))
+            .assert("All Posts should be eventually restored")(_.forall(_.isDefined))
             .eventually()
           restoredIds = toRestore.flatten.map(_.id)
           areRestored <- ids.traverse(discussionsReads.postReads.exists)
