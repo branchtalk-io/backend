@@ -16,6 +16,7 @@ lazy val root = project.root
              usersImpl,
              application)
 
+addCommandAlias("fmt", ";scalafmt;test:scalafmt;it:scalafmt")
 addCommandAlias("fullTest", ";test;it:test")
 addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
 
