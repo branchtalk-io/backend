@@ -13,7 +13,10 @@ class TestUUIDGenerator extends UUIDGenerator {
   def stubNext(uuid:   UUID):                Unit = queue.enqueue(uuid)
   def stubNext(string: String Refined Uuid): Unit = queue.enqueue(apply(string))
 
-  def clean(): Unit = queue.dequeueAll(_ => true)
+  def clean(): Unit = {
+    queue.dequeueAll(_ => true)
+    ()
+  }
 
   override def apply(string: String Refined Uuid): UUID = UUIDGenerator.FastUUIDGenerator(string)
 

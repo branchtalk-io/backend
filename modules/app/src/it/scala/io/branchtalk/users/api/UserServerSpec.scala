@@ -170,14 +170,13 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               newDescription = User.Description("new test description")
               newPassword <- Password.Raw.parse[IO]("new password".getBytes)
               // when
-              response <- UserAPIs.updateProfile.toTestCall(
-                (Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
-                 userID,
-                 UpdateUserRequest(
-                   newUsername = Updatable.Set(newUsername),
-                   newDescription = OptionUpdatable.Set(newDescription),
-                   newPassword = Updatable.Set(newPassword)
-                 )
+              response <- UserAPIs.updateProfile.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                userID,
+                UpdateUserRequest(
+                  newUsername = Updatable.Set(newUsername),
+                  newDescription = OptionUpdatable.Set(newDescription),
+                  newPassword = Updatable.Set(newPassword)
                 )
               )
               updatedUser <- usersReads.userReads
@@ -220,8 +219,9 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               // when
-              response <- UserAPIs.deleteProfile.toTestCall(
-                (Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)), userID)
+              response <- UserAPIs.deleteProfile.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                userID
               )
               _ <- usersReads.userReads
                 .deleted(userID)

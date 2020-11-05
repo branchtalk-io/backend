@@ -99,4 +99,17 @@ package object models {
       (t: RestoreScheduled[Entity]) => s"RestoreScheduled(${t.id.show})"
     implicit def eq[Entity]: Eq[RestoreScheduled[Entity]] = /*_*/ Eq[ID[Entity]].coerce /*_*/
   }
+
+  implicit class Untupled2[I1, I2, Out](private val f: ((I1, I2)) => Out) extends AnyVal {
+    def untupled(i1: I1, i2: I2): Out = f.apply((i1, i2))
+  }
+  implicit class Untupled3[I1, I2, I3, Out](private val f: ((I1, I2, I3)) => Out) extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3): Out = f.apply((i1, i2, i3))
+  }
+  implicit class Untupled4[I1, I2, I3, I4, Out](private val f: ((I1, I2, I3, I4)) => Out) extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3, i4: I4): Out = f.apply((i1, i2, i3, i4))
+  }
+  implicit class Untupled5[I1, I2, I3, I4, I5, Out](private val f: ((I1, I2, I3, I4, I5)) => Out) extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5): Out = f.apply((i1, i2, i3, i4, i5))
+  }
 }

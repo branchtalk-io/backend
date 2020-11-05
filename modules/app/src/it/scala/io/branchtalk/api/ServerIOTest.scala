@@ -42,7 +42,7 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Nothing]) {
 
-    def toTestCall(input: I): IO[Response[DecodeResult[Either[E, O]]]] =
+    val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = input =>
       endpoint
         .toSttpRequest(sttpBaseUri)
         .apply(input)
