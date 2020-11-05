@@ -8,8 +8,8 @@ import io.branchtalk.shared.models.AvroSupport._
 
 @Semi(Decoder, Encoder, ShowPretty, SchemaFor) sealed trait DiscussionCommandEvent extends ADT
 object DiscussionCommandEvent {
-  final case class ForChannel(channel:           ChannelCommandEvent) extends DiscussionCommandEvent
-  final case class ForComment(comment:           CommentCommandEvent) extends DiscussionCommandEvent
-  final case class ForPost(post:                 PostCommandEvent) extends DiscussionCommandEvent
+  final case class ForChannel(channel: ChannelCommandEvent) extends DiscussionCommandEvent
+  final case class ForComment(comment: CommentCommandEvent) extends DiscussionCommandEvent
+  final case class ForPost(post: PostCommandEvent) extends DiscussionCommandEvent
   final case class ForSubscription(subscription: SubscriptionCommandEvent) extends DiscussionCommandEvent
 }

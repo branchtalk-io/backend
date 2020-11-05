@@ -15,12 +15,11 @@ final class ConsumerStream[F[_], Event](
     KillSwitch.asStream[F, F[Unit]] { stream =>
       consumer
         .zip(stream)
-        .flatMap {
-          case (event, _) =>
-            Stream(event.record.value)
-              .evalTap(_ => F.delay(logger.info(s"Processing event key = ${event.record.key}")))
-              .through(f)
-              .map(_ => event.offset)
+        .flatMap { case (event, _) =>
+          Stream(event.record.value)
+            .evalTap(_ => F.delay(logger.info(s"Processing event key = ${event.record.key}")))
+            .through(f)
+            .map(_ => event.offset)
         }
         .through(committer)
         .compile
@@ -34,7 +33,7 @@ object ConsumerStream {
     consumerCfg: KafkaEventConsumerConfig
   ): ConsumerStream[F, Event] =
     new ConsumerStream(
-      consumer  = KafkaEventBus.consumer[F, Event](busConfig, consumerCfg),
+      consumer = KafkaEventBus.consumer[F, Event](busConfig, consumerCfg),
       committer = busConfig.toCommitBatch[F](consumerCfg)
     )
 }

@@ -14,8 +14,8 @@ import io.scalaland.chimney.dsl._
 final class PostWritesImpl[F[_]: Sync: Timer](
   producer:   EventBusProducer[F, DiscussionCommandEvent],
   transactor: Transactor[F]
-)(
-  implicit uuidGenerator: UUIDGenerator
+)(implicit
+  uuidGenerator: UUIDGenerator
 ) extends Writes[F, Post, DiscussionCommandEvent](producer)
     with PostWrites[F] {
 
@@ -25,7 +25,8 @@ final class PostWritesImpl[F[_]: Sync: Timer](
   override def createPost(newPost: Post.Create): F[CreationScheduled[Post]] =
     for {
       _ <- channelCheck(newPost.channelID,
-                        sql"""SELECT 1 FROM channels WHERE id = ${newPost.channelID} AND deleted = false""")
+                        sql"""SELECT 1 FROM channels WHERE id = ${newPost.channelID} AND deleted = false"""
+      )
       id <- ID.create[F, Post]
       now <- CreationTime.now[F]
       command = newPost

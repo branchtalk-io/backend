@@ -66,7 +66,7 @@ object PostProperties {
 
   @Semi(FastEq, ShowPretty) sealed trait Content extends ADT
   object Content {
-    final case class Url(url:   Post.URL) extends Content
+    final case class Url(url: Post.URL) extends Content
     final case class Text(text: Post.Text) extends Content
 
     @Semi(FastEq, ShowPretty) sealed trait Type extends EnumEntry with Hyphencase

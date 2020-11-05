@@ -14,9 +14,8 @@ object KafkaEventBus {
     settings: KafkaEventBusConfig
   ): EventBusProducer[F, Event] = (events: Stream[F, (UUID, Event)]) => {
     events
-      .map {
-        case (key, value) =>
-          ProducerRecords.one(ProducerRecord(settings.topic.nonEmptyString.value, key, value))
+      .map { case (key, value) =>
+        ProducerRecords.one(ProducerRecord(settings.topic.nonEmptyString.value, key, value))
       }
       .through(produce(settings.toProducerConfig[F, Event]))
       .evalTap(e =>

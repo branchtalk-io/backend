@@ -7,7 +7,7 @@ import io.branchtalk.shared.models
 
 final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends CommentReads[F] {
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT id,

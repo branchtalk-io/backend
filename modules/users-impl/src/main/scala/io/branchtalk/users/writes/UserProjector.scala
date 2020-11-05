@@ -17,24 +17,21 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
 
   private val logger = Logger(getClass)
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, UsersCommandEvent]): Stream[F, (UUID, UsersEvent)] =
-    in.collect {
-        case UsersCommandEvent.ForUser(event) => event
-      }
-      .evalMap[F, (UUID, UserEvent)] {
-        case event: UserCommandEvent.Create => toCreate(event).widen
-        case event: UserCommandEvent.Update => toUpdate(event).widen
-        case event: UserCommandEvent.Delete => toDelete(event).widen
-      }
-      .map {
-        case (key, value) => key -> UsersEvent.ForUser(value)
-      }
-      .handleErrorWith { error =>
-        logger.error("User event processing failed", error)
-        Stream.empty
-      }
+    in.collect { case UsersCommandEvent.ForUser(event) =>
+      event
+    }.evalMap[F, (UUID, UserEvent)] {
+      case event: UserCommandEvent.Create => toCreate(event).widen
+      case event: UserCommandEvent.Update => toUpdate(event).widen
+      case event: UserCommandEvent.Delete => toDelete(event).widen
+    }.map { case (key, value) =>
+      key -> UsersEvent.ForUser(value)
+    }.handleErrorWith { error =>
+      logger.error("User event processing failed", error)
+      Stream.empty
+    }
 
   def toCreate(event: UserCommandEvent.Create): F[(UUID, UserEvent.Created)] = {
     val Session.Usage.Tupled(sessionType, sessionPermissions) = Session.Usage.UserSession

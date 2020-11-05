@@ -13,7 +13,7 @@ import sttp.model.StatusCode
 
 final class PostServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "PostServer-provided endpoints" should {
 
@@ -51,12 +51,14 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               response1 <- PostAPIs.newest.toTestCall(
                 (Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)).some,
                  None,
-                 PaginationLimit(5).some)
+                 PaginationLimit(5).some
+                )
               )
               response2 <- PostAPIs.newest.toTestCall(
                 (Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)).some,
                  PaginationOffset(5L).some,
-                 PaginationLimit(5).some)
+                 PaginationLimit(5).some
+                )
               )
             } yield {
               // then

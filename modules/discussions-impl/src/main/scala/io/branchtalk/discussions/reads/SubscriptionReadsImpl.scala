@@ -7,7 +7,7 @@ import io.branchtalk.shared.models._
 
 final class SubscriptionReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends SubscriptionReads[F] {
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT subscriber_id,

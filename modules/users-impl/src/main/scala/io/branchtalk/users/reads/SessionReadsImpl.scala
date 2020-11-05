@@ -10,7 +10,7 @@ final class SessionReadsImpl[F[_]: Sync](
   transactor: Transactor[F]
 ) extends SessionReads[F] {
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT id,

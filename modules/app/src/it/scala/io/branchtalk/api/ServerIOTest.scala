@@ -19,22 +19,22 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   protected var client: SttpBackend[IO, Nothing, WebSocketHandler] = _
   protected lazy val sttpBaseUri: Uri = Uri.unsafeApply(
     scheme = server.baseUri.scheme.fold(???)(_.value),
-    host   = server.baseUri.host.fold(???)(_.value),
-    port   = server.baseUri.port.fold(???)(_.intValue())
+    host = server.baseUri.host.fold(???)(_.value),
+    port = server.baseUri.port.fold(???)(_.intValue())
   )
 
   protected val serverResource: Resource[IO, Unit] = for {
     (appConfig, apiConfig) <- TestApiConfigs.asResource[IO]
     _ <- AppServer
       .asResource[IO](
-        appConfig         = appConfig,
-        apiConfig         = apiConfig,
-        usersReads        = usersReads,
-        usersWrites       = usersWrites,
-        discussionsReads  = discussionsReads,
+        appConfig = appConfig,
+        apiConfig = apiConfig,
+        usersReads = usersReads,
+        usersWrites = usersWrites,
+        discussionsReads = discussionsReads,
         discussionsWrites = discussionsWrites
       )
-      .map(server                                             = _)
+      .map(server = _)
     _ <- AsyncHttpClientCatsBackend.resource[IO]().map(client = _)
   } yield ()
 
@@ -55,8 +55,8 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   implicit def toDecoderResultOps[A](result: DecodeResult[A]): DecodeResultOps[A] = new DecodeResultOps[A](result)
 
   import org.specs2.control.ImplicitParameters._
-  def beValid[T](t:          ValueCheck[T]): ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
-  def beValid[T](implicit p: ImplicitParam = implicitParameter): ValidResultMatcher[T] = use(p)(ValidResultMatcher[T]())
+  def beValid[T](t:          ValueCheck[T]):                     ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
+  def beValid[T](implicit p: ImplicitParam = implicitParameter): ValidResultMatcher[T]        = use(p)(ValidResultMatcher[T]())
 }
 
 object ServerIOTest {

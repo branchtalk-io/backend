@@ -14,7 +14,7 @@ final class SubscriptionWritesImpl[F[_]: Sync: Timer](
 ) extends Writes[F, User, DiscussionCommandEvent](producer)
     with SubscriptionWrites[F] {
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT subscriber_id,

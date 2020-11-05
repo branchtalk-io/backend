@@ -8,7 +8,7 @@ import org.specs2.mutable.Specification
 
 final class UserReadsWritesSpec extends Specification with UsersIOTest with UsersFixtures {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "User Reads & Writes" should {
 
@@ -46,21 +46,20 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           fakeUpdateData <- creationData.traverse { data =>
             ID.create[IO, User].map { id =>
               User.Update(
-                id                = id,
-                moderatorID       = moderatorID.some,
-                newUsername       = Updatable.Set(data.username),
-                newDescription    = OptionUpdatable.setFromOption(data.description),
-                newPassword       = Updatable.Set(data.password),
+                id = id,
+                moderatorID = moderatorID.some,
+                newUsername = Updatable.Set(data.username),
+                newDescription = OptionUpdatable.setFromOption(data.description),
+                newPassword = Updatable.Set(data.password),
                 updatePermissions = List.empty
               )
             }
           }
           // when
           toUpdate <- fakeUpdateData.traverse(usersWrites.userWrites.updateUser(_).attempt)
-        } yield {
-          // then
-          toUpdate must contain(beLeft[Throwable]).foreach
-        }
+        } yield
+        // then
+        toUpdate must contain(beLeft[Throwable]).foreach
       }
     }
 
@@ -78,29 +77,29 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           updateData = created.zipWithIndex.collect {
             case (User(id, data), 0) =>
               User.Update(
-                id                = id,
-                moderatorID       = moderatorID.some,
-                newUsername       = Updatable.Set(data.username),
-                newDescription    = OptionUpdatable.setFromOption(data.description),
-                newPassword       = Updatable.Set(data.password),
+                id = id,
+                moderatorID = moderatorID.some,
+                newUsername = Updatable.Set(data.username),
+                newDescription = OptionUpdatable.setFromOption(data.description),
+                newPassword = Updatable.Set(data.password),
                 updatePermissions = List(Permission.Update.Add(Permission.EditProfile(id)))
               )
             case (User(id, _), 1) =>
               User.Update(
-                id                = id,
-                moderatorID       = moderatorID.some,
-                newUsername       = Updatable.Keep,
-                newDescription    = OptionUpdatable.Keep,
-                newPassword       = Updatable.Keep,
+                id = id,
+                moderatorID = moderatorID.some,
+                newUsername = Updatable.Keep,
+                newDescription = OptionUpdatable.Keep,
+                newPassword = Updatable.Keep,
                 updatePermissions = List.empty
               )
             case (User(id, _), 2) =>
               User.Update(
-                id                = id,
-                moderatorID       = moderatorID.some,
-                newUsername       = Updatable.Keep,
-                newDescription    = OptionUpdatable.Erase,
-                newPassword       = Updatable.Keep,
+                id = id,
+                moderatorID = moderatorID.some,
+                newUsername = Updatable.Keep,
+                newDescription = OptionUpdatable.Erase,
+                newPassword = Updatable.Keep,
                 updatePermissions = List(Permission.Update.Add(Permission.ModerateUsers))
               )
           }
@@ -112,31 +111,30 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
               IO(assert(current.last.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
             }
             .eventually()
-        } yield {
-          // then
-          created
-            .zip(updated)
-            .zipWithIndex
-            .collect {
-              case ((User(id, older), User(_, newer)), 0) =>
-                // set case
-                older.lens(_.permissions).set(Permissions.empty.append(Permission.EditProfile(id))) must_=== newer
-                  .lens(_.lastModifiedAt)
-                  .set(None)
-              case ((User(_, older), User(_, newer)), 1) =>
-                // keep case
-                older must_=== newer
-              case ((User(_, older), User(_, newer)), 2) =>
-                // erase case
-                older
-                  .lens(_.permissions)
-                  .set(Permissions.empty.append(Permission.ModerateUsers))
-                  .lens(_.description)
-                  .set(None) must_=== newer.lens(_.lastModifiedAt).set(None)
-            }
-            .lastOption
-            .getOrElse(true must beFalse)
-        }
+        } yield
+        // then
+        created
+          .zip(updated)
+          .zipWithIndex
+          .collect {
+            case ((User(id, older), User(_, newer)), 0) =>
+              // set case
+              older.lens(_.permissions).set(Permissions.empty.append(Permission.EditProfile(id))) must_=== newer
+                .lens(_.lastModifiedAt)
+                .set(None)
+            case ((User(_, older), User(_, newer)), 1) =>
+              // keep case
+              older must_=== newer
+            case ((User(_, older), User(_, newer)), 2) =>
+              // erase case
+              older
+                .lens(_.permissions)
+                .set(Permissions.empty.append(Permission.ModerateUsers))
+                .lens(_.description)
+                .set(None) must_=== newer.lens(_.lastModifiedAt).set(None)
+          }
+          .lastOption
+          .getOrElse(true must beFalse)
       }
     }
 

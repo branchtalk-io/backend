@@ -7,7 +7,7 @@ import org.specs2.mutable.Specification
 
 final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Comment Reads & Writes" should {
 
@@ -20,10 +20,9 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
           creationData <- (0 until 3).toList.traverse(_ => commentCreate(postID))
           // when
           toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment(_).attempt)
-        } yield {
-          // then
-          toCreate must contain(beLeft[Throwable]).foreach
-        }
+        } yield
+        // then
+        toCreate must contain(beLeft[Throwable]).foreach
       }
     }
 
@@ -67,18 +66,17 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
           fakeUpdateData <- creationData.traverse { data =>
             ID.create[IO, Comment].map { id =>
               Comment.Update(
-                id         = id,
-                editorID   = editorID,
+                id = id,
+                editorID = editorID,
                 newContent = Updatable.Set(data.content)
               )
             }
           }
           // when
           toUpdate <- fakeUpdateData.traverse(discussionsWrites.commentWrites.updateComment(_).attempt)
-        } yield {
-          // then
-          toUpdate must contain(beLeft[Throwable]).foreach
-        }
+        } yield
+        // then
+        toUpdate must contain(beLeft[Throwable]).foreach
       }
     }
 
@@ -99,14 +97,14 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
           updateData = created.zipWithIndex.collect {
             case (Comment(id, data), 0) =>
               Comment.Update(
-                id         = id,
-                editorID   = editorID,
+                id = id,
+                editorID = editorID,
                 newContent = Updatable.Set(data.content)
               )
             case (Comment(id, _), 1) =>
               Comment.Update(
-                id         = id,
-                editorID   = editorID,
+                id = id,
+                editorID = editorID,
                 newContent = Updatable.Keep
               )
           }
@@ -118,22 +116,21 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
               IO(assert(current.head.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
             }
             .eventually()
-        } yield {
-          // then
-          created
-            .zip(updated)
-            .zipWithIndex
-            .collect {
-              case ((Comment(_, older), Comment(_, newer)), 0) =>
-                // set case
-                older must_=== newer.copy(lastModifiedAt = None)
-              case ((Comment(_, older), Comment(_, newer)), 1) =>
-                // keep case
-                older must_=== newer
-            }
-            .lastOption
-            .getOrElse(true must beFalse)
-        }
+        } yield
+        // then
+        created
+          .zip(updated)
+          .zipWithIndex
+          .collect {
+            case ((Comment(_, older), Comment(_, newer)), 0) =>
+              // set case
+              older must_=== newer.copy(lastModifiedAt = None)
+            case ((Comment(_, older), Comment(_, newer)), 1) =>
+              // keep case
+              older must_=== newer
+          }
+          .lastOption
+          .getOrElse(true must beFalse)
       }
     }
 

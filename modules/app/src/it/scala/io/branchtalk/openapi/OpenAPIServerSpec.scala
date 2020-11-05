@@ -8,7 +8,7 @@ import sttp.client._
 
 final class OpenAPIServerSpec extends Specification with ServerIOTest {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "OpenAPIServer" should {
 
@@ -19,9 +19,7 @@ final class OpenAPIServerSpec extends Specification with ServerIOTest {
             _ <- usersProjector.logError("Error reported by Users projector").start
             _ <- discussionsProjector.logError("Error reported by Discussions projector").start
             result <- basicRequest.get(sttpBaseUri.path("docs/swagger.json")).send()(client, implicitly)
-          } yield {
-            result.code must_=== StatusCode.Ok
-          }
+          } yield result.code must_=== StatusCode.Ok
       }
     }
   }

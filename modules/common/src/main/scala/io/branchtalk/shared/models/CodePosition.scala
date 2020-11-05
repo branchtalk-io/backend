@@ -9,14 +9,14 @@ import io.scalaland.catnip.Semi
 )
 object CodePosition {
 
-  implicit def providePosition(
-    implicit file: sourcecode.File,
-    line:          sourcecode.Line,
-    enclosing:     sourcecode.Enclosing.Machine
+  implicit def providePosition(implicit
+    file:      sourcecode.File,
+    line:      sourcecode.Line,
+    enclosing: sourcecode.Enclosing.Machine
   ): CodePosition =
     CodePosition(
-      file    = new java.io.File(file.value).getName,
-      line    = line.value,
+      file = new java.io.File(file.value).getName,
+      line = line.value,
       context = enclosing.value
     )
 }

@@ -19,13 +19,13 @@ final class SessionWritesImpl[F[_]: Sync](
 
   private val reads = new SessionReadsImpl[F](transactor)
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def createSession(newSession: Session.Create): F[Session] =
     for {
       id <- ID.create[F, Session]
       session = Session(
-        id   = id,
+        id = id,
         data = newSession.transformInto[Session.Data]
       )
       sessionDao = SessionDao.fromDomain(session)

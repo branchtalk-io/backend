@@ -13,7 +13,8 @@ final class PostgresDatabase(config: PostgresConfig) {
       .configure()
       .dataSource(config.url.nonEmptyString.value,
                   config.username.nonEmptyString.value,
-                  config.password.nonEmptyString.value)
+                  config.password.nonEmptyString.value
+      )
       .schemas(config.schema.nonEmptyString.value)
       .table(s"flyway_${config.domain.nonEmptyString.value}_schema_history")
       .locations(s"db/${config.domain.nonEmptyString.value}/migrations")

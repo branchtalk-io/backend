@@ -54,9 +54,9 @@ object UserModels {
   @Semi(JsCodec) sealed trait UserError extends ADT
   object UserError {
 
-    @Semi(JsCodec) final case class BadCredentials(msg:     String) extends UserError
-    @Semi(JsCodec) final case class NoPermission(msg:       String) extends UserError
-    @Semi(JsCodec) final case class NotFound(msg:           String) extends UserError
+    @Semi(JsCodec) final case class BadCredentials(msg: String) extends UserError
+    @Semi(JsCodec) final case class NoPermission(msg: String) extends UserError
+    @Semi(JsCodec) final case class NotFound(msg: String) extends UserError
     @Semi(JsCodec) final case class ValidationFailed(error: NonEmptyList[String]) extends UserError
   }
 

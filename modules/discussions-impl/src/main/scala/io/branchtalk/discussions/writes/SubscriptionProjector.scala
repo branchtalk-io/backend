@@ -19,23 +19,20 @@ final class SubscriptionProjector[F[_]: Sync](transactor: Transactor[F])
 
   private val logger = Logger(getClass)
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, DiscussionCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect {
-        case DiscussionCommandEvent.ForSubscription(event) => event
-      }
-      .evalMap[F, (UUID, SubscriptionEvent)] {
-        case event: SubscriptionCommandEvent.Subscribe   => toSubscribe(event).widen
-        case event: SubscriptionCommandEvent.Unsubscribe => toUnsubscribe(event).widen
-      }
-      .map {
-        case (key, value) => key -> DiscussionEvent.ForSubscription(value)
-      }
-      .handleErrorWith { error =>
-        logger.error("Subscription event processing failed", error)
-        Stream.empty
-      }
+    in.collect { case DiscussionCommandEvent.ForSubscription(event) =>
+      event
+    }.evalMap[F, (UUID, SubscriptionEvent)] {
+      case event: SubscriptionCommandEvent.Subscribe   => toSubscribe(event).widen
+      case event: SubscriptionCommandEvent.Unsubscribe => toUnsubscribe(event).widen
+    }.map { case (key, value) =>
+      key -> DiscussionEvent.ForSubscription(value)
+    }.handleErrorWith { error =>
+      logger.error("Subscription event processing failed", error)
+      Stream.empty
+    }
 
   def toSubscribe(event: SubscriptionCommandEvent.Subscribe): F[(UUID, SubscriptionEvent.Subscribed)] =
     sql"""INSERT INTO subscriptions (

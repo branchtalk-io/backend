@@ -24,14 +24,10 @@ trait TestKafkaResources extends TestResourcesHelpers {
           }
         } { client =>
           Sync[F].delay {
-            try {
-              if (client.listTopics().names().get().asScala.contains(cfg.topic.nonEmptyString.value)) {
-                client.deleteTopics(List(cfg.topic.nonEmptyString.value).asJavaCollection)
-                ()
-              }
-            } finally {
-              client.close()
-            }
+            try if (client.listTopics().names().get().asScala.contains(cfg.topic.nonEmptyString.value)) {
+              client.deleteTopics(List(cfg.topic.nonEmptyString.value).asJavaCollection)
+              ()
+            } finally client.close()
           }
         }
       }

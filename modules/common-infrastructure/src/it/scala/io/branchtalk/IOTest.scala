@@ -10,22 +10,20 @@ trait IOTest {
 
   private val logger = Logger(getClass)
 
-  protected implicit val contextShift: ContextShift[IO] =
+  implicit protected val contextShift: ContextShift[IO] =
     IO.contextShift(scala.concurrent.ExecutionContext.fromExecutor(null))
-  protected implicit val timer: Timer[IO] =
+  implicit protected val timer: Timer[IO] =
     IO.timer(scala.concurrent.ExecutionContext.fromExecutor(null))
 
-  private val ignoreErrorForLogging: PartialFunction[Throwable, Unit] = {
-    case _: fs2.kafka.CommitTimeoutException =>
+  private val ignoreErrorForLogging: PartialFunction[Throwable, Unit] = { case _: fs2.kafka.CommitTimeoutException =>
   }
 
   implicit class IOTestOps[T](private val io: IO[T]) {
 
     def eventually(retry: Int = 50, delay: FiniteDuration = 250.millis, timeout: FiniteDuration = 15.seconds): IO[T] = {
-      def withRetry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = {
-        case cause: Throwable =>
-          if (attemptsLeft <= 0) IO.raiseError(new Exception(s"IO failed to succeed: exceeded retry $retry", cause))
-          else io.handleErrorWith(withRetry(attemptsLeft - 1)).delayBy(delay)
+      def withRetry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = { case cause: Throwable =>
+        if (attemptsLeft <= 0) IO.raiseError(new Exception(s"IO failed to succeed: exceeded retry $retry", cause))
+        else io.handleErrorWith(withRetry(attemptsLeft - 1)).delayBy(delay)
       }
 
       io.handleErrorWith(withRetry(retry)).timeout(timeout)
@@ -36,7 +34,7 @@ trait IOTest {
     }
   }
 
-  protected implicit def ioAsTest[T: AsExecution]: AsExecution[IO[T]] = new AsExecution[IO[T]] {
+  implicit protected def ioAsTest[T: AsExecution]: AsExecution[IO[T]] = new AsExecution[IO[T]] {
     override def execute(t: => IO[T]) = AsExecution[T].execute(t.unsafeRunSync())
   }
 }

@@ -31,7 +31,7 @@ final class OpenAPIServer[F[_]: Sync: ContextShift](
 @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
 object OpenAPIServer {
 
-  private implicit val openAPIDocsOptions: OpenAPIDocsOptions = OpenAPIDocsOptions.default
+  implicit private val openAPIDocsOptions: OpenAPIDocsOptions = OpenAPIDocsOptions.default
 
   // technically, we only need encoder part so we can mock all the rest and call it a day
   trait JsEncoderOnly[T] extends JsCodec[T] {

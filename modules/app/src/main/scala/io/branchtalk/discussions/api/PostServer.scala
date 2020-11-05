@@ -44,79 +44,71 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       PostError.ValidationFailed(errors)
   }(logger)
 
-  private val newest = PostAPIs.newest.serverLogic {
-    case (optAuth, optOffset, optLimit) =>
-      withErrorHandling {
-        for {
-          optUser <- optAuth.traverse(authServices.authenticateUser)
-          offset = paginationConfig.resolveOffset(optOffset)
-          limit  = paginationConfig.resolveLimit(optLimit)
-          subscriptionOpt <- optUser
-            .map(_.id)
-            .map(userIDUsers2Discussions.get)
-            .traverse(subscriptionReads.requireForUser)
-          channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(defaultSubscriptions))
-          paginated <- NonEmptySet.fromSet(channelIDS) match {
-            case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
-            case None             => Paginated.empty[Post].pure[F]
-          }
-        } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
-      }
+  private val newest = PostAPIs.newest.serverLogic { case (optAuth, optOffset, optLimit) =>
+    withErrorHandling {
+      for {
+        optUser <- optAuth.traverse(authServices.authenticateUser)
+        offset = paginationConfig.resolveOffset(optOffset)
+        limit  = paginationConfig.resolveLimit(optLimit)
+        subscriptionOpt <- optUser.map(_.id).map(userIDUsers2Discussions.get).traverse(subscriptionReads.requireForUser)
+        channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(defaultSubscriptions))
+        paginated <- NonEmptySet.fromSet(channelIDS) match {
+          case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+          case None             => Paginated.empty[Post].pure[F]
+        }
+      } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
+    }
   }
 
-  private val create = PostAPIs.create.serverLogic {
-    case (auth, createData) =>
-      withErrorHandling {
-        for {
-          userID <- authServices.authenticateUser(auth).map(_.id)
-          data = createData.into[Post.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
-          result <- postWrites.createPost(data)
-        } yield CreatePostResponse(result.id)
-      }
+  private val create = PostAPIs.create.serverLogic { case (auth, createData) =>
+    withErrorHandling {
+      for {
+        userID <- authServices.authenticateUser(auth).map(_.id)
+        data = createData.into[Post.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
+        result <- postWrites.createPost(data)
+      } yield CreatePostResponse(result.id)
+    }
   }
 
-  private val read = PostAPIs.read.serverLogic {
-    case (optAuth, postID) =>
-      withErrorHandling {
-        for {
-          _ <- optAuth.traverse(authServices.authenticateUser)
-          result <- postReads.requireById(postID)
-        } yield APIPost.fromDomain(result)
-      }
+  private val read = PostAPIs.read.serverLogic { case (optAuth, postID) =>
+    withErrorHandling {
+      for {
+        _ <- optAuth.traverse(authServices.authenticateUser)
+        result <- postReads.requireById(postID)
+      } yield APIPost.fromDomain(result)
+    }
   }
 
-  private val update = PostAPIs.update.serverLogic {
-    case (auth, postID, updateData) =>
-      withErrorHandling {
-        for {
-          post <- postReads.requireById(postID)
-          userID <- authServices
-            .authorizeUser(auth, Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID)))
-            .map(_.id)
-          data = updateData
-            .into[Post.Update]
-            .withFieldConst(_.id, postID)
-            .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-            .withFieldRenamed(_.content, _.newContent)
-            .withFieldRenamed(_.title, _.newTitle)
-            .transform
-          result <- postWrites.updatePost(data)
-        } yield UpdatePostResponse(result.id)
-      }
+  private val update = PostAPIs.update.serverLogic { case (auth, postID, updateData) =>
+    withErrorHandling {
+      for {
+        post <- postReads.requireById(postID)
+        userID <- authServices
+          .authorizeUser(auth, Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID)))
+          .map(_.id)
+        data = updateData
+          .into[Post.Update]
+          .withFieldConst(_.id, postID)
+          .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
+          .withFieldRenamed(_.content, _.newContent)
+          .withFieldRenamed(_.title, _.newTitle)
+          .transform
+        result <- postWrites.updatePost(data)
+      } yield UpdatePostResponse(result.id)
+    }
   }
 
-  private val delete = PostAPIs.delete.serverLogic {
-    case (auth, postID) =>
-      withErrorHandling {
-        for {
-          post <- postReads.requireById(postID)
-          userID <- authServices
-            .authorizeUser(auth, Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID)))
-            .map(_.id)
-          data = Post.Delete(postID, userIDUsers2Discussions.get(userID))
-          result <- postWrites.deletePost(data)
-        } yield DeletePostResponse(result.id)
-      }
+  private val delete = PostAPIs.delete.serverLogic { case (auth, postID) =>
+    withErrorHandling {
+      for {
+        post <- postReads.requireById(postID)
+        userID <- authServices
+          .authorizeUser(auth, Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID)))
+          .map(_.id)
+        data = Post.Delete(postID, userIDUsers2Discussions.get(userID))
+        result <- postWrites.deletePost(data)
+      } yield DeletePostResponse(result.id)
+    }
   }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Nothing, F]] = NonEmptyList.of(

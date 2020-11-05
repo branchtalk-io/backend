@@ -12,7 +12,7 @@ import io.branchtalk.shared.models.Paginated
 
 final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostReads[F] {
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT id,

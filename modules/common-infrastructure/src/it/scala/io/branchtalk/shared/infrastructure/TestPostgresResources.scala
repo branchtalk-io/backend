@@ -12,10 +12,10 @@ trait TestPostgresResources extends TestResourcesHelpers {
   ): Resource[F, PostgresConfig] =
     Resource.liftF(generateRandomSuffix[F]).flatMap { randomSuffix =>
       val schemaCreator = Transactor.fromDriverManager[F](
-        driver  = classOf[org.postgresql.Driver].getName, // driver classname
-        url     = testPostgresConfig.url.nonEmptyString.value, // connect URL (driver-specific)
-        user    = "postgres", // user
-        pass    = testPostgresConfig.rootPassword.nonEmptyString.value, // password
+        driver = classOf[org.postgresql.Driver].getName, // driver classname
+        url = testPostgresConfig.url.nonEmptyString.value, // connect URL (driver-specific)
+        user = "postgres", // user
+        pass = testPostgresConfig.rootPassword.nonEmptyString.value, // password
         blocker = Blocker.liftExecutionContext(ExecutionContexts.synchronous) // just for testing
       )
 

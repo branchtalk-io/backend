@@ -63,8 +63,8 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
               expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
               session <- usersWrites.sessionWrites.createSession(
                 Session.Create(
-                  userID    = user.id,
-                  usage     = Session.Usage.UserSession,
+                  userID = user.id,
+                  usage = Session.Usage.UserSession,
                   expiresAt = expireAt
                 )
               )
@@ -94,33 +94,31 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     }
   }
 
-  private val updateProfile = UserAPIs.updateProfile.serverLogic {
-    case (authentication, userID, update) =>
-      withErrorHandling {
-        for {
-          user <- authServices.authorizeUser(authentication, api.Permission.EditProfile(userIDApi2Users(userID)))
-          moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
-          data = update
-            .into[User.Update]
-            .withFieldConst(_.id, userID)
-            .withFieldConst(_.moderatorID, moderatorID)
-            .withFieldConst(_.newPassword, update.newPassword.map(Password.create))
-            .withFieldConst(_.updatePermissions, List.empty)
-            .transform
-          _ <- usersWrites.userWrites.updateUser(data)
-        } yield UpdateUserResponse(userID)
-      }
+  private val updateProfile = UserAPIs.updateProfile.serverLogic { case (authentication, userID, update) =>
+    withErrorHandling {
+      for {
+        user <- authServices.authorizeUser(authentication, api.Permission.EditProfile(userIDApi2Users(userID)))
+        moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
+        data = update
+          .into[User.Update]
+          .withFieldConst(_.id, userID)
+          .withFieldConst(_.moderatorID, moderatorID)
+          .withFieldConst(_.newPassword, update.newPassword.map(Password.create))
+          .withFieldConst(_.updatePermissions, List.empty)
+          .transform
+        _ <- usersWrites.userWrites.updateUser(data)
+      } yield UpdateUserResponse(userID)
+    }
   }
 
-  private val deleteProfile = UserAPIs.deleteProfile.serverLogic {
-    case (authentication, userID) =>
-      withErrorHandling {
-        for {
-          user <- authServices.authorizeUser(authentication, api.Permission.EditProfile(userIDApi2Users(userID)))
-          moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
-          _ <- usersWrites.userWrites.deleteUser(User.Delete(userID, moderatorID))
-        } yield DeleteUserResponse(userID)
-      }
+  private val deleteProfile = UserAPIs.deleteProfile.serverLogic { case (authentication, userID) =>
+    withErrorHandling {
+      for {
+        user <- authServices.authorizeUser(authentication, api.Permission.EditProfile(userIDApi2Users(userID)))
+        moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
+        _ <- usersWrites.userWrites.deleteUser(User.Delete(userID, moderatorID))
+      } yield DeleteUserResponse(userID)
+    }
   }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Nothing, F]] = NonEmptyList.of(

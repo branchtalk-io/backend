@@ -11,7 +11,7 @@ import io.branchtalk.users.model.{ Password, User, UserDao }
 
 final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserReads[F] {
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT id,

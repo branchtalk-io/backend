@@ -11,8 +11,8 @@ import io.scalaland.chimney.dsl._
 final class CommentWritesImpl[F[_]: Sync: Timer](
   producer:   EventBusProducer[F, DiscussionCommandEvent],
   transactor: Transactor[F]
-)(
-  implicit uuidGenerator: UUIDGenerator
+)(implicit
+  uuidGenerator: UUIDGenerator
 ) extends Writes[F, Comment, DiscussionCommandEvent](producer)
     with CommentWrites[F] {
 
@@ -22,7 +22,8 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
   override def createComment(newComment: Comment.Create): F[CreationScheduled[Comment]] =
     for {
       _ <- postCheck(newComment.postID,
-                     sql"""SELECT 1 FROM posts WHERE id = ${newComment.postID} AND deleted = false""")
+                     sql"""SELECT 1 FROM posts WHERE id = ${newComment.postID} AND deleted = false"""
+      )
       id <- ID.create[F, Comment]
       now <- CreationTime.now[F]
       command = newComment

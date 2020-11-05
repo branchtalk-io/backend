@@ -12,7 +12,7 @@ object PermissionCommands {
 
   @Semi(FastEq, ShowPretty) sealed trait Update extends ADT
   object Update {
-    final case class Add(permission:    Permission) extends Update
+    final case class Add(permission: Permission) extends Update
     final case class Remove(permission: Permission) extends Update
   }
 }

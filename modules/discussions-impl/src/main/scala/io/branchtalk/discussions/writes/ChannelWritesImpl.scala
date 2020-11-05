@@ -11,8 +11,8 @@ import io.scalaland.chimney.dsl._
 final class ChannelWritesImpl[F[_]: Sync: Timer](
   producer:   EventBusProducer[F, DiscussionCommandEvent],
   transactor: Transactor[F]
-)(
-  implicit uuidGenerator: UUIDGenerator
+)(implicit
+  uuidGenerator: UUIDGenerator
 ) extends Writes[F, Channel, DiscussionCommandEvent](producer)
     with ChannelWrites[F] {
 

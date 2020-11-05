@@ -18,25 +18,22 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
 
   private val logger = Logger(getClass)
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, DiscussionCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect {
-        case DiscussionCommandEvent.ForPost(event) => event
-      }
-      .evalMap[F, (UUID, PostEvent)] {
-        case event: PostCommandEvent.Create  => toCreate(event).widen
-        case event: PostCommandEvent.Update  => toUpdate(event).widen
-        case event: PostCommandEvent.Delete  => toDelete(event).widen
-        case event: PostCommandEvent.Restore => toRestore(event).widen
-      }
-      .map {
-        case (key, value) => key -> DiscussionEvent.ForPost(value)
-      }
-      .handleErrorWith { error =>
-        logger.error("Post event processing failed", error)
-        Stream.empty
-      }
+    in.collect { case DiscussionCommandEvent.ForPost(event) =>
+      event
+    }.evalMap[F, (UUID, PostEvent)] {
+      case event: PostCommandEvent.Create  => toCreate(event).widen
+      case event: PostCommandEvent.Update  => toUpdate(event).widen
+      case event: PostCommandEvent.Delete  => toDelete(event).widen
+      case event: PostCommandEvent.Restore => toRestore(event).widen
+    }.map { case (key, value) =>
+      key -> DiscussionEvent.ForPost(value)
+    }.handleErrorWith { error =>
+      logger.error("Post event processing failed", error)
+      Stream.empty
+    }
 
   def toCreate(event: PostCommandEvent.Create): F[(UUID, PostEvent.Created)] = {
     val Post.Content.Tupled(contentType, contentRaw) = event.content

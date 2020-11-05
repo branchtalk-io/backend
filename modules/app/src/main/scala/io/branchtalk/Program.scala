@@ -14,7 +14,7 @@ object Program {
 
   private val logger = Logger(getClass)
 
-  protected implicit val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  implicit protected val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
   def runApplication[F[_]: ConcurrentEffect: ContextShift: Timer](args: List[String]): F[ExitCode] =
     (for {
@@ -60,27 +60,26 @@ object Program {
       conditionalResource(appConfig.runAPI)(())(
         AppServer
           .asResource(
-            appConfig         = appConfig,
-            apiConfig         = apiConfig,
-            usersReads        = usersReads,
-            usersWrites       = usersWrites,
-            discussionsReads  = discussionsReads,
+            appConfig = appConfig,
+            apiConfig = apiConfig,
+            usersReads = usersReads,
+            usersWrites = usersWrites,
+            discussionsReads = discussionsReads,
             discussionsWrites = discussionsWrites
           )
           .void
       ),
       conditionalResource(appConfig.runUsersProjections)(().pure[F])(usersWrites.runProjector),
       conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
-    ).tupled.use {
-      case (_, _, startDiscussions) =>
-        for {
-          discussionsFiber <- startDiscussions.start
-          _ <- Sync[F].delay(logger.info("Services initialized"))
-          _ <- terminationSignal // here we are blocking until e.g. user press Ctrl+D or Ctrl+C
-          _ <- Sync[F].delay(logger.info("Received exit signal"))
-          _ <- discussionsFiber.join
-          _ <- Sync[F].delay(logger.info("Shut down services"))
-        } yield ()
+    ).tupled.use { case (_, _, startDiscussions) =>
+      for {
+        discussionsFiber <- startDiscussions.start
+        _ <- Sync[F].delay(logger.info("Services initialized"))
+        _ <- terminationSignal // here we are blocking until e.g. user press Ctrl+D or Ctrl+C
+        _ <- Sync[F].delay(logger.info("Received exit signal"))
+        _ <- discussionsFiber.join
+        _ <- Sync[F].delay(logger.info("Shut down services"))
+      } yield ()
     }
 
   private def awaitTerminationSignal[F[_]: Async]: F[Unit] = Async[F].never[Unit]

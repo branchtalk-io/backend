@@ -4,15 +4,15 @@ import cats.effect.Sync
 import com.monovore.decline._
 
 final case class AppConfig(
-  host:                      String  = Defaults.host,
-  port:                      Int     = Defaults.port,
+  host:                      String = Defaults.host,
+  port:                      Int = Defaults.port,
   runAPI:                    Boolean = Defaults.runAPI,
   runUsersProjections:       Boolean = Defaults.runUsersProjections,
   runDiscussionsProjections: Boolean = Defaults.runDiscussionsProjections
 )
 object AppConfig {
 
-  private implicit class BoolOps[A](private val opts: Opts[A]) extends AnyVal {
+  implicit private class BoolOps[A](private val opts: Opts[A]) extends AnyVal {
 
     def orBool(bool: Boolean)(implicit isUnit: A <:< Unit): Opts[Boolean] =
       if (bool) opts.orTrue else opts.orFalse
@@ -40,9 +40,10 @@ object AppConfig {
       .orBool(Defaults.runUsersProjections)
   private val runDiscussionsProjections =
     Opts
-      .flag(long  = "discussions-projections",
+      .flag(long = "discussions-projections",
             short = "d",
-            help  = "Have this instance run Discussions write model projections")
+            help = "Have this instance run Discussions write model projections"
+      )
       .orBool(Defaults.runDiscussionsProjections)
 
   def parse[F[_]: Sync](args: List[String], env: Map[String, String]): F[AppConfig] =
@@ -52,10 +53,10 @@ object AppConfig {
           (host, port, monolith orElse (runApi, runUsersProjections, runDiscussionsProjections).tupled).mapN {
             case (host, port, (runApi, runUsersProjections, runDiscussionsProjections)) =>
               AppConfig(
-                host                      = host,
-                port                      = port,
-                runAPI                    = runApi,
-                runUsersProjections       = runUsersProjections,
+                host = host,
+                port = port,
+                runAPI = runApi,
+                runUsersProjections = runUsersProjections,
                 runDiscussionsProjections = runDiscussionsProjections
               )
           } orElse help

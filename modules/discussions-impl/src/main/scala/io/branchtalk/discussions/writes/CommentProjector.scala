@@ -16,25 +16,22 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
 
   private val logger = Logger(getClass)
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, DiscussionCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect {
-        case DiscussionCommandEvent.ForComment(event) => event
-      }
-      .evalMap[F, (UUID, CommentEvent)] {
-        case event: CommentCommandEvent.Create  => toCreate(event).widen
-        case event: CommentCommandEvent.Update  => toUpdate(event).widen
-        case event: CommentCommandEvent.Delete  => toDelete(event).widen
-        case event: CommentCommandEvent.Restore => toRestore(event).widen
-      }
-      .map {
-        case (key, value) => key -> DiscussionEvent.ForComment(value)
-      }
-      .handleErrorWith { error =>
-        logger.error("Post event processing failed", error)
-        Stream.empty
-      }
+    in.collect { case DiscussionCommandEvent.ForComment(event) =>
+      event
+    }.evalMap[F, (UUID, CommentEvent)] {
+      case event: CommentCommandEvent.Create  => toCreate(event).widen
+      case event: CommentCommandEvent.Update  => toUpdate(event).widen
+      case event: CommentCommandEvent.Delete  => toDelete(event).widen
+      case event: CommentCommandEvent.Restore => toRestore(event).widen
+    }.map { case (key, value) =>
+      key -> DiscussionEvent.ForComment(value)
+    }.handleErrorWith { error =>
+      logger.error("Post event processing failed", error)
+      Stream.empty
+    }
 
   def toCreate(event: CommentCommandEvent.Create): F[(UUID, CommentEvent.Created)] =
     event.replyTo

@@ -34,14 +34,13 @@ object DiscussionsModule {
   def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig
   ): Resource[F, DiscussionsReads[F]] =
-    module.setupReads[F](domainConfig).map {
-      case ReadsInfrastructure(transactor, _) =>
-        val channelReads:      ChannelReads[F]      = wire[ChannelReadsImpl[F]]
-        val postReads:         PostReads[F]         = wire[PostReadsImpl[F]]
-        val commentReads:      CommentReads[F]      = wire[CommentReadsImpl[F]]
-        val subscriptionReads: SubscriptionReads[F] = wire[SubscriptionReadsImpl[F]]
+    module.setupReads[F](domainConfig).map { case ReadsInfrastructure(transactor, _) =>
+      val channelReads:      ChannelReads[F]      = wire[ChannelReadsImpl[F]]
+      val postReads:         PostReads[F]         = wire[PostReadsImpl[F]]
+      val commentReads:      CommentReads[F]      = wire[CommentReadsImpl[F]]
+      val subscriptionReads: SubscriptionReads[F] = wire[SubscriptionReadsImpl[F]]
 
-        wire[DiscussionsReads[F]]
+      wire[DiscussionsReads[F]]
     }
 
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](

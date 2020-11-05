@@ -22,9 +22,9 @@ import scala.concurrent.duration.FiniteDuration
 ) {
 
   def toOpenAPI: Contact = Contact(
-    name  = name.some,
+    name = name.some,
     email = email.value.some,
-    url   = url.value.some
+    url = url.value.some
   )
 }
 
@@ -35,7 +35,7 @@ import scala.concurrent.duration.FiniteDuration
 
   def toOpenAPI: License = License(
     name = name,
-    url  = url.value.some
+    url = url.value.some
   )
 }
 
@@ -49,12 +49,12 @@ import scala.concurrent.duration.FiniteDuration
 ) {
 
   def toOpenAPI: Info = Info(
-    title          = title.value,
-    version        = version.value,
-    description    = description.value.some,
+    title = title.value,
+    version = version.value,
+    description = description.value.some,
     termsOfService = termsOfService.value.some,
-    contact        = contact.toOpenAPI.some,
-    license        = license.toOpenAPI.some
+    contact = contact.toOpenAPI.some,
+    license = license.toOpenAPI.some
   )
 }
 
@@ -94,12 +94,11 @@ object APIPart extends Enum[APIPart] {
   implicit def asMapKey[A](implicit mapReader: ConfigReader[Map[String, A]]): ConfigReader[Map[APIPart, A]] =
     mapReader.emap { map =>
       map.toList
-        .traverse {
-          case (key, value) =>
-            withNameInsensitiveEither(key)
-              .map(_ -> value)
-              .left
-              .map(error => CannotConvert(key, "APIPart", error.getMessage()))
+        .traverse { case (key, value) =>
+          withNameInsensitiveEither(key)
+            .map(_ -> value)
+            .left
+            .map(error => CannotConvert(key, "APIPart", error.getMessage()))
         }
         .map(_.toMap)
     }

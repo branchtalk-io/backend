@@ -8,7 +8,7 @@ import org.specs2.mutable.Specification
 
 final class PostReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Post Reads & Writes" should {
 
@@ -21,10 +21,9 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
           // when
           toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost(_).attempt)
-        } yield {
-          // then
-          toCreate must contain(beLeft[Throwable]).foreach
-        }
+        } yield
+        // then
+        toCreate must contain(beLeft[Throwable]).foreach
       }
     }
 
@@ -65,19 +64,18 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           fakeUpdateData <- creationData.traverse { data =>
             ID.create[IO, Post].map { id =>
               Post.Update(
-                id         = id,
-                editorID   = editorID,
-                newTitle   = Updatable.Set(data.title),
+                id = id,
+                editorID = editorID,
+                newTitle = Updatable.Set(data.title),
                 newContent = Updatable.Set(data.content)
               )
             }
           }
           // when
           toUpdate <- fakeUpdateData.traverse(discussionsWrites.postWrites.updatePost(_).attempt)
-        } yield {
-          // then
-          toUpdate must contain(beLeft[Throwable]).foreach
-        }
+        } yield
+        // then
+        toUpdate must contain(beLeft[Throwable]).foreach
       }
     }
 
@@ -96,16 +94,16 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           updateData = created.zipWithIndex.collect {
             case (Post(id, data), 0) =>
               Post.Update(
-                id         = id,
-                editorID   = editorID,
-                newTitle   = Updatable.Set(data.title),
+                id = id,
+                editorID = editorID,
+                newTitle = Updatable.Set(data.title),
                 newContent = Updatable.Set(data.content)
               )
             case (Post(id, _), 1) =>
               Post.Update(
-                id         = id,
-                editorID   = editorID,
-                newTitle   = Updatable.Keep,
+                id = id,
+                editorID = editorID,
+                newTitle = Updatable.Keep,
                 newContent = Updatable.Keep
               )
           }
@@ -117,22 +115,21 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
               IO(assert(current.head.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
             }
             .eventually()
-        } yield {
-          // then
-          created
-            .zip(updated)
-            .zipWithIndex
-            .collect {
-              case ((Post(_, older), Post(_, newer)), 0) =>
-                // set case
-                older must_=== newer.copy(lastModifiedAt = None)
-              case ((Post(_, older), Post(_, newer)), 1) =>
-                // keep case
-                older must_=== newer
-            }
-            .lastOption
-            .getOrElse(true must beFalse)
-        }
+        } yield
+        // then
+        created
+          .zip(updated)
+          .zipWithIndex
+          .collect {
+            case ((Post(_, older), Post(_, newer)), 0) =>
+              // set case
+              older must_=== newer.copy(lastModifiedAt = None)
+            case ((Post(_, older), Post(_, newer)), 1) =>
+              // keep case
+              older must_=== newer
+          }
+          .lastOption
+          .getOrElse(true must beFalse)
       }
     }
 

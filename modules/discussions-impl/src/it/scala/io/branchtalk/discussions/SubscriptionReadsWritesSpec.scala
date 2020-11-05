@@ -7,7 +7,7 @@ import org.specs2.mutable.Specification
 
 final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Subscription Reads & Writes" should {
 
@@ -29,10 +29,9 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
               IO(assert(subscription.subscriptions === ids.toSet, "Subscriptions should be eventually added"))
             }
             .eventually()
-        } yield {
-          // then
-          subscription must_=== Subscription(subscriberID, ids.toSet)
-        }
+        } yield
+        // then
+        subscription must_=== Subscription(subscriberID, ids.toSet)
       }
     }
 
@@ -68,10 +67,9 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
               IO(assert(subscription.subscriptions === idsToKeep.toSet, "Subscriptions should be eventually deleted"))
             }
             .eventually()
-        } yield {
-          // then
-          subscription must_=== Subscription(subscriberID, idsToKeep.toSet)
-        }
+        } yield
+        // then
+        subscription must_=== Subscription(subscriberID, idsToKeep.toSet)
       }
     }
   }

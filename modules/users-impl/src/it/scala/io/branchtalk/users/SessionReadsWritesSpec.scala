@@ -1,12 +1,12 @@
 package io.branchtalk.users
 
-import io.branchtalk.shared.models.{ CreationScheduled, UUIDGenerator }
+import io.branchtalk.shared.models.{ CreationScheduled, TestUUIDGenerator }
 import io.branchtalk.users.model.Session
 import org.specs2.mutable.Specification
 
 final class SessionReadsWritesSpec extends Specification with UsersIOTest with UsersFixtures {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Session Reads & Writes" should {
 
@@ -22,10 +22,9 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
           toCreate <- creationData.traverse(usersWrites.sessionWrites.createSession)
           ids = toCreate.map(_.id)
           users <- ids.traverse(usersReads.sessionReads.requireSession)
-        } yield {
-          // then
-          ids must containTheSameElementsAs(users.map(_.id))
-        }
+        } yield
+        // then
+        ids must containTheSameElementsAs(users.map(_.id))
       }
     }
 
@@ -43,10 +42,9 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
           // when
           _ <- ids.map(Session.Delete.apply).traverse(usersWrites.sessionWrites.deleteSession)
           sessions <- ids.traverse(usersReads.sessionReads.requireSession(_).attempt)
-        } yield {
-          // then
-          sessions must contain(beLeft[Throwable]).foreach
-        }
+        } yield
+        // then
+        sessions must contain(beLeft[Throwable]).foreach
       }
     }
 
@@ -61,10 +59,9 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
           _ <- usersReads.userReads.requireById(userID).eventually()
           // when
           session <- usersReads.sessionReads.requireSession(sessionID).attempt
-        } yield {
-          // then
-          session must beRight[Session]
-        }
+        } yield
+        // then
+        session must beRight[Session]
       }
     }
   }

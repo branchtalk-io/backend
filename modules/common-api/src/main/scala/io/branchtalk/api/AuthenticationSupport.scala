@@ -41,7 +41,7 @@ object AuthenticationSupport {
     }
   }
 
-  private implicit class ResultOps[A](private val io: IO[A]) extends AnyVal {
+  implicit private class ResultOps[A](private val io: IO[A]) extends AnyVal {
 
     def asResult(original: String): DecodeResult[A] = io.attempt.unsafeRunSync() match {
       case Left(value)  => DecodeResult.Error(original, value)

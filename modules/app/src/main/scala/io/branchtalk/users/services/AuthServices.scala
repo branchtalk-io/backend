@@ -48,12 +48,13 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
         case None              => all
       }
       requiredPermissions = permissions.map(permissionApi2Users.get).toList
-      _ <- if (availablePermissions.allow(requiredPermissions.toSeq: _*)) Sync[F].unit
-      else {
-        (CommonError.InsufficientPermissions(
-          s"User has insufficient permissions: available ${availablePermissions.show}, required: ${requiredPermissions.show}",
-          CodePosition.providePosition
-        ): Throwable).raiseError[F, Unit]
-      }
+      _ <-
+        if (availablePermissions.allow(requiredPermissions.toSeq: _*)) Sync[F].unit
+        else {
+          (CommonError.InsufficientPermissions(
+            s"User has insufficient permissions: available ${availablePermissions.show}, required: ${requiredPermissions.show}",
+            CodePosition.providePosition
+          ): Throwable).raiseError[F, Unit]
+        }
     } yield user
 }

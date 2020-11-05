@@ -7,7 +7,7 @@ import org.specs2.mutable.Specification
 
 final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Channel Reads & Writes" should {
 
@@ -44,20 +44,19 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
           fakeUpdateData <- creationData.traverse { data =>
             ID.create[IO, Channel].map { id =>
               Channel.Update(
-                id             = id,
-                editorID       = editorID,
-                newUrlName     = Updatable.Set(data.urlName),
-                newName        = Updatable.Set(data.name),
+                id = id,
+                editorID = editorID,
+                newUrlName = Updatable.Set(data.urlName),
+                newName = Updatable.Set(data.name),
                 newDescription = OptionUpdatable.setFromOption(data.description)
               )
             }
           }
           // when
           toUpdate <- fakeUpdateData.traverse(discussionsWrites.channelWrites.updateChannel(_).attempt)
-        } yield {
-          // then
-          toUpdate must contain(beLeft[Throwable]).foreach
-        }
+        } yield
+        // then
+        toUpdate must contain(beLeft[Throwable]).foreach
       }
     }
 
@@ -74,26 +73,26 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
           updateData = created.zipWithIndex.collect {
             case (Channel(id, data), 0) =>
               Channel.Update(
-                id             = id,
-                editorID       = editorID,
-                newUrlName     = Updatable.Set(data.urlName),
-                newName        = Updatable.Set(data.name),
+                id = id,
+                editorID = editorID,
+                newUrlName = Updatable.Set(data.urlName),
+                newName = Updatable.Set(data.name),
                 newDescription = OptionUpdatable.setFromOption(data.description)
               )
             case (Channel(id, _), 1) =>
               Channel.Update(
-                id             = id,
-                editorID       = editorID,
-                newUrlName     = Updatable.Keep,
-                newName        = Updatable.Keep,
+                id = id,
+                editorID = editorID,
+                newUrlName = Updatable.Keep,
+                newName = Updatable.Keep,
                 newDescription = OptionUpdatable.Keep
               )
             case (Channel(id, _), 2) =>
               Channel.Update(
-                id             = id,
-                editorID       = editorID,
-                newUrlName     = Updatable.Keep,
-                newName        = Updatable.Keep,
+                id = id,
+                editorID = editorID,
+                newUrlName = Updatable.Keep,
+                newName = Updatable.Keep,
                 newDescription = OptionUpdatable.Erase
               )
           }
@@ -105,25 +104,24 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
               IO(assert(current.last.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
             }
             .eventually()
-        } yield {
-          // then
-          created
-            .zip(updated)
-            .zipWithIndex
-            .collect {
-              case ((Channel(_, older), Channel(_, newer)), 0) =>
-                // set case
-                older must_=== newer.copy(lastModifiedAt = None)
-              case ((Channel(_, older), Channel(_, newer)), 1) =>
-                // keep case
-                older must_=== newer
-              case ((Channel(_, older), Channel(_, newer)), 2) =>
-                // erase case
-                older.copy(description = None) must_=== newer.copy(lastModifiedAt = None)
-            }
-            .lastOption
-            .getOrElse(true must beFalse)
-        }
+        } yield
+        // then
+        created
+          .zip(updated)
+          .zipWithIndex
+          .collect {
+            case ((Channel(_, older), Channel(_, newer)), 0) =>
+              // set case
+              older must_=== newer.copy(lastModifiedAt = None)
+            case ((Channel(_, older), Channel(_, newer)), 1) =>
+              // keep case
+              older must_=== newer
+            case ((Channel(_, older), Channel(_, newer)), 2) =>
+              // erase case
+              older.copy(description = None) must_=== newer.copy(lastModifiedAt = None)
+          }
+          .lastOption
+          .getOrElse(true must beFalse)
       }
     }
 

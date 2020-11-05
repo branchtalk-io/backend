@@ -16,8 +16,9 @@ final case class PostDao(
 ) {
 
   def toDomain: Post =
-    Post(id   = id,
-         data = this.into[Post.Data].withFieldConst(_.content, Post.Content.Tupled(contentType, contentRaw)).transform)
+    Post(id = id,
+         data = this.into[Post.Data].withFieldConst(_.content, Post.Content.Tupled(contentType, contentRaw)).transform
+    )
 }
 object PostDao {
 

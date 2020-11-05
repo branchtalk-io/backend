@@ -28,12 +28,11 @@ object UsersModule {
 
   def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig
-  ): Resource[F, UsersReads[F]] = module.setupReads[F](domainConfig).map {
-    case ReadsInfrastructure(transactor, _) =>
-      val userReads:    UserReads[F]    = wire[UserReadsImpl[F]]
-      val sessionReads: SessionReads[F] = wire[SessionReadsImpl[F]]
+  ): Resource[F, UsersReads[F]] = module.setupReads[F](domainConfig).map { case ReadsInfrastructure(transactor, _) =>
+    val userReads:    UserReads[F]    = wire[UserReadsImpl[F]]
+    val sessionReads: SessionReads[F] = wire[SessionReadsImpl[F]]
 
-      wire[UsersReads[F]]
+    wire[UsersReads[F]]
   }
 
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](

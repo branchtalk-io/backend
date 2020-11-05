@@ -15,25 +15,22 @@ final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
 
   private val logger = Logger(getClass)
 
-  private implicit val logHandler: LogHandler = doobieLogger(getClass)
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, DiscussionCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect {
-        case DiscussionCommandEvent.ForChannel(event) => event
-      }
-      .evalMap[F, (UUID, ChannelEvent)] {
-        case event: ChannelCommandEvent.Create  => toCreate(event).widen
-        case event: ChannelCommandEvent.Update  => toUpdate(event).widen
-        case event: ChannelCommandEvent.Delete  => toDelete(event).widen
-        case event: ChannelCommandEvent.Restore => toRestore(event).widen
-      }
-      .map {
-        case (key, value) => key -> DiscussionEvent.ForChannel(value)
-      }
-      .handleErrorWith { error =>
-        logger.error("Channel event processing failed", error)
-        Stream.empty
-      }
+    in.collect { case DiscussionCommandEvent.ForChannel(event) =>
+      event
+    }.evalMap[F, (UUID, ChannelEvent)] {
+      case event: ChannelCommandEvent.Create  => toCreate(event).widen
+      case event: ChannelCommandEvent.Update  => toUpdate(event).widen
+      case event: ChannelCommandEvent.Delete  => toDelete(event).widen
+      case event: ChannelCommandEvent.Restore => toRestore(event).widen
+    }.map { case (key, value) =>
+      key -> DiscussionEvent.ForChannel(value)
+    }.handleErrorWith { error =>
+      logger.error("Channel event processing failed", error)
+      Stream.empty
+    }
 
   def toCreate(event: ChannelCommandEvent.Create): F[(UUID, ChannelEvent.Created)] =
     sql"""INSERT INTO channels (

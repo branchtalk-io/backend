@@ -14,7 +14,7 @@ import sttp.model.StatusCode
 
 final class UserServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  protected implicit val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "UserServer-provided endpoints" should {
 
@@ -32,10 +32,10 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               // when
               response <- UserAPIs.signUp.toTestCall(
                 SignUpRequest(
-                  email       = creationData.email,
-                  username    = creationData.username,
+                  email = creationData.email,
+                  username = creationData.username,
                   description = creationData.description,
-                  password    = password
+                  password = password
                 )
               )
               possibleResult = response.body.toOption.flatMap(_.toOption)
@@ -174,10 +174,11 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                 (Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                  userID,
                  UpdateUserRequest(
-                   newUsername    = Updatable.Set(newUsername),
+                   newUsername = Updatable.Set(newUsername),
                    newDescription = OptionUpdatable.Set(newDescription),
-                   newPassword    = Updatable.Set(newPassword)
-                 ))
+                   newPassword = Updatable.Set(newPassword)
+                 )
+                )
               )
               updatedUser <- usersReads.userReads
                 .requireById(userID)

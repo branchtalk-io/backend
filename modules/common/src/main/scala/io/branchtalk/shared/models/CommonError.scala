@@ -10,8 +10,8 @@ import io.scalaland.catnip.Semi
 }
 object CommonError {
   final case class InvalidCredentials(codePosition: CodePosition) extends CommonError
-  final case class InsufficientPermissions(msg:     String, codePosition: CodePosition) extends CommonError
-  final case class NotFound(entity:                 String, id: ID[_], codePosition: CodePosition) extends CommonError {
+  final case class InsufficientPermissions(msg: String, codePosition: CodePosition) extends CommonError
+  final case class NotFound(entity: String, id: ID[_], codePosition: CodePosition) extends CommonError {
     override def getMessage: String = s"Entity $entity id=${id.show} not found at: ${codePosition.show}"
   }
   final case class ParentNotExist(entity: String, id: ID[_], codePosition: CodePosition) extends CommonError {

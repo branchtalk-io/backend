@@ -39,9 +39,9 @@ object DoobieSupport
 
   // enumeratum automatic support
 
-  implicit def enumeratumMeta[A <: enumeratum.EnumEntry](
-    implicit enum: enumeratum.Enum[A],
-    typeTag:       TypeTag[A]
+  implicit def enumeratumMeta[A <: enumeratum.EnumEntry](implicit
+    enum:    enumeratum.Enum[A],
+    typeTag: TypeTag[A]
   ): Meta[A] =
     Meta[String].timap(enum.withNameInsensitive)(_.entryName)
 
@@ -49,9 +49,9 @@ object DoobieSupport
 
   implicit def coercibleMeta[R, N](implicit ev: Coercible[Meta[R], Meta[N]], R: Meta[R]): Meta[N] = ev(R)
 
-  implicit def idArrayMeta[E](
-    implicit to: Coercible[Set[UUID], Set[ID[E]]],
-    from:        Coercible[Set[ID[E]], Set[UUID]]
+  implicit def idArrayMeta[E](implicit
+    to:   Coercible[Set[UUID], Set[ID[E]]],
+    from: Coercible[Set[ID[E]], Set[UUID]]
   ): Meta[Set[ID[E]]] =
     unliftedUUIDArrayType.imap[Set[ID[E]]](arr => to(arr.toSet))(set => from(set).toArray)
 
@@ -73,8 +73,8 @@ object DoobieSupport
 
     def exists: ConnectionIO[Boolean] = (fr"SELECT EXISTS(" ++ fragment ++ fr")").query[Boolean].unique
 
-    def paginate[Entity: Read](offset: Long Refined NonNegative, limit: Int Refined Positive)(
-      implicit logHandler: LogHandler
+    def paginate[Entity: Read](offset: Long Refined NonNegative, limit: Int Refined Positive)(implicit
+      logHandler: LogHandler
     ): ConnectionIO[Paginated[Entity]] = {
       val o = offset.value
       val l = limit.value

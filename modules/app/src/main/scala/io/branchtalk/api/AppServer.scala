@@ -43,9 +43,9 @@ final class AppServer[F[_]: Concurrent: Timer](
         CORS(
           _,
           CORSConfig(
-            anyOrigin        = apiConfig.http.corsAnyOrigin,
+            anyOrigin = apiConfig.http.corsAnyOrigin,
             allowCredentials = apiConfig.http.corsAllowCredentials,
-            maxAge           = apiConfig.http.corsMaxAge.toSeconds
+            maxAge = apiConfig.http.corsMaxAge.toSeconds
           )
         )
       )
@@ -54,9 +54,9 @@ final class AppServer[F[_]: Concurrent: Timer](
       .pipe(
         Logger[F, F](
           logHeaders = apiConfig.http.logHeaders,
-          logBody    = apiConfig.http.logBody,
-          fk         = FunctionK.id,
-          logAction  = ((s: String) => Sync[F].delay(logger.info(s))).some
+          logBody = apiConfig.http.logBody,
+          fk = FunctionK.id,
+          logAction = ((s: String) => Sync[F].delay(logger.info(s))).some
         )(_)
       )
 }
@@ -104,7 +104,8 @@ object AppServer {
     BlazeServerBuilder[F](ExecutionContext.global) // TODO: make configurable
       .enableHttp2(apiConfig.http.http2Enabled)
       .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength.value,
-                        maxHeadersLen     = apiConfig.http.maxHeaderLineLength.value)
+                        maxHeadersLen = apiConfig.http.maxHeaderLineLength.value
+      )
       .bindHttp(port = appConfig.port, host = appConfig.host)
       .withHttpApp(appServer.routes)
       .resource

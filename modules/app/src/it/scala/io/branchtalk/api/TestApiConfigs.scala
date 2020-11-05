@@ -32,29 +32,29 @@ object TestApiConfigs {
   def asResource[F[_]: Sync: Timer]: Resource[F, (AppConfig, APIConfig)] = portResource[F].map { port =>
     val host = "localhost"
     val app = AppConfig(
-      host                      = host,
-      port                      = port,
-      runAPI                    = true,
-      runUsersProjections       = true,
+      host = host,
+      port = port,
+      runAPI = true,
+      runUsersProjections = true,
       runDiscussionsProjections = true
     )
     val api = APIConfig(
       info = APIInfo(
-        title          = "test",
-        version        = "test",
-        description    = "test",
+        title = "test",
+        version = "test",
+        description = "test",
         termsOfService = "http://branchtalk.io",
-        contact        = APIContact(name = "test", email = "test@brachtalk.io", url = "http://branchtalk.io"),
-        license        = APILicense(name = "test", url = "http://branchtalk.io")
+        contact = APIContact(name = "test", email = "test@brachtalk.io", url = "http://branchtalk.io"),
+        license = APILicense(name = "test", url = "http://branchtalk.io")
       ),
       http = APIHttp(
-        logHeaders           = true,
-        logBody              = true,
-        http2Enabled         = true,
-        corsAnyOrigin        = true,
+        logHeaders = true,
+        logBody = true,
+        http2Enabled = true,
+        corsAnyOrigin = true,
         corsAllowCredentials = true,
-        corsMaxAge           = 1.day,
-        maxHeaderLineLength  = 512,
+        corsMaxAge = 1.day,
+        maxHeaderLineLength = 512,
         maxRequestLineLength = 1024
       ),
       pagination = Map.empty

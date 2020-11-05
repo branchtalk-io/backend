@@ -11,8 +11,8 @@ import io.scalaland.chimney.dsl._
 final class UserWritesImpl[F[_]: Sync: Timer](
   producer:   EventBusProducer[F, UsersCommandEvent],
   transactor: Transactor[F]
-)(
-  implicit uuidGenerator: UUIDGenerator
+)(implicit
+  uuidGenerator: UUIDGenerator
 ) extends Writes[F, User, UsersCommandEvent](producer)
     with UserWrites[F] {
 

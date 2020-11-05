@@ -14,8 +14,8 @@ final case class TestDependencies[F[_]](
 )
 object TestDependencies {
 
-  def resources[F[_]: ConcurrentEffect: ContextShift: Timer](
-    implicit uuidGenerator: UUIDGenerator
+  def resources[F[_]: ConcurrentEffect: ContextShift: Timer](implicit
+    uuidGenerator: UUIDGenerator
   ): Resource[F, TestDependencies[F]] =
     for {
       usersConfig <- TestUsersConfig.loadDomainConfig[F]
