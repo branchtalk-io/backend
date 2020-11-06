@@ -23,7 +23,7 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
     port = server.baseUri.port.fold(???)(_.intValue())
   )
 
-  protected val serverResource: Resource[IO, Unit] = for {
+  protected lazy val serverResource: Resource[IO, Unit] = for {
     (appConfig, apiConfig) <- TestApiConfigs.asResource[IO]
     _ <- AppServer
       .asResource[IO](

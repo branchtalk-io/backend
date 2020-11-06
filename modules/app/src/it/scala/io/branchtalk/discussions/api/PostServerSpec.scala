@@ -3,14 +3,7 @@ package io.branchtalk.discussions.api
 import cats.effect.IO
 import io.branchtalk.api.{ Authentication, Pagination, PaginationLimit, PaginationOffset, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
-import io.branchtalk.discussions.api.PostModels.{
-  APIPost,
-  CreatePostRequest,
-  CreatePostResponse,
-  DeletePostResponse,
-  UpdatePostRequest,
-  UpdatePostResponse
-}
+import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post, Subscription }
 import io.branchtalk.mappings._
 import io.branchtalk.shared.models._
@@ -22,9 +15,9 @@ import sttp.model.StatusCode
 
 final class PostServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  private val defaultChannelID = ID[Channel](UUIDGenerator.FastUUIDGenerator.create[IO].unsafeRunSync())
-  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
-  uuidGenerator.stubNext(defaultChannelID.uuid) // stub generation in ServerIOTest resources
+  private lazy val defaultChannelID = ID[Channel](UUIDGenerator.FastUUIDGenerator.create[IO].unsafeRunSync())
+  implicit protected lazy val uuidGenerator: TestUUIDGenerator =
+    (new TestUUIDGenerator).tap(_.stubNext(defaultChannelID.uuid)) // stub generation in ServerIOTest resources
 
   "PostServer-provided endpoints" should {
 
