@@ -1,6 +1,6 @@
 package io.branchtalk.shared.models
 
-import cats.{ Eq, Functor }
+import cats.{ Applicative, Eq, Traverse }
 import io.branchtalk.ADT
 
 import scala.annotation.nowarn
@@ -28,6 +28,13 @@ object Updatable {
 
   implicit def show[A: ShowPretty]: ShowPretty[Updatable[A]] = ShowPretty.semi
   implicit def eq[A:   Eq]:         Eq[Updatable[A]]         = FastEq.semi
+  implicit val applicative: Applicative[Updatable] = new Applicative[Updatable] {
+    override def pure[A](a:   A): Updatable[A] = Set(a)
+    override def ap[A, B](ff: Updatable[A => B])(fa: Updatable[A]): Updatable[B] = (ff, fa) match {
+      case (Set(f), Set(a)) => Set(f(a))
+      case _                => Keep
+    }
+  }
   @nowarn("cat=unused") // macros
-  implicit val functor: Functor[Updatable] = cats.derived.semi.functor[Updatable]
+  implicit val traverse: Traverse[Updatable] = cats.derived.semi.traverse[Updatable]
 }

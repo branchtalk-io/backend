@@ -152,7 +152,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
       }
     }
 
-    "on POST /users/{userID}" in {
+    "on PUT /users/{userID}" in {
 
       "should update User's profile if Session belongs to them" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
@@ -181,9 +181,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               )
               updatedUser <- usersReads.userReads
                 .requireById(userID)
-                .flatTap { current =>
-                  IO(assert(current.data.lastModifiedAt.isDefined, "Updated entity should have lastModifiedAt set"))
-                }
+                .assert("Updated entity should have lastModifiedAt set")(_.data.lastModifiedAt.isDefined)
                 .eventually()
             } yield {
               // then

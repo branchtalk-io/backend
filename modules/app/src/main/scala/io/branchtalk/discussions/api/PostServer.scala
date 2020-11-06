@@ -89,8 +89,8 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
           .into[Post.Update]
           .withFieldConst(_.id, postID)
           .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-          .withFieldRenamed(_.content, _.newContent)
-          .withFieldRenamed(_.title, _.newTitle)
+          .withFieldRenamed(_.newContent, _.newContent)
+          .withFieldRenamed(_.newTitle, _.newTitle)
           .transform
         result <- postWrites.updatePost(data)
       } yield UpdatePostResponse(result.id)

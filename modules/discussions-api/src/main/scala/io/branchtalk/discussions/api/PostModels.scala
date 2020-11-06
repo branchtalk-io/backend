@@ -71,8 +71,8 @@ object PostModels {
   @Semi(JsCodec) final case class CreatePostResponse(id: ID[Post])
 
   @Semi(JsCodec) final case class UpdatePostRequest(
-    title:   Updatable[Post.Title],
-    content: Updatable[Post.Content]
+    newTitle:   Updatable[Post.Title],
+    newContent: Updatable[Post.Content]
   )
 
   @Semi(JsCodec) final case class UpdatePostResponse(id: ID[Post])

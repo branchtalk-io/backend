@@ -1,7 +1,6 @@
 package io.branchtalk.discussions.writes
 
 import cats.effect.{ Sync, Timer }
-import eu.timepit.refined.refineV
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, PostCommandEvent }
@@ -22,6 +21,12 @@ final class PostWritesImpl[F[_]: Sync: Timer](
   private val channelCheck = new ParentCheck[Channel]("Channel", transactor)
   private val postCheck    = new EntityCheck("Post", transactor)
 
+  private def titleToUrlTitle(title: Post.Title): F[Post.UrlTitle] =
+    ParseRefined[F]
+      .parse[NonEmpty](NormalizeForUrl(title.nonEmptyString.value))
+      .handleError(_ => "post": NonEmptyString)
+      .map(Post.UrlTitle(_))
+
   override def createPost(newPost: Post.Create): F[CreationScheduled[Post]] =
     for {
       _ <- channelCheck(newPost.channelID,
@@ -29,15 +34,11 @@ final class PostWritesImpl[F[_]: Sync: Timer](
       )
       id <- ID.create[F, Post]
       now <- CreationTime.now[F]
+      urlTitle <- titleToUrlTitle(newPost.title)
       command = newPost
         .into[PostCommandEvent.Create]
         .withFieldConst(_.id, id)
-        .withFieldConst(
-          _.urlTitle,
-          Post.UrlTitle(
-            refineV[NonEmpty](NormalizeForUrl(newPost.title.nonEmptyString.value)).getOrElse("post": NonEmptyString)
-          )
-        )
+        .withFieldConst(_.urlTitle, urlTitle)
         .withFieldConst(_.createdAt, now)
         .transform
       _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
@@ -48,16 +49,10 @@ final class PostWritesImpl[F[_]: Sync: Timer](
       id <- updatedPost.id.pure[F]
       _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
       now <- ModificationTime.now[F]
+      newUrlTitle <- updatedPost.newTitle.traverse(titleToUrlTitle)
       command = updatedPost
         .into[PostCommandEvent.Update]
-        .withFieldConst(
-          _.newUrlTitle,
-          updatedPost.newTitle.map { title: Post.Title =>
-            Post.UrlTitle(
-              refineV[NonEmpty](NormalizeForUrl(title.nonEmptyString.value)).getOrElse("post": NonEmptyString)
-            )
-          }
-        )
+        .withFieldConst(_.newUrlTitle, newUrlTitle)
         .withFieldConst(_.modifiedAt, now)
         .transform
       _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
