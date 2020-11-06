@@ -82,9 +82,16 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     withErrorHandling {
       for {
         post <- postReads.requireById(postID)
-        userID <- authServices
-          .authorizeUser(auth, Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID)))
-          .map(_.id)
+        userID <-
+          authServices
+            .authorizeUser(auth, Permission.EditProfile(userIDApi2Discussions.reverseGet(post.data.authorID)))
+            .handleErrorWith { _ =>
+              authServices.authorizeUser(
+                auth,
+                Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID))
+              )
+            }
+            .map(_.id)
         data = updateData
           .into[Post.Update]
           .withFieldConst(_.id, postID)
@@ -102,7 +109,13 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       for {
         post <- postReads.requireById(postID)
         userID <- authServices
-          .authorizeUser(auth, Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID)))
+          .authorizeUser(auth, Permission.EditProfile(userIDApi2Discussions.reverseGet(post.data.authorID)))
+          .handleErrorWith { _ =>
+            authServices.authorizeUser(
+              auth,
+              Permission.ModerateChannel(channelIDApi2Discussions.reverseGet(post.data.channelID))
+            )
+          }
           .map(_.id)
         data = Post.Delete(postID, userIDUsers2Discussions.get(userID))
         result <- postWrites.deletePost(data)

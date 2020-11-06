@@ -29,13 +29,13 @@ package object mappings {
 
   val permissionApi2Users: Iso[api.Permission, users.model.Permission] = Iso[api.Permission, users.model.Permission] {
     case api.Permission.EditProfile(userID) =>
-      users.model.Permission.EditProfile(userIDApi2Users.get(userID))
+      users.model.Permission.IsUser(userIDApi2Users.get(userID))
     case api.Permission.ModerateChannel(channelID) =>
       users.model.Permission.ModerateChannel(channelIDApi2Users.get(channelID))
     case api.Permission.ModerateUsers =>
       users.model.Permission.ModerateUsers
   } {
-    case users.model.Permission.EditProfile(userID) =>
+    case users.model.Permission.IsUser(userID) =>
       api.Permission.EditProfile(userIDApi2Users.reverseGet(userID))
     case users.model.Permission.ModerateChannel(channelID) =>
       api.Permission.ModerateChannel(channelIDApi2Users.reverseGet(channelID))

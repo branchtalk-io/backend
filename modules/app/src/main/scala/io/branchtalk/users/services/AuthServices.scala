@@ -12,7 +12,7 @@ trait AuthServices[F[_]] {
   def authenticateUser(auth:               Authentication): F[users.model.User]
   def authenticateUserWithSessionOpt(auth: Authentication): F[(users.model.User, Option[users.model.Session])]
 
-  def authorizeUser(auth: Authentication, permissions: Permission*): F[users.model.User]
+  def authorizeUser(auth: Authentication, requirePermissions: Permission*): F[users.model.User]
 }
 
 final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: SessionReads[F])
@@ -37,22 +37,22 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
     (username, password) => authCredentials(username, password).map(user => user -> none[users.model.Session])
   )
 
-  override def authorizeUser(auth: Authentication, permissions: Permission*): F[users.model.User] =
+  override def authorizeUser(auth: Authentication, requirePermissions: Permission*): F[users.model.User] =
     for {
       (user, sessionOpt) <- authenticateUserWithSessionOpt(auth)
-      all = user.data.permissions.append(users.model.Permission.EditProfile(user.id))
-      availablePermissions = sessionOpt.map(_.data.usage).collect {
-        case users.model.SessionProperties.Usage.OAuth(permissions) => permissions
+      allOwnedPermissions = user.data.permissions.append(users.model.Permission.IsUser(user.id))
+      available = sessionOpt.map(_.data.usage).collect { case users.model.SessionProperties.Usage.OAuth(permissions) =>
+        permissions
       } match {
-        case Some(constrained) => all intersect constrained
-        case None              => all
+        case Some(constrained) => allOwnedPermissions intersect constrained
+        case None              => allOwnedPermissions
       }
-      requiredPermissions = permissions.map(permissionApi2Users.get).toList
+      required = requirePermissions.map(permissionApi2Users.get).toList
       _ <-
-        if (availablePermissions.allow(requiredPermissions.toSeq: _*)) Sync[F].unit
+        if (available.allow(required.toSeq: _*)) Sync[F].unit
         else {
           (CommonError.InsufficientPermissions(
-            s"User has insufficient permissions: available ${availablePermissions.show}, required: ${requiredPermissions.show}",
+            s"User has insufficient permissions: available ${available.show}, required: ${required.show}",
             CodePosition.providePosition
           ): Throwable).raiseError[F, Unit]
         }

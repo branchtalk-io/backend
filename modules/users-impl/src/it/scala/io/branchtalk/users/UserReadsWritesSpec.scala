@@ -82,7 +82,7 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
                 newUsername = Updatable.Set(data.username),
                 newDescription = OptionUpdatable.setFromOption(data.description),
                 newPassword = Updatable.Set(data.password),
-                updatePermissions = List(Permission.Update.Add(Permission.EditProfile(id)))
+                updatePermissions = List(Permission.Update.Add(Permission.IsUser(id)))
               )
             case (User(id, _), 1) =>
               User.Update(
@@ -117,9 +117,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           .collect {
             case ((User(id, older), User(_, newer)), 0) =>
               // set case
-              older.lens(_.permissions).set(Permissions.empty.append(Permission.EditProfile(id))) must_=== newer
-                .lens(_.lastModifiedAt)
-                .set(None)
+              older
+                .lens(_.permissions)
+                .set(Permissions.empty.append(Permission.IsUser(id))) must_=== newer.lens(_.lastModifiedAt).set(None)
             case ((User(_, older), User(_, newer)), 1) =>
               // keep case
               older must_=== newer

@@ -8,7 +8,7 @@ import eu.timepit.refined.string.{ MatchesRegex, Url }
 import eu.timepit.refined.pureconfig._
 import io.branchtalk.api.{ PaginationLimit, PaginationOffset }
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.models.{ ID, UUID, UUIDGenerator }
+import io.branchtalk.shared.models.{ ID, UUID }
 import io.scalaland.catnip.Semi
 import pureconfig._
 import pureconfig.error.CannotConvert

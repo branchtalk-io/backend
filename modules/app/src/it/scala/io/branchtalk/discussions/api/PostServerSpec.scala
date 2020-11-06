@@ -15,7 +15,7 @@ import sttp.model.StatusCode
 
 final class PostServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  private lazy val defaultChannelID = ID[Channel](UUIDGenerator.FastUUIDGenerator.create[IO].unsafeRunSync())
+  private val defaultChannelID = ID[Channel](java.util.UUID.randomUUID())
   implicit protected lazy val uuidGenerator: TestUUIDGenerator =
     (new TestUUIDGenerator).tap(_.stubNext(defaultChannelID.uuid)) // stub generation in ServerIOTest resources
 
@@ -30,8 +30,8 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               // given
               _ <- usersProjector.logError("Error reported by Users projector").start
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-              _ = uuidGenerator.stubNext(defaultChannelID.uuid) // makes sure that created Channel will have our ID
               CreationScheduled(channelID) <- channelCreate
+                .flatTap(_ => IO(uuidGenerator.stubNext(defaultChannelID.uuid))) // create Channel with default ID
                 .flatMap(discussionsWrites.channelWrites.createChannel)
                 .assert("Created Channel should have predefined ID")(_.id === defaultChannelID)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
@@ -195,7 +195,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
     "on PUT /discussions/posts/{postID}" in {
 
-      "update existing Post" in {
+      "update existing Post when User is its Author" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
@@ -217,7 +217,9 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 .requireForUser(subscriberID)
                 .assert("Subscriptions should contain added Channel ID")(_.subscriptions(channelID))
                 .eventually()
-              CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+              CreationScheduled(postID) <- postCreate(channelID)
+                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
+                .flatMap(discussionsWrites.postWrites.createPost)
               post <- discussionsReads.postReads.requireById(postID).eventually()
               newTitle <- Post.Title.parse[IO]("new title")
               newContent = Post.Content.Text(Post.Text("lorem ipsum"))
@@ -244,7 +246,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 .lens(_.data.content)
                 .set(newContent)
                 .lens(_.data.urlTitle)
-                .set(Post.UrlTitle("url-title"))
+                .set(Post.UrlTitle("new-title"))
                 .lens(_.data.lastModifiedAt)
                 .set(updatedPost.data.lastModifiedAt)
             }
@@ -254,7 +256,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
     "on DELETE /discussions/posts/{postID}" in {
 
-      "update existing Post" in {
+      "delete existing Post when User is its Author" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
@@ -276,7 +278,9 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 .requireForUser(subscriberID)
                 .assert("Subscriptions should contain added Channel ID")(_.subscriptions(channelID))
                 .eventually()
-              CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+              CreationScheduled(postID) <- postCreate(channelID)
+                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
+                .flatMap(discussionsWrites.postWrites.createPost)
               _ <- discussionsReads.postReads.requireById(postID).eventually()
               // when
               response <- PostAPIs.delete.toTestCall.untupled(

@@ -79,7 +79,7 @@ object PostAPIs {
     .summary("Deletes specific Post")
     .description("Schedule specific Post's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
-    .put
+    .delete
     .in(authHeader)
     .in(prefix / path[ID[Post]])
     .out(jsonBody[DeletePostResponse])
