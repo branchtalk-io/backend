@@ -91,6 +91,8 @@ package object api {
 
   implicit val uriSchema: Schema[URI] = Schema.schemaForString.asInstanceOf[Schema[URI]]
 
+  // TODO: cats: NEL i NEC i Updatable i OptionUpdatable ( adtLeafClassNameMapper )
+
   @newtype final case class SessionID(uuid: UUID)
   object SessionID {
     def unapply(sessionID: SessionID): Option[UUID] = sessionID.uuid.some
