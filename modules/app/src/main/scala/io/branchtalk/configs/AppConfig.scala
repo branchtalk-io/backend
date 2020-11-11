@@ -1,7 +1,8 @@
 package io.branchtalk.configs
 
-import cats.effect.Sync
+import cats.effect.{ ExitCode, Sync }
 import com.monovore.decline._
+import com.typesafe.config.{ Config, ConfigRenderOptions }
 
 final case class AppConfig(
   host:                      String = Defaults.host,
@@ -18,7 +19,22 @@ object AppConfig {
       if (bool) opts.orTrue else opts.orFalse
   }
 
-  final case class NoConfig(help: Help) extends Exception
+  final case class NoConfig(help: Help) extends Exception {
+
+    // scalastyle:off regex
+    def printHelp(config: Config): ExitCode = {
+      println(help.toString())
+      println(additionalInfo(config))
+      ExitCode.Success
+    }
+
+    def printError(): ExitCode = {
+      println("Invalid arguments:")
+      println(help.errors.map("  " + _).intercalate("\n"))
+      ExitCode.Error
+    }
+    // scalastyle:on regex
+  }
 
   private val help: Opts[Nothing] =
     Opts.flag(long = "help", short = "?", help = "Show this information").asHelp
@@ -60,8 +76,36 @@ object AppConfig {
                 runDiscussionsProjections = runDiscussionsProjections
               )
           } orElse help
-
         }.parse(args, env)
       }
       .flatMap(result => Sync[F].fromEither(result.leftMap(NoConfig.apply)))
+
+  private def logVariables = List(
+    ("DEFAULT_LOG_LEVEL", "INFO", "log level of everything not overridden by settings below"),
+    ("BRANCHTALK_LOG_LEVEL", "INFO", "default log level of app's own logic"),
+    ("BRANCHTALK_API_LOG_LEVEL", "$BRANCHTALK_LOG_LEVEL", "overrides level for API and HTTP related logs"),
+    ("BRANCHTALK_INFRA_LOG_LEVEL", "$BRANCHTALK_LOG_LEVEL", "overrides level for reads- and writes-relates logs"),
+    ("HTTP4S_LOG_LEVEL", "ERROR", "Http4s server log level"),
+    ("FLYWAY_LOG_LEVEL", "ERROR", "Flyway migration log level"),
+    ("HIKARI_LOG_LEVEL", "ERROR", "Hikari DB connection log level"),
+    ("KAFKA_LOG_LEVEL", "ERROR", "Kafka log level")
+  ).view
+    .map { case (variable, default, description) =>
+      s"""    $variable (default: $default)
+         |        $description""".stripMargin
+    }
+    .mkString("\n")
+
+  private val configRenderOptions =
+    ConfigRenderOptions.defaults().setOriginComments(false).setFormatted(true).setJson(false)
+
+  private def additionalInfo(config: Config): String =
+    s"""
+       |
+       |Logback variables (overridable using -DVARIABLE_NAME=level JVM parameter):
+       |$logVariables
+       |
+       |
+       |HOCON configurations (overridable with -Dpath.to.config=value JVM parameter if there is no env var):
+       |${config.root.render(configRenderOptions)}""".stripMargin
 }

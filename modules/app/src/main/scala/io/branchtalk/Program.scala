@@ -2,6 +2,7 @@ package io.branchtalk
 
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.AppServer
 import io.branchtalk.configs.{ APIConfig, AppConfig, Configuration }
@@ -30,17 +31,9 @@ object Program {
         DiscussionsModule.writes[F](discussionsConfig)
       ).tupled.use((runModules[F](appConfig, apiConfig, awaitTerminationSignal[F]) _).tupled)
     } yield ExitCode.Success).handleError {
-      case AppConfig.NoConfig(help) =>
-        // scalastyle:off regex
-        if (help.errors.nonEmpty) {
-          println("Invalid arguments:")
-          println(help.errors.map("  " + _).intercalate("\n"))
-          ExitCode.Error
-        } else {
-          println(help.toString())
-          ExitCode.Success
-        }
-      // scalastyle:on regex
+      case noConfig @ AppConfig.NoConfig(help) =>
+        if (help.errors.nonEmpty) noConfig.printError()
+        else noConfig.printHelp(ConfigFactory.defaultApplication())
       case error: Throwable =>
         error.printStackTrace()
         ExitCode.Error
