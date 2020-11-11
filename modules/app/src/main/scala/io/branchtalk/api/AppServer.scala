@@ -4,13 +4,13 @@ import cats.arrow.FunctionK
 import cats.data.NonEmptyList
 import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Sync, Timer }
 import com.softwaremill.macwire.wire
+import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostServer
 import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.users.api.UserServer
 import io.branchtalk.users.{ UsersReads, UsersWrites }
-import io.branchtalk.users.services.{ AuthServices, AuthServicesImpl }
 import io.prometheus.client.CollectorRegistry
 import org.http4s._
 import org.http4s.implicits._

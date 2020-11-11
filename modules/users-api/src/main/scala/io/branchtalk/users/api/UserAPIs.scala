@@ -64,7 +64,12 @@ object UserAPIs {
     .out(jsonBody[APIUser])
     .errorOut(errorMapping)
 
-  val updateProfile: Endpoint[(Authentication, ID[User], UpdateUserRequest), UserError, UpdateUserResponse, Nothing] =
+  val updateProfile: Endpoint[
+    (Authentication, ID[User], UpdateUserRequest, RequiredPermissions),
+    UserError,
+    UpdateUserResponse,
+    Nothing
+  ] =
     endpoint
       .name("Update profile")
       .summary("Updates specific User's profile")
@@ -76,15 +81,20 @@ object UserAPIs {
       .in(jsonBody[UpdateUserRequest])
       .out(jsonBody[UpdateUserResponse])
       .errorOut(errorMapping)
+      .requiring { case (_, _, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
 
-  val deleteProfile: Endpoint[(Authentication, ID[User]), UserError, DeleteUserResponse, Nothing] = endpoint
-    .name("Delete profile")
-    .summary("Deletes specific User's profile")
-    .description("Schedules specific User's profile deletion, requires ownership or moderator status, cannot be undone")
-    .tags(List(UsersTags.domain, UsersTags.users))
-    .delete
-    .in(authHeader)
-    .in(prefix / path[ID[User]])
-    .out(jsonBody[DeleteUserResponse])
-    .errorOut(errorMapping)
+  val deleteProfile: Endpoint[(Authentication, ID[User], RequiredPermissions), UserError, DeleteUserResponse, Nothing] =
+    endpoint
+      .name("Delete profile")
+      .summary("Deletes specific User's profile")
+      .description(
+        "Schedules specific User's profile deletion, requires ownership or moderator status, cannot be undone"
+      )
+      .tags(List(UsersTags.domain, UsersTags.users))
+      .delete
+      .in(authHeader)
+      .in(prefix / path[ID[User]])
+      .out(jsonBody[DeleteUserResponse])
+      .errorOut(errorMapping)
+      .requiring { case (_, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
 }

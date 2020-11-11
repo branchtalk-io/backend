@@ -10,6 +10,8 @@ dev-bg:
 	docker-compose --project-directory . ${DEV_CONFIGS} up --detach --quiet-pull
 dev-up:
 	docker-compose --project-directory . ${DEV_CONFIGS} up
+dev-stop:
+	docker-compose --project-directory . ${DEV_CONFIGS} stop
 dev-down:
 	docker-compose --project-directory . ${DEV_CONFIGS} down --remove-orphans || \
 	(docker container rm branchtalk_kafka_1 branchtalk_postgres_1 -f && \

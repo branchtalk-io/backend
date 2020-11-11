@@ -1,5 +1,6 @@
 package io.branchtalk
 
+import io.branchtalk.api.UserID
 import io.branchtalk.shared.models.ID
 import monocle.Iso
 
@@ -27,21 +28,54 @@ package object mappings {
     channelID => ID[users.model.Channel](channelID.uuid)
   }(channelID => api.ChannelID(channelID.uuid))
 
-  val permissionApi2Users: Iso[api.Permission, users.model.Permission] = Iso[api.Permission, users.model.Permission] {
-    case api.Permission.EditProfile(userID) =>
-      users.model.Permission.IsUser(userIDApi2Users.get(userID))
-    case api.Permission.ModerateChannel(channelID) =>
-      users.model.Permission.ModerateChannel(channelIDApi2Users.get(channelID))
-    case api.Permission.ModerateUsers =>
-      users.model.Permission.ModerateUsers
-  } {
-    case users.model.Permission.IsUser(userID) =>
-      api.Permission.EditProfile(userIDApi2Users.reverseGet(userID))
-    case users.model.Permission.ModerateChannel(channelID) =>
-      api.Permission.ModerateChannel(channelIDApi2Users.reverseGet(channelID))
-    case users.model.Permission.ModerateUsers =>
-      api.Permission.ModerateUsers
+  @SuppressWarnings(Array("org.wartremover.warts.Throw")) // too PITA to do it right
+  def permissionApi2Users(owner: UserID): Iso[api.Permission, users.model.Permission] =
+    Iso[api.Permission, users.model.Permission] {
+      case api.Permission.IsOwner =>
+        users.model.Permission.IsUser(userIDApi2Users.get(owner))
+      case api.Permission.ModerateChannel(channelID) =>
+        users.model.Permission.ModerateChannel(channelIDApi2Users.get(channelID))
+      case api.Permission.ModerateUsers =>
+        users.model.Permission.ModerateUsers
+    } {
+      case users.model.Permission.IsUser(userID) if userID.uuid === owner.uuid =>
+        api.Permission.IsOwner
+      case users.model.Permission.IsUser(_) =>
+        throw new Exception("Cannot map User to Owner if ID doesn't match current Owner ID")
+      case users.model.Permission.ModerateChannel(channelID) =>
+        api.Permission.ModerateChannel(channelIDApi2Users.reverseGet(channelID))
+      case users.model.Permission.ModerateUsers =>
+        api.Permission.ModerateUsers
+    }
+
+  // scalastyle:off cyclomatic.complexity
+  def requiredPermissionsApi2Users(owner: UserID): Iso[api.RequiredPermissions, users.model.RequiredPermissions] = {
+    val permApi2Users = permissionApi2Users(owner)
+    lazy val reqApi2Users: Iso[api.RequiredPermissions, users.model.RequiredPermissions] =
+      Iso[api.RequiredPermissions, users.model.RequiredPermissions] {
+        case api.RequiredPermissions.AllOf(set) =>
+          users.model.RequiredPermissions.AllOf(set.map(permApi2Users.get))
+        case api.RequiredPermissions.AnyOf(set) =>
+          users.model.RequiredPermissions.AnyOf(set.map(permApi2Users.get))
+        case api.RequiredPermissions.And(x, y) =>
+          users.model.RequiredPermissions.And(reqApi2Users.get(x), reqApi2Users.get(y))
+        case api.RequiredPermissions.Or(x, y) =>
+          users.model.RequiredPermissions.Or(reqApi2Users.get(x), reqApi2Users.get(y))
+        case api.RequiredPermissions.Not(x) => users.model.RequiredPermissions.Not(reqApi2Users.get(x))
+      } {
+        case users.model.RequiredPermissions.AllOf(set) =>
+          api.RequiredPermissions.AllOf(set.map(permApi2Users.reverseGet))
+        case users.model.RequiredPermissions.AnyOf(set) =>
+          api.RequiredPermissions.AnyOf(set.map(permApi2Users.reverseGet))
+        case users.model.RequiredPermissions.And(x, y) =>
+          api.RequiredPermissions.And(reqApi2Users.reverseGet(x), reqApi2Users.reverseGet(y))
+        case users.model.RequiredPermissions.Or(x, y) =>
+          api.RequiredPermissions.Or(reqApi2Users.reverseGet(x), reqApi2Users.reverseGet(y))
+        case users.model.RequiredPermissions.Not(x) => api.RequiredPermissions.Not(reqApi2Users.reverseGet(x))
+      }
+    reqApi2Users
   }
+  // scalastyle:on cyclomatic.complexity
 
   // API <-> Discussions
 

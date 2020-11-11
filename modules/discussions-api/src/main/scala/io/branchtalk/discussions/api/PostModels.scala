@@ -63,9 +63,8 @@ object PostModels {
   }
 
   @Semi(JsCodec) final case class CreatePostRequest(
-    channelID: ID[Channel],
-    title:     Post.Title,
-    content:   Post.Content
+    title:   Post.Title,
+    content: Post.Content
   )
 
   @Semi(JsCodec) final case class CreatePostResponse(id: ID[Post])

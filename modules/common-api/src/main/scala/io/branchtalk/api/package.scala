@@ -2,8 +2,8 @@ package io.branchtalk
 
 import java.net.URI
 
-import cats.Id
-import cats.data.{ Chain, NonEmptyChain, NonEmptyList }
+import cats.{ Eq, Id, Order, Show }
+import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptySet }
 import cats.effect.Sync
 import com.github.plokhotnyuk.jsoniter_scala.core.{ JsonReader, JsonValueCodec, JsonWriter }
 import com.github.plokhotnyuk.jsoniter_scala.macros._
@@ -12,16 +12,25 @@ import eu.timepit.refined.api.{ Refined, Validate }
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.shared.models.{ ID, OptionUpdatable, ParseRefined, UUID, UUIDGenerator, Updatable }
+import io.branchtalk.shared.models.{ ID, OptionUpdatable, ParseRefined, TupleAppender, UUID, UUIDGenerator, Updatable }
 import io.estatico.newtype.macros.newtype
+import io.estatico.newtype.ops._
 import io.estatico.newtype.Coercible
-import sttp.tapir.{ Codec, DecodeResult, Schema }
+import sttp.tapir.{ Codec, DecodeResult, Endpoint, Schema }
 import sttp.tapir.codec.refined._
 import sttp.tapir.CodecFormat.TextPlain
 import sttp.tapir.generic.Configuration
 
 // scalastyle:off number.of.methods
 package object api {
+
+  implicit class EndpointOps[I, E, O, S](private val endpoint: Endpoint[I, E, O, S]) extends AnyVal {
+
+    def requiring[IJ](permissions: I => RequiredPermissions)(implicit
+      ta:                          TupleAppender.Aux[I, RequiredPermissions, IJ]
+    ): Endpoint[IJ, E, O, S] =
+      endpoint.mapIn[IJ](params => ta.append(params, permissions(params)))(params => ta.revert(params)._1)
+  }
 
   implicit class TapirResultOps[A](private val decodeResult: DecodeResult[A]) extends AnyVal {
 
@@ -139,6 +148,16 @@ package object api {
   implicit def nelSchema[A: Schema]: Schema[NonEmptyList[A]] =
     summonSchema[List[A]].asInstanceOf[Schema[NonEmptyList[A]]] // scalastyle:ignore
 
+  @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
+  implicit def nesCodec[A: JsCodec: Order]: JsCodec[NonEmptySet[A]] =
+    summonCodec[List[A]](JsonCodecMaker.make).mapDecode {
+      case head :: tail => NonEmptySet.of(head, tail: _*).asRight[String]
+      case _            => "Expected non-empty list".asLeft[NonEmptySet[A]]
+    }(_.toList)
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+  implicit def nesSchema[A: Schema]: Schema[NonEmptySet[A]] =
+    summonSchema[List[A]].asInstanceOf[Schema[NonEmptySet[A]]] // scalastyle:ignore
+
   // API definitions and instances
 
   @newtype final case class SessionID(uuid: UUID)
@@ -147,6 +166,8 @@ package object api {
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[SessionID] =
       UUID.parse[F](string).map(SessionID(_))
 
+    implicit val eq:   Eq[SessionID]   = Eq[UUID].coerce
+    implicit val show: Show[SessionID] = Show[UUID].coerce
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
     implicit val codec:  JsCodec[SessionID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[SessionID]
     implicit val schema: Schema[SessionID]  = summonSchema[UUID].asNewtype[SessionID]
@@ -158,6 +179,10 @@ package object api {
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[UserID] =
       UUID.parse[F](string).map(UserID(_))
 
+    val empty: UserID = UserID(java.util.UUID.fromString("00000000-0000-0000-0000-000000000000"))
+
+    implicit val eq:   Eq[UserID]   = Eq[UUID].coerce
+    implicit val show: Show[UserID] = Show[UUID].coerce
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
     implicit val codec:  JsCodec[UserID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[UserID]
     implicit val schema: Schema[UserID]  = summonSchema[UUID].asNewtype[UserID]
@@ -169,6 +194,8 @@ package object api {
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[ChannelID] =
       UUID.parse[F](string).map(ChannelID(_))
 
+    implicit val eq:   Eq[ChannelID]   = Eq[UUID].coerce
+    implicit val show: Show[ChannelID] = Show[UUID].coerce
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
     implicit val codec:  JsCodec[ChannelID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[ChannelID]
     implicit val schema: Schema[ChannelID]  = summonSchema[UUID].asNewtype[ChannelID]
