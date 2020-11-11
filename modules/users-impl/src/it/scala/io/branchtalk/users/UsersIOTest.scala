@@ -14,8 +14,8 @@ trait UsersIOTest extends IOTest with ResourcefulTest {
 
   protected lazy val usersResource: Resource[IO, Unit] = for {
     usersCfg <- TestUsersConfig.loadDomainConfig[IO]
-    _ <- UsersModule.reads[IO](usersCfg).map(usersReads = _)
-    _ <- UsersModule.writes[IO](usersCfg).map(usersWrites = _)
+    _ <- UsersModule.reads[IO](usersCfg, registry).map(usersReads = _)
+    _ <- UsersModule.writes[IO](usersCfg, registry).map(usersWrites = _)
   } yield ()
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> usersResource

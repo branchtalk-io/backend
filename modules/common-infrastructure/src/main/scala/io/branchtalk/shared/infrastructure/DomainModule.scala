@@ -4,6 +4,7 @@ import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import doobie.util.transactor.Transactor
 import io.branchtalk.shared.infrastructure.KafkaSerialization._
+import io.prometheus.client.CollectorRegistry
 
 // Utilities for connecting to database and events buses through Resources
 
@@ -21,18 +22,20 @@ final case class WritesInfrastructure[F[_], Event, InternalEvent](
 final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
 
   def setupReads[F[_]: ConcurrentEffect: ContextShift: Timer](
-    domainConfig: DomainConfig
+    domainConfig: DomainConfig,
+    registry:     CollectorRegistry
   ): Resource[F, ReadsInfrastructure[F, Event]] =
     for {
-      transactor <- new PostgresDatabase(domainConfig.database).transactor
+      transactor <- new PostgresDatabase(domainConfig.database).transactor(registry)
       consumerStreamBuilder = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus, _)
     } yield ReadsInfrastructure(transactor, consumerStreamBuilder)
 
   def setupWrites[F[_]: ConcurrentEffect: ContextShift: Timer](
-    domainConfig: DomainConfig
+    domainConfig: DomainConfig,
+    registry:     CollectorRegistry
   ): Resource[F, WritesInfrastructure[F, Event, InternalEvent]] =
     for {
-      transactor <- new PostgresDatabase(domainConfig.database).transactor
+      transactor <- new PostgresDatabase(domainConfig.database).transactor(registry)
       internalProducer = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
       internalConsumerStream = ConsumerStream
         .fromConfigs[F, InternalEvent](domainConfig.internalEventBus, domainConfig.internalConsumer)

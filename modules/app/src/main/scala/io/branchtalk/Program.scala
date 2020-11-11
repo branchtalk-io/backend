@@ -31,10 +31,10 @@ object Program {
         .flatMap { registry => // TODO: pass registry to reads and writes to monitor Doobie queries
           (
             registry.pure[Resource[F, *]],
-            UsersModule.reads[F](usersConfig),
-            UsersModule.writes[F](discussionsConfig),
-            DiscussionsModule.reads[F](discussionsConfig),
-            DiscussionsModule.writes[F](discussionsConfig)
+            UsersModule.reads[F](usersConfig, registry),
+            UsersModule.writes[F](discussionsConfig, registry),
+            DiscussionsModule.reads[F](discussionsConfig, registry),
+            DiscussionsModule.writes[F](discussionsConfig, registry)
           ).tupled
         }
         .use((runModules[F](appConfig, apiConfig, awaitTerminationSignal[F]) _).tupled)

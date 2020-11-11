@@ -14,8 +14,8 @@ trait DiscussionsIOTest extends IOTest with ResourcefulTest {
 
   protected lazy val discussionsResource: Resource[IO, Unit] = for {
     discussionsCfg <- TestDiscussionsConfig.loadDomainConfig[IO]
-    _ <- DiscussionsModule.reads[IO](discussionsCfg).map(discussionsReads = _)
-    _ <- DiscussionsModule.writes[IO](discussionsCfg).map(discussionsWrites = _)
+    _ <- DiscussionsModule.reads[IO](discussionsCfg, registry).map(discussionsReads = _)
+    _ <- DiscussionsModule.writes[IO](discussionsCfg, registry).map(discussionsWrites = _)
   } yield ()
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> discussionsResource

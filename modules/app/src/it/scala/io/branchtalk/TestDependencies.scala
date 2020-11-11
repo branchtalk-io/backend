@@ -5,6 +5,7 @@ import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites, TestDiscussionsConfig }
 import io.branchtalk.shared.models.UUIDGenerator
 import io.branchtalk.users.{ TestUsersConfig, UsersModule, UsersReads, UsersWrites }
+import io.prometheus.client.CollectorRegistry
 
 final case class TestDependencies[F[_]](
   usersReads:        UsersReads[F],
@@ -14,15 +15,15 @@ final case class TestDependencies[F[_]](
 )
 object TestDependencies {
 
-  def resources[F[_]: ConcurrentEffect: ContextShift: Timer](implicit
+  def resources[F[_]: ConcurrentEffect: ContextShift: Timer](registry: CollectorRegistry)(implicit
     uuidGenerator: UUIDGenerator
   ): Resource[F, TestDependencies[F]] =
     for {
       usersConfig <- TestUsersConfig.loadDomainConfig[F]
-      usersReads <- UsersModule.reads[F](usersConfig)
-      usersWrites <- UsersModule.writes[F](usersConfig)
+      usersReads <- UsersModule.reads[F](usersConfig, registry)
+      usersWrites <- UsersModule.writes[F](usersConfig, registry)
       discussionsConfig <- TestDiscussionsConfig.loadDomainConfig[F]
-      discussionsReads <- DiscussionsModule.reads[F](discussionsConfig)
-      discussionsWrites <- DiscussionsModule.writes[F](discussionsConfig)
+      discussionsReads <- DiscussionsModule.reads[F](discussionsConfig, registry)
+      discussionsWrites <- DiscussionsModule.writes[F](discussionsConfig, registry)
     } yield wire[TestDependencies[F]]
 }

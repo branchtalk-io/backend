@@ -10,6 +10,7 @@ import io.branchtalk.shared.infrastructure._
 import _root_.io.branchtalk.discussions.reads.ChannelReads
 import com.softwaremill.macwire.wire
 import com.typesafe.scalalogging.Logger
+import io.prometheus.client.CollectorRegistry
 
 final case class DiscussionsReads[F[_]](
   channelReads:      ChannelReads[F],
@@ -32,9 +33,10 @@ object DiscussionsModule {
   private val logger = Logger(getClass)
 
   def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
-    domainConfig: DomainConfig
+    domainConfig: DomainConfig,
+    registry:     CollectorRegistry
   ): Resource[F, DiscussionsReads[F]] =
-    module.setupReads[F](domainConfig).map { case ReadsInfrastructure(transactor, _) =>
+    module.setupReads[F](domainConfig, registry).map { case ReadsInfrastructure(transactor, _) =>
       val channelReads:      ChannelReads[F]      = wire[ChannelReadsImpl[F]]
       val postReads:         PostReads[F]         = wire[PostReadsImpl[F]]
       val commentReads:      CommentReads[F]      = wire[CommentReadsImpl[F]]
@@ -44,9 +46,10 @@ object DiscussionsModule {
     }
 
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
-    domainConfig:           DomainConfig
+    domainConfig:           DomainConfig,
+    registry:               CollectorRegistry
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
-    module.setupWrites[F](domainConfig).map {
+    module.setupWrites[F](domainConfig, registry).map {
       case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer) =>
         val channelWrites:      ChannelWrites[F]      = wire[ChannelWritesImpl[F]]
         val postWrites:         PostWrites[F]         = wire[PostWritesImpl[F]]
