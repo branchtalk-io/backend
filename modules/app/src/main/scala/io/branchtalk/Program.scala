@@ -10,6 +10,8 @@ import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, Discussi
 import io.branchtalk.shared.infrastructure.DomainConfig
 import io.branchtalk.shared.models.UUIDGenerator
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
+import io.prometheus.client.CollectorRegistry
+import org.http4s.metrics.prometheus.Prometheus
 
 object Program {
 
@@ -24,12 +26,18 @@ object Program {
       apiConfig <- Configuration.readConfig[F, APIConfig]("api")
       usersConfig <- Configuration.readConfig[F, DomainConfig]("users")
       discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
-      _ <- (
-        UsersModule.reads[F](usersConfig),
-        UsersModule.writes[F](discussionsConfig),
-        DiscussionsModule.reads[F](discussionsConfig),
-        DiscussionsModule.writes[F](discussionsConfig)
-      ).tupled.use((runModules[F](appConfig, apiConfig, awaitTerminationSignal[F]) _).tupled)
+      _ <- Prometheus
+        .collectorRegistry[F]
+        .flatMap { registry => // TODO: pass registry to reads and writes to monitor Doobie queries
+          (
+            registry.pure[Resource[F, *]],
+            UsersModule.reads[F](usersConfig),
+            UsersModule.writes[F](discussionsConfig),
+            DiscussionsModule.reads[F](discussionsConfig),
+            DiscussionsModule.writes[F](discussionsConfig)
+          ).tupled
+        }
+        .use((runModules[F](appConfig, apiConfig, awaitTerminationSignal[F]) _).tupled)
     } yield ExitCode.Success).handleError {
       case noConfig @ AppConfig.NoConfig(help) =>
         if (help.errors.nonEmpty) noConfig.printError()
@@ -44,6 +52,7 @@ object Program {
     apiConfig:         APIConfig,
     terminationSignal: F[Unit]
   )(
+    registry:          CollectorRegistry,
     usersReads:        UsersReads[F],
     usersWrites:       UsersWrites[F],
     discussionsReads:  DiscussionsReads[F],
@@ -55,6 +64,7 @@ object Program {
           .asResource(
             appConfig = appConfig,
             apiConfig = apiConfig,
+            registry = registry,
             usersReads = usersReads,
             usersWrites = usersWrites,
             discussionsReads = discussionsReads,

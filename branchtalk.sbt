@@ -65,6 +65,7 @@ val commonInfrastructure = project
       Dependencies.fs2,
       Dependencies.fs2IO,
       Dependencies.fs2Kafka,
+      Dependencies.prometheus,
       Dependencies.pureConfig,
       Dependencies.pureConfigCats,
       Dependencies.pureConfigEnumeratum,

@@ -11,6 +11,7 @@ import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.users.api.UserServer
 import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.services.{ AuthServices, AuthServicesImpl }
+import io.prometheus.client.CollectorRegistry
 import org.http4s._
 import org.http4s.implicits._
 import org.http4s.metrics.prometheus.Prometheus
@@ -21,7 +22,6 @@ import sttp.tapir.server.ServerEndpoint
 import org.http4s.server.middleware._
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
 
 final class AppServer[F[_]: Concurrent: Timer](
   usesServer:    UserServer[F],
@@ -62,20 +62,15 @@ final class AppServer[F[_]: Concurrent: Timer](
 }
 object AppServer {
 
-  private def prometheusMetrics[F[_]: Sync]: Resource[F, MetricsOps[F]] =
-    for {
-      registry <- Prometheus.collectorRegistry[F]
-      metrics <- Prometheus.metricsOps[F](registry, "server")
-    } yield metrics
-
   def asResource[F[_]: ConcurrentEffect: ContextShift: Timer](
     appConfig:         AppConfig,
     apiConfig:         APIConfig,
+    registry:          CollectorRegistry,
     usersReads:        UsersReads[F],
     usersWrites:       UsersWrites[F],
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
-  ): Resource[F, Server[F]] = prometheusMetrics[F].flatMap { metricsOps =>
+  ): Resource[F, Server[F]] = Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
     // this is kind of silly...
     import usersReads.{ sessionReads, userReads }
     import usersWrites.{ sessionWrites, userWrites }

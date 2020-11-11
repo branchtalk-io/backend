@@ -103,6 +103,7 @@ object Dependencies {
   val logbackJackson     = "ch.qos.logback.contrib" % "logback-jackson" % "0.1.5"
   val logbackJsonClassic = "ch.qos.logback.contrib" % "logback-json-classic" % "0.1.5"
   val sourcecode         = "com.lihaoyi" %% "sourcecode" % "0.2.1"
+  val prometheus         = "io.prometheus" % "simpleclient" % "0.8.1"
   // testing
   val jfairy          = "io.codearte.jfairy" % "jfairy" % "0.5.9"
   val spec2Core       = "org.specs2" %% "specs2-core" % specs2Version

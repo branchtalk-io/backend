@@ -29,6 +29,7 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
       .asResource[IO](
         appConfig = appConfig,
         apiConfig = apiConfig,
+        registry = registry,
         usersReads = usersReads,
         usersWrites = usersWrites,
         discussionsReads = discussionsReads,
