@@ -26,10 +26,17 @@ package object api {
 
   implicit class EndpointOps[I, E, O, S](private val endpoint: Endpoint[I, E, O, S]) extends AnyVal {
 
+    // store RequiredPermissions as a part of the endpoint definition
     def requiring[IJ](permissions: I => RequiredPermissions)(implicit
       ta:                          TupleAppender.Aux[I, RequiredPermissions, IJ]
     ): Endpoint[IJ, E, O, S] =
-      endpoint.mapIn[IJ](params => ta.append(params, permissions(params)))(params => ta.revert(params)._1)
+      endpoint.mapIn[IJ]((i: I) => ta.append(i, permissions(i)))((ij: IJ) => ta.revert(ij)._1)
+
+    // store RequiredPermissions as a part of the endpoint definition
+    def asClient[IJ](implicit
+      ta: TupleAppender.Aux[IJ, RequiredPermissions, I]
+    ): Endpoint[IJ, E, O, S] =
+      endpoint.mapIn[IJ]((i: I) => ta.revert(i)._1)((ij: IJ) => ta.append(ij, RequiredPermissions.empty))
   }
 
   implicit class TapirResultOps[A](private val decodeResult: DecodeResult[A]) extends AnyVal {

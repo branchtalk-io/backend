@@ -27,9 +27,9 @@ object PostAPIs {
     Pagination[APIPost],
     Nothing
   ] = endpoint
-    .name("Fetch newest Posts for the Channel")
+    .name("Fetch newest Posts")
     .summary("Paginate newest Posts for a Channel")
-    .description("Returns Posts for User's subscriptions if logged in or default subscriptions otherwise")
+    .description("Returns paginated Posts for s specific Channel")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .get
     .in(optAuthHeader)

@@ -16,9 +16,12 @@ import io.scalaland.catnip.Semi
 }
 object RequiredPermissions {
 
+  def empty: RequiredPermissions = Empty
   def one(permission: Permission): RequiredPermissions = AllOf(NonEmptySet.one(permission))
   def allOf(head:     Permission, tail: Permission*): RequiredPermissions = AllOf(NonEmptySet.of(head, tail: _*))
   def anyOf(head:     Permission, tail: Permission*): RequiredPermissions = AnyOf(NonEmptySet.of(head, tail: _*))
+
+  case object Empty extends RequiredPermissions
 
   final case class AllOf(toSet: NonEmptySet[Permission]) extends RequiredPermissions
   final case class AnyOf(toSet: NonEmptySet[Permission]) extends RequiredPermissions

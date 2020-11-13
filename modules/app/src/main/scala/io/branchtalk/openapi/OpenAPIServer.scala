@@ -4,9 +4,11 @@ import cats.data.NonEmptyList
 import cats.effect.{ ContextShift, Sync }
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
+import io.branchtalk.api
 import io.branchtalk.api._
 import io.branchtalk.configs.APIInfo
 import org.http4s.HttpRoutes
+import monocle.macros.syntax.lens._
 import sttp.tapir.docs.openapi._
 import sttp.tapir.openapi._
 import sttp.tapir.openapi.OpenAPI.ReferenceOr
@@ -22,7 +24,12 @@ final class OpenAPIServer[F[_]: Sync: ContextShift](
 
   import OpenAPIServer._
 
-  def openAPI: OpenAPI = endpoints.toList.toOpenAPI(apiInfo.toOpenAPI)
+  private val removedName = classOf[api.RequiredPermissions].getName
+  private def fixPathItem(pathItem: PathItem) =
+    pathItem.lens(_.parameters).modify(_.filterNot(_.fold(_.$ref.contains(removedName), _.name.contains(removedName))))
+
+  def openAPI: OpenAPI =
+    endpoints.toList.toOpenAPI(apiInfo.toOpenAPI).lens(_.paths).modify(_.view.mapValues(fixPathItem).to(ListMap))
 
   val openAPIJson: String = writeToString(openAPI)
 

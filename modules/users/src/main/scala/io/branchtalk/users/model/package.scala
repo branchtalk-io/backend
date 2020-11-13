@@ -25,6 +25,7 @@ package object model {
     def validatePermissions(required: RequiredPermissions, existing: Permissions): Boolean = {
       def permitted(permission: Permission) = existing.set.contains(permission)
       def evaluate(req:         RequiredPermissions): Eval[Boolean] = req match {
+        case RequiredPermissions.Empty      => Eval.True
         case RequiredPermissions.AllOf(set) => Eval.later(set.forall(permitted))
         case RequiredPermissions.AnyOf(set) => Eval.later(set.exists(permitted))
         case RequiredPermissions.And(x, y)  => (evaluate(x), evaluate(y)).mapN(_ && _)

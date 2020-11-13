@@ -1,8 +1,12 @@
 package io.branchtalk
 
+import cats.data.NonEmptySet
 import io.branchtalk.api.UserID
 import io.branchtalk.shared.models.ID
 import monocle.Iso
+
+import scala.collection.immutable.SortedSet
+import scala.util.Try
 
 package object mappings {
 
@@ -38,7 +42,7 @@ package object mappings {
       case api.Permission.ModerateUsers =>
         users.model.Permission.ModerateUsers
     } {
-      case users.model.Permission.IsUser(userID) if userID.uuid === owner.uuid =>
+      case users.model.Permission.IsUser(userID) if userID.uuid === owner.uuid && owner =!= UserID.empty =>
         api.Permission.IsOwner
       case users.model.Permission.IsUser(_) =>
         throw new Exception("Cannot map User to Owner if ID doesn't match current Owner ID")
@@ -51,8 +55,12 @@ package object mappings {
   // scalastyle:off cyclomatic.complexity
   def requiredPermissionsApi2Users(owner: UserID): Iso[api.RequiredPermissions, users.model.RequiredPermissions] = {
     val permApi2Users = permissionApi2Users(owner)
+    def safeReverseGet(perm: users.model.Permission) =
+      Try(SortedSet(permApi2Users.reverseGet(perm))).getOrElse(SortedSet.empty[api.Permission])
     lazy val reqApi2Users: Iso[api.RequiredPermissions, users.model.RequiredPermissions] =
       Iso[api.RequiredPermissions, users.model.RequiredPermissions] {
+        case api.RequiredPermissions.Empty =>
+          users.model.RequiredPermissions.Empty
         case api.RequiredPermissions.AllOf(set) =>
           users.model.RequiredPermissions.AllOf(set.map(permApi2Users.get))
         case api.RequiredPermissions.AnyOf(set) =>
@@ -63,10 +71,16 @@ package object mappings {
           users.model.RequiredPermissions.Or(reqApi2Users.get(x), reqApi2Users.get(y))
         case api.RequiredPermissions.Not(x) => users.model.RequiredPermissions.Not(reqApi2Users.get(x))
       } {
+        case users.model.RequiredPermissions.Empty =>
+          api.RequiredPermissions.Empty
         case users.model.RequiredPermissions.AllOf(set) =>
-          api.RequiredPermissions.AllOf(set.map(permApi2Users.reverseGet))
+          NonEmptySet
+            .fromSet(set.toSortedSet.flatMap(safeReverseGet))
+            .fold[api.RequiredPermissions](api.RequiredPermissions.Empty)(api.RequiredPermissions.AllOf)
         case users.model.RequiredPermissions.AnyOf(set) =>
-          api.RequiredPermissions.AnyOf(set.map(permApi2Users.reverseGet))
+          NonEmptySet
+            .fromSet(set.toSortedSet.flatMap(safeReverseGet))
+            .fold[api.RequiredPermissions](api.RequiredPermissions.Empty)(api.RequiredPermissions.AnyOf)
         case users.model.RequiredPermissions.And(x, y) =>
           api.RequiredPermissions.And(reqApi2Users.reverseGet(x), reqApi2Users.reverseGet(y))
         case users.model.RequiredPermissions.Or(x, y) =>

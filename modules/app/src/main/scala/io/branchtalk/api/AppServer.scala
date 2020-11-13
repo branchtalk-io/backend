@@ -6,7 +6,7 @@ import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Sync,
 import com.softwaremill.macwire.wire
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, PaginationConfig }
-import io.branchtalk.discussions.api.PostServer
+import io.branchtalk.discussions.api.{ PostServer, SubscriptionServer }
 import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.users.api.UserServer
@@ -24,11 +24,12 @@ import org.http4s.server.middleware._
 import scala.concurrent.ExecutionContext
 
 final class AppServer[F[_]: Concurrent: Timer](
-  usesServer:    UserServer[F],
-  postServer:    PostServer[F],
-  openAPIServer: OpenAPIServer[F],
-  metricsOps:    MetricsOps[F],
-  apiConfig:     APIConfig
+  usesServer:         UserServer[F],
+  postServer:         PostServer[F],
+  subscriptionServer: SubscriptionServer[F],
+  openAPIServer:      OpenAPIServer[F],
+  metricsOps:         MetricsOps[F],
+  apiConfig:          APIConfig
 ) {
 
   private val logger = com.typesafe.scalalogging.Logger(getClass)
@@ -36,7 +37,7 @@ final class AppServer[F[_]: Concurrent: Timer](
   // TODO: X-Request-ID, then cache X-Request-ID to make it idempotent
   val routes: HttpApp[F] =
     NonEmptyList
-      .of(usesServer.routes, postServer.routes, openAPIServer.routes)
+      .of(usesServer.routes, postServer.routes, subscriptionServer.routes, openAPIServer.routes)
       .reduceK
       .pipe(GZip(_))
       .pipe(
@@ -87,10 +88,14 @@ object AppServer {
       val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Posts)
       wire[PostServer[F]]
     }
+    val subscriptionServer: SubscriptionServer[F] = {
+      val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Posts)
+      wire[SubscriptionServer[F]]
+    }
     val openAPIServer: OpenAPIServer[F] = {
       import apiConfig.info
       val endpoints: NonEmptyList[ServerEndpoint[_, _, _, Nothing, F]] =
-        NonEmptyList.of(usersServer.endpoints, postServer.endpoints).reduceK
+        NonEmptyList.of(usersServer.endpoints, postServer.endpoints, subscriptionServer.endpoints).reduceK
       wire[OpenAPIServer[F]]
     }
 
