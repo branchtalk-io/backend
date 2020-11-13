@@ -11,6 +11,8 @@ import sttp.tapir.json.jsoniter._
 
 object UserAPIs {
 
+  // TODO: add example
+
   private val prefix = "users"
 
   private val errorMapping = oneOf[UserError](

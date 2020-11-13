@@ -112,6 +112,8 @@ package object api {
   implicit def idParam[A]:  Param[ID[A]]   = summonParam[UUID].map[ID[A]](ID[A](_))(_.uuid)
   implicit def idSchema[A]: Schema[ID[A]]  = summonSchema[UUID].asNewtype[ID[A]]
 
+  // TODO: fix Configuration by updating tapir to 0.17 and setting up discriminator name in both Coded and Schema
+
   implicit def updatableCodec[A: JsCodec]: JsCodec[Updatable[A]] = summonCodec[Updatable[A]](
     JsonCodecMaker.make(CodecMakerConfig.withAdtLeafClassNameMapper(JsonCodecMaker.`enforce-kebab-case`))
   )
