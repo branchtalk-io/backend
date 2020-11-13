@@ -1,9 +1,9 @@
 package io.branchtalk.users.api
 
 import cats.data.NonEmptyList
-import cats.effect.{ Clock, ContextShift, Sync }
+import cats.effect.{ Clock, Concurrent, ContextShift, Sync, Timer }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.ServerErrorHandling
+import io.branchtalk.api._
 import io.branchtalk.auth._
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.mappings._
@@ -13,10 +13,12 @@ import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.model.{ Password, Session, User }
 import io.scalaland.chimney.dsl._
 import org.http4s._
+import sttp.capabilities.WebSockets
+import sttp.capabilities.fs2.Fs2Streams
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
-final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
+final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Concurrent: Timer](
   authServices:     AuthServices[F],
   usersReads:       UsersReads[F],
   usersWrites:      UsersWrites[F],
@@ -42,58 +44,68 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
       UserError.ValidationFailed(errors)
   }(logger)
 
-  private val signUp = UserAPIs.signUp.serverLogic { signup =>
-    withErrorHandling {
-      for {
-        (user, session) <- usersWrites.userWrites.createUser(
-          signup.into[User.Create].withFieldConst(_.password, Password.create(signup.password)).transform
-        )
-      } yield SignUpResponse(user.id, session.id)
+  private val signUp: ServerEndpoint[SignUpRequest, UserError, SignUpResponse, Nothing, F] =
+    UserAPIs.signUp.serverLogic { signup =>
+      withErrorHandling {
+        for {
+          (user, session) <- usersWrites.userWrites.createUser(
+            signup.into[User.Create].withFieldConst(_.password, Password.create(signup.password)).transform
+          )
+        } yield SignUpResponse(user.id, session.id)
+      }
     }
-  }
 
-  private val signIn = UserAPIs.signIn.authenticated.serverLogic[F] { case (user, sessionOpt) =>
-    withErrorHandling {
-      for {
-        session <- sessionOpt match {
-          case Some(session) =>
-            session.pure[F]
-          case None =>
-            for {
-              expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
-              session <- usersWrites.sessionWrites.createSession(
-                Session.Create(
-                  userID = user.id,
-                  usage = Session.Usage.UserSession,
-                  expiresAt = expireAt
+  private val signIn: ServerEndpoint[Authentication, UserError, SignInResponse, Nothing, F] =
+    UserAPIs.signIn.authenticated.serverLogic[F] { case (user, sessionOpt) =>
+      withErrorHandling {
+        for {
+          session <- sessionOpt match {
+            case Some(session) =>
+              session.pure[F]
+            case None =>
+              for {
+                expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
+                session <- usersWrites.sessionWrites.createSession(
+                  Session.Create(
+                    userID = user.id,
+                    usage = Session.Usage.UserSession,
+                    expiresAt = expireAt
+                  )
                 )
-              )
-            } yield session
-        }
-      } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
+              } yield session
+          }
+        } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
+      }
     }
-  }
 
-  private val signOut = UserAPIs.signOut.authenticated.serverLogic { case (user, sessionOpt) =>
-    withErrorHandling {
-      for {
-        sessionID <- sessionOpt match {
-          case Some(s) => usersWrites.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
-          case None    => none[ID[Session]].pure[F]
-        }
-      } yield SignOutResponse(userID = user.id, sessionID = sessionID)
+  private val signOut: ServerEndpoint[Authentication, UserError, SignOutResponse, Nothing, F] =
+    UserAPIs.signOut.authenticated.serverLogic { case (user, sessionOpt) =>
+      withErrorHandling {
+        for {
+          sessionID <- sessionOpt match {
+            case Some(s) => usersWrites.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
+            case None    => none[ID[Session]].pure[F]
+          }
+        } yield SignOutResponse(userID = user.id, sessionID = sessionID)
+      }
     }
-  }
 
-  private val fetchProfile = UserAPIs.fetchProfile.serverLogic { userID =>
-    withErrorHandling {
-      for {
-        user <- usersReads.userReads.requireById(userID)
-      } yield APIUser.fromDomain(user)
+  private val fetchProfile: ServerEndpoint[ID[User], UserError, APIUser, Nothing, F] =
+    UserAPIs.fetchProfile.serverLogic { userID =>
+      withErrorHandling {
+        for {
+          user <- usersReads.userReads.requireById(userID)
+        } yield APIUser.fromDomain(user)
+      }
     }
-  }
 
-  private val updateProfile = UserAPIs.updateProfile.authorized
+  private val updateProfile: ServerEndpoint[
+    (Authentication, ID[User], UpdateUserRequest, RequiredPermissions),
+    UserError,
+    UpdateUserResponse,
+    Nothing,
+    F
+  ] = UserAPIs.updateProfile.authorized
     .withOwnership { case (_, userID, _, _) =>
       userIDApi2Users.reverseGet(userID).pure[F]
     }
@@ -113,7 +125,13 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
       }
     }
 
-  private val deleteProfile = UserAPIs.deleteProfile.authorized
+  private val deleteProfile: ServerEndpoint[
+    (Authentication, ID[User], RequiredPermissions),
+    UserError,
+    DeleteUserResponse,
+    Nothing,
+    F
+  ] = UserAPIs.deleteProfile.authorized
     .withOwnership { case (_, userID, _) =>
       userIDApi2Users.reverseGet(userID).pure[F]
     }
@@ -135,5 +153,5 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock](
     deleteProfile
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(_.asR[Fs2Streams[F] with WebSockets].toRoutes).reduceK
 }

@@ -1,13 +1,13 @@
 package io.branchtalk.shared
 
 import cats.effect.IO
-import io.codearte.jfairy.Fairy
-import io.codearte.jfairy.producer.{ BaseProducer, DateProducer }
-import io.codearte.jfairy.producer.company.{ Company, CompanyProperties }
-import io.codearte.jfairy.producer.net.NetworkProducer
-import io.codearte.jfairy.producer.payment.CreditCard
-import io.codearte.jfairy.producer.person.{ Person, PersonProperties }
-import io.codearte.jfairy.producer.text.TextProducer
+import com.devskiller.jfairy.Fairy
+import com.devskiller.jfairy.producer.{ BaseProducer, DateProducer }
+import com.devskiller.jfairy.producer.company.{ Company, CompanyProperties }
+import com.devskiller.jfairy.producer.net.NetworkProducer
+import com.devskiller.jfairy.producer.payment.CreditCard
+import com.devskiller.jfairy.producer.person.{ Person, PersonProperties }
+import com.devskiller.jfairy.producer.text.TextProducer
 
 object Fixtures {
 

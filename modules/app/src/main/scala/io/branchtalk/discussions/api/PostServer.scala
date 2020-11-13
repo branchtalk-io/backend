@@ -1,25 +1,28 @@
 package io.branchtalk.discussions.api
 
 import cats.data.{ NonEmptyList, NonEmptySet }
-import cats.effect.{ ContextShift, Sync }
+import cats.effect.{ Concurrent, ContextShift, Sync, Timer }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api._
 import io.branchtalk.auth._
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.PostModels._
-import io.branchtalk.discussions.model.Post
+import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.discussions.reads.PostReads
 import io.branchtalk.discussions.writes.PostWrites
 import io.branchtalk.mappings._
+import io.branchtalk.shared.models
 import io.branchtalk.shared.models.{ CommonError, Paginated }
 import io.scalaland.chimney.dsl._
 import org.http4s._
+import sttp.capabilities.WebSockets
+import sttp.capabilities.fs2.Fs2Streams
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
 import scala.collection.immutable.SortedSet
 
-final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
+final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent: Timer](
   authServices:     AuthServices[F],
   postReads:        PostReads[F],
   postWrites:       PostWrites[F],
@@ -43,21 +46,28 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       PostError.ValidationFailed(errors)
   }(logger)
 
-  private val newest = PostAPIs.newest.optAuthenticated.serverLogic { case ((_, _), channelID, optOffset, optLimit) =>
-    withErrorHandling {
-      val offset     = paginationConfig.resolveOffset(optOffset)
-      val limit      = paginationConfig.resolveLimit(optLimit)
-      val channelIDS = SortedSet(channelID)
-      for {
-        paginated <- NonEmptySet.fromSet(channelIDS) match {
-          case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
-          case None             => Paginated.empty[Post].pure[F]
-        }
-      } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
-    }
+  private val newest = new AuthOps(PostAPIs.newest).optAuthenticated.serverLogic {
+    case ((_, _), channelID, optOffset, optLimit) =>
+      withErrorHandling {
+        val offset     = paginationConfig.resolveOffset(optOffset)
+        val limit      = paginationConfig.resolveLimit(optLimit)
+        val channelIDS = SortedSet(channelID)
+        for {
+          paginated <- NonEmptySet.fromSet(channelIDS) match {
+            case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+            case None             => Paginated.empty[Post].pure[F]
+          }
+        } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
+      }
   }
 
-  private val create = PostAPIs.create.authenticated.serverLogic { case ((user, _), channelID, createData) =>
+  private val create: ServerEndpoint[
+    (Authentication, models.ID[Channel], CreatePostRequest),
+    PostError,
+    CreatePostResponse,
+    Nothing,
+    F
+  ] = PostAPIs.create.authenticated.serverLogic { case ((user, _), channelID, createData) =>
     withErrorHandling {
       val userID = user.id
       val data = createData
@@ -71,7 +81,13 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     }
   }
 
-  private val read = PostAPIs.read.optAuthenticated
+  private val read: ServerEndpoint[
+    (Option[Authentication], models.ID[Channel], models.ID[Post]),
+    PostError,
+    APIPost,
+    Nothing,
+    F
+  ] = PostAPIs.read.optAuthenticated
     .withOwnership { case (_, channelID, postID) =>
       postReads
         .requireById(postID)
@@ -86,7 +102,13 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
     }
 
-  private val update = PostAPIs.update.authorized
+  private val update: ServerEndpoint[
+    (Authentication, models.ID[Channel], models.ID[Post], UpdatePostRequest, RequiredPermissions),
+    PostError,
+    UpdatePostResponse,
+    Nothing,
+    F
+  ] = PostAPIs.update.authorized
     .withOwnership { case (_, channelID, postID, _, _) =>
       postReads
         .requireById(postID)
@@ -110,7 +132,13 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       }
     }
 
-  private val delete = PostAPIs.delete.authorized
+  private val delete: ServerEndpoint[
+    (Authentication, models.ID[Channel], models.ID[Post], RequiredPermissions),
+    PostError,
+    DeletePostResponse,
+    Nothing,
+    F
+  ] = PostAPIs.delete.authorized
     .withOwnership { case (_, channelID, postID, _) =>
       postReads
         .requireById(postID)
@@ -136,5 +164,5 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift](
     delete
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(_.asR[Fs2Streams[F] with WebSockets].toRoutes).reduceK
 }

@@ -9,9 +9,9 @@ import io.branchtalk.api._
 import io.branchtalk.configs.APIInfo
 import org.http4s.HttpRoutes
 import monocle.macros.syntax.lens._
+import sttp.tapir.apispec._
 import sttp.tapir.docs.openapi._
 import sttp.tapir.openapi._
-import sttp.tapir.openapi.OpenAPI.ReferenceOr
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.swagger.http4s.SwaggerHttp4s
 

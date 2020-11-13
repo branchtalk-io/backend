@@ -5,9 +5,8 @@ import io.branchtalk.discussions.DiscussionsIOTest
 import io.branchtalk.users.UsersIOTest
 import org.http4s.server.Server
 import org.specs2.matcher.{ OptionLikeCheckedMatcher, OptionLikeMatcher, ValueCheck }
-import sttp.client.{ Response, SttpBackend }
-import sttp.client.asynchttpclient.WebSocketHandler
-import sttp.client.asynchttpclient.cats.AsyncHttpClientCatsBackend
+import sttp.client3.{ Response, SttpBackend }
+import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.model.Uri
 import sttp.tapir._
 import sttp.tapir.client.sttp._
@@ -15,8 +14,8 @@ import sttp.tapir.client.sttp._
 trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   // populated by resources
-  protected var server: Server[IO]                                 = _
-  protected var client: SttpBackend[IO, Nothing, WebSocketHandler] = _
+  protected var server: Server[IO]           = _
+  protected var client: SttpBackend[IO, Any] = _
   protected lazy val sttpBaseUri: Uri = Uri.unsafeApply(
     scheme = server.baseUri.scheme.fold(???)(_.value),
     host = server.baseUri.host.fold(???)(_.value),
@@ -43,12 +42,13 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Nothing]) {
 
-    val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = input =>
+    val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = (input: I) =>
       endpoint
-        .toSttpRequest(sttpBaseUri)
+        .asInstanceOf[Endpoint[I, E, O, Any]] // another workaround for weird tapir design consequence
+        .toSttpRequest(sttpBaseUri)(SttpClientOptions.default, WebSocketToPipe.webSocketsNotSupportedForAny)
         .apply(input)
         .acceptEncoding("deflate") // helps debugging request in logs
-        .send[IO]()(backend = client, isIdInRequest = implicitly)
+        .send(client)(implicitly, implicitly)
   }
 
   import ServerIOTest._

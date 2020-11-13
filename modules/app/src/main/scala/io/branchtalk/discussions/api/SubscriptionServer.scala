@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.api
 
 import cats.data.{ NonEmptyList, NonEmptySet }
-import cats.effect.{ ContextShift, Sync }
+import cats.effect.{ Concurrent, ContextShift, Sync, Timer }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api._
 import io.branchtalk.auth._
@@ -12,12 +12,14 @@ import io.branchtalk.discussions.reads.{ PostReads, SubscriptionReads }
 import io.branchtalk.mappings._
 import io.branchtalk.shared.models.{ CommonError, Paginated }
 import org.http4s._
+import sttp.capabilities.WebSockets
+import sttp.capabilities.fs2.Fs2Streams
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
 import scala.collection.immutable.SortedSet
 
-final class SubscriptionServer[F[_]: Http4sServerOptions: Sync: ContextShift](
+final class SubscriptionServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent: Timer](
   authServices:      AuthServices[F],
   postReads:         PostReads[F],
   subscriptionReads: SubscriptionReads[F],
@@ -42,28 +44,30 @@ final class SubscriptionServer[F[_]: Http4sServerOptions: Sync: ContextShift](
       PostError.ValidationFailed(errors)
   }(logger)
 
-  private val newest = SubscriptionAPIs.newest.optAuthenticated.serverLogic {
-    case ((optUser, _), optOffset, optLimit) =>
-      withErrorHandling {
-        val offset = paginationConfig.resolveOffset(optOffset)
-        val limit  = paginationConfig.resolveLimit(optLimit)
-        for {
-          subscriptionOpt <- optUser
-            .map(_.id)
-            .map(userIDUsers2Discussions.get)
-            .traverse(subscriptionReads.requireForUser)
-          channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(apiConfig.signedOutSubscriptions))
-          paginated <- NonEmptySet.fromSet(channelIDS) match {
-            case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
-            case None             => Paginated.empty[Post].pure[F]
-          }
-        } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
-      }
+  private val newest: ServerEndpoint[
+    (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
+    PostError,
+    Pagination[APIPost],
+    Nothing,
+    F
+  ] = SubscriptionAPIs.newest.optAuthenticated.serverLogic { case ((optUser, _), optOffset, optLimit) =>
+    withErrorHandling {
+      val offset = paginationConfig.resolveOffset(optOffset)
+      val limit  = paginationConfig.resolveLimit(optLimit)
+      for {
+        subscriptionOpt <- optUser.map(_.id).map(userIDUsers2Discussions.get).traverse(subscriptionReads.requireForUser)
+        channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(apiConfig.signedOutSubscriptions))
+        paginated <- NonEmptySet.fromSet(channelIDS) match {
+          case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+          case None             => Paginated.empty[Post].pure[F]
+        }
+      } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
+    }
   }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Nothing, F]] = NonEmptyList.of(
     newest
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(_.asR[Fs2Streams[F] with WebSockets].toRoutes).reduceK
 }
