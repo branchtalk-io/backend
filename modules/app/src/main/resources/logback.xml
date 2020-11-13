@@ -39,24 +39,24 @@
   <logger name="io.branchtalk.users.writes" level="${BRANCHTALK_INFRA_LOG_LEVEL}"/>
 
   <!-- control HTTP4s logs -->
-  <property name="HTTP4S_LOG_LEVEL" value="${HTTP4S_LOG_LEVEL:-ERROR"/>
+  <property name="HTTP4S_LOG_LEVEL" value="${HTTP4S_LOG_LEVEL:-ERROR}"/>
   <logger name="org.http4s.blaze.BlazeServerBuilder" level="off"/>
   <logger name="org.http4s.blaze.channel" level="${HTTP4S_LOG_LEVEL}"/>
   <logger name="org.http4s.server.blaze" level="${HTTP4S_LOG_LEVEL}"/>
 
   <!-- control Flyway logs -->
-  <property name="FLYWAY_LOG_LEVEL" value="${FLYWAY_LOG_LEVEL:-ERROR"/>
+  <property name="FLYWAY_LOG_LEVEL" value="${FLYWAY_LOG_LEVEL:-ERROR}"/>
   <logger name="org.flywaydb" level="${FLYWAY_LOG_LEVEL}"/>
 
   <!-- control Hikari logs -->
-  <property name="HIKARI_LOG_LEVEL" value="${HIKARI_LOG_LEVEL:-ERROR"/>
+  <property name="HIKARI_LOG_LEVEL" value="${HIKARI_LOG_LEVEL:-ERROR}"/>
   <logger name="com.zaxxer.hikari" level="${HIKARI_LOG_LEVEL}"/>
 
   <!-- control Kafka logs -->
-  <property name="KAFKA_LOG_LEVEL" value="${KAFKA_LOG_LEVEL:-ERROR"/>
+  <property name="KAFKA_LOG_LEVEL" value="${KAFKA_LOG_LEVEL:-ERROR}"/>
   <logger name="org.apache.kafka.clients" level="${KAFKA_LOG_LEVEL}"/>
   <logger name="org.apache.kafka.clients.admin" level="${KAFKA_LOG_LEVEL}"/>
-  <logger name="org.apache.kafka.clients.consumer" level="err${KAFKA_LOG_LEVEL}or"/>
+  <logger name="org.apache.kafka.clients.consumer" level="${KAFKA_LOG_LEVEL}"/>
   <logger name="org.apache.kafka.clients.producer" level="${KAFKA_LOG_LEVEL}"/>
   <logger name="org.apache.kafka.common.metrics" level="${KAFKA_LOG_LEVEL}"/>
   <logger name="org.apache.kafka.common.utils" level="${KAFKA_LOG_LEVEL}"/>
