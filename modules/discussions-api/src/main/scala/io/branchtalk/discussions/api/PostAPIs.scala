@@ -1,24 +1,25 @@
 package io.branchtalk.discussions.api
 
+import java.net.URI
+
 import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post }
-import io.branchtalk.shared.models.ID
+import io.branchtalk.shared.models.{ ID, Updatable }
 import sttp.model.StatusCode
 import sttp.tapir._
 import sttp.tapir.json.jsoniter._
 
 object PostAPIs {
 
-  private val prefix = "discussions" / "channels" / path[ID[Channel]] / "posts"
+  private val prefix = "discussions" / "channels" / path[ID[Channel]].name("channelID") / "posts"
 
   private val errorMapping = oneOf[PostError](
     statusMapping[PostError.BadCredentials](StatusCode.Unauthorized, jsonBody[PostError.BadCredentials]),
     statusMapping[PostError.NoPermission](StatusCode.Unauthorized, jsonBody[PostError.NoPermission]),
     statusMapping[PostError.NotFound](StatusCode.NotFound, jsonBody[PostError.NotFound]),
-    statusMapping[PostError.ValidationFailed](StatusCode.BadRequest, jsonBody[PostError.ValidationFailed]),
-    statusDefaultMapping[PostError](jsonBody[PostError])
+    statusMapping[PostError.ValidationFailed](StatusCode.BadRequest, jsonBody[PostError.ValidationFailed])
   )
 
   val newest: Endpoint[
@@ -59,7 +60,7 @@ object PostAPIs {
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .get
     .in(optAuthHeader)
-    .in(prefix / path[ID[Post]])
+    .in(prefix / path[ID[Post]].name("postID"))
     .out(jsonBody[APIPost])
     .errorOut(errorMapping)
 
@@ -75,8 +76,37 @@ object PostAPIs {
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .put
     .in(authHeader)
-    .in(prefix / path[ID[Post]])
-    .in(jsonBody[UpdatePostRequest])
+    .in(prefix / path[ID[Post]].name("postID"))
+    .in(
+      jsonBody[UpdatePostRequest].examples(
+        List(
+          EndpointIO.Example.of(
+            UpdatePostRequest(
+              newTitle = Updatable.Set(Post.Title("example")),
+              newContent = Updatable.Set(Post.Content.Url(Post.URL(URI.create("http://branchtalk.io"))))
+            ),
+            name = "Set new URL".some,
+            summary = "Sets new URL and Title".some
+          ),
+          EndpointIO.Example.of(
+            UpdatePostRequest(
+              newTitle = Updatable.Keep,
+              newContent = Updatable.Set(Post.Content.Text(Post.Text("Lorem ipsum")))
+            ),
+            name = "Set new Text".some,
+            summary = "Sets new Text".some
+          ),
+          EndpointIO.Example.of(
+            UpdatePostRequest(
+              newTitle = Updatable.Keep,
+              newContent = Updatable.Keep
+            ),
+            name = "Keeps both".some,
+            summary = "Keeps both Title and Content".some
+          )
+        )
+      )
+    )
     .out(jsonBody[UpdatePostResponse])
     .errorOut(errorMapping)
     .requiring { case (_, channelID, _, _) =>
@@ -95,7 +125,7 @@ object PostAPIs {
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .delete
     .in(authHeader)
-    .in(prefix / path[ID[Post]])
+    .in(prefix / path[ID[Post]].name("postID"))
     .out(jsonBody[DeletePostResponse])
     .errorOut(errorMapping)
     .requiring { case (_, channelID, _) =>

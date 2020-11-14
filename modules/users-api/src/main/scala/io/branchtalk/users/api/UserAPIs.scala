@@ -2,8 +2,9 @@ package io.branchtalk.users.api
 
 import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
-import io.branchtalk.shared.models.ID
+import io.branchtalk.shared.models.{ ID, OptionUpdatable, Updatable }
 import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.model.Password.{ Raw => RawPassword }
 import io.branchtalk.users.model.User
 import sttp.model.StatusCode
 import sttp.tapir._
@@ -11,22 +12,19 @@ import sttp.tapir.json.jsoniter._
 
 object UserAPIs {
 
-  // TODO: add example
-
   private val prefix = "users"
 
   private val errorMapping = oneOf[UserError](
     statusMapping[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
     statusMapping[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
     statusMapping[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
-    statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed]),
-    statusDefaultMapping[UserError](jsonBody[UserError])
+    statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
   val signUp: Endpoint[SignUpRequest, UserError, SignUpResponse, Nothing] = endpoint
     .name("Sign up")
     .summary("Allows creation of User's account")
-    .description("Scheduled User creation and returns future User's ID as well as future Session's handler")
+    .description("Schedules User creation and returns future User's ID as well as future Session's handler")
     .tags(List(UsersTags.domain, UsersTags.users, UsersTags.sessions))
     .post
     .in(prefix)
@@ -62,7 +60,7 @@ object UserAPIs {
     .description("Returns User's profile")
     .tags(List(UsersTags.domain, UsersTags.users))
     .get
-    .in(prefix / path[ID[User]])
+    .in(prefix / path[ID[User]].name("userID"))
     .out(jsonBody[APIUser])
     .errorOut(errorMapping)
 
@@ -79,8 +77,40 @@ object UserAPIs {
       .tags(List(UsersTags.domain, UsersTags.users))
       .put
       .in(authHeader)
-      .in(prefix / path[ID[User]])
-      .in(jsonBody[UpdateUserRequest])
+      .in(prefix / path[ID[User]].name("userID"))
+      .in(
+        jsonBody[UpdateUserRequest].examples(
+          List(
+            EndpointIO.Example.of(
+              UpdateUserRequest(
+                newUsername = Updatable.Set(User.Name("example")),
+                newDescription = OptionUpdatable.Set(User.Description("example")),
+                newPassword = Updatable.Set(RawPassword.fromString("example"))
+              ),
+              name = "Set all".some,
+              summary = "Assigns new value to all fields".some
+            ),
+            EndpointIO.Example.of(
+              UpdateUserRequest(
+                newUsername = Updatable.Keep,
+                newDescription = OptionUpdatable.Keep,
+                newPassword = Updatable.Keep
+              ),
+              name = "Keep all".some,
+              summary = "Keeps old value for all fields".some
+            ),
+            EndpointIO.Example.of(
+              UpdateUserRequest(
+                newUsername = Updatable.Keep,
+                newDescription = OptionUpdatable.Erase,
+                newPassword = Updatable.Keep
+              ),
+              name = "Erase description".some,
+              summary = "Erases optional value".some
+            )
+          )
+        )
+      )
       .out(jsonBody[UpdateUserResponse])
       .errorOut(errorMapping)
       .requiring { case (_, _, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
@@ -95,7 +125,7 @@ object UserAPIs {
       .tags(List(UsersTags.domain, UsersTags.users))
       .delete
       .in(authHeader)
-      .in(prefix / path[ID[User]])
+      .in(prefix / path[ID[User]].name("userID"))
       .out(jsonBody[DeleteUserResponse])
       .errorOut(errorMapping)
       .requiring { case (_, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }

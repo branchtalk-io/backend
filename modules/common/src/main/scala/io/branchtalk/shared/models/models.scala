@@ -2,6 +2,7 @@ package io.branchtalk.shared
 
 import java.time.{ Instant, OffsetDateTime, ZoneId }
 import java.time.format.DateTimeFormatter
+import java.util.regex.Pattern
 import java.util.{ UUID => jUUID }
 
 import cats.effect.{ Clock, Sync }
@@ -111,5 +112,13 @@ package object models {
   }
   implicit class Untupled5[I1, I2, I3, I4, I5, Out](private val f: ((I1, I2, I3, I4, I5)) => Out) extends AnyVal {
     def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5): Out = f.apply((i1, i2, i3, i4, i5))
+  }
+
+  private val basePattern: Pattern = Pattern.compile("([A-Z]+)([A-Z][a-z])")
+  private val swapPattern: Pattern = Pattern.compile("([a-z\\d])([A-Z])")
+  def discriminatorNameMapper(separator: String): String => String = in => {
+    val simpleName = in.substring(in.lastIndexOf(separator) + separator.length)
+    val partial    = basePattern.matcher(simpleName).replaceAll("$1-$2")
+    swapPattern.matcher(partial).replaceAll("$1-$2").toLowerCase
   }
 }

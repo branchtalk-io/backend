@@ -65,15 +65,20 @@ object AuthenticationSupport {
     case Session(sessionID)              => bearer(sessionID.uuid.show)
     case Credentials(username, password) => basic(username.nonEmptyString.value, password.nonEmptyBytes)
   }
-  val authHeader: EndpointIO.Header[Authentication] = header[String]("Authentication").map(authHeaderMapping)
+  val authHeader: EndpointIO.Header[Authentication] = header[String]("Authentication")
+    .map(authHeaderMapping)
+    .description(
+      """Accepts basic authentication (`"Basic " + base64("uname:pass")`) and bearer token (`"Bearer " + sessionID`)"""
+    )
 
   val optAuthHeaderMapping: Mapping[Option[String], Option[Authentication]] =
     Mapping.fromDecode[Option[String], Option[Authentication]] {
       case Some(value) => authHeaderMapping.decode(value).map(Some.apply)
       case None        => DecodeResult.Value(None)
-    } {
-      _.map(authHeaderMapping.encode)
-    }
-  val optAuthHeader: EndpointIO.Header[Option[Authentication]] =
-    header[Option[String]]("Authentication").map(optAuthHeaderMapping)
+    }(_.map(authHeaderMapping.encode))
+  val optAuthHeader: EndpointIO.Header[Option[Authentication]] = header[Option[String]]("Authentication")
+    .map(optAuthHeaderMapping)
+    .description(
+      """Accepts basic authentication (`"Basic " + base64("uname:pass")`) and bearer token (`"Bearer " + sessionID`)"""
+    )
 }

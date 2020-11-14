@@ -9,10 +9,11 @@ import eu.timepit.refined.collection.NonEmpty
 import io.branchtalk.ADT
 import io.branchtalk.api._
 import io.branchtalk.discussions.model._
-import io.branchtalk.shared.models.{ ID, Updatable }
+import io.branchtalk.shared.models.{ ID, Updatable, discriminatorNameMapper }
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
 import sttp.tapir.Schema
+import sttp.tapir.generic.Configuration
 
 import scala.util.Try
 
@@ -30,6 +31,10 @@ object PostModels {
       .asNewtype[Post.URL]
   implicit val postTextCodec: JsCodec[Post.Text] =
     summonCodec[String](JsonCodecMaker.make).asNewtype[Post.Text]
+  implicit val postContentCodec: JsCodec[Post.Content] =
+    summonCodec[Post.Content](
+      JsonCodecMaker.make(CodecMakerConfig.withAdtLeafClassNameMapper(discriminatorNameMapper(".")))
+    )
 
   // properties schemas
   implicit val postUrlTitleSchema: Schema[Post.UrlTitle] =
@@ -40,6 +45,11 @@ object PostModels {
     summonSchema[URI].asNewtype[Post.URL]
   implicit val postTextSchema: Schema[Post.Text] =
     summonSchema[String].asNewtype[Post.Text]
+  implicit val postContentSchema: Schema[Post.Content] = {
+    implicit val customConfiguration: Configuration =
+      Configuration.default.copy(toEncodedName = discriminatorNameMapper("."))
+    coproductDiscriminatorFixer(Schema.derivedSchema[Post.Content])
+  }
 
   @Semi(JsCodec) sealed trait PostError extends ADT
   object PostError {

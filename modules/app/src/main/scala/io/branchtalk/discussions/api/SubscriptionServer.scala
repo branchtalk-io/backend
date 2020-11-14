@@ -44,25 +44,23 @@ final class SubscriptionServer[F[_]: Http4sServerOptions: Sync: ContextShift: Co
       PostError.ValidationFailed(errors)
   }(logger)
 
-  private val newest: ServerEndpoint[
-    (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
-    PostError,
-    Pagination[APIPost],
-    Nothing,
-    F
-  ] = SubscriptionAPIs.newest.optAuthenticated.serverLogic { case ((optUser, _), optOffset, optLimit) =>
-    withErrorHandling {
-      val offset = paginationConfig.resolveOffset(optOffset)
-      val limit  = paginationConfig.resolveLimit(optLimit)
-      for {
-        subscriptionOpt <- optUser.map(_.id).map(userIDUsers2Discussions.get).traverse(subscriptionReads.requireForUser)
-        channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(apiConfig.signedOutSubscriptions))
-        paginated <- NonEmptySet.fromSet(channelIDS) match {
-          case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
-          case None             => Paginated.empty[Post].pure[F]
-        }
-      } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
-    }
+  private val newest = SubscriptionAPIs.newest.optAuthenticated.serverLogic {
+    case ((optUser, _), optOffset, optLimit) =>
+      withErrorHandling {
+        val offset = paginationConfig.resolveOffset(optOffset)
+        val limit  = paginationConfig.resolveLimit(optLimit)
+        for {
+          subscriptionOpt <- optUser
+            .map(_.id)
+            .map(userIDUsers2Discussions.get)
+            .traverse(subscriptionReads.requireForUser)
+          channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(apiConfig.signedOutSubscriptions))
+          paginated <- NonEmptySet.fromSet(channelIDS) match {
+            case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+            case None             => Paginated.empty[Post].pure[F]
+          }
+        } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
+      }
   }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Nothing, F]] = NonEmptyList.of(
