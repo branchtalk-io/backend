@@ -33,3 +33,16 @@ sbt> it:test
 ```bash
 make dev-down # shuts down services
 ```
+
+### Local testing
+
+While in sbt with Docker started run
+```
+sbt:branchtalk> application/reStart --monolith
+```
+to (re)start application in fork.
+
+OpenAPI will be available at:
+```
+http://localhost:8080/docs/index.html?url=/docs/swagger.json
+```
