@@ -1,39 +1,40 @@
 package io.branchtalk.api
 
-import cats.Monad
+import cats.{ Monad, MonadError }
+import io.branchtalk.shared.models.{ CodePosition, CommonError }
 import sttp.tapir._
 import sttp.tapir.server.ServerEndpoint
 
 // TODO: provide instances in auth
 
 // scalastyle:off structural.type
-trait AuthMapping[F[_], I] {
-  type I2
-  def authenticate(i: I, requiredPermissions: RequiredPermissions): F[I2]
+trait AuthMapping[F[_], In] {
+  type Out
+  def authorize(i: In, requiredPermissions: RequiredPermissions): F[Out]
 }
 object AuthMapping {
-  def apply[F[_], I](implicit authMapping: AuthMapping[F, I]): AuthMapping[F, I] {
-    type I2 = authMapping.I2
+  def apply[F[_], In](implicit authMapping: AuthMapping[F, In]): AuthMapping[F, In] {
+    type Out = authMapping.Out
   } = authMapping
 
-  type Aux[F[_], I, II2] = AuthMapping[F, I] {
-    type I2 = II2
+  type Aux[F[_], In, OOut] = AuthMapping[F, In] {
+    type Out = OOut
   }
 }
 
-trait AuthMappingWithOwnership[F[_], I] {
-  type I2
+trait AuthMappingWithOwnership[F[_], In] {
+  type Out
   type Owner
-  def authenticate(i: I, requiredPermissions: RequiredPermissions, owner: Owner): F[I2]
+  def authorize(i: In, requiredPermissions: RequiredPermissions, owner: Owner): F[Out]
 }
 object AuthMappingWithOwnership {
-  def apply[F[_], I](implicit authMapping: AuthMappingWithOwnership[F, I]): AuthMappingWithOwnership[F, I] {
-    type I2    = authMapping.I2
+  def apply[F[_], In](implicit authMapping: AuthMappingWithOwnership[F, In]): AuthMappingWithOwnership[F, In] {
+    type Out   = authMapping.Out
     type Owner = authMapping.Owner
   } = authMapping
 
-  type Aux[F[_], I, II2, OOwner] = AuthMappingWithOwnership[F, I] {
-    type I2    = II2
+  type Aux[F[_], In, OOut, OOwner] = AuthMappingWithOwnership[F, In] {
+    type Out   = OOut
     type Owner = OOwner
   }
 }
@@ -50,15 +51,22 @@ final case class RichEndpoint[I, E, O, -R](
     logic: I2 => F[Either[E, O]]
   ): ServerEndpoint[I, E, O, R, F] =
     endpoint.serverLogic { i =>
-      AuthMapping[F, I].authenticate(i, makePermissions(i)).flatMap(logic)
+      AuthMapping[F, I].authorize(i, makePermissions(i)).flatMap(logic)
     }
 
-  def serverLogic[F[_]: Monad, Owner, I2: AuthMappingWithOwnership.Aux[F, I, *, Owner]](
+  def serverLogic[F[_]: MonadError[*[_], Throwable], Owner, I2: AuthMappingWithOwnership.Aux[F, I, *, Owner]](
     ownership: I => F[Owner]
-  )(logic:     I2 => F[Either[E, O]]): ServerEndpoint[I, E, O, R, F] =
+  )(logic:     I2 => F[Either[E, O]])(implicit codePosition: CodePosition): ServerEndpoint[I, E, O, R, F] =
     endpoint.serverLogic { i =>
-      ownership(i).flatMap { owner =>
-        AuthMappingWithOwnership[F, I].authenticate(i, makePermissions(i), owner).flatMap(logic)
-      }
+      ownership(i)
+        .handleErrorWith(_ =>
+          (CommonError.InsufficientPermissions("Ownership was not confirmed", codePosition): Throwable)
+            .raiseError[F, Owner]
+        )
+        .flatMap { owner =>
+          AuthMappingWithOwnership[F, I].authorize(i, makePermissions(i), owner).flatMap(logic)
+        }
     }
 }
+
+// TODO: change all R from Nothing to Any
