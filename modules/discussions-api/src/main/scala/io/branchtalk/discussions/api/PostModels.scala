@@ -48,7 +48,7 @@ object PostModels {
   implicit val postContentSchema: Schema[Post.Content] = {
     implicit val customConfiguration: Configuration =
       Configuration.default.copy(toEncodedName = discriminatorNameMapper("."))
-    coproductDiscriminatorFixer(Schema.derivedSchema[Post.Content])
+    Schema.derivedSchema[Post.Content]
   }
 
   @Semi(JsCodec) sealed trait PostError extends ADT

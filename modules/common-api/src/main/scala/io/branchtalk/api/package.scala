@@ -24,11 +24,9 @@ import io.branchtalk.shared.models.{
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 import io.estatico.newtype.Coercible
-import monocle.macros.syntax.lens._
 import sttp.tapir.{ Codec, DecodeResult, Endpoint, Schema }
 import sttp.tapir.codec.refined._
 import sttp.tapir.CodecFormat.TextPlain
-import sttp.tapir.SchemaType.{ SCoproduct, SProduct }
 import sttp.tapir.generic.Configuration
 
 // scalastyle:off number.of.methods
@@ -116,21 +114,6 @@ package object api {
   implicit def idParam[A]:  Param[ID[A]]   = summonParam[UUID].map[ID[A]](ID[A](_))(_.uuid)
   implicit def idSchema[A]: Schema[ID[A]]  = summonSchema[UUID].asNewtype[ID[A]]
 
-  // Tapir only allows overriding derived name by using @encodedName annotation... and Jsoniter uses full names :P
-  def coproductDiscriminatorFixer[A](schema: Schema[A]): Schema[A] =
-    schema.lens(_.schemaType).modify {
-      case c: SCoproduct =>
-        c.lens(_.schemas).modify { schemas =>
-          schemas.map(
-            _.lens(_.schemaType).modify {
-              case p: SProduct => p.lens(_.info.fullName).modify(_.pipe(discriminatorNameMapper(".")))
-              case y => y
-            }
-          )
-        }
-      case x => x
-    }
-
   implicit def updatableCodec[A: JsCodec]: JsCodec[Updatable[A]] = summonCodec[Updatable[A]](
     JsonCodecMaker.make(
       CodecMakerConfig
@@ -141,7 +124,7 @@ package object api {
   implicit def updatableSchema[A: Schema]: Schema[Updatable[A]] = {
     implicit val customConfiguration: Configuration =
       Configuration.default.copy(toEncodedName = discriminatorNameMapper(".")).withDiscriminator("action")
-    coproductDiscriminatorFixer(Schema.derivedSchema[Updatable[A]])
+    Schema.derivedSchema[Updatable[A]]
   }
 
   implicit def optionUpdatableCodec[A: JsCodec]: JsCodec[OptionUpdatable[A]] = summonCodec[OptionUpdatable[A]](
@@ -154,7 +137,7 @@ package object api {
   implicit def optionUpdatableSchema[A: Schema]: Schema[OptionUpdatable[A]] = {
     implicit val customConfiguration: Configuration =
       Configuration.default.copy(toEncodedName = discriminatorNameMapper(".")).withDiscriminator("action")
-    coproductDiscriminatorFixer(Schema.derivedSchema[OptionUpdatable[A]])
+    Schema.derivedSchema[OptionUpdatable[A]]
   }
 
   /// Cats codecs
