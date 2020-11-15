@@ -8,7 +8,7 @@ import sttp.tapir.server.ServerEndpoint
 // scalastyle:off structural.type
 trait AuthMapping[F[_], In] {
   type Out
-  def authorize(i: In, requiredPermissions: RequiredPermissions): F[Out]
+  def authorize(in: In, requiredPermissions: RequiredPermissions): F[Out]
 }
 object AuthMapping {
   def apply[F[_], In](implicit authMapping: AuthMapping[F, In]): AuthMapping[F, In] {
@@ -23,7 +23,7 @@ object AuthMapping {
 trait AuthMappingWithOwnership[F[_], In] {
   type Out
   type Owner
-  def authorize(i: In, requiredPermissions: RequiredPermissions, owner: Owner): F[Out]
+  def authorize(in: In, requiredPermissions: RequiredPermissions, owner: Owner): F[Out]
 }
 object AuthMappingWithOwnership {
   def apply[F[_], In](implicit authMapping: AuthMappingWithOwnership[F, In]): AuthMappingWithOwnership[F, In] {
@@ -36,7 +36,6 @@ object AuthMappingWithOwnership {
     type Owner = OOwner
   }
 }
-// scalastyle:on structural.type
 
 final case class AuthedEndpoint[I, E, O, -R](
   endpoint:        Endpoint[I, E, O, R],
@@ -68,3 +67,4 @@ final case class AuthedEndpoint[I, E, O, -R](
             }
         }
 }
+// scalastyle:on structural.type
