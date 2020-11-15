@@ -16,7 +16,6 @@ import io.branchtalk.shared.models.{
   ID,
   OptionUpdatable,
   ParseRefined,
-  TupleAppender,
   UUID,
   UUIDGenerator,
   Updatable,
@@ -31,32 +30,17 @@ import sttp.tapir.codec.refined._
 import sttp.tapir.CodecFormat.TextPlain
 import sttp.tapir.SchemaType.{ SCoproduct, SProduct }
 import sttp.tapir.generic.Configuration
-import sttp.tapir.server.ServerEndpoint
 
 // scalastyle:off number.of.methods
 package object api {
 
-  implicit class EndpointOps[I, E, O](private val endpoint: Endpoint[I, E, O, Nothing]) extends AnyVal {
+  implicit class EndpointOps[I, E, O, R](private val endpoint: Endpoint[I, E, O, R]) extends AnyVal {
 
-    // store RequiredPermissions as a part of the endpoint definition
-    def requiring[IJ](permissions: I => RequiredPermissions)(implicit
-      ta:                          TupleAppender.Aux[I, RequiredPermissions, IJ]
-    ): Endpoint[IJ, E, O, Nothing] =
-      endpoint.mapIn[IJ]((i: I) => ta.append(i, permissions(i)))((ij: IJ) => ta.revert(ij)._1)
+    def notRequiringPermissions: AuthedEndpoint[I, E, O, R] =
+      AuthedEndpoint(endpoint, _ => RequiredPermissions.empty)
 
-    // store RequiredPermissions as a part of the endpoint definition
-    def asClient[IJ](implicit
-      ta: TupleAppender.Aux[IJ, RequiredPermissions, I]
-    ): Endpoint[IJ, E, O, Nothing] =
-      endpoint.mapIn[IJ]((i: I) => ta.revert(i)._1)((ij: IJ) => ta.append(ij, RequiredPermissions.empty))
-  }
-
-  implicit class ServerEndpointOps[I, E, O, F[_]](private val serverEndpoint: ServerEndpoint[I, E, O, Nothing, F])
-      extends AnyVal {
-
-    // to fix up Tapir atrocious design decision in 0.17
-    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-    def asR[S2]: ServerEndpoint[I, E, O, S2, F] = serverEndpoint.asInstanceOf[ServerEndpoint[I, E, O, S2, F]]
+    def requiringPermssions(permissions: I => RequiredPermissions): AuthedEndpoint[I, E, O, R] =
+      AuthedEndpoint(endpoint, permissions)
   }
 
   implicit class TapirResultOps[A](private val decodeResult: DecodeResult[A]) extends AnyVal {

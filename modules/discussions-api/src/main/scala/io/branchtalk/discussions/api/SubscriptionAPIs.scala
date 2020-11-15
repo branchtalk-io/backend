@@ -20,11 +20,11 @@ object SubscriptionAPIs {
     statusDefaultMapping[PostError](jsonBody[PostError])
   )
 
-  val newest: Endpoint[
+  val newest: AuthedEndpoint[
     (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
     PostError,
     Pagination[APIPost],
-    Nothing
+    Any
   ] = endpoint
     .name("Fetch newest Subscriptions")
     .summary("Paginate newest Posts for User's Subscriptions")
@@ -37,4 +37,5 @@ object SubscriptionAPIs {
     .in(query[Option[PaginationLimit]]("limit"))
     .out(jsonBody[Pagination[APIPost]])
     .errorOut(errorMapping)
+    .notRequiringPermissions
 }

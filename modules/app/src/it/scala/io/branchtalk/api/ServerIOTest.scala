@@ -40,15 +40,19 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> serverResource
 
-  implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Nothing]) {
+  implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Any]) {
 
     val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = (input: I) =>
       endpoint
-        .asInstanceOf[Endpoint[I, E, O, Any]] // another workaround for weird tapir design consequence
         .toSttpRequest(sttpBaseUri)(SttpClientOptions.default, WebSocketToPipe.webSocketsNotSupportedForAny)
         .apply(input)
         .acceptEncoding("deflate") // helps debugging request in logs
-        .send(client)(implicitly, implicitly)
+        .send(client)
+  }
+
+  implicit class AuthServerTestOps[I, E, O](private val authEndpoint: AuthedEndpoint[I, E, O, Any]) {
+
+    val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = authEndpoint.endpoint.toTestCall
   }
 
   import ServerIOTest._

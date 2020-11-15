@@ -1,6 +1,7 @@
 package io.branchtalk.auth
 
 import cats.effect.Sync
+import com.typesafe.scalalogging.Logger
 import io.branchtalk.api
 import io.branchtalk.mappings._
 import io.branchtalk.shared.models.{ CodePosition, CommonError }
@@ -24,6 +25,8 @@ object AuthServices {
 
 final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: SessionReads[F])
     extends AuthServices[F] {
+
+  private val logger = Logger(getClass)
 
   private def authSessionID(sessionID: api.SessionID) =
     for {
@@ -53,6 +56,12 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
         .map(_.data.usage)
         .collect { case users.model.SessionProperties.Usage.OAuth(permissions) => permissions }
         .fold(allOwnedPermissions)(allOwnedPermissions.intersect)
+      _ = logger.trace(
+        s"""Validating permissions:
+           |required: ${required.show}
+           |available: ${available.show}
+           |owner: ${owner.show}""".stripMargin
+      )
       _ <-
         if (available.allow(requiredPermissionsApi2Users(owner.getOrElse(api.UserID.empty)).get(required))) Sync[F].unit
         else {

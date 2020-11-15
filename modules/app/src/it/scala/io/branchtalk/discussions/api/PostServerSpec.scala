@@ -75,14 +75,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              subscriberID = userIDUsers2Discussions.get(userID)
-              _ <- discussionsWrites.subscriptionWrites.subscribe(
-                Subscription.Subscribe(subscriberID = subscriberID, subscriptions = Set(channelID))
-              )
-              _ <- discussionsReads.subscriptionReads
-                .requireForUser(subscriberID)
-                .assert("Subscriptions should contain added Channel ID")(_.subscriptions(channelID))
-                .eventually()
               creationData <- postCreate(channelID)
               // when
               response <- PostAPIs.create.toTestCall.untupled(
@@ -90,6 +82,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 channelID,
                 creationData.transformInto[CreatePostRequest]
               )
+              // TODO: check that this creates a new post eentually!
             } yield {
               // then
               response.code must_=== StatusCode.Ok
@@ -115,14 +108,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              subscriberID = userIDUsers2Discussions.get(userID)
-              _ <- discussionsWrites.subscriptionWrites.subscribe(
-                Subscription.Subscribe(subscriberID = subscriberID, subscriptions = Set(channelID))
-              )
-              _ <- discussionsReads.subscriptionReads
-                .requireForUser(subscriberID)
-                .assert("Subscriptions should contain added Channel ID")(_.subscriptions(channelID))
-                .eventually()
               CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
               post <- discussionsReads.postReads.requireById(postID).eventually()
               // when
@@ -156,14 +141,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              subscriberID = userIDUsers2Discussions.get(userID)
-              _ <- discussionsWrites.subscriptionWrites.subscribe(
-                Subscription.Subscribe(subscriberID = subscriberID, subscriptions = Set(channelID))
-              )
-              _ <- discussionsReads.subscriptionReads
-                .requireForUser(subscriberID)
-                .assert("Subscriptions should contain added Channel ID")(_.subscriptions(channelID))
-                .eventually()
               CreationScheduled(postID) <- postCreate(channelID)
                 .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
                 .flatMap(discussionsWrites.postWrites.createPost)
@@ -171,7 +148,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               newTitle <- Post.Title.parse[IO]("new title")
               newContent = Post.Content.Text(Post.Text("lorem ipsum"))
               // when
-              response <- PostAPIs.update.asClient.toTestCall.untupled(
+              response <- PostAPIs.update.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 channelID,
                 postID,
@@ -231,7 +208,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 .flatMap(discussionsWrites.postWrites.createPost)
               _ <- discussionsReads.postReads.requireById(postID).eventually()
               // when
-              response <- PostAPIs.delete.asClient.toTestCall.untupled(
+              response <- PostAPIs.delete.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 channelID,
                 postID

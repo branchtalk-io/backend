@@ -21,7 +21,7 @@ object UserAPIs {
     statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
-  val signUp: Endpoint[SignUpRequest, UserError, SignUpResponse, Nothing] = endpoint
+  val signUp: Endpoint[SignUpRequest, UserError, SignUpResponse, Any] = endpoint
     .name("Sign up")
     .summary("Allows creation of User's account")
     .description("Schedules User creation and returns future User's ID as well as future Session's handler")
@@ -32,7 +32,7 @@ object UserAPIs {
     .out(jsonBody[SignUpResponse])
     .errorOut(errorMapping)
 
-  val signIn: Endpoint[Authentication, UserError, SignInResponse, Nothing] = endpoint
+  val signIn: AuthedEndpoint[Authentication, UserError, SignInResponse, Any] = endpoint
     .name("Sign in")
     .summary("Allows logging into existing User's account")
     .description("Returns Session's handler")
@@ -42,8 +42,9 @@ object UserAPIs {
     .in(prefix / "session")
     .out(jsonBody[SignInResponse])
     .errorOut(errorMapping)
+    .notRequiringPermissions
 
-  val signOut: Endpoint[Authentication, UserError, SignOutResponse, Nothing] = endpoint
+  val signOut: AuthedEndpoint[Authentication, UserError, SignOutResponse, Any] = endpoint
     .name("Sign out")
     .summary("Destroys specific User's session")
     .description("Make the Session ID immediately invalid")
@@ -53,23 +54,21 @@ object UserAPIs {
     .in(prefix / "session")
     .out(jsonBody[SignOutResponse])
     .errorOut(errorMapping)
+    .notRequiringPermissions
 
-  val fetchProfile: Endpoint[ID[User], UserError, APIUser, Nothing] = endpoint
+  val fetchProfile: AuthedEndpoint[(Option[Authentication], ID[User]), UserError, APIUser, Any] = endpoint
     .name("Fetch profile")
     .summary("Fetches specific User's profile")
     .description("Returns User's profile")
     .tags(List(UsersTags.domain, UsersTags.users))
     .get
+    .in(optAuthHeader)
     .in(prefix / path[ID[User]].name("userID"))
     .out(jsonBody[APIUser])
     .errorOut(errorMapping)
+    .notRequiringPermissions
 
-  val updateProfile: Endpoint[
-    (Authentication, ID[User], UpdateUserRequest, RequiredPermissions),
-    UserError,
-    UpdateUserResponse,
-    Nothing
-  ] =
+  val updateProfile: AuthedEndpoint[(Authentication, ID[User], UpdateUserRequest), UserError, UpdateUserResponse, Any] =
     endpoint
       .name("Update profile")
       .summary("Updates specific User's profile")
@@ -113,20 +112,17 @@ object UserAPIs {
       )
       .out(jsonBody[UpdateUserResponse])
       .errorOut(errorMapping)
-      .requiring { case (_, _, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
+      .requiringPermssions { case (_, _, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
 
-  val deleteProfile: Endpoint[(Authentication, ID[User], RequiredPermissions), UserError, DeleteUserResponse, Nothing] =
-    endpoint
-      .name("Delete profile")
-      .summary("Deletes specific User's profile")
-      .description(
-        "Schedules specific User's profile deletion, requires ownership or moderator status, cannot be undone"
-      )
-      .tags(List(UsersTags.domain, UsersTags.users))
-      .delete
-      .in(authHeader)
-      .in(prefix / path[ID[User]].name("userID"))
-      .out(jsonBody[DeleteUserResponse])
-      .errorOut(errorMapping)
-      .requiring { case (_, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
+  val deleteProfile: AuthedEndpoint[(Authentication, ID[User]), UserError, DeleteUserResponse, Any] = endpoint
+    .name("Delete profile")
+    .summary("Deletes specific User's profile")
+    .description("Schedules specific User's profile deletion, requires ownership or moderator status, cannot be undone")
+    .tags(List(UsersTags.domain, UsersTags.users))
+    .delete
+    .in(authHeader)
+    .in(prefix / path[ID[User]].name("userID"))
+    .out(jsonBody[DeleteUserResponse])
+    .errorOut(errorMapping)
+    .requiringPermssions { case (_, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
 }

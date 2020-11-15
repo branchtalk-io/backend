@@ -2,8 +2,7 @@ package io.branchtalk
 
 import cats.{ Applicative, Functor }
 import io.branchtalk.api.{ AuthMapping, AuthMappingWithOwnership, RequiredPermissions, UserID }
-import io.branchtalk.shared.models.{ TupleAppender, TuplePrepender }
-import sttp.tapir.Endpoint
+import io.branchtalk.shared.models.TuplePrepender
 
 package object auth {
 
@@ -103,43 +102,6 @@ package object auth {
           optUserSession.map(_._1) -> optUserSession.flatMap(_._2)
         }
         .map(preUser.prepend(rest, _))
-    }
-  }
-
-  // TODO: remove after replacing
-  implicit class AuthOps[I, E, O](private val endpoint: Endpoint[I, E, O, Nothing]) extends AnyVal {
-
-    def authenticated[Inter, I2](implicit
-      preAuth: TuplePrepender.Aux[Inter, api.Authentication, I],
-      preUser: TuplePrepender.Aux[Inter, (users.model.User, Option[users.model.Session]), I2]
-    ): AuthenticateLogic[I, I2, E, O, Nothing] = new AuthenticateLogic[I, I2, E, O, Nothing] {
-      protected type Rest = Inter
-      protected val mapped      = endpoint
-      protected val extractAuth = preAuth.revert(_)
-      protected val addUser     = preUser.prepend(_, _)
-    }
-
-    def optAuthenticated[Inter, I2](implicit
-      preAuth: TuplePrepender.Aux[Inter, Option[api.Authentication], I],
-      preUser: TuplePrepender.Aux[Inter, (Option[users.model.User], Option[users.model.Session]), I2]
-    ): OptAuthenticateLogic[I, I2, E, O, Nothing] = new OptAuthenticateLogic[I, I2, E, O, Nothing] {
-      protected type Rest = Inter
-      protected val mapped      = endpoint
-      protected val extractAuth = preAuth.revert(_)
-      protected val addUser     = preUser.prepend(_, _)
-    }
-
-    def authorized[Inter1, Inter2, I2](implicit
-      preAuth: TuplePrepender.Aux[Inter1, api.Authentication, I],
-      appPerm: TupleAppender.Aux[Inter2, api.RequiredPermissions, Inter1],
-      preUser: TuplePrepender.Aux[Inter2, (users.model.User, Option[users.model.Session]), I2]
-    ): AuthorizeLogic[I, I2, E, O, Nothing] = new AuthorizeLogic[I, I2, E, O, Nothing] {
-      protected type Rest1 = Inter1
-      protected type Rest2 = Inter2
-      protected val mapped      = endpoint
-      protected val extractAuth = preAuth.revert(_)
-      protected val extractPerm = appPerm.revert(_)
-      protected val addUser     = preUser.prepend(_, _)
     }
   }
 }

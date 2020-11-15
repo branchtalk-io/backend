@@ -18,7 +18,7 @@ final class OpenAPIServerSpec extends Specification with ServerIOTest {
           for {
             _ <- usersProjector.logError("Error reported by Users projector").start
             _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-            result <- basicRequest.get(sttpBaseUri.path("docs/swagger.json")).send(client)(implicitly, implicitly)
+            result <- basicRequest.get(sttpBaseUri.withWholePath("docs/swagger.json")).send(client)
           } yield result.code must_=== StatusCode.Ok
       }
     }

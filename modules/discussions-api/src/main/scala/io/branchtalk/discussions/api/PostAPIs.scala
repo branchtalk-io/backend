@@ -22,11 +22,11 @@ object PostAPIs {
     statusMapping[PostError.ValidationFailed](StatusCode.BadRequest, jsonBody[PostError.ValidationFailed])
   )
 
-  val newest: Endpoint[
+  val newest: AuthedEndpoint[
     (Option[Authentication], ID[Channel], Option[PaginationOffset], Option[PaginationLimit]),
     PostError,
     Pagination[APIPost],
-    Nothing
+    Any
   ] = endpoint
     .name("Fetch newest Posts")
     .summary("Paginate newest Posts for a Channel")
@@ -39,8 +39,9 @@ object PostAPIs {
     .in(query[Option[PaginationLimit]]("limit"))
     .out(jsonBody[Pagination[APIPost]])
     .errorOut(errorMapping)
+    .notRequiringPermissions
 
-  val create: Endpoint[(Authentication, ID[Channel], CreatePostRequest), PostError, CreatePostResponse, Nothing] =
+  val create: AuthedEndpoint[(Authentication, ID[Channel], CreatePostRequest), PostError, CreatePostResponse, Any] =
     endpoint
       .name("Create Post")
       .summary("Creates Post")
@@ -52,8 +53,9 @@ object PostAPIs {
       .in(jsonBody[CreatePostRequest])
       .out(jsonBody[CreatePostResponse])
       .errorOut(errorMapping)
+      .notRequiringPermissions
 
-  val read: Endpoint[(Option[Authentication], ID[Channel], ID[Post]), PostError, APIPost, Nothing] = endpoint
+  val read: AuthedEndpoint[(Option[Authentication], ID[Channel], ID[Post]), PostError, APIPost, Any] = endpoint
     .name("Fetch Posts")
     .summary("Fetches specific Post")
     .description("Returns specific Post's data")
@@ -63,12 +65,13 @@ object PostAPIs {
     .in(prefix / path[ID[Post]].name("postID"))
     .out(jsonBody[APIPost])
     .errorOut(errorMapping)
+    .notRequiringPermissions
 
-  val update: Endpoint[
-    (Authentication, ID[Channel], ID[Post], UpdatePostRequest, RequiredPermissions),
+  val update: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post], UpdatePostRequest),
     PostError,
     UpdatePostResponse,
-    Nothing
+    Any
   ] = endpoint
     .name("Update Posts")
     .summary("Updates specific Post")
@@ -109,15 +112,15 @@ object PostAPIs {
     )
     .out(jsonBody[UpdatePostResponse])
     .errorOut(errorMapping)
-    .requiring { case (_, channelID, _, _) =>
+    .requiringPermssions { case (_, channelID, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
-  val delete: Endpoint[
-    (Authentication, ID[Channel], ID[Post], RequiredPermissions),
+  val delete: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post]),
     PostError,
     DeletePostResponse,
-    Nothing
+    Any
   ] = endpoint
     .name("Delete Posts")
     .summary("Deletes specific Post")
@@ -128,7 +131,7 @@ object PostAPIs {
     .in(prefix / path[ID[Post]].name("postID"))
     .out(jsonBody[DeletePostResponse])
     .errorOut(errorMapping)
-    .requiring { case (_, channelID, _) =>
+    .requiringPermssions { case (_, channelID, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 }

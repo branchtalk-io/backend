@@ -15,6 +15,7 @@
   <!-- suppress Branchtalk logs -->
   <logger name="io.branchtalk" level="off"/>
   <logger name="io.branchtalk.api" level="off"/>
+  <logger name="io.branchtalk.auth" level="off"/>
   <logger name="io.branchtalk.shared.infrastructure" level="off"/>
   <logger name="io.branchtalk.discussions.reads" level="off"/>
   <logger name="io.branchtalk.discussions.writes" level="off"/>

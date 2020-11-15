@@ -142,7 +142,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               user <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               // when
-              response <- UserAPIs.fetchProfile.toTestCall(userID)
+              response <- UserAPIs.fetchProfile.toTestCall((None, userID))
             } yield {
               // then
               response.code must_=== StatusCode.Ok
@@ -170,7 +170,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               newDescription = User.Description("new test description")
               newPassword <- Password.Raw.parse[IO]("new password".getBytes)
               // when
-              response <- UserAPIs.updateProfile.asClient.toTestCall.untupled(
+              response <- UserAPIs.updateProfile.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 userID,
                 UpdateUserRequest(
@@ -217,7 +217,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               // when
-              response <- UserAPIs.deleteProfile.asClient.toTestCall.untupled(
+              response <- UserAPIs.deleteProfile.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 userID
               )

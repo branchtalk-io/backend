@@ -30,6 +30,7 @@
   <property name="BRANCHTALK_INFRA_LOG_LEVEL" value="${BRANCHTALK_INFRA_LOG_LEVEL:-$BRANCHTALK_LOG_LEVEL}"/>
   <logger name="io.branchtalk" level="${BRANCHTALK_LOG_LEVEL}"/>
   <logger name="io.branchtalk.api" level="${BRANCHTALK_API_LOG_LEVEL}"/>
+  <logger name="io.branchtalk.auth" level="${BRANCHTALK_API_LOG_LEVEL}"/>
   <logger name="io.branchtalk.shared.infrastructure" level="${BRANCHTALK_INFRA_LOG_LEVEL}"/>
   <logger name="io.branchtalk.discussions.api" level="${BRANCHTALK_API_LOG_LEVEL}"/>
   <logger name="io.branchtalk.discussions.reads" level="${BRANCHTALK_INFRA_LOG_LEVEL}"/>

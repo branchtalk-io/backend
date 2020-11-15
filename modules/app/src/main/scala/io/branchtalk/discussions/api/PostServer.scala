@@ -14,8 +14,6 @@ import io.branchtalk.mappings._
 import io.branchtalk.shared.models.{ CommonError, Paginated }
 import io.scalaland.chimney.dsl._
 import org.http4s._
-import sttp.capabilities.WebSockets
-import sttp.capabilities.fs2.Fs2Streams
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
@@ -45,22 +43,21 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
       PostError.ValidationFailed(errors)
   }(logger)
 
-  private val newest = new AuthOps(PostAPIs.newest).optAuthenticated.serverLogic {
-    case ((_, _), channelID, optOffset, optLimit) =>
-      withErrorHandling {
-        val offset     = paginationConfig.resolveOffset(optOffset)
-        val limit      = paginationConfig.resolveLimit(optLimit)
-        val channelIDS = SortedSet(channelID)
-        for {
-          paginated <- NonEmptySet.fromSet(channelIDS) match {
-            case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
-            case None             => Paginated.empty[Post].pure[F]
-          }
-        } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
-      }
+  private val newest = PostAPIs.newest.serverLogic[F].apply { case ((_, _), channelID, optOffset, optLimit) =>
+    withErrorHandling {
+      val offset     = paginationConfig.resolveOffset(optOffset)
+      val limit      = paginationConfig.resolveLimit(optLimit)
+      val channelIDS = SortedSet(channelID)
+      for {
+        paginated <- NonEmptySet.fromSet(channelIDS) match {
+          case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+          case None             => Paginated.empty[Post].pure[F]
+        }
+      } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
+    }
   }
 
-  private val create = PostAPIs.create.authenticated.serverLogic { case ((user, _), channelID, createData) =>
+  private val create = PostAPIs.create.serverLogic[F].apply { case ((user, _), channelID, createData) =>
     withErrorHandling {
       val userID = user.id
       val data = createData
@@ -74,14 +71,14 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
     }
   }
 
-  private val read = PostAPIs.read.optAuthenticated
-    .withOwnership { case (_, channelID, postID) =>
+  private val read = PostAPIs.read
+    .serverLogicWithOwnership[F, Unit]
+    .apply { case (_, channelID, postID) =>
       postReads
         .requireById(postID)
         .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
         .void
-    }
-    .serverLogic { case ((_, _), _, postID) =>
+    } { case ((_, _), _, postID) =>
       withErrorHandling {
         for {
           post <- postReads.requireById(postID)
@@ -89,15 +86,15 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
       }
     }
 
-  private val update = PostAPIs.update.authorized
-    .withOwnership { case (_, channelID, postID, _, _) =>
+  private val update = PostAPIs.update
+    .serverLogicWithOwnership[F, UserID]
+    .apply { case (_, channelID, postID, _) =>
       postReads
         .requireById(postID)
         .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
         .map(_.data.authorID)
         .map(userIDApi2Discussions.reverseGet)
-    }
-    .serverLogic { case ((user, _), _, postID, updateData) =>
+    } { case ((user, _), _, postID, updateData) =>
       withErrorHandling {
         val userID = user.id
         val data = updateData
@@ -113,15 +110,15 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
       }
     }
 
-  private val delete = PostAPIs.delete.authorized
-    .withOwnership { case (_, channelID, postID, _) =>
+  private val delete = PostAPIs.delete
+    .serverLogicWithOwnership[F, UserID]
+    .apply { case (_, channelID, postID) =>
       postReads
         .requireById(postID)
         .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
         .map(_.data.authorID)
         .map(userIDApi2Discussions.reverseGet)
-    }
-    .serverLogic { case ((user, _), _, postID) =>
+    } { case ((user, _), _, postID) =>
       withErrorHandling {
         val userID = user.id
         val data   = Post.Delete(postID, userIDUsers2Discussions.get(userID))
@@ -131,7 +128,7 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
       }
     }
 
-  def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Nothing, F]] = NonEmptyList.of(
+  def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Any, F]] = NonEmptyList.of(
     newest,
     create,
     read,
@@ -139,5 +136,5 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
     delete
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.asR[Fs2Streams[F] with WebSockets].toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
 }

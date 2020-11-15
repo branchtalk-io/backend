@@ -13,8 +13,6 @@ import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.model.{ Password, Session, User }
 import io.scalaland.chimney.dsl._
 import org.http4s._
-import sttp.capabilities.WebSockets
-import sttp.capabilities.fs2.Fs2Streams
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
@@ -56,7 +54,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Con
     }
   }
 
-  private val signIn = UserAPIs.signIn.authenticated.serverLogic[F] { case (user, sessionOpt) =>
+  private val signIn = UserAPIs.signIn.serverLogic[F].apply { case (user, sessionOpt) =>
     withErrorHandling {
       for {
         session <- sessionOpt match {
@@ -78,19 +76,18 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Con
     }
   }
 
-  private val signOut: ServerEndpoint[Authentication, UserError, SignOutResponse, Nothing, F] =
-    UserAPIs.signOut.authenticated.serverLogic { case (user, sessionOpt) =>
-      withErrorHandling {
-        for {
-          sessionID <- sessionOpt match {
-            case Some(s) => usersWrites.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
-            case None    => none[ID[Session]].pure[F]
-          }
-        } yield SignOutResponse(userID = user.id, sessionID = sessionID)
-      }
+  private val signOut = UserAPIs.signOut.serverLogic[F].apply { case (user, sessionOpt) =>
+    withErrorHandling {
+      for {
+        sessionID <- sessionOpt match {
+          case Some(s) => usersWrites.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
+          case None    => none[ID[Session]].pure[F]
+        }
+      } yield SignOutResponse(userID = user.id, sessionID = sessionID)
     }
+  }
 
-  private val fetchProfile = UserAPIs.fetchProfile.serverLogic { userID =>
+  private val fetchProfile = UserAPIs.fetchProfile.serverLogic[F].apply { case ((_, _), userID) =>
     withErrorHandling {
       for {
         user <- usersReads.userReads.requireById(userID)
@@ -98,11 +95,11 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Con
     }
   }
 
-  private val updateProfile = UserAPIs.updateProfile.authorized
-    .withOwnership { case (_, userID, _, _) =>
+  private val updateProfile = UserAPIs.updateProfile
+    .serverLogicWithOwnership[F, UserID]
+    .apply { case (_, userID, _) =>
       userIDApi2Users.reverseGet(userID).pure[F]
-    }
-    .serverLogic { case ((user, _), userID, update) =>
+    } { case ((user, _), userID, update) =>
       withErrorHandling {
         val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
         val data = update
@@ -118,11 +115,11 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Con
       }
     }
 
-  private val deleteProfile = UserAPIs.deleteProfile.authorized
-    .withOwnership { case (_, userID, _) =>
+  private val deleteProfile = UserAPIs.deleteProfile
+    .serverLogicWithOwnership[F, UserID]
+    .apply { case (_, userID) =>
       userIDApi2Users.reverseGet(userID).pure[F]
-    }
-    .serverLogic { case ((user, _), userID) =>
+    } { case ((user, _), userID) =>
       withErrorHandling {
         val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
         for {
@@ -131,7 +128,7 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Con
       }
     }
 
-  def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Nothing, F]] = NonEmptyList.of(
+  def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Any, F]] = NonEmptyList.of(
     signUp,
     signIn,
     signOut,
@@ -140,5 +137,5 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Con
     deleteProfile
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.asR[Fs2Streams[F] with WebSockets].toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
 }
