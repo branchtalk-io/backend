@@ -1,9 +1,9 @@
 package io.branchtalk.shared.models
 
-import shapeless._
+import scala.annotation.unused
 
 /*
- * Prepends B to tuple A, so that you can build a tuple incrementally and don't end up with a nested tuple monstrocity
+ * Prepends B to tuple A, so that you can build a tuple incrementally and don't end up with a nested tuple monstrosity
  */
 trait TuplePrepender[A, B] {
   type Out
@@ -15,7 +15,7 @@ object TuplePrepender extends TuplePrependerLowPriorityImplicit {
 
   @inline def apply[A, B](implicit tp: TuplePrepender[A, B]): TuplePrepender[A, B] = tp
 
-  type Aux[A, B, C] = TuplePrepender[A, B] { type Out = C }
+  type Aux[A, B, C] = TuplePrepender[A, B] { type Out = C } // scalastyle:ignore structural.type
 
   // scalastyle:off
 
@@ -325,27 +325,24 @@ object TuplePrepender extends TuplePrependerLowPriorityImplicit {
   // scalastyle:on
 }
 
-trait TuplePrependerLowPriorityImplicit {
+trait TuplePrependerLowPriorityImplicit extends TuplePrependedEvenLowerPriorityImplicit {
 
   implicit def prependUnit[A]: TuplePrepender.Aux[Unit, A, A] = new TuplePrepender[Unit, A] {
     type Out = A
+
     def prepend(unit: Unit, a: A): Out = a
-    def revert(a:     Out): (Unit, A) = ((), a)
+
+    def revert(a: Out): (Unit, A) = ((), a)
   }
+}
+
+trait TuplePrependedEvenLowerPriorityImplicit {
 
   implicit def appendNonTuple[A, B](implicit
-    ev: Refute[IsTuple[A]]
+    @unused ev: Refute[IsTuple[A]]
   ): TuplePrepender.Aux[A, B, (B, A)] = new TuplePrepender[A, B] {
     type Out = (B, A)
-    ev.hashCode()
     def prepend(a: A, b: B): Out = (b, a)
     def revert(c:  Out): (A, B) = c.swap
-  }
-
-  // for some reason ID is treated as tuple :/ by shapeless
-  implicit def prependToID[A, B]: TuplePrepender.Aux[ID[A], B, (B, ID[A])] = new TuplePrepender[ID[A], B] {
-    type Out = (B, ID[A])
-    def prepend(a: ID[A], b: B): Out = (b, a)
-    def revert(c:  Out): (ID[A], B) = c.swap
   }
 }
