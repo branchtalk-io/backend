@@ -104,7 +104,7 @@ object PostAPIs {
               newTitle = Updatable.Keep,
               newContent = Updatable.Keep
             ),
-            name = "Keeps both".some,
+            name = "Keep both".some,
             summary = "Keeps both Title and Content".some
           )
         )
@@ -141,7 +141,7 @@ object PostAPIs {
     RestorePostResponse,
     Any
   ] = endpoint
-    .name("Restores Posts")
+    .name("Restores Post")
     .summary("Deletes specific Post")
     .description("Schedule specific Post's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
