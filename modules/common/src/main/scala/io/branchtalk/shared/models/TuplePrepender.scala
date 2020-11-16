@@ -3,8 +3,7 @@ package io.branchtalk.shared.models
 import shapeless._
 
 /*
- * Prepends B to tuple A, so that you can build a tuple incrementally
- *  and don't end up with a nested tuple monstrocity
+ * Prepends B to tuple A, so that you can build a tuple incrementally and don't end up with a nested tuple monstrocity
  */
 trait TuplePrepender[A, B] {
   type Out

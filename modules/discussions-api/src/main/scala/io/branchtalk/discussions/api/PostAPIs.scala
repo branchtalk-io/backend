@@ -134,4 +134,10 @@ object PostAPIs {
     .requiringPermssions { case (_, channelID, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
+
+  // TODO: restore
+
+  // TODO: upvote+revoke
+
+  // TODO: downvote+revoke
 }

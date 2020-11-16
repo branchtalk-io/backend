@@ -38,4 +38,10 @@ object SubscriptionAPIs {
     .out(jsonBody[Pagination[APIPost]])
     .errorOut(errorMapping)
     .notRequiringPermissions
+
+  // TODO: list
+
+  // TODO: subscribe
+
+  // TODO: unsubscribe
 }
