@@ -19,7 +19,7 @@ trait PostReads[F[_]] {
 
   def deleted(id: ID[Post]): F[Boolean]
 
-  def getById(id: ID[Post]): F[Option[Post]]
+  def getById(id: ID[Post], isDeleted: Boolean = false): F[Option[Post]]
 
-  def requireById(id: ID[Post]): F[Post]
+  def requireById(id: ID[Post], isDeleted: Boolean = false): F[Post]
 }

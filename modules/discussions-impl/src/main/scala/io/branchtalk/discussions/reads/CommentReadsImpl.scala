@@ -30,9 +30,15 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
   override def deleted(id: models.ID[Comment]): F[Boolean] =
     (fr"SELECT 1 FROM comments WHERE" ++ idDeleted(id)).exists.transact(transactor)
 
-  override def getById(id: models.ID[Comment]): F[Option[Comment]] =
-    (commonSelect ++ fr"WHERE" ++ idExists(id)).query[Comment].option.transact(transactor)
+  override def getById(id: models.ID[Comment], isDeleted: Boolean = false): F[Option[Comment]] =
+    (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
+      .query[Comment]
+      .option
+      .transact(transactor)
 
-  override def requireById(id: models.ID[Comment]): F[Comment] =
-    (commonSelect ++ fr"WHERE" ++ idExists(id)).query[Comment].failNotFound("Comment", id).transact(transactor)
+  override def requireById(id: models.ID[Comment], isDeleted: Boolean = false): F[Comment] =
+    (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
+      .query[Comment]
+      .failNotFound("Comment", id)
+      .transact(transactor)
 }

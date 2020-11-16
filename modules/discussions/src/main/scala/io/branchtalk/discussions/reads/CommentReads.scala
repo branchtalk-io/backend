@@ -9,7 +9,7 @@ trait CommentReads[F[_]] {
 
   def deleted(id: ID[Comment]): F[Boolean]
 
-  def getById(id: ID[Comment]): F[Option[Comment]]
+  def getById(id: ID[Comment], isDeleted: Boolean = false): F[Option[Comment]]
 
-  def requireById(id: ID[Comment]): F[Comment]
+  def requireById(id: ID[Comment], isDeleted: Boolean = false): F[Comment]
 }

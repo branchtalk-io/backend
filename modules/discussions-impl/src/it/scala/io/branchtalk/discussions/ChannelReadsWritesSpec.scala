@@ -20,8 +20,8 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
           // when
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
           ids = toCreate.map(_.id)
-          channels <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
-          channelsOpt <- ids.traverse(discussionsReads.channelReads.getById).eventually()
+          channels <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
+          channelsOpt <- ids.traverse(discussionsReads.channelReads.getById(_)).eventually()
           channelsExist <- ids.traverse(discussionsReads.channelReads.exists).eventually()
           channelDeleted <- ids.traverse(discussionsReads.channelReads.deleted).eventually()
         } yield {
@@ -69,7 +69,7 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
           creationData <- (0 until 3).toList.traverse(_ => channelCreate)
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
           ids = toCreate.map(_.id)
-          created <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
+          created <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
           updateData = created.zipWithIndex.collect {
             case (Channel(id, data), 0) =>
               Channel.Update(
@@ -99,7 +99,7 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
           // when
           _ <- updateData.traverse(discussionsWrites.channelWrites.updateChannel)
           updated <- ids
-            .traverse(discussionsReads.channelReads.requireById)
+            .traverse(discussionsReads.channelReads.requireById(_))
             .assert("Updated entity should have lastModifiedAt set")(_.last.data.lastModifiedAt.isDefined)
             .eventually()
         } yield
@@ -133,17 +133,22 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
           // when
           toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
           ids = toCreate.map(_.id)
-          _ <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
+          _ <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
           _ <- ids.map(Channel.Delete(_, editorID)).traverse(discussionsWrites.channelWrites.deleteChannel)
           _ <- ids
-            .traverse(discussionsReads.channelReads.getById)
+            .traverse(discussionsReads.channelReads.getById(_))
             .assert("All Channels should be eventually deleted")(_.forall(_.isEmpty))
             .eventually()
+          _ <- ids
+            .traverse(discussionsReads.channelReads.getById(_, isDeleted = true))
+            .assert("All Posts should be obtainable as getById with isDeleted=true")(_.forall(_.isDefined))
+            .eventually()
+          _ <- ids.traverse(discussionsReads.channelReads.requireById(_, isDeleted = true)).eventually()
           notExist <- ids.traverse(discussionsReads.channelReads.exists)
           areDeleted <- ids.traverse(discussionsReads.channelReads.deleted)
           _ <- ids.map(Channel.Restore(_, editorID)).traverse(discussionsWrites.channelWrites.restoreChannel)
           toRestore <- ids
-            .traverse(discussionsReads.channelReads.getById)
+            .traverse(discussionsReads.channelReads.getById(_))
             .assert("All Channels should be eventually restored")(_.forall(_.isDefined))
             .eventually()
           restoredIds = toRestore.flatten.map(_.id)

@@ -9,7 +9,7 @@ trait ChannelReads[F[_]] {
 
   def deleted(id: ID[Channel]): F[Boolean]
 
-  def getById(id: ID[Channel]): F[Option[Channel]]
+  def getById(id: ID[Channel], isDeleted: Boolean = false): F[Option[Channel]]
 
-  def requireById(id: ID[Channel]): F[Channel]
+  def requireById(id: ID[Channel], isDeleted: Boolean = false): F[Channel]
 }

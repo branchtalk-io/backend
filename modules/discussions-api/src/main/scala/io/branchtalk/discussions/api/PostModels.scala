@@ -87,4 +87,6 @@ object PostModels {
   @Semi(JsCodec) final case class UpdatePostResponse(id: ID[Post])
 
   @Semi(JsCodec) final case class DeletePostResponse(id: ID[Post])
+
+  @Semi(JsCodec) final case class RestorePostResponse(id: ID[Post])
 }

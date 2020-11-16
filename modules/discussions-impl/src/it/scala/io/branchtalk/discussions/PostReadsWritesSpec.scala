@@ -38,8 +38,8 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           // when
           toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
           ids = toCreate.map(_.id)
-          posts <- ids.traverse(discussionsReads.postReads.requireById).eventually()
-          postsOpt <- ids.traverse(discussionsReads.postReads.getById).eventually()
+          posts <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
+          postsOpt <- ids.traverse(discussionsReads.postReads.getById(_)).eventually()
           postsExist <- ids.traverse(discussionsReads.postReads.exists).eventually()
           postDeleted <- ids.traverse(discussionsReads.postReads.deleted).eventually()
         } yield {
@@ -90,7 +90,7 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           creationData <- (0 until 2).toList.traverse(_ => postCreate(channelID))
           toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
           ids = toCreate.map(_.id)
-          created <- ids.traverse(discussionsReads.postReads.requireById).eventually()
+          created <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
           updateData = created.zipWithIndex.collect {
             case (Post(id, data), 0) =>
               Post.Update(
@@ -110,7 +110,7 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           // when
           _ <- updateData.traverse(discussionsWrites.postWrites.updatePost)
           updated <- ids
-            .traverse(discussionsReads.postReads.requireById)
+            .traverse(discussionsReads.postReads.requireById(_))
             .assert("Updated entity should have lastModifiedAt set")(_.head.data.lastModifiedAt.isDefined)
             .eventually()
         } yield
@@ -143,17 +143,22 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           // when
           toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
           ids = toCreate.map(_.id)
-          _ <- ids.traverse(discussionsReads.postReads.requireById).eventually()
+          _ <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
           _ <- ids.map(Post.Delete(_, editorID)).traverse(discussionsWrites.postWrites.deletePost)
           _ <- ids
-            .traverse(discussionsReads.postReads.getById)
+            .traverse(discussionsReads.postReads.getById(_))
             .assert("All Posts should be eventually deleted")(_.forall(_.isEmpty))
             .eventually()
+          _ <- ids
+            .traverse(discussionsReads.postReads.getById(_, isDeleted = true))
+            .assert("All Posts should be obtainable as getById with isDeleted=true")(_.forall(_.isDefined))
+            .eventually()
+          _ <- ids.traverse(discussionsReads.postReads.requireById(_, isDeleted = true)).eventually()
           notExist <- ids.traverse(discussionsReads.postReads.exists)
           areDeleted <- ids.traverse(discussionsReads.postReads.deleted)
           _ <- ids.map(Post.Restore(_, editorID)).traverse(discussionsWrites.postWrites.restorePost)
           toRestore <- ids
-            .traverse(discussionsReads.postReads.getById)
+            .traverse(discussionsReads.postReads.getById(_))
             .assert("All Posts should be eventually restored")(_.forall(_.isDefined))
             .eventually()
           restoredIds = toRestore.flatten.map(_.id)
@@ -184,7 +189,7 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           paginatedIds <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
           nonPaginatedData <- (0 until 20).toList.traverse(_ => postCreate(channel2ID))
           nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
-          _ <- (paginatedIds ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById).eventually()
+          _ <- (paginatedIds ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when
           pagination <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), 0L, 10)
           pagination2 <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), 10L, 10)

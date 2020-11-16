@@ -46,11 +46,15 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
   override def deleted(id: models.ID[Post]): F[Boolean] =
     (fr"SELECT 1 FROM posts WHERE" ++ idDeleted(id)).exists.transact(transactor)
 
-  override def getById(id: models.ID[Post]): F[Option[Post]] =
-    (commonSelect ++ fr"WHERE" ++ idExists(id)).query[PostDao].map(_.toDomain).option.transact(transactor)
+  override def getById(id: models.ID[Post], isDeleted: Boolean = false): F[Option[Post]] =
+    (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
+      .query[PostDao]
+      .map(_.toDomain)
+      .option
+      .transact(transactor)
 
-  override def requireById(id: models.ID[Post]): F[Post] =
-    (commonSelect ++ fr"WHERE" ++ idExists(id))
+  override def requireById(id: models.ID[Post], isDeleted: Boolean = false): F[Post] =
+    (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
       .query[PostDao]
       .map(_.toDomain)
       .failNotFound("Post", id)

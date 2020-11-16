@@ -128,12 +128,31 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
       }
     }
 
+  private val restore = PostAPIs.restore
+    .serverLogicWithOwnership[F, UserID]
+    .apply { case (_, channelID, postID) =>
+      postReads
+        .requireById(postID, isDeleted = true)
+        .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
+        .map(_.data.authorID)
+        .map(userIDApi2Discussions.reverseGet)
+    } { case ((user, _), _, postID) =>
+      withErrorHandling {
+        val userID = user.id
+        val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))
+        for {
+          result <- postWrites.restorePost(data)
+        } yield RestorePostResponse(result.id)
+      }
+    }
+
   def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Any, F]] = NonEmptyList.of(
     newest,
     create,
     read,
     update,
-    delete
+    delete,
+    restore
   )
 
   val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK

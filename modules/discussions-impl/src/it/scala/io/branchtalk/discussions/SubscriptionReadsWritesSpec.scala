@@ -19,7 +19,7 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
           ids <- (0 until 3).toList.traverse { _ =>
             channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           }
-          _ <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
+          _ <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
           // when
           _ <- discussionsWrites.subscriptionWrites.subscribe(Subscription.Subscribe(subscriberID, ids.toSet))
           subscription <- discussionsReads.subscriptionReads
@@ -46,7 +46,7 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
             channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           }
           ids = (idsToKeep ++ idsToRemove)
-          _ <- ids.traverse(discussionsReads.channelReads.requireById).eventually()
+          _ <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
           _ <- discussionsWrites.subscriptionWrites.subscribe(Subscription.Subscribe(subscriberID, ids.toSet))
           _ <- discussionsReads.subscriptionReads
             .requireForUser(subscriberID)

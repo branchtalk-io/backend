@@ -39,8 +39,8 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
           // when
           toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment)
           ids = toCreate.map(_.id)
-          comments <- ids.traverse(discussionsReads.commentReads.requireById).eventually()
-          commentsOpt <- ids.traverse(discussionsReads.commentReads.getById).eventually()
+          comments <- ids.traverse(discussionsReads.commentReads.requireById(_)).eventually()
+          commentsOpt <- ids.traverse(discussionsReads.commentReads.getById(_)).eventually()
           commentsExist <- ids.traverse(discussionsReads.commentReads.exists).eventually()
           commentDeleted <- ids.traverse(discussionsReads.commentReads.deleted).eventually()
         } yield {
@@ -93,7 +93,7 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
           creationData <- (0 until 2).toList.traverse(_ => commentCreate(postID))
           toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment)
           ids = toCreate.map(_.id)
-          created <- ids.traverse(discussionsReads.commentReads.requireById).eventually()
+          created <- ids.traverse(discussionsReads.commentReads.requireById(_)).eventually()
           updateData = created.zipWithIndex.collect {
             case (Comment(id, data), 0) =>
               Comment.Update(
@@ -111,7 +111,7 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
           // when
           _ <- updateData.traverse(discussionsWrites.commentWrites.updateComment)
           updated <- ids
-            .traverse(discussionsReads.commentReads.requireById)
+            .traverse(discussionsReads.commentReads.requireById(_))
             .assert("Updated entity should have lastModifiedAt set")(_.head.data.lastModifiedAt.isDefined)
             .eventually()
         } yield
@@ -146,17 +146,22 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
           // when
           toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment)
           ids = toCreate.map(_.id)
-          _ <- ids.traverse(discussionsReads.commentReads.requireById).eventually()
+          _ <- ids.traverse(discussionsReads.commentReads.requireById(_)).eventually()
           _ <- ids.map(Comment.Delete(_, editorID)).traverse(discussionsWrites.commentWrites.deleteComment)
           _ <- ids
-            .traverse(discussionsReads.commentReads.getById)
+            .traverse(discussionsReads.commentReads.getById(_))
             .assert("All Comments should be eventually deleted")(_.forall(_.isEmpty))
             .eventually()
+          _ <- ids
+            .traverse(discussionsReads.commentReads.getById(_, isDeleted = true))
+            .assert("All Posts should be obtainable as getById with isDeleted=true")(_.forall(_.isDefined))
+            .eventually()
+          _ <- ids.traverse(discussionsReads.commentReads.requireById(_, isDeleted = true)).eventually()
           notExist <- ids.traverse(discussionsReads.commentReads.exists)
           areDeleted <- ids.traverse(discussionsReads.commentReads.deleted)
           _ <- ids.map(Comment.Restore(_, editorID)).traverse(discussionsWrites.commentWrites.restoreComment)
           toRestore <- ids
-            .traverse(discussionsReads.commentReads.getById)
+            .traverse(discussionsReads.commentReads.getById(_))
             .assert("All Comments should be eventually restored")(_.forall(_.isDefined))
             .eventually()
           restoredIds = toRestore.flatten.map(_.id)

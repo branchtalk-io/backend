@@ -36,7 +36,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
               postIDs <- (0 until 10).toList.traverse(_ =>
                 postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
               )
-              posts <- postIDs.traverse(discussionsReads.postReads.requireById).eventually()
+              posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
               // when
               response1 <- SubscriptionAPIs.newest.toTestCall.untupled(None, None, PaginationLimit(5).some)
               response2 <- SubscriptionAPIs.newest.toTestCall.untupled(None,
@@ -85,7 +85,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
               postIDs <- (0 until 10).toList.traverse(_ =>
                 postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
               )
-              posts <- postIDs.traverse(discussionsReads.postReads.requireById).eventually()
+              posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
               // when
               response1 <- SubscriptionAPIs.newest.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)).some,

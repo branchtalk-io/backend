@@ -28,9 +28,15 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
   override def deleted(id: ID[Channel]): F[Boolean] =
     (fr"SELECT 1 FROM channels WHERE" ++ idDeleted(id)).exists.transact(transactor)
 
-  override def getById(id: ID[Channel]): F[Option[Channel]] =
-    (commonSelect ++ fr"WHERE" ++ idExists(id)).query[Channel].option.transact(transactor)
+  override def getById(id: ID[Channel], isDeleted: Boolean = false): F[Option[Channel]] =
+    (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
+      .query[Channel]
+      .option
+      .transact(transactor)
 
-  override def requireById(id: ID[Channel]): F[Channel] =
-    (commonSelect ++ fr"WHERE" ++ idExists(id)).query[Channel].failNotFound("User", id).transact(transactor)
+  override def requireById(id: ID[Channel], isDeleted: Boolean = false): F[Channel] =
+    (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
+      .query[Channel]
+      .failNotFound("User", id)
+      .transact(transactor)
 }

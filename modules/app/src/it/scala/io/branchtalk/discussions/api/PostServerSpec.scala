@@ -4,7 +4,7 @@ import cats.effect.IO
 import io.branchtalk.api.{ Authentication, Pagination, PaginationLimit, PaginationOffset, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels._
-import io.branchtalk.discussions.model.{ Post, Subscription }
+import io.branchtalk.discussions.model.Post
 import io.branchtalk.mappings._
 import io.branchtalk.shared.models._
 import io.branchtalk.users.UsersFixtures
@@ -33,7 +33,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               postIDs <- (0 until 10).toList.traverse(_ =>
                 postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
               )
-              posts <- postIDs.traverse(discussionsReads.postReads.requireById).eventually()
+              posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
               // when
               response1 <- PostAPIs.newest.toTestCall.untupled(None, channelID, None, PaginationLimit(5).some)
               response2 <- PostAPIs.newest.toTestCall.untupled(None,
@@ -195,14 +195,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              subscriberID = userIDUsers2Discussions.get(userID)
-              _ <- discussionsWrites.subscriptionWrites.subscribe(
-                Subscription.Subscribe(subscriberID = subscriberID, subscriptions = Set(channelID))
-              )
-              _ <- discussionsReads.subscriptionReads
-                .requireForUser(subscriberID)
-                .assert("Subscriptions should contain added Channel ID")(_.subscriptions(channelID))
-                .eventually()
               CreationScheduled(postID) <- postCreate(channelID)
                 .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
                 .flatMap(discussionsWrites.postWrites.createPost)
@@ -221,6 +213,47 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               // then
               response.code must_=== StatusCode.Ok
               response.body must beValid(beRight(be_===(DeletePostResponse(postID))))
+            }
+        }
+      }
+    }
+
+    "on POST /discussions/posts/{postID}/restore" in {
+
+      "restore deleted Post when User is its Author" in {
+        (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
+          case (usersProjector, discussionsProjector) =>
+            for {
+              // given
+              _ <- usersProjector.logError("Error reported by Users projector").start
+              _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+                usersWrites.userWrites.createUser
+              )
+              _ <- usersReads.userReads.requireById(userID).eventually()
+              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+              _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+              CreationScheduled(postID) <- postCreate(channelID)
+                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
+                .flatMap(discussionsWrites.postWrites.createPost)
+              _ <- discussionsReads.postReads.requireById(postID).eventually()
+              _ <- discussionsWrites.postWrites.deletePost(Post.Delete(postID, userIDUsers2Discussions.get(userID)))
+              _ <- discussionsReads.postReads.requireById(postID, isDeleted = true).eventually()
+              // when
+              response <- PostAPIs.restore.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                channelID,
+                postID
+              )
+              _ <- discussionsReads.postReads
+                .exists(postID)
+                .assert("Post should be eventually restored")(identity)
+                .eventually()
+            } yield {
+              // then
+              response.code must_=== StatusCode.Ok
+              response.body must beValid(beRight(be_===(RestorePostResponse(postID))))
             }
         }
       }

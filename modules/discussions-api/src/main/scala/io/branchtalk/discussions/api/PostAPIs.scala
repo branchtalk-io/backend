@@ -56,7 +56,7 @@ object PostAPIs {
       .notRequiringPermissions
 
   val read: AuthedEndpoint[(Option[Authentication], ID[Channel], ID[Post]), PostError, APIPost, Any] = endpoint
-    .name("Fetch Posts")
+    .name("Fetch Post")
     .summary("Fetches specific Post")
     .description("Returns specific Post's data")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
@@ -73,7 +73,7 @@ object PostAPIs {
     UpdatePostResponse,
     Any
   ] = endpoint
-    .name("Update Posts")
+    .name("Update Post")
     .summary("Updates specific Post")
     .description("Schedule specific Post's update, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
@@ -122,7 +122,7 @@ object PostAPIs {
     DeletePostResponse,
     Any
   ] = endpoint
-    .name("Delete Posts")
+    .name("Delete Post")
     .summary("Deletes specific Post")
     .description("Schedule specific Post's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
@@ -135,7 +135,24 @@ object PostAPIs {
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
-  // TODO: restore
+  val restore: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post]),
+    PostError,
+    RestorePostResponse,
+    Any
+  ] = endpoint
+    .name("Restores Posts")
+    .summary("Deletes specific Post")
+    .description("Schedule specific Post's deletion, requires ownership or moderator status")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
+    .post
+    .in(authHeader)
+    .in(prefix / path[ID[Post]].name("postID") / "restore")
+    .out(jsonBody[RestorePostResponse])
+    .errorOut(errorMapping)
+    .requiringPermssions { case (_, channelID, _) =>
+      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
+    }
 
   // TODO: upvote+revoke
 
