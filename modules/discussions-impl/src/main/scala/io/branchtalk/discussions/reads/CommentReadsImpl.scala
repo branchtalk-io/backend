@@ -12,6 +12,7 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
   private val commonSelect: Fragment =
     fr"""SELECT id,
         |       author_id,
+        |       channel_id,
         |       post_id,
         |       content,
         |       reply_to,

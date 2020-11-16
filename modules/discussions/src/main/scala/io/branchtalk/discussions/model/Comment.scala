@@ -11,6 +11,7 @@ object Comment extends CommentProperties with CommentCommands {
 
   @Semi(FastEq, ShowPretty) final case class Data(
     authorID:       ID[User],
+    channelID:      ID[Channel],
     postID:         ID[Post],
     content:        Comment.Content,
     replyTo:        Option[ID[Comment]],

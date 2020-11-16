@@ -44,6 +44,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
         sql"""INSERT INTO comments (
              |  id,
              |  author_id,
+             |  channel_id,
              |  post_id,
              |  content,
              |  reply_to,
@@ -53,6 +54,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
              |VALUES (
              |  ${event.id},
              |  ${event.authorID},
+             |  ${event.channelID},
              |  ${event.postID},
              |  ${event.content},
              |  ${event.replyTo},

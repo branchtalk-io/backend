@@ -26,5 +26,11 @@ abstract class Writes[F[_]: Sync, Entity, Event](producer: EventBusProducer[F, E
         case true  => Sync[F].unit
         case false => (CommonError.ParentNotExist(entity, parentID, codePosition): Throwable).raiseError[F, Unit]
       }
+
+    def withValue[T: Meta](parentID: ID[Parent], fragment: Fragment)(implicit codePosition: CodePosition): F[T] =
+      fragment.query[T].option.transact(transactor).flatMap {
+        case Some(t) => Sync[F].pure(t)
+        case None    => (CommonError.ParentNotExist(entity, parentID, codePosition): Throwable).raiseError[F, T]
+      }
   }
 }

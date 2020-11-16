@@ -28,6 +28,7 @@ CREATE INDEX posts_channel_time_idx ON posts (channel_id, created_at);
 CREATE TABLE comments (
   id               UUID                     PRIMARY KEY,
   author_id        UUID                     NOT NULL,
+  channel_id       UUID                     NOT NULL REFERENCES channels ON DELETE CASCADE ON UPDATE CASCADE,
   post_id          UUID                     NOT NULL REFERENCES posts ON DELETE CASCADE ON UPDATE CASCADE,
   content          TEXT                     NOT NULL,
   reply_to         UUID                     REFERENCES comments ON DELETE CASCADE ON UPDATE CASCADE,
