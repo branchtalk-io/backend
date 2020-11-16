@@ -1,4 +1,8 @@
+-- Enums
+
 CREATE TYPE POST_CONTENT_TYPE AS ENUM ('url', 'text');
+
+-- Channels
 
 CREATE TABLE channels (
   id               UUID                     PRIMARY KEY,
@@ -10,6 +14,8 @@ CREATE TABLE channels (
   deleted          BOOLEAN                  NOT NULL DEFAULT FALSE
 );
 
+-- Posts
+
 CREATE TABLE posts (
   id               UUID                     PRIMARY KEY,
   author_id        UUID                     NOT NULL,
@@ -20,10 +26,13 @@ CREATE TABLE posts (
   content_raw      TEXT                     NOT NULL,
   created_at       TIMESTAMP WITH TIME ZONE NOT NULL,
   last_modified_at TIMESTAMP WITH TIME ZONE,
-  deleted          BOOLEAN                  NOT NULL DEFAULT FALSE
+  deleted          BOOLEAN                  NOT NULL DEFAULT FALSE,
+  comments_nr      INT                      NOT NULL DEFAULT 0
 );
 
 CREATE INDEX posts_channel_time_idx ON posts (channel_id, created_at);
+
+-- Comments
 
 CREATE TABLE comments (
   id               UUID                     PRIMARY KEY,
@@ -35,10 +44,13 @@ CREATE TABLE comments (
   nesting_level    SMALLINT                 NOT NULL,
   created_at       TIMESTAMP WITH TIME ZONE NOT NULL,
   last_modified_at TIMESTAMP WITH TIME ZONE,
-  deleted          BOOLEAN                  NOT NULL DEFAULT FALSE
+  deleted          BOOLEAN                  NOT NULL DEFAULT FALSE,
+  replies_nr       INT                      NOT NULL DEFAULT 0
 );
 
 CREATE INDEX comments_post_time_idx ON comments (post_id, created_at);
+
+-- Subscriptions
 
 CREATE TABLE subscriptions (
   subscriber_id     UUID   NOT NULL UNIQUE,

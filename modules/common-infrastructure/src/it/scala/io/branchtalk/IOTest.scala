@@ -2,6 +2,7 @@ package io.branchtalk
 
 import cats.effect.{ ContextShift, IO, Timer }
 import com.typesafe.scalalogging.Logger
+import io.branchtalk.shared.models.CodePosition
 import org.specs2.specification.core.{ AsExecution, Execution }
 
 import scala.concurrent.duration._
@@ -20,9 +21,12 @@ trait IOTest {
 
   implicit class IOTestOps[T](private val io: IO[T]) {
 
-    def eventually(retry: Int = 50, delay: FiniteDuration = 250.millis, timeout: FiniteDuration = 15.seconds): IO[T] = {
+    def eventually(retry: Int = 50, delay: FiniteDuration = 250.millis, timeout: FiniteDuration = 15.seconds)(implicit
+      codePosition:       CodePosition
+    ): IO[T] = {
       def withRetry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = { case cause: Throwable =>
-        if (attemptsLeft <= 0) IO.raiseError(new Exception(s"IO failed to succeed: exceeded retry $retry", cause))
+        if (attemptsLeft <= 0)
+          IO.raiseError(new Exception(s"IO failed to succeed: exceeded retry $retry, from ${codePosition.show}", cause))
         else io.handleErrorWith(withRetry(attemptsLeft - 1)).delayBy(delay)
       }
 

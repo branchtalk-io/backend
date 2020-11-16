@@ -61,7 +61,15 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
              |  ${nestingLevel},
              |  ${event.createdAt}
              |)
-             |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
+             |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run >>
+          sql"""UPDATE posts
+               |SET comments_nr = comments_nr + 1
+               |WHERE id = ${event.postID}
+               |""".stripMargin.update.run >>
+          sql"""UPDATE comments
+               |SET replies_nr = replies_nr + 1
+               |WHERE id = ${event.replyTo}
+               |""".stripMargin.update.run
       }
       .transact(transactor) >>
       (event.id.uuid -> event.transformInto[CommentEvent.Created]).pure[F]
@@ -82,10 +90,30 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
       (event.id.uuid -> event.transformInto[CommentEvent.Updated]).pure[F]
 
   def toDelete(event: CommentCommandEvent.Delete): F[(UUID, CommentEvent.Deleted)] =
-    sql"UPDATE comments SET deleted = TRUE WHERE id = ${event.id}".update.run.transact(transactor) >>
+    (sql"UPDATE comments SET deleted = TRUE WHERE id = ${event.id}".update.run >>
+      sql"""UPDATE posts
+           |SET comments_nr = comments_nr - 1
+           |FROM (SELECT post_id FROM comments WHERE id = ${event.id}) as subquery
+           |WHERE id = subquery.post_id
+           |""".stripMargin.update.run >>
+      sql"""UPDATE comments
+           |SET replies_nr = replies_nr - 1
+           |FROM (SELECT reply_to FROM comments WHERE id = ${event.id}) as subquery
+           |WHERE id = subquery.reply_to
+           |""".stripMargin.update.run).transact(transactor) >>
       (event.id.uuid -> event.transformInto[CommentEvent.Deleted]).pure[F]
 
   def toRestore(event: CommentCommandEvent.Restore): F[(UUID, CommentEvent.Restored)] =
-    sql"UPDATE comments SET deleted = FALSE WHERE id = ${event.id}".update.run.transact(transactor) >>
+    (sql"UPDATE comments SET deleted = FALSE WHERE id = ${event.id}".update.run >>
+      sql"""UPDATE posts
+           |SET comments_nr = comments_nr + 1
+           |FROM (SELECT post_id FROM comments WHERE id = ${event.id}) as subquery
+           |WHERE id = subquery.post_id
+           |""".stripMargin.update.run >>
+      sql"""UPDATE comments
+           |SET replies_nr = replies_nr + 1
+           |FROM (SELECT reply_to FROM comments WHERE id = ${event.id}) as subquery
+           |WHERE id = subquery.reply_to
+           |""".stripMargin.update.run).transact(transactor) >>
       (event.id.uuid -> event.transformInto[CommentEvent.Restored]).pure[F]
 }

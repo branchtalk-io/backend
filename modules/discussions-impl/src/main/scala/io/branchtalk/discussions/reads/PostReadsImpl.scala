@@ -23,7 +23,8 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
         |       content_type,
         |       content_raw,
         |       created_at,
-        |       last_modified_at
+        |       last_modified_at,
+        |       comments_nr
         |FROM posts""".stripMargin
 
   private def idExists(id: models.ID[Post]): Fragment = fr"id = ${id} AND deleted = FALSE"

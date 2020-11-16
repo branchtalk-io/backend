@@ -12,7 +12,8 @@ final case class PostDao(
   contentType:    Post.Content.Type,
   contentRaw:     Post.Content.Raw,
   createdAt:      CreationTime,
-  lastModifiedAt: Option[ModificationTime]
+  lastModifiedAt: Option[ModificationTime],
+  commentsNr:     Post.CommentsNr
 ) {
 
   def toDomain: Post =

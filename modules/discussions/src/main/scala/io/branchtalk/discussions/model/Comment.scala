@@ -17,6 +17,7 @@ object Comment extends CommentProperties with CommentCommands {
     replyTo:        Option[ID[Comment]],
     nestingLevel:   Comment.NestingLevel,
     createdAt:      CreationTime,
-    lastModifiedAt: Option[ModificationTime]
+    lastModifiedAt: Option[ModificationTime],
+    repliesNr:      Comment.RepliesNr
   )
 }

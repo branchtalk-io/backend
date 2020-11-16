@@ -7,23 +7,27 @@ import cats.{ Order, Show }
 import eu.timepit.refined.types.string.NonEmptyString
 import enumeratum._
 import enumeratum.EnumEntry.Hyphencase
+import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.numeric.NonNegative
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
 import io.branchtalk.shared.models.{ FastEq, ParseRefined, ShowPretty }
 
 trait PostProperties { self: Post.type =>
-  type UrlTitle = PostProperties.UrlTitle
-  type Title    = PostProperties.Title
-  type URL      = PostProperties.URL
-  type Text     = PostProperties.Text
-  type Content  = PostProperties.Content
-  val UrlTitle = PostProperties.UrlTitle
-  val Title    = PostProperties.Title
-  val URL      = PostProperties.URL
-  val Text     = PostProperties.Text
-  val Content  = PostProperties.Content
+  type UrlTitle   = PostProperties.UrlTitle
+  type Title      = PostProperties.Title
+  type URL        = PostProperties.URL
+  type Text       = PostProperties.Text
+  type Content    = PostProperties.Content
+  type CommentsNr = PostProperties.CommentsNr
+  val UrlTitle   = PostProperties.UrlTitle
+  val Title      = PostProperties.Title
+  val URL        = PostProperties.URL
+  val Text       = PostProperties.Text
+  val Content    = PostProperties.Content
+  val CommentsNr = PostProperties.CommentsNr
 }
 object PostProperties {
 
@@ -97,5 +101,14 @@ object PostProperties {
 
       def unapply(content: Content): Option[(Type, Raw)] = unpack(content).some
     }
+  }
+
+  @newtype final case class CommentsNr(toNonNegativeInt: Int Refined NonNegative)
+  object CommentsNr {
+    def unapply(commentsNr: CommentsNr): Option[Int Refined NonNegative] = commentsNr.toNonNegativeInt.some
+
+    implicit val show: Show[CommentsNr] = (t: CommentsNr) => t.toNonNegativeInt.value.toString
+    implicit val order: Order[CommentsNr] = (x: CommentsNr, y: CommentsNr) =>
+      x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
   }
 }

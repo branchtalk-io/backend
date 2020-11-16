@@ -18,7 +18,8 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
         |       reply_to,
         |       nesting_level,
         |       created_at,
-        |       last_modified_at
+        |       last_modified_at,
+        |       replies_nr
         |FROM comments""".stripMargin
 
   private def idExists(id: models.ID[Comment]): Fragment = fr"id = ${id} AND deleted = FALSE"

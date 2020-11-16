@@ -16,6 +16,7 @@ object Post extends PostProperties with PostCommands {
     title:          Post.Title,
     content:        Post.Content,
     createdAt:      CreationTime,
-    lastModifiedAt: Option[ModificationTime]
+    lastModifiedAt: Option[ModificationTime],
+    commentsNr:     Post.CommentsNr
   )
 }

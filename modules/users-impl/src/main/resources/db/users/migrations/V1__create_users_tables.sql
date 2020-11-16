@@ -1,6 +1,10 @@
+-- Enums
+
 CREATE TYPE PASSWORD_ALGORITHM AS ENUM ('bcrypt');
 
 CREATE TYPE SESSION_USAGE_TYPE AS ENUM ('user-session', 'oauth');
+
+-- Users
 
 CREATE TABLE users (
   id               UUID                     PRIMARY KEY,
@@ -19,6 +23,8 @@ CREATE TABLE deleted_users (
   id         UUID                     PRIMARY KEY,
   deleted_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
+
+-- Sessions
 
 CREATE TABLE sessions (
   id          UUID                     PRIMARY KEY,
