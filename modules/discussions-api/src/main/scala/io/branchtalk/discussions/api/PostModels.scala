@@ -6,6 +6,7 @@ import cats.data.NonEmptyList
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.numeric.NonNegative
 import io.branchtalk.ADT
 import io.branchtalk.api._
 import io.branchtalk.discussions.model._
@@ -35,6 +36,8 @@ object PostModels {
     summonCodec[Post.Content](
       JsonCodecMaker.make(CodecMakerConfig.withAdtLeafClassNameMapper(discriminatorNameMapper(".")))
     )
+  implicit val postRepliesNrCodec: JsCodec[Post.CommentsNr] =
+    summonCodec[Int](JsonCodecMaker.make).refine[NonNegative].asNewtype[Post.CommentsNr]
 
   // properties schemas
   implicit val postUrlTitleSchema: Schema[Post.UrlTitle] =
@@ -50,6 +53,8 @@ object PostModels {
       Configuration.default.copy(toEncodedName = discriminatorNameMapper("."))
     Schema.derivedSchema[Post.Content]
   }
+  implicit val postCommentsNrSchema: Schema[Post.CommentsNr] =
+    summonSchema[Int Refined NonNegative].asNewtype[Post.CommentsNr]
 
   @Semi(JsCodec) sealed trait PostError extends ADT
   object PostError {
@@ -61,11 +66,12 @@ object PostModels {
   }
 
   @Semi(JsCodec) final case class APIPost(
-    id:        ID[Post],
-    channelID: ID[Channel],
-    urlTitle:  Post.UrlTitle,
-    title:     Post.Title,
-    content:   Post.Content
+    id:         ID[Post],
+    channelID:  ID[Channel],
+    urlTitle:   Post.UrlTitle,
+    title:      Post.Title,
+    content:    Post.Content,
+    commentsNr: Post.CommentsNr
   )
   object APIPost {
 
