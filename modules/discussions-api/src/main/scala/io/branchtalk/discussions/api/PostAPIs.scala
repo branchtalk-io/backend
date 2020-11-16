@@ -15,7 +15,7 @@ object PostAPIs {
 
   private val prefix = "discussions" / "channels" / path[ID[Channel]].name("channelID") / "posts"
 
-  private val errorMapping = oneOf[PostError](
+  private[api] val errorMapping = oneOf[PostError](
     statusMapping[PostError.BadCredentials](StatusCode.Unauthorized, jsonBody[PostError.BadCredentials]),
     statusMapping[PostError.NoPermission](StatusCode.Unauthorized, jsonBody[PostError.NoPermission]),
     statusMapping[PostError.NotFound](StatusCode.NotFound, jsonBody[PostError.NotFound]),
