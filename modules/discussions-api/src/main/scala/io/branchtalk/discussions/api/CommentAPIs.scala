@@ -1,7 +1,5 @@
 package io.branchtalk.discussions.api
 
-import java.net.URI
-
 import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
 import io.branchtalk.discussions.api.CommentModels._
@@ -24,20 +22,28 @@ object CommentAPIs {
   )
 
   val newest: AuthedEndpoint[
-    (Option[Authentication], ID[Channel], ID[Post], Option[PaginationOffset], Option[PaginationLimit]),
+    (
+      Option[Authentication],
+      ID[Channel],
+      ID[Post],
+      Option[PaginationOffset],
+      Option[PaginationLimit],
+      Option[ID[Comment]]
+    ),
     CommentError,
     Pagination[APIComment],
     Any
   ] = endpoint
     .name("Fetch newest Comments")
     .summary("Paginate newest Comments for a Post")
-    .description("Returns paginated Comments for a specific Post")
+    .description("Returns paginated Comments for a specific Post (and maybe even replies to a specific Comment")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .get
     .in(optAuthHeader)
     .in(prefix / "newest")
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[ID[Comment]]]("reply-to"))
     .out(jsonBody[Pagination[APIComment]])
     .errorOut(errorMapping)
     .notRequiringPermissions
@@ -95,19 +101,18 @@ object CommentAPIs {
       jsonBody[UpdateCommentRequest].examples(
         List(
           EndpointIO.Example.of(
-            UpdateCommentRequest(),
-            name = "Set new URL".some,
-            summary = "Sets new URL and Title".some
+            UpdateCommentRequest(
+              newContent = Updatable.Set(Comment.Content("example"))
+            ),
+            name = "Set new content".some,
+            summary = "Sets new Content".some
           ),
           EndpointIO.Example.of(
-            UpdateCommentRequest(),
-            name = "Set new Text".some,
-            summary = "Sets new Text".some
-          ),
-          EndpointIO.Example.of(
-            UpdateCommentRequest(),
-            name = "Keep both".some,
-            summary = "Keeps both Title and Content".some
+            UpdateCommentRequest(
+              newContent = Updatable.Keep
+            ),
+            name = "Keep old Content".some,
+            summary = "Keeps old Content".some
           )
         )
       )
