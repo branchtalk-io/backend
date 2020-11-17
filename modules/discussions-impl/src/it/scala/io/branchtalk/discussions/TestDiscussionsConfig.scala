@@ -9,8 +9,8 @@ import io.branchtalk.shared.infrastructure.{
   TestPostgresConfig,
   TestResources
 }
+import io.branchtalk.shared.infrastructure.PureconfigSupport._
 import io.scalaland.catnip.Semi
-import pureconfig._
 
 @Semi(ConfigReader) final case class TestDiscussionsConfig(
   database:          TestPostgresConfig,

@@ -3,13 +3,12 @@ package io.branchtalk.shared
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.types.string.NonEmptyString
-import eu.timepit.refined.pureconfig._
 import fs2.{ Pipe, Stream }
 import fs2.kafka.{ CommittableConsumerRecord, CommittableOffset, Deserializer, ProducerResult }
+import io.branchtalk.shared.infrastructure.PureconfigSupport._
 import io.branchtalk.shared.models.UUID
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
-import pureconfig._
 
 import scala.concurrent.duration.FiniteDuration
 

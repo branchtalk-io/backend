@@ -5,9 +5,8 @@ import cats.effect.{ Concurrent, Sync, Timer }
 import fs2.kafka._
 import fs2.Pipe
 import io.branchtalk.shared.models.UUID
+import io.branchtalk.shared.infrastructure.PureconfigSupport._
 import io.scalaland.catnip.Semi
-import pureconfig._
-import pureconfig.module.cats._
 
 @Semi(ConfigReader) final case class KafkaEventBusConfig(
   servers: NonEmptyList[Server],

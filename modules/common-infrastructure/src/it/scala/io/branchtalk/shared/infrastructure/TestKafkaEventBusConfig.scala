@@ -3,10 +3,9 @@ package io.branchtalk.shared.infrastructure
 import cats.data.NonEmptyList
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.refineV
+import io.branchtalk.shared.infrastructure.PureconfigSupport._
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
-import pureconfig.ConfigReader
-import pureconfig.module.cats._
 
 @Semi(ConfigReader) final case class TestKafkaEventBusConfig(
   servers:     NonEmptyList[Server],

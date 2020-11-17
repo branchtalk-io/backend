@@ -36,5 +36,5 @@ object Updatable {
     }
   }
   @nowarn("cat=unused") // macros
-  implicit val traverse: Traverse[Updatable] = cats.derived.semi.traverse[Updatable]
+  implicit val traverse: Traverse[Updatable] = cats.derived.semiauto.traverse[Updatable]
 }

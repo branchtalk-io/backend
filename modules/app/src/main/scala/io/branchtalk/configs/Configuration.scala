@@ -1,7 +1,7 @@
 package io.branchtalk.configs
 
 import cats.effect.Sync
-import pureconfig.{ ConfigReader, ConfigSource }
+import io.branchtalk.shared.infrastructure.PureconfigSupport._
 
 import scala.reflect.ClassTag
 

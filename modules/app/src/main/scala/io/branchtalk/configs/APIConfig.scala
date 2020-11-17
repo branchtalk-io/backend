@@ -5,14 +5,13 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.string.{ MatchesRegex, Url }
-import eu.timepit.refined.pureconfig._
 import io.branchtalk.api.{ PaginationLimit, PaginationOffset }
 import io.branchtalk.discussions.model.Channel
+import io.branchtalk.shared.infrastructure.PureconfigSupport._
+import io.branchtalk.shared.infrastructure.PureconfigSupport.ConfigReader.traversableReader // TODO sth about this
 import io.branchtalk.shared.models.{ ID, UUID }
 import io.scalaland.catnip.Semi
-import pureconfig._
 import pureconfig.error.CannotConvert
-import pureconfig.module.enumeratum._
 import sttp.tapir.openapi.{ Contact, Info, License }
 
 import scala.concurrent.duration.FiniteDuration

@@ -2,9 +2,8 @@ package io.branchtalk
 
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.Positive
-import eu.timepit.refined.pureconfig._
 import io.branchtalk.api.PaginationLimit
-import pureconfig.ConfigReader
+import io.branchtalk.shared.infrastructure.PureconfigSupport._
 
 package object configs {
 

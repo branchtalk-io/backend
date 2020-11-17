@@ -1,7 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
 import io.scalaland.catnip.Semi
-import pureconfig._
+import io.branchtalk.shared.infrastructure.PureconfigSupport._
 
 @Semi(ConfigReader) final case class PostgresConfig(
   url:              DatabaseURL,
