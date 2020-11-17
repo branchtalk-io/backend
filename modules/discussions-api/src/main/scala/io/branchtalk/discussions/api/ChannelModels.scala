@@ -7,7 +7,8 @@ import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.ADT
-import io.branchtalk.api._
+import io.branchtalk.api.JsoniterSupport._
+import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.models.{ ID, OptionUpdatable, Updatable }
 import io.scalaland.catnip.Semi

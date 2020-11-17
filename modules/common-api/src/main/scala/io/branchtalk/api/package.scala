@@ -1,181 +1,21 @@
 package io.branchtalk
 
-import java.net.URI
-
-import cats.{ Eq, Id, Order, Show }
-import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptySet }
+import cats.{ Eq, Show }
 import cats.effect.Sync
-import com.github.plokhotnyuk.jsoniter_scala.core.{ JsonReader, JsonValueCodec, JsonWriter }
 import com.github.plokhotnyuk.jsoniter_scala.macros._
-import eu.timepit.refined._
-import eu.timepit.refined.api.{ Refined, Validate }
+import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.shared.models.{
-  ID,
-  OptionUpdatable,
-  ParseRefined,
-  UUID,
-  UUIDGenerator,
-  Updatable,
-  discriminatorNameMapper
-}
+import io.branchtalk.shared.models._
+import io.branchtalk.api.JsoniterSupport._
+import io.branchtalk.api.TapirSupport._
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
-import io.estatico.newtype.Coercible
-import sttp.tapir.{ Codec, DecodeResult, Endpoint, Schema }
-import sttp.tapir.codec.refined._
-import sttp.tapir.CodecFormat.TextPlain
-import sttp.tapir.generic.Configuration
+import sttp.tapir._
 
 // scalastyle:off number.of.methods
 package object api {
-
-  implicit class EndpointOps[I, E, O, R](private val endpoint: Endpoint[I, E, O, R]) extends AnyVal {
-
-    def notRequiringPermissions: AuthedEndpoint[I, E, O, R] =
-      AuthedEndpoint(endpoint, _ => RequiredPermissions.empty)
-
-    def requiringPermssions(permissions: I => RequiredPermissions): AuthedEndpoint[I, E, O, R] =
-      AuthedEndpoint(endpoint, permissions)
-  }
-
-  implicit class TapirResultOps[A](private val decodeResult: DecodeResult[A]) extends AnyVal {
-
-    def toOption: Option[A] = decodeResult match {
-      case DecodeResult.Value(v) => v.some
-      case _                     => none[A]
-    }
-  }
-
-  // shortcuts
-  type JsCodec[A] = JsonValueCodec[A]
-  type Param[A]   = Codec[String, A, TextPlain]
-
-  def summonCodec[T](implicit codec:   JsCodec[T]): JsCodec[T] = codec
-  def summonParam[T](implicit param:   Param[T]):   Param[T]   = param
-  def summonSchema[T](implicit schema: Schema[T]):  Schema[T]  = schema
-
-  @SuppressWarnings(Array("org.wartremover.warts.All")) // handling valid null values
-  implicit class RefineCodec[T](private val codec: JsCodec[T]) extends AnyVal {
-
-    def mapDecode[U](f: T => Either[String, U])(g: U => T): JsCodec[U] = new JsCodec[U] {
-      override def decodeValue(in: JsonReader, default: U): U =
-        codec.decodeValue(in, if (default != null) g(default) else null.asInstanceOf[T]) match { // scalastyle:ignore
-          case null => null.asInstanceOf[U] // scalastyle:ignore
-          case t =>
-            f(t) match {
-              case null         => null.asInstanceOf[U] // scalastyle:ignore
-              case Left(error)  => in.decodeError(error)
-              case Right(value) => value
-            }
-        }
-
-      override def encodeValue(x: U, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
-
-      override def nullValue: U = codec.nullValue match {
-        case null => null.asInstanceOf[U] // scalastyle:ignore
-        case u    => f(u).getOrElse(null.asInstanceOf[U]) // scalastyle:ignore
-      }
-    }
-
-    def map[U](f: T => U)(g: U => T): JsCodec[U] = new JsCodec[U] {
-      override def decodeValue(in: JsonReader, default: U): U =
-        codec.decodeValue(in, if (default != null) g(default) else null.asInstanceOf[T]) match { // scalastyle:ignore
-          case null => null.asInstanceOf[U] // scalastyle:ignore
-          case t    => f(t)
-        }
-
-      override def encodeValue(x: U, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
-
-      override def nullValue: U = codec.nullValue match {
-        case null => null.asInstanceOf[U] // scalastyle:ignore
-        case u    => f(u)
-      }
-    }
-
-    def refine[P: Validate[T, *]]: JsCodec[T Refined P] = mapDecode(refineV[P](_: T))(_.value)
-
-    def asNewtype[N: Coercible[T, *]]: JsCodec[N] = Coercible.unsafeWrapMM[JsCodec, Id, T, N].apply(codec)
-  }
-
-  implicit class RefineSchema[T](private val schema: Schema[T]) extends AnyVal {
-
-    def asNewtype[N: Coercible[T, *]]: Schema[N] = Coercible.unsafeWrapMM[Schema, Id, T, N].apply(schema)
-  }
-
-  implicit val uriSchema: Schema[URI] = Schema.schemaForString.asInstanceOf[Schema[URI]]
-
-  // domain instances
-
-  @SuppressWarnings(Array("org.wartremover.warts.Null"))
-  implicit def idCodec[A]:  JsCodec[ID[A]] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[ID[A]]
-  implicit def idParam[A]:  Param[ID[A]]   = summonParam[UUID].map[ID[A]](ID[A](_))(_.uuid)
-  implicit def idSchema[A]: Schema[ID[A]]  = summonSchema[UUID].asNewtype[ID[A]]
-
-  implicit def updatableCodec[A: JsCodec]: JsCodec[Updatable[A]] = summonCodec[Updatable[A]](
-    JsonCodecMaker.make(
-      CodecMakerConfig
-        .withAdtLeafClassNameMapper(discriminatorNameMapper("."))
-        .withDiscriminatorFieldName(Some("action"))
-    )
-  )
-  implicit def updatableSchema[A: Schema]: Schema[Updatable[A]] = {
-    implicit val customConfiguration: Configuration =
-      Configuration.default.copy(toEncodedName = discriminatorNameMapper(".")).withDiscriminator("action")
-    Schema.derivedSchema[Updatable[A]]
-  }
-
-  implicit def optionUpdatableCodec[A: JsCodec]: JsCodec[OptionUpdatable[A]] = summonCodec[OptionUpdatable[A]](
-    JsonCodecMaker.make(
-      CodecMakerConfig
-        .withAdtLeafClassNameMapper(discriminatorNameMapper("."))
-        .withDiscriminatorFieldName(Some("action"))
-    )
-  )
-  implicit def optionUpdatableSchema[A: Schema]: Schema[OptionUpdatable[A]] = {
-    implicit val customConfiguration: Configuration =
-      Configuration.default.copy(toEncodedName = discriminatorNameMapper(".")).withDiscriminator("action")
-    Schema.derivedSchema[OptionUpdatable[A]]
-  }
-
-  /// Cats codecs
-
-  @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
-  implicit def chainCodec[A: JsCodec]: JsCodec[Chain[A]] =
-    summonCodec[List[A]](JsonCodecMaker.make).map(Chain.fromSeq)(_.toList)
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def chainSchema[A: Schema]: Schema[Chain[A]] =
-    summonSchema[List[A]].asInstanceOf[Schema[Chain[A]]] // scalastyle:ignore
-
-  @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
-  implicit def necCodec[A: JsCodec]: JsCodec[NonEmptyChain[A]] = summonCodec[List[A]](JsonCodecMaker.make).mapDecode {
-    case head :: tail => NonEmptyChain(head, tail: _*).asRight[String]
-    case _            => "Expected non-empty list".asLeft[NonEmptyChain[A]]
-  }(_.toList)
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def necSchema[A: Schema]: Schema[NonEmptyChain[A]] =
-    summonSchema[List[A]].asInstanceOf[Schema[NonEmptyChain[A]]] // scalastyle:ignore
-
-  @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
-  implicit def nelCodec[A: JsCodec]: JsCodec[NonEmptyList[A]] = summonCodec[List[A]](JsonCodecMaker.make).mapDecode {
-    case head :: tail => NonEmptyList(head, tail).asRight[String]
-    case _            => "Expected non-empty list".asLeft[NonEmptyList[A]]
-  }(_.toList)
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def nelSchema[A: Schema]: Schema[NonEmptyList[A]] =
-    summonSchema[List[A]].asInstanceOf[Schema[NonEmptyList[A]]] // scalastyle:ignore
-
-  @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
-  implicit def nesCodec[A: JsCodec: Order]: JsCodec[NonEmptySet[A]] =
-    summonCodec[List[A]](JsonCodecMaker.make).mapDecode {
-      case head :: tail => NonEmptySet.of(head, tail: _*).asRight[String]
-      case _            => "Expected non-empty list".asLeft[NonEmptySet[A]]
-    }(_.toList)
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def nesSchema[A: Schema]: Schema[NonEmptySet[A]] =
-    summonSchema[List[A]].asInstanceOf[Schema[NonEmptySet[A]]] // scalastyle:ignore
 
   // API definitions and instances
 

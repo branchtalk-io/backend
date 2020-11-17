@@ -4,12 +4,12 @@ import java.net.URI
 
 import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
+import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.models.{ ID, Updatable }
 import sttp.model.StatusCode
 import sttp.tapir._
-import sttp.tapir.json.jsoniter._
 
 object PostAPIs {
 

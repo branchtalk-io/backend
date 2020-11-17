@@ -8,14 +8,13 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import io.branchtalk.ADT
-import io.branchtalk.api.{ Password => _, Permission => _, _ }
+import io.branchtalk.api.JsoniterSupport._
+import io.branchtalk.api.TapirSupport._
 import io.branchtalk.shared.models.{ ID, OptionUpdatable, Updatable }
 import io.branchtalk.users.model._
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
 import sttp.tapir.Schema
-
-// TODO: test codecs - take model, serialize it, deserialize it, check if results match
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object UserModels {

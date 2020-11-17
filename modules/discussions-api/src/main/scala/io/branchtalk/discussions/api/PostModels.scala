@@ -8,7 +8,8 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.NonNegative
 import io.branchtalk.ADT
-import io.branchtalk.api._
+import io.branchtalk.api.JsoniterSupport._
+import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.model._
 import io.branchtalk.shared.models.{ ID, Updatable, discriminatorNameMapper }
 import io.scalaland.catnip.Semi

@@ -10,8 +10,14 @@ class TestUUIDGenerator extends UUIDGenerator {
 
   private val queue = mutable.Queue.empty[UUID]
 
-  def stubNext(uuid:   UUID):                Unit = synchronized(queue.enqueue(uuid))
-  def stubNext(string: String Refined Uuid): Unit = synchronized(queue.enqueue(apply(string)))
+  def stubNext(uuid: UUID): Unit = synchronized {
+    queue.enqueue(uuid)
+    ()
+  }
+  def stubNext(string: String Refined Uuid): Unit = synchronized {
+    queue.enqueue(apply(string))
+    ()
+  }
 
   def clean(): Unit = synchronized {
     queue.dequeueAll(_ => true)

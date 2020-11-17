@@ -2,11 +2,11 @@ package io.branchtalk.discussions.api
 
 import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
+import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.api.SubscriptionModels._
 import sttp.model.StatusCode
 import sttp.tapir._
-import sttp.tapir.json.jsoniter._
 
 object SubscriptionAPIs {
 

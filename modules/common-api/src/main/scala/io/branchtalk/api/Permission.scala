@@ -2,6 +2,7 @@ package io.branchtalk.api
 
 import cats.Order
 import io.branchtalk.ADT
+import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.shared.models.{ FastEq, ShowPretty, UUID }
 import io.scalaland.catnip.Semi
 

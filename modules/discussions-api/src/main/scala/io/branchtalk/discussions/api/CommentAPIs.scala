@@ -2,12 +2,12 @@ package io.branchtalk.discussions.api
 
 import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
+import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.api.CommentModels._
 import io.branchtalk.discussions.model.{ Channel, Comment, Post }
 import io.branchtalk.shared.models.{ ID, Updatable }
 import sttp.model.StatusCode
 import sttp.tapir._
-import sttp.tapir.json.jsoniter._
 
 object CommentAPIs {
 

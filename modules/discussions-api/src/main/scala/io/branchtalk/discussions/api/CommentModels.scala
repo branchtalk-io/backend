@@ -5,7 +5,8 @@ import com.github.plokhotnyuk.jsoniter_scala.macros._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.NonNegative
 import io.branchtalk.ADT
-import io.branchtalk.api._
+import io.branchtalk.api.JsoniterSupport._
+import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.model.{ Channel, Comment, Post, User }
 import io.branchtalk.shared.models.{ ID, Updatable }
 import io.scalaland.catnip.Semi

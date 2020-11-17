@@ -5,7 +5,7 @@ import cats.effect.{ ContextShift, Sync }
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.api
-import io.branchtalk.api._
+import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.configs.APIInfo
 import org.http4s.HttpRoutes
 import monocle.macros.syntax.lens._

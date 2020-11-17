@@ -2,6 +2,7 @@ package io.branchtalk.users.api
 
 import cats.effect.IO
 import io.branchtalk.api._
+import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings._
 import io.branchtalk.shared.models.{ CreationScheduled, OptionUpdatable, TestUUIDGenerator, Updatable }

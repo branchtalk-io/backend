@@ -2,7 +2,7 @@ package io.branchtalk.discussions.api
 
 import cats.data.NonEmptyList
 import io.branchtalk.ADT
-import io.branchtalk.api._
+import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.models.ID
 import io.scalaland.catnip.Semi
