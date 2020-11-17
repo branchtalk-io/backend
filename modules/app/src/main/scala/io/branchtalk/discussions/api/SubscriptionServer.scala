@@ -7,6 +7,7 @@ import io.branchtalk.api._
 import io.branchtalk.auth._
 import io.branchtalk.configs.{ APIConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostModels._
+import io.branchtalk.discussions.api.SubscriptionModels.SubscriptionError
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.discussions.reads.{ PostReads, SubscriptionReads }
 import io.branchtalk.mappings._
@@ -17,7 +18,7 @@ import sttp.tapir.server.ServerEndpoint
 
 import scala.collection.immutable.SortedSet
 
-final class SubscriptionServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent: Timer](
+final class SubscriptionServer[F[_]: Sync: ContextShift: Concurrent: Timer](
   authServices:      AuthServices[F],
   postReads:         PostReads[F],
   subscriptionReads: SubscriptionReads[F],
@@ -29,21 +30,12 @@ final class SubscriptionServer[F[_]: Http4sServerOptions: Sync: ContextShift: Co
 
   private val logger = Logger(getClass)
 
-  private val withErrorHandling = ServerErrorHandling.handleCommonErrors[F, PostError] {
-    case CommonError.InvalidCredentials(_) =>
-      PostError.BadCredentials("Invalid credentials")
-    case CommonError.InsufficientPermissions(msg, _) =>
-      PostError.NoPermission(msg)
-    case CommonError.NotFound(what, id, _) =>
-      PostError.NotFound(s"$what with id=${id.show} could not be found")
-    case CommonError.ParentNotExist(what, id, _) =>
-      PostError.NotFound(s"Parent $what with id=${id.show} could not be found")
-    case CommonError.ValidationFailed(errors, _) =>
-      PostError.ValidationFailed(errors)
-  }(logger)
+  implicit private val serverOptions: Http4sServerOptions[F] = SubscriptionServer.serverOptions[F].apply(logger)
+
+  private val withPortErrorHandling = PostServer.serverErrorHandling[F].apply(logger)
 
   private val newest = SubscriptionAPIs.newest.serverLogic[F].apply { case ((optUser, _), optOffset, optLimit) =>
-    withErrorHandling {
+    withPortErrorHandling {
       val offset = paginationConfig.resolveOffset(optOffset)
       val limit  = paginationConfig.resolveLimit(optLimit)
       for {
@@ -62,4 +54,38 @@ final class SubscriptionServer[F[_]: Http4sServerOptions: Sync: ContextShift: Co
   )
 
   val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+}
+object SubscriptionServer {
+
+  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] =
+    ServerOptions.create[F, SubscriptionError](
+      _,
+      ServerOptions.ErrorHandler[SubscriptionError](
+        () => SubscriptionError.ValidationFailed(NonEmptyList.one("Data missing")),
+        () => SubscriptionError.ValidationFailed(NonEmptyList.one("Multiple errors")),
+        (msg, _) => SubscriptionError.ValidationFailed(NonEmptyList.one(s"Error happened: ${msg}")),
+        (expected, actual) =>
+          SubscriptionError.ValidationFailed(NonEmptyList.one(s"Expected: $expected, actual: $actual")),
+        errors =>
+          SubscriptionError.ValidationFailed(
+            NonEmptyList
+              .fromList(errors.map(e => s"Invalid value at ${e.path.map(_.encodedName).mkString(".")}"))
+              .getOrElse(NonEmptyList.one("Validation failed"))
+          )
+      )
+    )
+
+  def serverErrorHandling[F[_]: Sync]: Logger => ServerErrorHandling[F, SubscriptionError] =
+    ServerErrorHandling.handleCommonErrors[F, SubscriptionError] {
+      case CommonError.InvalidCredentials(_) =>
+        SubscriptionError.BadCredentials("Invalid credentials")
+      case CommonError.InsufficientPermissions(msg, _) =>
+        SubscriptionError.NoPermission(msg)
+      case CommonError.NotFound(what, id, _) =>
+        SubscriptionError.NotFound(s"$what with id=${id.show} could not be found")
+      case CommonError.ParentNotExist(what, id, _) =>
+        SubscriptionError.NotFound(s"Parent $what with id=${id.show} could not be found")
+      case CommonError.ValidationFailed(errors, _) =>
+        SubscriptionError.ValidationFailed(errors)
+    }
 }

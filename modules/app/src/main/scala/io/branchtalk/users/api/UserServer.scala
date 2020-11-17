@@ -18,7 +18,7 @@ import sttp.tapir.server.ServerEndpoint
 
 import scala.annotation.unused
 
-final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Concurrent: Timer](
+final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
   authServices:             AuthServices[F],
   usersReads:               UsersReads[F],
   usersWrites:              UsersWrites[F],
@@ -31,18 +31,9 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Con
 
   private val sessionExpiresInDays = 7L // make it configurable
 
-  private val withErrorHandling = ServerErrorHandling.handleCommonErrors[F, UserError] {
-    case CommonError.InvalidCredentials(_) =>
-      UserError.BadCredentials("Invalid credentials")
-    case CommonError.InsufficientPermissions(msg, _) =>
-      UserError.NoPermission(msg)
-    case CommonError.NotFound(what, id, _) =>
-      UserError.NotFound(s"$what with id=${id.show} could not be found")
-    case CommonError.ParentNotExist(what, id, _) =>
-      UserError.NotFound(s"Parent $what with id=${id.show} could not be found")
-    case CommonError.ValidationFailed(errors, _) =>
-      UserError.ValidationFailed(errors)
-  }(logger)
+  implicit private val serverOptions: Http4sServerOptions[F] = UserServer.serverOptions[F].apply(logger)
+
+  private val withErrorHandling = UserServer.serverErrorHandling[F].apply(logger)
 
   private val signUp = UserAPIs.signUp.serverLogic { signup =>
     withErrorHandling {
@@ -138,4 +129,36 @@ final class UserServer[F[_]: Http4sServerOptions: Sync: ContextShift: Clock: Con
   )
 
   val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+}
+object UserServer {
+
+  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
+    _,
+    ServerOptions.ErrorHandler[UserError](
+      () => UserError.ValidationFailed(NonEmptyList.one("Data missing")),
+      () => UserError.ValidationFailed(NonEmptyList.one("Multiple errors")),
+      (msg, _) => UserError.ValidationFailed(NonEmptyList.one(s"Error happened: ${msg}")),
+      (expected, actual) => UserError.ValidationFailed(NonEmptyList.one(s"Expected: $expected, actual: $actual")),
+      errors =>
+        UserError.ValidationFailed(
+          NonEmptyList
+            .fromList(errors.map(e => s"Invalid value at ${e.path.map(_.encodedName).mkString(".")}"))
+            .getOrElse(NonEmptyList.one("Validation failed"))
+        )
+    )
+  )
+
+  def serverErrorHandling[F[_]: Sync]: Logger => ServerErrorHandling[F, UserError] =
+    ServerErrorHandling.handleCommonErrors[F, UserError] {
+      case CommonError.InvalidCredentials(_) =>
+        UserError.BadCredentials("Invalid credentials")
+      case CommonError.InsufficientPermissions(msg, _) =>
+        UserError.NoPermission(msg)
+      case CommonError.NotFound(what, id, _) =>
+        UserError.NotFound(s"$what with id=${id.show} could not be found")
+      case CommonError.ParentNotExist(what, id, _) =>
+        UserError.NotFound(s"Parent $what with id=${id.show} could not be found")
+      case CommonError.ValidationFailed(errors, _) =>
+        UserError.ValidationFailed(errors)
+    }
 }

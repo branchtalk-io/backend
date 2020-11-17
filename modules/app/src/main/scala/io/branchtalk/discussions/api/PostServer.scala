@@ -19,7 +19,7 @@ import sttp.tapir.server.ServerEndpoint
 
 import scala.collection.immutable.SortedSet
 
-final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent: Timer](
+final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
   authServices:     AuthServices[F],
   postReads:        PostReads[F],
   postWrites:       PostWrites[F],
@@ -30,18 +30,9 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
 
   private val logger = Logger(getClass)
 
-  private val withErrorHandling = ServerErrorHandling.handleCommonErrors[F, PostError] {
-    case CommonError.InvalidCredentials(_) =>
-      PostError.BadCredentials("Invalid credentials")
-    case CommonError.InsufficientPermissions(msg, _) =>
-      PostError.NoPermission(msg)
-    case CommonError.NotFound(what, id, _) =>
-      PostError.NotFound(s"$what with id=${id.show} could not be found")
-    case CommonError.ParentNotExist(what, id, _) =>
-      PostError.NotFound(s"Parent $what with id=${id.show} could not be found")
-    case CommonError.ValidationFailed(errors, _) =>
-      PostError.ValidationFailed(errors)
-  }(logger)
+  implicit private val serverOptions: Http4sServerOptions[F] = PostServer.serverOptions[F].apply(logger)
+
+  private val withErrorHandling = PostServer.serverErrorHandling[F].apply(logger)
 
   private val newest = PostAPIs.newest.serverLogic[F].apply { case ((_, _), channelID, optOffset, optLimit) =>
     withErrorHandling {
@@ -156,4 +147,36 @@ final class PostServer[F[_]: Http4sServerOptions: Sync: ContextShift: Concurrent
   )
 
   val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+}
+object PostServer {
+
+  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, PostError](
+    _,
+    ServerOptions.ErrorHandler[PostError](
+      () => PostError.ValidationFailed(NonEmptyList.one("Data missing")),
+      () => PostError.ValidationFailed(NonEmptyList.one("Multiple errors")),
+      (msg, _) => PostError.ValidationFailed(NonEmptyList.one(s"Error happened: ${msg}")),
+      (expected, actual) => PostError.ValidationFailed(NonEmptyList.one(s"Expected: $expected, actual: $actual")),
+      errors =>
+        PostError.ValidationFailed(
+          NonEmptyList
+            .fromList(errors.map(e => s"Invalid value at ${e.path.map(_.encodedName).mkString(".")}"))
+            .getOrElse(NonEmptyList.one("Validation failed"))
+        )
+    )
+  )
+
+  def serverErrorHandling[F[_]: Sync]: Logger => ServerErrorHandling[F, PostError] =
+    ServerErrorHandling.handleCommonErrors[F, PostError] {
+      case CommonError.InvalidCredentials(_) =>
+        PostError.BadCredentials("Invalid credentials")
+      case CommonError.InsufficientPermissions(msg, _) =>
+        PostError.NoPermission(msg)
+      case CommonError.NotFound(what, id, _) =>
+        PostError.NotFound(s"$what with id=${id.show} could not be found")
+      case CommonError.ParentNotExist(what, id, _) =>
+        PostError.NotFound(s"Parent $what with id=${id.show} could not be found")
+      case CommonError.ValidationFailed(errors, _) =>
+        PostError.ValidationFailed(errors)
+    }
 }
