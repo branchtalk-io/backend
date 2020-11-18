@@ -6,7 +6,7 @@ import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.branchtalk.users.UsersFixtures
 import io.scalaland.chimney.dsl._
 import monocle.macros.syntax.lens._

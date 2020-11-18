@@ -1,6 +1,6 @@
 package io.branchtalk.users.writes
 
-import io.branchtalk.shared.models.{ CreationScheduled, DeletionScheduled, UpdateScheduled }
+import io.branchtalk.shared.model.{ CreationScheduled, DeletionScheduled, UpdateScheduled }
 import io.branchtalk.users.model.{ Session, User }
 
 trait UserWrites[F[_]] {

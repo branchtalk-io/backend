@@ -6,7 +6,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import fs2.{ Pipe, Stream }
 import fs2.kafka.{ CommittableConsumerRecord, CommittableOffset, Deserializer, ProducerResult }
 import io.branchtalk.shared.infrastructure.PureconfigSupport._
-import io.branchtalk.shared.models.UUID
+import io.branchtalk.shared.model.UUID
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 

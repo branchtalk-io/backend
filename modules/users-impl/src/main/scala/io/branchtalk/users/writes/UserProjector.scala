@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
-import io.branchtalk.shared.models.UUID
+import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.events.{ UserCommandEvent, UserEvent, UsersCommandEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Permission, Permissions, Session }

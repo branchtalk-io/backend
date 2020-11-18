@@ -7,8 +7,8 @@ import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.discussions.infrastructure.DoobieExtensions._
 import io.branchtalk.discussions.model.{ Channel, Post, PostDao }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models
-import io.branchtalk.shared.models.Paginated
+import io.branchtalk.shared.model
+import io.branchtalk.shared.model.Paginated
 
 final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostReads[F] {
 
@@ -27,12 +27,12 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
         |       comments_nr
         |FROM posts""".stripMargin
 
-  private def idExists(id: models.ID[Post]): Fragment = fr"id = ${id} AND deleted = FALSE"
+  private def idExists(id: model.ID[Post]): Fragment = fr"id = ${id} AND deleted = FALSE"
 
-  private def idDeleted(id: models.ID[Post]): Fragment = fr"id = ${id} AND deleted = TRUE"
+  private def idDeleted(id: model.ID[Post]): Fragment = fr"id = ${id} AND deleted = TRUE"
 
   override def paginate(
-    channels: NonEmptySet[models.ID[Channel]],
+    channels: NonEmptySet[model.ID[Channel]],
     offset:   Long Refined NonNegative,
     limit:    Int Refined Positive
   ): F[Paginated[Post]] =
@@ -41,20 +41,20 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
       .map(_.map(_.toDomain))
       .transact(transactor)
 
-  override def exists(id: models.ID[Post]): F[Boolean] =
+  override def exists(id: model.ID[Post]): F[Boolean] =
     (fr"SELECT 1 FROM posts WHERE" ++ idExists(id)).exists.transact(transactor)
 
-  override def deleted(id: models.ID[Post]): F[Boolean] =
+  override def deleted(id: model.ID[Post]): F[Boolean] =
     (fr"SELECT 1 FROM posts WHERE" ++ idDeleted(id)).exists.transact(transactor)
 
-  override def getById(id: models.ID[Post], isDeleted: Boolean = false): F[Option[Post]] =
+  override def getById(id: model.ID[Post], isDeleted: Boolean = false): F[Option[Post]] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
       .query[PostDao]
       .map(_.toDomain)
       .option
       .transact(transactor)
 
-  override def requireById(id: models.ID[Post], isDeleted: Boolean = false): F[Post] =
+  override def requireById(id: model.ID[Post], isDeleted: Boolean = false): F[Post] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
       .query[PostDao]
       .map(_.toDomain)

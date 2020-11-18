@@ -6,7 +6,7 @@ import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Subscription }
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.branchtalk.users.UsersFixtures
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode

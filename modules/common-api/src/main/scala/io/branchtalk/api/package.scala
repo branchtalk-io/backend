@@ -7,7 +7,7 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.api.TapirSupport._
 import io.estatico.newtype.macros.newtype

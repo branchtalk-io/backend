@@ -2,7 +2,7 @@ package io.branchtalk
 
 import cats.data.NonEmptySet
 import io.branchtalk.api.UserID
-import io.branchtalk.shared.models.ID
+import io.branchtalk.shared.model.ID
 import monocle.Iso
 
 import scala.collection.immutable.SortedSet

@@ -3,7 +3,7 @@ package io.branchtalk
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites, TestDiscussionsConfig }
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.shared.model.UUIDGenerator
 import io.branchtalk.users.{ TestUsersConfig, UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 

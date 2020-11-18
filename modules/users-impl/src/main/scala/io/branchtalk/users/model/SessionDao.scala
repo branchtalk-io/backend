@@ -1,6 +1,6 @@
 package io.branchtalk.users.model
 
-import io.branchtalk.shared.models.ID
+import io.branchtalk.shared.model.ID
 import io.scalaland.chimney.dsl._
 
 final case class SessionDao(

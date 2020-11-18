@@ -14,7 +14,7 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 
-package object models {
+package object model {
 
   type Logger[F[_]] = SelfAwareStructuredLogger[F]
   val Logger = Slf4jLogger

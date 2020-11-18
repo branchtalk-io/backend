@@ -1,6 +1,6 @@
 package io.branchtalk.users.model
 
-import io.branchtalk.shared.models.{ FastEq, ID, OptionUpdatable, ShowPretty, Updatable }
+import io.branchtalk.shared.model.{ FastEq, ID, OptionUpdatable, ShowPretty, Updatable }
 import io.scalaland.catnip.Semi
 
 trait UserCommands {

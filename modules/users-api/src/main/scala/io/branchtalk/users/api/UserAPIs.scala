@@ -3,7 +3,7 @@ package io.branchtalk.users.api
 import io.branchtalk.api._
 import io.branchtalk.api.AuthenticationSupport._
 import io.branchtalk.api.TapirSupport._
-import io.branchtalk.shared.models.{ ID, OptionUpdatable, Updatable }
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.model.Password.{ Raw => RawPassword }
 import io.branchtalk.users.model.User

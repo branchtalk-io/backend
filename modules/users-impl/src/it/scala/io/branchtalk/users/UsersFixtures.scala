@@ -1,7 +1,7 @@
 package io.branchtalk.users
 
 import cats.effect.{ Clock, IO }
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.branchtalk.users.model.{ Channel, Password, Session, User }
 import io.branchtalk.shared.Fixtures._
 

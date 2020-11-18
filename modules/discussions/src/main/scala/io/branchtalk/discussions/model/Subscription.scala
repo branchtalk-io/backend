@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.model
 
-import io.branchtalk.shared.models.{ FastEq, ID, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ID, ShowPretty }
 import io.scalaland.catnip.Semi
 
 @Semi(FastEq, ShowPretty) final case class Subscription(

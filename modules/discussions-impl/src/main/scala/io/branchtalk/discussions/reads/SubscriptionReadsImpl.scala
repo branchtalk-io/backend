@@ -3,7 +3,7 @@ package io.branchtalk.discussions.reads
 import cats.effect.Sync
 import io.branchtalk.discussions.model.{ Subscription, User }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 
 final class SubscriptionReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends SubscriptionReads[F] {
 

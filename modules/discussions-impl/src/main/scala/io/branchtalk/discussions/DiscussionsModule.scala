@@ -5,7 +5,7 @@ import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent }
 import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.branchtalk.shared.infrastructure._
 import _root_.io.branchtalk.discussions.reads.ChannelReads
 import com.softwaremill.macwire.wire

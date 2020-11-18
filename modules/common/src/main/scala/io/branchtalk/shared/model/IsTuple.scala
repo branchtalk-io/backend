@@ -1,4 +1,4 @@
-package io.branchtalk.shared.models
+package io.branchtalk.shared.model
 
 // doesn't rely on macros like shapeless.IsTuple, so it works in IDE
 sealed class IsTuple[A]

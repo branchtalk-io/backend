@@ -2,7 +2,7 @@ package io.branchtalk
 
 import cats.{ Applicative, Functor }
 import io.branchtalk.api.{ AuthMapping, AuthMappingWithOwnership, RequiredPermissions, UserID }
-import io.branchtalk.shared.models.TuplePrepender
+import io.branchtalk.shared.model.TuplePrepender
 
 package object auth {
 

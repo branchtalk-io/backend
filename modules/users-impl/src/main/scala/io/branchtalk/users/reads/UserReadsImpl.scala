@@ -4,8 +4,8 @@ import cats.effect.Sync
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models._
-import io.branchtalk.shared.models.Paginated
+import io.branchtalk.shared.model._
+import io.branchtalk.shared.model.Paginated
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Password, User, UserDao }
 

@@ -3,7 +3,7 @@ package io.branchtalk.api
 import cats.Order
 import io.branchtalk.ADT
 import io.branchtalk.api.JsoniterSupport._
-import io.branchtalk.shared.models.{ FastEq, ShowPretty, UUID }
+import io.branchtalk.shared.model.{ FastEq, ShowPretty, UUID }
 import io.scalaland.catnip.Semi
 
 @Semi(FastEq, ShowPretty, JsCodec) sealed trait Permission extends ADT

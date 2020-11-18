@@ -1,7 +1,7 @@
 package io.branchtalk.users.model
 
 import io.branchtalk.ADT
-import io.branchtalk.shared.models.{ FastEq, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ShowPretty }
 import io.scalaland.catnip.Semi
 
 trait PermissionCommands {

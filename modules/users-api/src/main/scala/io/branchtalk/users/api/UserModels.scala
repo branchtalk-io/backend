@@ -10,7 +10,7 @@ import eu.timepit.refined.string.MatchesRegex
 import io.branchtalk.ADT
 import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.api.TapirSupport._
-import io.branchtalk.shared.models.{ ID, OptionUpdatable, Updatable }
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
 import io.branchtalk.users.model._
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._

@@ -11,7 +11,7 @@ import io.branchtalk.discussions.api.SubscriptionModels.SubscriptionError
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.discussions.reads.{ PostReads, SubscriptionReads }
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models.{ CommonError, Paginated }
+import io.branchtalk.shared.model.{ CommonError, Paginated }
 import org.http4s._
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint

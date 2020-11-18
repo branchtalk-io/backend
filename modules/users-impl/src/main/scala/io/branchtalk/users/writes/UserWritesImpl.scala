@@ -3,7 +3,7 @@ package io.branchtalk.users.writes
 import cats.effect.{ Sync, Timer }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.branchtalk.users.events.{ UserCommandEvent, UsersCommandEvent }
 import io.branchtalk.users.model.{ Session, User }
 import io.scalaland.chimney.dsl._

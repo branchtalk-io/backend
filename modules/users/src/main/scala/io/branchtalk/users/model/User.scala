@@ -1,6 +1,6 @@
 package io.branchtalk.users.model
 
-import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty }
+import io.branchtalk.shared.model.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty }
 import io.scalaland.catnip.Semi
 
 @Semi(FastEq, ShowPretty) final case class User(

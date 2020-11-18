@@ -4,7 +4,7 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models.{ CodePosition, CommonError }
+import io.branchtalk.shared.model.{ CodePosition, CommonError }
 import io.branchtalk.users
 import io.branchtalk.users.reads.{ SessionReads, UserReads }
 

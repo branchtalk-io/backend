@@ -4,8 +4,8 @@ import com.sksamuel.avro4s._
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
 import io.branchtalk.discussions.model.{ Channel, User }
-import io.branchtalk.shared.models._
-import io.branchtalk.shared.models.AvroSupport._
+import io.branchtalk.shared.model._
+import io.branchtalk.shared.model.AvroSupport._
 
 @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait ChannelCommandEvent extends ADT
 object ChannelCommandEvent {

@@ -2,7 +2,7 @@ package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync, Timer }
 import fs2._
-import _root_.io.branchtalk.shared.models.Logger
+import _root_.io.branchtalk.shared.model.Logger
 
 final class ConsumerStream[F[_], Event](
   consumer:  EventBusConsumer[F, Event],

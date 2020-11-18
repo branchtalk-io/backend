@@ -5,7 +5,7 @@ import cats.data.{ NonEmptyList, NonEmptySet }
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.ADT
 import io.branchtalk.api.JsoniterSupport._
-import io.branchtalk.shared.models.{ FastEq, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ShowPretty }
 import io.scalaland.catnip.Semi
 
 @Semi(FastEq, ShowPretty) sealed trait RequiredPermissions extends ADT {

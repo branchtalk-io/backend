@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import io.branchtalk.ADT
 import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.models.ID
+import io.branchtalk.shared.model.ID
 import io.scalaland.catnip.Semi
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros

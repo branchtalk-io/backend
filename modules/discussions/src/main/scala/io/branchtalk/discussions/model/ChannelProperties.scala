@@ -6,7 +6,7 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.shared.models.ParseRefined
+import io.branchtalk.shared.model.ParseRefined
 import io.estatico.newtype.macros.newtype
 
 trait ChannelProperties { self: Channel.type =>

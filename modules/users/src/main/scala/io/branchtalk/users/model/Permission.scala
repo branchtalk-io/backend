@@ -2,7 +2,7 @@ package io.branchtalk.users.model
 
 import cats.Order
 import io.branchtalk.ADT
-import io.branchtalk.shared.models.{ FastEq, ID, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ID, ShowPretty }
 import io.scalaland.catnip.Semi
 
 @Semi(FastEq, ShowPretty) sealed trait Permission extends ADT

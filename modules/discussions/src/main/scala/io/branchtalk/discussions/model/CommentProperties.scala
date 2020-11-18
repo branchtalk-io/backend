@@ -4,7 +4,7 @@ import cats.{ Eq, Order, Show }
 import cats.effect.Sync
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.NonNegative
-import io.branchtalk.shared.models.ParseRefined
+import io.branchtalk.shared.model.ParseRefined
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 

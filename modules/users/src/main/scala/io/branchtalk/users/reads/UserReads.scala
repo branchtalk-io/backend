@@ -2,7 +2,7 @@ package io.branchtalk.users.reads
 
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
-import io.branchtalk.shared.models.{ ID, Paginated }
+import io.branchtalk.shared.model.{ ID, Paginated }
 import io.branchtalk.users.model.{ Password, User }
 
 trait UserReads[F[_]] {

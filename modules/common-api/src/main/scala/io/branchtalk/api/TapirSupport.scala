@@ -4,7 +4,7 @@ import java.net.URI
 
 import cats.Id
 import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptySet }
-import io.branchtalk.shared.models.{ ID, OptionUpdatable, UUID, Updatable, discriminatorNameMapper }
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, discriminatorNameMapper }
 import io.estatico.newtype.Coercible
 import sttp.tapir.CodecFormat.TextPlain
 import sttp.tapir.{ Codec, DecodeResult, Endpoint, Schema }

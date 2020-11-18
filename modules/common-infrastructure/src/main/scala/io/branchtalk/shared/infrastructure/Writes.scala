@@ -2,7 +2,7 @@ package io.branchtalk.shared.infrastructure
 
 import cats.effect.Sync
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models.{ CodePosition, CommonError, ID, UUID }
+import io.branchtalk.shared.model.{ CodePosition, CommonError, ID, UUID }
 import fs2._
 
 abstract class Writes[F[_]: Sync, Entity, Event](producer: EventBusProducer[F, Event]) {

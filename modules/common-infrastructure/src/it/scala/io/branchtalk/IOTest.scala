@@ -2,7 +2,7 @@ package io.branchtalk
 
 import cats.effect.{ ContextShift, IO, Timer }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.shared.models.CodePosition
+import io.branchtalk.shared.model.CodePosition
 import org.specs2.specification.core.{ AsExecution, Execution }
 
 import scala.concurrent.duration._

@@ -3,7 +3,7 @@ package io.branchtalk.users.model
 import cats.Eq
 import cats.data.{ NonEmptyList, NonEmptySet }
 import io.branchtalk.ADT
-import io.branchtalk.shared.models.{ FastEq, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ShowPretty }
 import io.scalaland.catnip.Semi
 
 @Semi(FastEq, ShowPretty) sealed trait RequiredPermissions extends ADT {

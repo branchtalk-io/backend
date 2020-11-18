@@ -102,7 +102,7 @@ object AppServer {
 
     val appServer = wire[AppServer[F]]
 
-    val logger = io.branchtalk.shared.models.Logger.getLogger[F]
+    val logger = io.branchtalk.shared.model.Logger.getLogger[F]
 
     Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
       BlazeServerBuilder[F](ExecutionContext.global) // TODO: make configurable

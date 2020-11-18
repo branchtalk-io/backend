@@ -1,7 +1,7 @@
 package io.branchtalk.discussions
 
 import io.branchtalk.discussions.model.Subscription
-import io.branchtalk.shared.models.TestUUIDGenerator
+import io.branchtalk.shared.model.TestUUIDGenerator
 import org.specs2.mutable.Specification
 
 final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {

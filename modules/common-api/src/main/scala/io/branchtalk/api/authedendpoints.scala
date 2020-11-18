@@ -1,7 +1,7 @@
 package io.branchtalk.api
 
 import cats.{ Monad, MonadError }
-import io.branchtalk.shared.models.{ CodePosition, CommonError }
+import io.branchtalk.shared.model.{ CodePosition, CommonError }
 import sttp.tapir._
 import sttp.tapir.server.ServerEndpoint
 

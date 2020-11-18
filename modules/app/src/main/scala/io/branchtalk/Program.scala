@@ -8,7 +8,7 @@ import io.branchtalk.api.AppServer
 import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.shared.infrastructure.DomainConfig
-import io.branchtalk.shared.models.{ Logger, UUIDGenerator }
+import io.branchtalk.shared.model.{ Logger, UUIDGenerator }
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 import org.http4s.metrics.prometheus.Prometheus

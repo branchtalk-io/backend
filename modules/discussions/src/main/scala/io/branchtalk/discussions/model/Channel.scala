@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.model
 
 import io.scalaland.catnip.Semi
-import io.branchtalk.shared.models.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty }
+import io.branchtalk.shared.model.{ CreationTime, FastEq, ID, ModificationTime, ShowPretty }
 
 @Semi(FastEq, ShowPretty) final case class Channel(
   id:   ID[Channel],

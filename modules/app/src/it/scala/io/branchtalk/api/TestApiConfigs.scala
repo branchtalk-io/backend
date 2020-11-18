@@ -2,7 +2,7 @@ package io.branchtalk.api
 
 import cats.effect.{ Resource, Sync, Timer }
 import io.branchtalk.configs.{ APIConfig, APIContact, APIHttp, APIInfo, APILicense, AppArguments }
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.shared.model.UUIDGenerator
 
 import scala.collection.mutable
 import scala.concurrent.duration._

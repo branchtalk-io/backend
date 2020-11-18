@@ -5,7 +5,7 @@ import io.branchtalk.api._
 import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models.{ CreationScheduled, OptionUpdatable, TestUUIDGenerator, Updatable }
+import io.branchtalk.shared.model.{ CreationScheduled, OptionUpdatable, TestUUIDGenerator, Updatable }
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.model.{ Password, Session, User }

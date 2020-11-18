@@ -7,7 +7,7 @@ import io.branchtalk.discussions.events.{ DiscussionCommandEvent, PostCommandEve
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, NormalizeForUrl, Writes }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
 final class PostWritesImpl[F[_]: Sync: Timer](

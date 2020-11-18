@@ -2,7 +2,7 @@ package io.branchtalk.discussions
 
 import cats.effect.IO
 import io.branchtalk.discussions.model._
-import io.branchtalk.shared.models.{ ID, UUIDGenerator }
+import io.branchtalk.shared.model.{ ID, UUIDGenerator }
 import io.branchtalk.shared.Fixtures._
 
 trait DiscussionsFixtures {

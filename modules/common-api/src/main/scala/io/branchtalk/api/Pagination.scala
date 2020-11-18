@@ -2,7 +2,7 @@ package io.branchtalk.api
 
 import io.branchtalk.api.JsoniterSupport._
 import io.scalaland.chimney.dsl._
-import io.branchtalk.shared.models.Paginated
+import io.branchtalk.shared.model.Paginated
 import io.scalaland.catnip.Semi
 
 @Semi(JsCodec) final case class Pagination[A](

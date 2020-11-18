@@ -4,7 +4,7 @@ import cats.effect.{ ConcurrentEffect, ContextShift, Timer }
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import fs2.kafka._
-import io.branchtalk.shared.models.UUID
+import io.branchtalk.shared.model.UUID
 
 object KafkaEventBus {
 

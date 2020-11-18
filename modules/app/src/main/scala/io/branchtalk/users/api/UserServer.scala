@@ -7,7 +7,7 @@ import io.branchtalk.api._
 import io.branchtalk.auth._
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.mappings._
-import io.branchtalk.shared.models.{ CommonError, ID }
+import io.branchtalk.shared.model.{ CommonError, ID }
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.model.{ Password, Session, User }

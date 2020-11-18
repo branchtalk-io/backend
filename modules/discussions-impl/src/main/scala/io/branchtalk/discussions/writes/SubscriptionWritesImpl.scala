@@ -5,7 +5,7 @@ import io.branchtalk.discussions.events.{ DiscussionCommandEvent, SubscriptionCo
 import io.branchtalk.discussions.model.{ Subscription, User }
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
 final class SubscriptionWritesImpl[F[_]: Sync: Timer](

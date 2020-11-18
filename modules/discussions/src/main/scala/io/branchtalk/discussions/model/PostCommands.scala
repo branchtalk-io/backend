@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.model
 
 import io.scalaland.catnip.Semi
-import io.branchtalk.shared.models.{ FastEq, ID, ShowPretty, Updatable }
+import io.branchtalk.shared.model.{ FastEq, ID, ShowPretty, Updatable }
 
 trait PostCommands { self: Post.type =>
   type Create  = PostCommands.Create

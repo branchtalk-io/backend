@@ -3,7 +3,7 @@ package io.branchtalk.users.writes
 import cats.effect.Sync
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
-import io.branchtalk.shared.models.{ ID, UUIDGenerator }
+import io.branchtalk.shared.model.{ ID, UUIDGenerator }
 import io.branchtalk.users.events.{ SessionEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Session, SessionDao }

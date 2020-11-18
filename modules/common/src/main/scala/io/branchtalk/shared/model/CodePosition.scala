@@ -1,4 +1,4 @@
-package io.branchtalk.shared.models
+package io.branchtalk.shared.model
 
 import io.scalaland.catnip.Semi
 

@@ -2,7 +2,7 @@ package io.branchtalk.discussions
 
 import cats.effect.IO
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.models.{ ID, OptionUpdatable, TestUUIDGenerator, Updatable }
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, TestUUIDGenerator, Updatable }
 import org.specs2.mutable.Specification
 
 final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {

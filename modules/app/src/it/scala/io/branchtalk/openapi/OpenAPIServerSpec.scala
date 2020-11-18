@@ -1,7 +1,7 @@
 package io.branchtalk.openapi
 
 import io.branchtalk.api.ServerIOTest
-import io.branchtalk.shared.models.TestUUIDGenerator
+import io.branchtalk.shared.model.TestUUIDGenerator
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 import sttp.client3._

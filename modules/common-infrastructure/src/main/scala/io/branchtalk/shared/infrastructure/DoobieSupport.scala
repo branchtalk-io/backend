@@ -4,7 +4,7 @@ import cats.effect.{ IO, Sync }
 import com.typesafe.scalalogging.Logger
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
-import io.branchtalk.shared.models.{
+import io.branchtalk.shared.model.{
   CodePosition,
   CommonError,
   ID,

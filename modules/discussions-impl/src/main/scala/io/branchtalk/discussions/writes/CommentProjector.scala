@@ -8,7 +8,7 @@ import fs2.Stream
 import io.branchtalk.discussions.events.{ CommentCommandEvent, CommentEvent, DiscussionCommandEvent, DiscussionEvent }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
-import io.branchtalk.shared.models.UUID
+import io.branchtalk.shared.model.UUID
 import io.scalaland.chimney.dsl._
 
 final class CommentProjector[F[_]: Sync](transactor: Transactor[F])

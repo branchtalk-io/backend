@@ -2,7 +2,7 @@ package io.branchtalk.users
 
 import cats.effect.{ IO, Resource }
 import io.branchtalk.{ IOTest, ResourcefulTest }
-import io.branchtalk.shared.models.UUIDGenerator
+import io.branchtalk.shared.model.UUIDGenerator
 
 trait UsersIOTest extends IOTest with ResourcefulTest {
 

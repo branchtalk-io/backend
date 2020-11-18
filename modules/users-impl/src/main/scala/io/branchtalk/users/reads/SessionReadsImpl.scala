@@ -2,7 +2,7 @@ package io.branchtalk.users.reads
 
 import cats.effect.Sync
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models.ID
+import io.branchtalk.shared.model.ID
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Session, SessionDao }
 

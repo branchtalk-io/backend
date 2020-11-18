@@ -2,8 +2,8 @@ package io.branchtalk.discussions.events
 
 import com.sksamuel.avro4s._
 import io.branchtalk.ADT
-import io.branchtalk.shared.models._
-import io.branchtalk.shared.models.AvroSupport._
+import io.branchtalk.shared.model._
+import io.branchtalk.shared.model.AvroSupport._
 import io.scalaland.catnip.Semi
 
 @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait DiscussionEvent extends ADT

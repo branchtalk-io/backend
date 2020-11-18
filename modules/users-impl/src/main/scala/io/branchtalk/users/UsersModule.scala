@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import com.softwaremill.macwire.wire
 import io.branchtalk.shared.infrastructure._
-import io.branchtalk.shared.models.{ Logger, UUID, UUIDGenerator }
+import io.branchtalk.shared.model.{ Logger, UUID, UUIDGenerator }
 import io.branchtalk.users.events.{ UsersCommandEvent, UsersEvent }
 import io.branchtalk.users.reads._
 import io.branchtalk.users.writes._

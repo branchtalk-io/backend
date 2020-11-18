@@ -1,6 +1,6 @@
 package io.branchtalk.users
 
-import io.branchtalk.shared.models.{ CreationScheduled, TestUUIDGenerator }
+import io.branchtalk.shared.model.{ CreationScheduled, TestUUIDGenerator }
 import io.branchtalk.users.model.Session
 import org.specs2.mutable.Specification
 

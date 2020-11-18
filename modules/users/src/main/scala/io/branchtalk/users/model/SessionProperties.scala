@@ -8,7 +8,7 @@ import cats.effect.Clock
 import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
 import io.branchtalk.ADT
-import io.branchtalk.shared.models.{ FastEq, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ShowPretty }
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 

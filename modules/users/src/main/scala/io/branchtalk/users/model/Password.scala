@@ -8,7 +8,7 @@ import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
-import io.branchtalk.shared.models.{ FastEq, ParseRefined, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ParseRefined, ShowPretty }
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 

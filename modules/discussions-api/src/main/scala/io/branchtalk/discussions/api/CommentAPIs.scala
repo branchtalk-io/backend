@@ -5,7 +5,7 @@ import io.branchtalk.api.AuthenticationSupport._
 import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.api.CommentModels._
 import io.branchtalk.discussions.model.{ Channel, Comment, Post }
-import io.branchtalk.shared.models.{ ID, Updatable }
+import io.branchtalk.shared.model.{ ID, Updatable }
 import sttp.model.StatusCode
 import sttp.tapir._
 

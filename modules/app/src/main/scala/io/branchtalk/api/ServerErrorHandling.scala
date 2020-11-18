@@ -2,7 +2,7 @@ package io.branchtalk.api
 
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.shared.models.CommonError
+import io.branchtalk.shared.model.CommonError
 
 trait ServerErrorHandling[F[_], E] {
 

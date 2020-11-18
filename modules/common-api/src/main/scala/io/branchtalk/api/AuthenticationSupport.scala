@@ -6,8 +6,8 @@ import cats.effect.IO
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import io.branchtalk.api.Authentication.{ Credentials, Session }
-import io.branchtalk.shared.models.{ ParseRefined, UUIDGenerator }
-import io.branchtalk.shared.models.UUIDGenerator.FastUUIDGenerator
+import io.branchtalk.shared.model.{ ParseRefined, UUIDGenerator }
+import io.branchtalk.shared.model.UUIDGenerator.FastUUIDGenerator
 import sttp.tapir.{ EndpointIO, _ }
 
 import scala.util.Try

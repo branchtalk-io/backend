@@ -10,7 +10,7 @@ import io.branchtalk.ADT
 import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.models.{ ID, OptionUpdatable, Updatable }
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
 import sttp.tapir.Schema

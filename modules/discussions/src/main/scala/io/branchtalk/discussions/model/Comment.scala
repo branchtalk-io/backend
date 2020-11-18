@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.model
 
 import io.scalaland.catnip.Semi
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 
 @Semi(FastEq, ShowPretty) final case class Comment(
   id:   ID[Comment],

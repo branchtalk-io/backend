@@ -4,7 +4,7 @@ import cats.Id
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models.{ ID, UUID }
+import io.branchtalk.shared.model.{ ID, UUID }
 import io.branchtalk.users.model.{ Password, Permission, Permissions, Session }
 import io.estatico.newtype.Coercible
 import org.postgresql.util.PGobject

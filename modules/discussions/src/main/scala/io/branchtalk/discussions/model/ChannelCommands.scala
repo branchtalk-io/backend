@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.model
 
 import io.scalaland.catnip.Semi
-import io.branchtalk.shared.models.{ FastEq, ID, OptionUpdatable, ShowPretty, Updatable }
+import io.branchtalk.shared.model.{ FastEq, ID, OptionUpdatable, ShowPretty, Updatable }
 
 trait ChannelCommands { self: Channel.type =>
   type Create  = ChannelCommands.Create

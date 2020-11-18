@@ -6,7 +6,7 @@ import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import eu.timepit.refined.api.{ Refined, Validate }
 import eu.timepit.refined.refineV
-import io.branchtalk.shared.models.{ ID, OptionUpdatable, UUID, Updatable, discriminatorNameMapper }
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, discriminatorNameMapper }
 import io.estatico.newtype.Coercible
 
 // TODO: consider moving to some external library

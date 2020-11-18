@@ -5,7 +5,7 @@ import io.branchtalk.discussions.events.{ ChannelCommandEvent, DiscussionCommand
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.models._
+import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
 final class ChannelWritesImpl[F[_]: Sync: Timer](

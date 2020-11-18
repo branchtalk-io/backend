@@ -13,7 +13,7 @@ import eu.timepit.refined.numeric.NonNegative
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
-import io.branchtalk.shared.models.{ FastEq, ParseRefined, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ParseRefined, ShowPretty }
 
 trait PostProperties { self: Post.type =>
   type UrlTitle   = PostProperties.UrlTitle

@@ -1,4 +1,4 @@
-package io.branchtalk.shared.models
+package io.branchtalk.shared.model
 
 import cats.effect.Sync
 import com.eatthepath.uuid.FastUUID
