@@ -168,6 +168,14 @@ object Settings extends Dependencies {
             Seq(
               assemblyJarName := s"${name.value}.jar",
               assemblyMergeStrategy := {
+                // required for OpenAPIServer to work
+                case PathList("META-INF", "maven", "org.webjars", "swagger-ui", "pom.properties") => MergeStrategy.singleOrError
+                // conflicts on random crap
+                case "module-info.class" => MergeStrategy.discard
+                // our own Catnip customizations
+                case "derive.semi.conf" => MergeStrategy.concat
+                case "derive.stub.conf" => MergeStrategy.concat
+                // otherwise
                 case strategy => MergeStrategy.defaultMergeStrategy(strategy)
               },
               mainClass := Some(main)
