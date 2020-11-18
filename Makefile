@@ -26,3 +26,7 @@ dev-ps:
 	docker-compose --project-directory . ${DEV_CONFIGS} ps
 dev-logs:
 	docker-compose --project-directory . ${DEV_CONFIGS} logs ${LOGS}
+dev-clean-volumes:
+	docker volume rm $(NETWORK_PREFIX)_postgres_data -f
+	docker volume rm $(NETWORK_PREFIX)_kafka_data -f
+	docker volume rm $(NETWORK_PREFIX)_zookeeper_data -f

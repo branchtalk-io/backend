@@ -174,7 +174,11 @@ object Settings extends Dependencies {
             )
           )
         )
-        .settings(Compile / run / mainClass := Some(main))
+        .settings(
+          Compile / run / mainClass := Some(main),
+          Compile / run / fork := true,
+          Compile / runMain / fork := true
+        )
   }
 
   sealed abstract class TestConfigurator(project: Project, config: Configuration) {

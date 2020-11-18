@@ -4,14 +4,17 @@ import cats.effect.{ ExitCode, Sync }
 import com.monovore.decline._
 import com.typesafe.config.{ Config, ConfigRenderOptions }
 
-final case class AppConfig(
+final case class AppArguments(
   host:                      String = Defaults.host,
   port:                      Int = Defaults.port,
   runAPI:                    Boolean = Defaults.runAPI,
   runUsersProjections:       Boolean = Defaults.runUsersProjections,
   runDiscussionsProjections: Boolean = Defaults.runDiscussionsProjections
-)
-object AppConfig {
+) {
+
+  def isAnythingRun: Boolean = runAPI || runUsersProjections || runDiscussionsProjections
+}
+object AppArguments {
 
   implicit private class BoolOps[A](private val opts: Opts[A]) extends AnyVal {
 
@@ -62,13 +65,13 @@ object AppConfig {
       )
       .orBool(Defaults.runDiscussionsProjections)
 
-  def parse[F[_]: Sync](args: List[String], env: Map[String, String]): F[AppConfig] =
+  def parse[F[_]: Sync](args: List[String], env: Map[String, String]): F[AppArguments] =
     Sync[F]
       .delay {
         Command(name = "branchtalk", header = "Starts backend server with selected services running") {
           (host, port, monolith orElse (runApi, runUsersProjections, runDiscussionsProjections).tupled).mapN {
             case (host, port, (runApi, runUsersProjections, runDiscussionsProjections)) =>
-              AppConfig(
+              AppArguments(
                 host = host,
                 port = port,
                 runAPI = runApi,

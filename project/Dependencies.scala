@@ -18,6 +18,7 @@ object Dependencies {
   val drosteVersion     = "0.8.0" // https://github.com/higherkindness/droste/releases
   val enumeratumVersion = "1.6.1" // https://github.com/lloydmeta/enumeratum/releases
   val fs2Version        = "2.4.5" // https://github.com/typelevel/fs2/releases
+  val log4catsVersion   = "1.1.1" // https://github.com/ChristopherDavenport/log4cats/releases
   val http4sVersion     = "0.21.9" // https://github.com/http4s/http4s/releases
   val jsoniterVersion   = "2.6.2" // https://github.com/plokhotnyuk/jsoniter-scala/releases
   val monixVersion      = "3.3.0" // https://github.com/monix/monix/releases
@@ -99,6 +100,8 @@ object Dependencies {
   // security
   val bcrypt = "at.favre.lib" % "bcrypt" % "0.9.0"
   // logging
+  val log4cats           = "io.chrisdavenport" %% "log4cats-core" % log4catsVersion
+  val log4catsSlf4j      = "io.chrisdavenport" %% "log4cats-slf4j" % log4catsVersion
   val scalaLogging       = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2" // GH releases are out of date
   val logback            = "ch.qos.logback" % "logback-classic" % "1.2.3" // https://github.com/qos-ch/logback/releases
   val logbackJackson     = "ch.qos.logback.contrib" % "logback-jackson" % "0.1.5" // see MVN
@@ -129,6 +132,8 @@ trait Dependencies {
     chimney,
     enumeratum,
     fastuuid,
+    log4cats,
+    log4catsSlf4j,
     magnolia,
     monocle,
     monocleMacro,

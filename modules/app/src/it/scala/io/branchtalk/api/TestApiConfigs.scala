@@ -1,7 +1,7 @@
 package io.branchtalk.api
 
 import cats.effect.{ Resource, Sync, Timer }
-import io.branchtalk.configs.{ APIConfig, APIContact, APIHttp, APIInfo, APILicense, AppConfig }
+import io.branchtalk.configs.{ APIConfig, APIContact, APIHttp, APIInfo, APILicense, AppArguments }
 import io.branchtalk.shared.models.UUIDGenerator
 
 import scala.collection.mutable
@@ -30,10 +30,10 @@ object TestApiConfigs {
 
   private def portResource[F[_]: Sync: Timer]: Resource[F, Int] = Resource.make(acquirePort[F])(releasePort[F](_))
 
-  def asResource[F[_]: Sync: Timer](implicit UUIDGenerator: UUIDGenerator): Resource[F, (AppConfig, APIConfig)] =
+  def asResource[F[_]: Sync: Timer](implicit UUIDGenerator: UUIDGenerator): Resource[F, (AppArguments, APIConfig)] =
     (Resource.liftF(UUIDGenerator.create[F]), portResource[F]).mapN { (defaultChannelID, port) =>
       val host = "localhost"
-      val app = AppConfig(
+      val app = AppArguments(
         host = host,
         port = port,
         runAPI = true,

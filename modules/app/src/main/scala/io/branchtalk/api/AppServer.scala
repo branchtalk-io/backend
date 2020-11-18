@@ -5,7 +5,7 @@ import cats.data.NonEmptyList
 import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Sync, Timer }
 import com.softwaremill.macwire.wire
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
-import io.branchtalk.configs.{ APIConfig, APIPart, AppConfig, PaginationConfig }
+import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfig }
 import io.branchtalk.discussions.api.{ PostServer, SubscriptionServer }
 import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.openapi.OpenAPIServer
@@ -14,12 +14,12 @@ import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 import org.http4s._
 import org.http4s.implicits._
-import org.http4s.metrics.prometheus.Prometheus
 import org.http4s.metrics.MetricsOps
-import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.metrics.prometheus.Prometheus
 import org.http4s.server.Server
-import sttp.tapir.server.ServerEndpoint
+import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware._
+import sttp.tapir.server.ServerEndpoint
 
 import scala.concurrent.ExecutionContext
 
@@ -63,8 +63,9 @@ final class AppServer[F[_]: Concurrent: Timer](
 }
 object AppServer {
 
+  // scalastyle:off method.length
   def asResource[F[_]: ConcurrentEffect: ContextShift: Timer](
-    appConfig:         AppConfig,
+    appArguments:      AppArguments,
     apiConfig:         APIConfig,
     registry:          CollectorRegistry,
     usersReads:        UsersReads[F],
@@ -101,13 +102,20 @@ object AppServer {
 
     val appServer = wire[AppServer[F]]
 
-    BlazeServerBuilder[F](ExecutionContext.global) // TODO: make configurable
-      .enableHttp2(apiConfig.http.http2Enabled)
-      .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength.value,
-                        maxHeadersLen = apiConfig.http.maxHeaderLineLength.value
-      )
-      .bindHttp(port = appConfig.port, host = appConfig.host)
-      .withHttpApp(appServer.routes)
-      .resource
+    val logger = io.branchtalk.shared.models.Logger.getLogger[F]
+
+    Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
+      BlazeServerBuilder[F](ExecutionContext.global) // TODO: make configurable
+        .enableHttp2(apiConfig.http.http2Enabled)
+        .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength.value,
+                          maxHeadersLen = apiConfig.http.maxHeaderLineLength.value
+        )
+        .bindHttp(port = appArguments.port, host = appArguments.host)
+        .withHttpApp(appServer.routes)
+        .resource
+        .flatTap { server =>
+          Resource.liftF(logger.info(s"API server started at ${server.address.toString}"))
+        }
   }
+  // scalastyle:on method.length
 }

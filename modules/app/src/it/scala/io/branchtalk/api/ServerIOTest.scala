@@ -23,10 +23,10 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   )
 
   protected lazy val serverResource: Resource[IO, Unit] = for {
-    (appConfig, apiConfig) <- TestApiConfigs.asResource[IO]
+    (appArguments, apiConfig) <- TestApiConfigs.asResource[IO]
     _ <- AppServer
       .asResource[IO](
-        appConfig = appConfig,
+        appArguments = appArguments,
         apiConfig = apiConfig,
         registry = registry,
         usersReads = usersReads,

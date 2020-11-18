@@ -26,8 +26,8 @@
 
   <!-- control Branchtalk logs -->
   <property name="BRANCHTALK_LOG_LEVEL" value="${BRANCHTALK_LOG_LEVEL:-INFO}"/>
-  <property name="BRANCHTALK_API_LOG_LEVEL" value="${BRANCHTALK_API_LOG_LEVEL:-$BRANCHTALK_LOG_LEVEL}"/>
-  <property name="BRANCHTALK_INFRA_LOG_LEVEL" value="${BRANCHTALK_INFRA_LOG_LEVEL:-$BRANCHTALK_LOG_LEVEL}"/>
+  <property name="BRANCHTALK_API_LOG_LEVEL" value="${BRANCHTALK_API_LOG_LEVEL:-${BRANCHTALK_LOG_LEVEL}}"/>
+  <property name="BRANCHTALK_INFRA_LOG_LEVEL" value="${BRANCHTALK_INFRA_LOG_LEVEL:-${BRANCHTALK_LOG_LEVEL}}"/>
   <logger name="io.branchtalk" level="${BRANCHTALK_LOG_LEVEL}"/>
   <logger name="io.branchtalk.api" level="${BRANCHTALK_API_LOG_LEVEL}"/>
   <logger name="io.branchtalk.auth" level="${BRANCHTALK_API_LOG_LEVEL}"/>

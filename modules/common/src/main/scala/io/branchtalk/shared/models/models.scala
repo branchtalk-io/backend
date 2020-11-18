@@ -9,10 +9,15 @@ import cats.effect.{ Clock, Sync }
 import cats.{ Eq, Functor, Order, Show }
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.Uuid
+import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
+import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 
 package object models {
+
+  type Logger[F[_]] = SelfAwareStructuredLogger[F]
+  val Logger = Slf4jLogger
 
   type UUID = jUUID
   object UUID {
