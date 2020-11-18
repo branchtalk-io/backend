@@ -1,5 +1,6 @@
 package io.branchtalk
 
+import cats.Applicative
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
 import com.typesafe.config.ConfigFactory
@@ -12,6 +13,7 @@ import io.branchtalk.shared.models.UUIDGenerator
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 import org.http4s.metrics.prometheus.Prometheus
+import sun.misc.Signal
 
 object Program {
 
@@ -59,36 +61,41 @@ object Program {
     discussionsWrites: DiscussionsWrites[F]
   ): F[Unit] =
     Sync[F].delay(logger.info("Initializing services")) >> (
-      conditionalResource(appConfig.runAPI)(())(
-        AppServer
-          .asResource(
-            appConfig = appConfig,
-            apiConfig = apiConfig,
-            registry = registry,
-            usersReads = usersReads,
-            usersWrites = usersWrites,
-            discussionsReads = discussionsReads,
-            discussionsWrites = discussionsWrites
-          )
-          .void
-      ),
-      conditionalResource(appConfig.runUsersProjections)(().pure[F])(usersWrites.runProjector),
-      conditionalResource(appConfig.runDiscussionsProjections)(().pure[F])(discussionsWrites.runProjector)
-    ).tupled.use { case (_, _, startDiscussions) =>
-      for {
-        discussionsFiber <- startDiscussions.start
-        _ <- Sync[F].delay(logger.info("Services initialized"))
-        _ <- terminationSignal // here we are blocking until e.g. user press Ctrl+D or Ctrl+C
-        _ <- Sync[F].delay(logger.info("Received exit signal"))
-        _ <- discussionsFiber.join
-        _ <- Sync[F].delay(logger.info("Shut down services"))
-      } yield ()
+      AppServer
+        .asResource(
+          appConfig = appConfig,
+          apiConfig = apiConfig,
+          registry = registry,
+          usersReads = usersReads,
+          usersWrites = usersWrites,
+          discussionsReads = discussionsReads,
+          discussionsWrites = discussionsWrites
+        )
+        .void
+        .conditionally(appConfig.runAPI)(orElse = ()),
+      usersWrites.runProjector.conditionally(condition = appConfig.runUsersProjections)(orElse = ().pure[F]),
+      discussionsWrites.runProjector.conditionally(condition = appConfig.runDiscussionsProjections)(orElse = ().pure[F])
+    ).tupled.use { case (_, usersProjector, discussionsProjector) =>
+      Sync[F].delay(logger.info("Start projections if needed")) >>
+        usersProjector.start >> // run Users projections on a separate thread
+        discussionsProjector.start >> // run Users projections on a separate thread
+        Sync[F].delay(logger.info("Services initialized")) >>
+        terminationSignal >> // here we are blocking until e.g. user press Ctrl+C
+        Sync[F].delay(logger.info("Received exit signal"))
     }
 
-  private def awaitTerminationSignal[F[_]: Async]: F[Unit] = Async[F].never[Unit]
+  // kudos to Łukasz Byczyński
+  private def awaitTerminationSignal[F[_]: Concurrent]: F[Unit] = {
+    def handleSignal(signalName: String): F[Unit] = Async[F].async[Unit] { cb =>
+      Signal.handle(new Signal(signalName), _ => cb(().asRight[Throwable]))
+      ()
+    }
+    handleSignal("INT").race(handleSignal("TERM")).void
+  }
 
-  private def conditionalResource[F[_]: Concurrent, A](
-    boolean: Boolean
-  )(default: => A)(resource: Resource[F, A]): Resource[F, A] =
-    if (boolean) resource else Resource.pure[F, A](default)
+  implicit class ResourceOps[F[_], A](private val resource: Resource[F, A]) extends AnyVal {
+
+    def conditionally(condition: Boolean)(orElse: => A)(implicit F: Applicative[F]): Resource[F, A] =
+      if (condition) resource else Resource.pure[F, A](orElse)
+  }
 }

@@ -34,6 +34,7 @@ final class SubscriptionServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val withPortErrorHandling = PostServer.serverErrorHandling[F].apply(logger)
 
+  // TODO: split list (by e.g. name) and newest (by creation date)
   private val newest = SubscriptionAPIs.newest.serverLogic[F].apply { case ((optUser, _), optOffset, optLimit) =>
     withPortErrorHandling {
       val offset = paginationConfig.resolveOffset(optOffset)

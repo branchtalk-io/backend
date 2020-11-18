@@ -1,7 +1,11 @@
 .EXPORT_ALL_VARIABLES:
 
+NETWORK_PREFIX=$(shell basename $(PWD))
 CONFIG_DIR=docker-compose
 DEV_CONFIGS=--file ${CONFIG_DIR}/monolith-deps.yml --file ${CONFIG_DIR}/monolith-setup.yml
+
+test:
+	echo $(NETWORK_NAME)
 
 pull:
 	docker-compose --project-directory . ${DEV_CONFIGS} pull
@@ -14,10 +18,10 @@ dev-stop:
 	docker-compose --project-directory . ${DEV_CONFIGS} stop
 dev-down:
 	docker-compose --project-directory . ${DEV_CONFIGS} down --remove-orphans || \
-	(docker container rm branchtalk_kafka_1 branchtalk_postgres_1 -f && \
-	 docker network disconnect branchtalk_branchtalk-monolith branchtalk_kafka_1 -f && \
-   docker network disconnect branchtalk_branchtalk-monolith branchtalk_postgres_1 -f && \
-   docker network rm branchtalk_branchtalk-monolith)
+	(docker container rm $(NETWORK_PREFIX)_kafka_1 $(NETWORK_PREFIX)_postgres_1 -f && \
+	 docker network disconnect $(NETWORK_PREFIX)_branchtalk-monolith $(NETWORK_PREFIX)_kafka_1 -f && \
+   docker network disconnect $(NETWORK_PREFIX)_branchtalk-monolith $(NETWORK_PREFIX)_postgres_1 -f && \
+   docker network rm $(NETWORK_PREFIX)_branchtalk-monolith)
 dev-ps:
 	docker-compose --project-directory . ${DEV_CONFIGS} ps
 dev-logs:
