@@ -3,13 +3,18 @@ package io.branchtalk
 import cats.effect.{ ContextShift, IO, Timer }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.shared.model.CodePosition
+import org.specs2.matcher.MatchResult
 import org.specs2.specification.core.{ AsExecution, Execution }
+import org.specs2.matcher.Matchers._
+import org.specs2.matcher.MustMatchers.theValue
 
 import scala.concurrent.duration._
 
 trait IOTest {
 
   private val logger = Logger(getClass)
+
+  val pass: MatchResult[Boolean] = true must beTrue
 
   implicit protected val contextShift: ContextShift[IO] =
     IO.contextShift(scala.concurrent.ExecutionContext.fromExecutor(null))

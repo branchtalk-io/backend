@@ -50,7 +50,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               session must beSome(anInstanceOf[Session])
               (user, session, response.body.toOption.flatMap(_.toOption))
                 .mapN((u, s, r) => r must_=== SignUpResponse(u.id, s.id))
-                .getOrElse(true must beTrue)
+                .getOrElse(pass)
             }
         }
       }

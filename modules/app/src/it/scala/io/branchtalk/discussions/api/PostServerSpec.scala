@@ -53,7 +53,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                     .map(APIPost.fromDomain)
                     .toSet
                 }
-                .getOrElse(true must beTrue)
+                .getOrElse(pass)
             }
         }
       }

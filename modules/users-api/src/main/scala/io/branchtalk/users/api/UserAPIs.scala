@@ -21,6 +21,8 @@ object UserAPIs {
     statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
+  // TODO: paginate users
+
   val signUp: Endpoint[SignUpRequest, UserError, SignUpResponse, Any] = endpoint
     .name("Sign up")
     .summary("Allows creation of User's account")

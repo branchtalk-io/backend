@@ -4,6 +4,12 @@ import cats.effect.IO
 import io.branchtalk.api.{ Authentication, Pagination, PaginationLimit, PaginationOffset, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels._
+import io.branchtalk.discussions.api.SubscriptionModels.{
+  SubscribeRequest,
+  SubscribeResponse,
+  UnsubscribeRequest,
+  UnsubscribeResponse
+}
 import io.branchtalk.discussions.model.{ Channel, Subscription }
 import io.branchtalk.mappings._
 import io.branchtalk.shared.model._
@@ -55,7 +61,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
                     .map(APIPost.fromDomain)
                     .toSet
                 }
-                .getOrElse(true must beTrue)
+                .getOrElse(pass)
             }
         }
       }
@@ -109,9 +115,90 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
                     .map(APIPost.fromDomain)
                     .toSet
                 }
-                .getOrElse(true must beTrue)
+                .getOrElse(pass)
             }
         }
+      }
+    }
+
+    "on PUT /discussions/subscriptions" in {
+      (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
+        case (usersProjector, discussionsProjector) =>
+          for {
+            // given
+            _ <- usersProjector.logError("Error reported by Users projector").start
+            _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+            (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+              usersWrites.userWrites.createUser
+            )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            subscriberID = userIDUsers2Discussions.get(userID)
+            // when
+            response <- SubscriptionAPIs.subscribe.toTestCall.untupled(
+              Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+              SubscribeRequest(List(channelID))
+            )
+            result <- discussionsReads.subscriptionReads
+              .requireForUser(subscriberID)
+              .assert("Subscription should be eventually added")(_.subscriptions(channelID))
+              .eventually()
+          } yield {
+            // then
+            response.code must_=== StatusCode.Ok
+            response.body must beValid(beRight(anInstanceOf[SubscribeResponse]))
+            response.body.toValidOpt
+              .flatMap(_.toOption)
+              .map(subscribed => subscribed.channels must_=== List(channelID))
+              .getOrElse(pass)
+            result must_=== Subscription(subscriberID, Set(channelID))
+          }
+      }
+    }
+
+    "on DELETE /discussions/subscriptions" in {
+      (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
+        case (usersProjector, discussionsProjector) =>
+          for {
+            // given
+            _ <- usersProjector.logError("Error reported by Users projector").start
+            _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+            (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+              usersWrites.userWrites.createUser
+            )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            subscriberID = userIDUsers2Discussions.get(userID)
+            _ <- discussionsWrites.subscriptionWrites.subscribe(
+              Subscription.Subscribe(subscriberID = subscriberID, subscriptions = Set(channelID))
+            )
+            _ <- discussionsReads.subscriptionReads
+              .requireForUser(subscriberID)
+              .assert("Subscriptions should contain added Channel ID")(_.subscriptions(channelID))
+              .eventually()
+            // when
+            response <- SubscriptionAPIs.unsubscribe.toTestCall.untupled(
+              Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+              UnsubscribeRequest(List(channelID))
+            )
+            result <- discussionsReads.subscriptionReads
+              .requireForUser(subscriberID)
+              .assert("Subscription should be eventually removed")(!_.subscriptions(channelID))
+              .eventually()
+          } yield {
+            // then
+            response.code must_=== StatusCode.Ok
+            response.body must beValid(beRight(anInstanceOf[UnsubscribeResponse]))
+            response.body.toValidOpt
+              .flatMap(_.toOption)
+              .map(unsubscribed => unsubscribed.channels must_=== List(channelID))
+              .getOrElse(pass)
+            result must_=== Subscription(subscriberID, Set.empty)
+          }
       }
     }
   }
