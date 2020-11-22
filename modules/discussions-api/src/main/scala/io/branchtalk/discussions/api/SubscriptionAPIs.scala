@@ -54,20 +54,21 @@ object SubscriptionAPIs {
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val subscribe: AuthedEndpoint[(Authentication, SubscribeRequest), SubscriptionError, SubscribeRequest, Any] = endpoint
-    .name("Subscribe")
-    .summary("Subscribe to Channels")
-    .description("Schedule subscribing to Channels")
-    .tags(List(DiscussionsTags.domain, DiscussionsTags.subscriptions))
-    .put
-    .in(authHeader)
-    .in(prefix)
-    .in(jsonBody[SubscribeRequest])
-    .out(jsonBody[SubscribeRequest])
-    .errorOut(errorMapping)
-    .notRequiringPermissions
+  val subscribe: AuthedEndpoint[(Authentication, SubscribeRequest), SubscriptionError, SubscribeResponse, Any] =
+    endpoint
+      .name("Subscribe")
+      .summary("Subscribe to Channels")
+      .description("Schedule subscribing to Channels")
+      .tags(List(DiscussionsTags.domain, DiscussionsTags.subscriptions))
+      .put
+      .in(authHeader)
+      .in(prefix)
+      .in(jsonBody[SubscribeRequest])
+      .out(jsonBody[SubscribeResponse])
+      .errorOut(errorMapping)
+      .notRequiringPermissions
 
-  val unsubscribe: AuthedEndpoint[(Authentication, UnsubscribeRequest), SubscriptionError, UnsubscribeRequest, Any] =
+  val unsubscribe: AuthedEndpoint[(Authentication, UnsubscribeRequest), SubscriptionError, UnsubscribeResponse, Any] =
     endpoint
       .name("Unsubscribe")
       .summary("Unsubscribe from Channels")
@@ -77,7 +78,7 @@ object SubscriptionAPIs {
       .in(authHeader)
       .in(prefix)
       .in(jsonBody[UnsubscribeRequest])
-      .out(jsonBody[UnsubscribeRequest])
+      .out(jsonBody[UnsubscribeResponse])
       .errorOut(errorMapping)
       .notRequiringPermissions
 }
