@@ -57,6 +57,7 @@ object ChannelModels {
   }
 
   @Semi(JsCodec) final case class CreateChannelRequest(
+    urlName:     Channel.UrlName,
     name:        Channel.Name,
     description: Option[Channel.Description]
   )

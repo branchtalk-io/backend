@@ -11,7 +11,7 @@ import io.branchtalk.discussions.model.Post
 import io.branchtalk.discussions.reads.PostReads
 import io.branchtalk.discussions.writes.PostWrites
 import io.branchtalk.mappings._
-import io.branchtalk.shared.model.{ CommonError, Paginated }
+import io.branchtalk.shared.model.{ CommonError, CreationScheduled, Paginated }
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
@@ -57,8 +57,8 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
         .withFieldConst(_.channelID, channelID)
         .transform
       for {
-        creationScheduled <- postWrites.createPost(data)
-      } yield CreatePostResponse(creationScheduled.id)
+        CreationScheduled(postID) <- postWrites.createPost(data)
+      } yield CreatePostResponse(postID)
     }
   }
 
@@ -92,12 +92,10 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
           .into[Post.Update]
           .withFieldConst(_.id, postID)
           .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-          .withFieldRenamed(_.newContent, _.newContent)
-          .withFieldRenamed(_.newTitle, _.newTitle)
           .transform
         for {
-          result <- postWrites.updatePost(data)
-        } yield UpdatePostResponse(result.id)
+          _ <- postWrites.updatePost(data)
+        } yield UpdatePostResponse(postID)
       }
     }
 
@@ -114,8 +112,8 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
         val userID = user.id
         val data   = Post.Delete(postID, userIDUsers2Discussions.get(userID))
         for {
-          result <- postWrites.deletePost(data)
-        } yield DeletePostResponse(result.id)
+          _ <- postWrites.deletePost(data)
+        } yield DeletePostResponse(postID)
       }
     }
 
@@ -132,8 +130,8 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
         val userID = user.id
         val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))
         for {
-          result <- postWrites.restorePost(data)
-        } yield RestorePostResponse(result.id)
+          _ <- postWrites.restorePost(data)
+        } yield RestorePostResponse(postID)
       }
     }
 
