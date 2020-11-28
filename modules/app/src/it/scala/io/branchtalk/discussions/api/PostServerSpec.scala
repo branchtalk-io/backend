@@ -19,7 +19,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
   "PostServer-provided endpoints" should {
 
-    "on GET /discussions/posts/newest" in {
+    "on GET /discussions/channels/{channelID}/posts/newest" in {
 
       "return newest Posts for a specified Channels for signed-out User" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
@@ -59,7 +59,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
       }
     }
 
-    "on POST /discussions/posts" in {
+    "on POST /discussions/channels/{channelID}/posts" in {
 
       "create a new Post" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
@@ -82,7 +82,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 channelID,
                 creationData.transformInto[CreatePostRequest]
               )
-              // TODO: check that this creates a new post eentually!
+              // TODO: check that this creates a new post eventually!
             } yield {
               // then
               response.code must_=== StatusCode.Ok
@@ -92,7 +92,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
       }
     }
 
-    "on GET /discussions/posts/{postID}" in {
+    "on GET /discussions/channels/{channelID}/posts/{postID}" in {
 
       "fetch existing Post" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
@@ -125,7 +125,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
       }
     }
 
-    "on PUT /discussions/posts/{postID}" in {
+    "on PUT /discussions/channels/{channelID}/posts/{postID}" in {
 
       "update existing Post when User is its Author" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
@@ -179,7 +179,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
       }
     }
 
-    "on DELETE /discussions/posts/{postID}" in {
+    "on DELETE /discussions/channels/{channelID}/posts/{postID}" in {
 
       "delete existing Post when User is its Author" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
@@ -218,7 +218,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
       }
     }
 
-    "on POST /discussions/posts/{postID}/restore" in {
+    "on POST /discussions/channels/{channelID}/posts/{postID}/restore" in {
 
       "restore deleted Post when User is its Author" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
@@ -258,7 +258,5 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
         }
       }
     }
-
-    // TODO: restore
   }
 }
