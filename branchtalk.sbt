@@ -193,10 +193,8 @@ val application = project
   .configureIntegrationTests(requiresFork = true)
   .configureRun("io.branchtalk.Main")
   .settings(
+    dockerUpdateLatest := true,
     Docker / packageName := "branchtalk-server",
-    Docker / dockerAliases ++= Seq(
-      DockerAlias(registryHost = None, username = None, name = "branchtalk", tag = Some("latest"))
-    ),
     Docker / dockerExposedPorts := Seq(8080),
     libraryDependencies ++= Seq(
       Dependencies.decline,

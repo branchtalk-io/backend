@@ -1,0 +1,48 @@
+version: '2.1'
+
+networks:
+  branchtalk-monolith:
+    driver: bridge
+
+services:
+  application:
+    image: 'branchtalk-server:latest'
+    restart: always
+    ports:
+      - '8080:8080'
+    #healthcheck:
+    #  test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+    #  interval: 30s
+    #  timeout: 10s
+    #  retries: 4
+    command: ["--host=0.0.0.0", "--monolith"]
+    environment:
+      JAVA_OPTS: '
+        -Dusers.database.url=jdbc:postgresql://postgres:5432/users
+        -Dusers.published-event-bus.servers.0.host=kafka
+        -Dusers.published-event-bus.servers.0.port=9092
+        -Dusers.internal-event-bus.servers.0.host=kafka
+        -Dusers.internal-event-bus.servers.0.port=9092
+        -Ddiscussions.database.url=jdbc:postgresql://postgres:5432/discussions
+        -Ddiscussions.published-event-bus.servers.0.host=kafka
+        -Ddiscussions.published-event-bus.servers.0.port=9092
+        -Ddiscussions.internal-event-bus.servers.0.host=kafka
+        -Ddiscussions.internal-event-bus.servers.0.port=9092
+      '
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-setup:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      postgres-setup:
+        condition: service_started
+    networks:
+      - branchtalk-monolith
+
+volumes:
+  postgres_data:
+    driver: local
+  kafka_data:
+    driver: local
