@@ -1,17 +1,14 @@
-import com.typesafe.sbt.SbtNativePackager.Docker
 import sbt._
 import sbt.Keys._
 import sbt.TestFrameworks.Specs2
 import sbt.Tests.Argument
 import com.typesafe.sbt._
-import com.typesafe.sbt.packager.Keys.packageName
 import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
 import com.typesafe.sbt.packager.docker.DockerPlugin
 import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
 import sbtassembly.AssemblyPlugin.autoImport._
 import scoverage._
-import spray.revolver.RevolverPlugin.autoImport._
 import wartremover.WartRemover.autoImport._
 
 object Settings extends Dependencies {
@@ -22,7 +19,10 @@ object Settings extends Dependencies {
     organization := "io.branchtalk",
     scalaOrganization := scalaOrganizationUsed,
     scalaVersion := scalaVersionUsed,
-    crossScalaVersions := crossScalaVersionsUsed
+    crossScalaVersions := crossScalaVersionsUsed,
+    // kind of required to avoid "{project}/doc" task failure, because of Catnip :/
+    Compile / doc / sources  := Seq.empty,
+    Compile / packageDoc / publishArtifact := false
   )
 
   private val rootSettings = commonSettings
@@ -168,9 +168,6 @@ object Settings extends Dependencies {
     def configureRun(main: String): Project =
       project
         .enablePlugins(JavaAppPackaging, DockerPlugin)
-        .settings(
-          Docker / packageName := "branchtalk-server"
-        )
         .settings(
           inTask(assembly)(
             Seq(

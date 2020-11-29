@@ -1,5 +1,6 @@
 import sbt._
 import Settings._
+import com.typesafe.sbt.SbtNativePackager.Docker
 
 Global / excludeLintKeys ++= Set(scalacOptions, trapExit)
 
@@ -192,6 +193,11 @@ val application = project
   .configureIntegrationTests(requiresFork = true)
   .configureRun("io.branchtalk.Main")
   .settings(
+    Docker / packageName := "branchtalk-server",
+    Docker / dockerAliases ++= Seq(
+      DockerAlias(registryHost = None, username = None, name = "branchtalk", tag = Some("latest"))
+    ),
+    Docker / dockerExposedPorts := Seq(8080),
     libraryDependencies ++= Seq(
       Dependencies.decline,
       Dependencies.logbackJackson,
