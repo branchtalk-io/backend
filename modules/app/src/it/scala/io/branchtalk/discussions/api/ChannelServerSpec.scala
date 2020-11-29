@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.IO
-import io.branchtalk.api.{ Authentication, ServerIOTest }
+import io.branchtalk.api.{ Authentication, Pagination, PaginationLimit, PaginationOffset, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.ChannelModels._
 import io.branchtalk.discussions.model.Channel
@@ -18,6 +18,45 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
   implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelServer-provided endpoints" should {
+
+    "on GET /discussions/channels" in {
+
+      "return newest Posts for a specified Channels for signed-out User" in {
+        (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
+          case (usersProjector, discussionsProjector) =>
+            for {
+              // given
+              _ <- usersProjector.logError("Error reported by Users projector").start
+              _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+              CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+              _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+              channelIDs <- (0 until 10).toList.traverse(_ =>
+                channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+              )
+              channels <- channelIDs.traverse(discussionsReads.channelReads.requireById(_)).eventually()
+              // when
+              response1 <- ChannelAPIs.paginate.toTestCall.untupled(None, None, PaginationLimit(5).some)
+              response2 <- ChannelAPIs.paginate.toTestCall.untupled(None,
+                                                                    PaginationOffset(5L).some,
+                                                                    PaginationLimit(5).some
+              )
+            } yield {
+              // then
+              response1.code must_=== StatusCode.Ok
+              response1.body must beValid(beRight(anInstanceOf[Pagination[APIChannel]]))
+              response2.code must_=== StatusCode.Ok
+              response2.body must beValid(beRight(anInstanceOf[Pagination[APIChannel]]))
+              (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
+                .mapN { (pagination1, pagination2) =>
+                  (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== channels
+                    .map(APIChannel.fromDomain)
+                    .toSet
+                }
+                .getOrElse(pass)
+            }
+        }
+      }
+    }
 
     "on POST /discussions/channels" in {
 
@@ -39,7 +78,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 creationData.transformInto[CreateChannelRequest]
               )
-              // TODO: check that this creates a new post eventually!
+              // TODO: check that this creates a new channel eventually!
             } yield {
               // then
               response.code must_=== StatusCode.Ok

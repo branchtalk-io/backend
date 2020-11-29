@@ -32,6 +32,17 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val withErrorHandling = ChannelServer.serverErrorHandling[F].apply(logger)
 
+  private val paginate = ChannelAPIs.paginate.serverLogic[F].apply { case ((_, _), optOffset, optLimit) =>
+    withErrorHandling {
+      val sortBy = Channel.Sorting.Newest
+      val offset = paginationConfig.resolveOffset(optOffset)
+      val limit  = paginationConfig.resolveLimit(optLimit)
+      for {
+        paginated <- channelReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+      } yield Pagination.fromPaginated(paginated.map(APIChannel.fromDomain), offset, limit)
+    }
+  }
+
   private val create = ChannelAPIs.create.serverLogic[F].apply { case ((user, _), createData) =>
     withErrorHandling {
       val userID = user.id
@@ -86,6 +97,7 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
   }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, ChannelError, _, Any, F]] = NonEmptyList.of(
+    paginate,
     create,
     read,
     update,
