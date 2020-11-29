@@ -133,8 +133,8 @@ object ChannelAPIs {
 
   val restore: AuthedEndpoint[(Authentication, ID[Channel]), ChannelError, RestoreChannelResponse, Any] = endpoint
     .name("Restores Channel")
-    .summary("Deletes specific Post")
-    .description("Schedule specific Post's deletion, requires ownership or moderator status")
+    .summary("Restores specific Channel")
+    .description("Schedule specific Channel's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.channels))
     .post
     .in(authHeader)

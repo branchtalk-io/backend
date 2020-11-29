@@ -150,7 +150,7 @@ object CommentAPIs {
     Any
   ] = endpoint
     .name("Restores Comment")
-    .summary("Deletes specific Comment")
+    .summary("Restores specific Comment")
     .description("Schedule specific Comment's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .post

@@ -113,7 +113,15 @@ object AppServer {
     val openAPIServer: OpenAPIServer[F] = {
       import apiConfig.info
       val endpoints: NonEmptyList[ServerEndpoint[_, _, _, Nothing, F]] =
-        NonEmptyList.of(usersServer.endpoints, postServer.endpoints, subscriptionServer.endpoints).reduceK
+        NonEmptyList
+          .of(
+            usersServer.endpoints,
+            channelServer.endpoints,
+            postServer.endpoints,
+            commentServer.endpoints,
+            subscriptionServer.endpoints
+          )
+          .reduceK
       wire[OpenAPIServer[F]]
     }
 

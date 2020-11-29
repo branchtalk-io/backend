@@ -142,7 +142,7 @@ object PostAPIs {
     Any
   ] = endpoint
     .name("Restores Post")
-    .summary("Deletes specific Post")
+    .summary("Restores specific Post")
     .description("Schedule specific Post's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .post
