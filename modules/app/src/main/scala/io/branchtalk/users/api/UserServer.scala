@@ -33,10 +33,10 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
 
   implicit private val serverOptions: Http4sServerOptions[F] = UserServer.serverOptions[F].apply(logger)
 
-  private val withErrorHandling = UserServer.serverErrorHandling[F].apply(logger)
+  implicit private val errorHandler: ServerErrorHandler[F, UserError] = UserServer.errorHandler[F].apply(logger)
 
   private val signUp = UserAPIs.signUp.serverLogic { signup =>
-    withErrorHandling {
+    errorHandler {
       for {
         (user, session) <- usersWrites.userWrites.createUser(
           signup.into[User.Create].withFieldConst(_.password, Password.create(signup.password)).transform
@@ -46,44 +46,38 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
   }
 
   private val signIn = UserAPIs.signIn.serverLogic[F].apply { case (user, sessionOpt) =>
-    withErrorHandling {
-      for {
-        session <- sessionOpt match {
-          case Some(session) =>
-            session.pure[F]
-          case None =>
-            for {
-              expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
-              session <- usersWrites.sessionWrites.createSession(
-                Session.Create(
-                  userID = user.id,
-                  usage = Session.Usage.UserSession,
-                  expiresAt = expireAt
-                )
+    for {
+      session <- sessionOpt match {
+        case Some(session) =>
+          session.pure[F]
+        case None =>
+          for {
+            expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
+            session <- usersWrites.sessionWrites.createSession(
+              Session.Create(
+                userID = user.id,
+                usage = Session.Usage.UserSession,
+                expiresAt = expireAt
               )
-            } yield session
-        }
-      } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
-    }
+            )
+          } yield session
+      }
+    } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
   }
 
   private val signOut = UserAPIs.signOut.serverLogic[F].apply { case (user, sessionOpt) =>
-    withErrorHandling {
-      for {
-        sessionID <- sessionOpt match {
-          case Some(s) => usersWrites.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
-          case None    => none[ID[Session]].pure[F]
-        }
-      } yield SignOutResponse(userID = user.id, sessionID = sessionID)
-    }
+    for {
+      sessionID <- sessionOpt match {
+        case Some(s) => usersWrites.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
+        case None    => none[ID[Session]].pure[F]
+      }
+    } yield SignOutResponse(userID = user.id, sessionID = sessionID)
   }
 
   private val fetchProfile = UserAPIs.fetchProfile.serverLogic[F].apply { case ((_, _), userID) =>
-    withErrorHandling {
-      for {
-        user <- usersReads.userReads.requireById(userID)
-      } yield APIUser.fromDomain(user)
-    }
+    for {
+      user <- usersReads.userReads.requireById(userID)
+    } yield APIUser.fromDomain(user)
   }
 
   private val updateProfile = UserAPIs.updateProfile
@@ -91,19 +85,17 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     .apply { case (_, userID, _) =>
       userIDApi2Users.reverseGet(userID).pure[F]
     } { case ((user, _), userID, update) =>
-      withErrorHandling {
-        val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
-        val data = update
-          .into[User.Update]
-          .withFieldConst(_.id, userID)
-          .withFieldConst(_.moderatorID, moderatorID)
-          .withFieldConst(_.newPassword, update.newPassword.map(Password.create))
-          .withFieldConst(_.updatePermissions, List.empty)
-          .transform
-        for {
-          _ <- usersWrites.userWrites.updateUser(data)
-        } yield UpdateUserResponse(userID)
-      }
+      val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
+      val data = update
+        .into[User.Update]
+        .withFieldConst(_.id, userID)
+        .withFieldConst(_.moderatorID, moderatorID)
+        .withFieldConst(_.newPassword, update.newPassword.map(Password.create))
+        .withFieldConst(_.updatePermissions, List.empty)
+        .transform
+      for {
+        _ <- usersWrites.userWrites.updateUser(data)
+      } yield UpdateUserResponse(userID)
     }
 
   private val deleteProfile = UserAPIs.deleteProfile
@@ -111,12 +103,10 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     .apply { case (_, userID) =>
       userIDApi2Users.reverseGet(userID).pure[F]
     } { case ((user, _), userID) =>
-      withErrorHandling {
-        val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
-        for {
-          _ <- usersWrites.userWrites.deleteUser(User.Delete(userID, moderatorID))
-        } yield DeleteUserResponse(userID)
-      }
+      val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
+      for {
+        _ <- usersWrites.userWrites.deleteUser(User.Delete(userID, moderatorID))
+      } yield DeleteUserResponse(userID)
     }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Any, F]] = NonEmptyList.of(
@@ -148,8 +138,8 @@ object UserServer {
     )
   )
 
-  def serverErrorHandling[F[_]: Sync]: Logger => ServerErrorHandling[F, UserError] =
-    ServerErrorHandling.handleCommonErrors[F, UserError] {
+  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, UserError] =
+    ServerErrorHandler.handleCommonErrors[F, UserError] {
       case CommonError.InvalidCredentials(_) =>
         UserError.BadCredentials("Invalid credentials")
       case CommonError.InsufficientPermissions(msg, _) =>

@@ -30,70 +30,57 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   implicit private val serverOptions: Http4sServerOptions[F] = ChannelServer.serverOptions[F].apply(logger)
 
-  private val withErrorHandling = ChannelServer.serverErrorHandling[F].apply(logger)
+  implicit private val errorHandler: ServerErrorHandler[F, ChannelError] = ChannelServer.errorHandler[F].apply(logger)
 
   private val paginate = ChannelAPIs.paginate.serverLogic[F].apply { case ((_, _), optOffset, optLimit) =>
-    withErrorHandling {
-      val sortBy = Channel.Sorting.Newest
-      val offset = paginationConfig.resolveOffset(optOffset)
-      val limit  = paginationConfig.resolveLimit(optLimit)
-      for {
-        paginated <- channelReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
-      } yield Pagination.fromPaginated(paginated.map(APIChannel.fromDomain), offset, limit)
-    }
+    val sortBy = Channel.Sorting.Newest
+    val offset = paginationConfig.resolveOffset(optOffset)
+    val limit  = paginationConfig.resolveLimit(optLimit)
+    for {
+      paginated <- channelReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+    } yield Pagination.fromPaginated(paginated.map(APIChannel.fromDomain), offset, limit)
   }
 
   private val create = ChannelAPIs.create.serverLogic[F].apply { case ((user, _), createData) =>
-    withErrorHandling {
-      val userID = user.id
-      val data =
-        createData.into[Channel.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
-      for {
-        CreationScheduled(channelID) <- channelWrites.createChannel(data)
-      } yield CreateChannelResponse(channelID)
-    }
+    val userID = user.id
+    val data   = createData.into[Channel.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
+    for {
+      CreationScheduled(channelID) <- channelWrites.createChannel(data)
+    } yield CreateChannelResponse(channelID)
   }
 
   private val read = ChannelAPIs.read.serverLogic[F].apply { case ((_, _), channelID) =>
-    withErrorHandling {
-      for {
-        channel <- channelReads.requireById(channelID)
-      } yield APIChannel.fromDomain(channel)
-    }
+    for {
+      channel <- channelReads.requireById(channelID)
+    } yield APIChannel.fromDomain(channel)
   }
 
   private val update = ChannelAPIs.update.serverLogic[F].apply { case ((user, _), channelID, updateData) =>
-    withErrorHandling {
-      val userID = user.id
-      val data = updateData
-        .into[Channel.Update]
-        .withFieldConst(_.id, channelID)
-        .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-        .transform
-      for {
-        _ <- channelWrites.updateChannel(data)
-      } yield UpdateChannelResponse(channelID)
-    }
+    val userID = user.id
+    val data = updateData
+      .into[Channel.Update]
+      .withFieldConst(_.id, channelID)
+      .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
+      .transform
+    for {
+      _ <- channelWrites.updateChannel(data)
+    } yield UpdateChannelResponse(channelID)
   }
 
   private val delete = ChannelAPIs.delete.serverLogic[F].apply { case ((user, _), channelID) =>
-    withErrorHandling {
-      val userID = user.id
-      val data   = Channel.Delete(channelID, userIDUsers2Discussions.get(userID))
-      for {
-        _ <- channelWrites.deleteChannel(data)
-      } yield DeleteChannelResponse(channelID)
-    }
+    val userID = user.id
+    val data   = Channel.Delete(channelID, userIDUsers2Discussions.get(userID))
+    for {
+      _ <- channelWrites.deleteChannel(data)
+    } yield DeleteChannelResponse(channelID)
   }
 
   private val restore = ChannelAPIs.restore.serverLogic[F].apply { case ((user, _), channelID) =>
-    withErrorHandling {
-      val userID = user.id
-      val data   = Channel.Restore(channelID, userIDUsers2Discussions.get(userID))
-      for {
-        _ <- channelWrites.restoreChannel(data)
-      } yield RestoreChannelResponse(channelID)
-    }
+    val userID = user.id
+    val data   = Channel.Restore(channelID, userIDUsers2Discussions.get(userID))
+    for {
+      _ <- channelWrites.restoreChannel(data)
+    } yield RestoreChannelResponse(channelID)
   }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, ChannelError, _, Any, F]] = NonEmptyList.of(
@@ -125,8 +112,8 @@ object ChannelServer {
     )
   )
 
-  def serverErrorHandling[F[_]: Sync]: Logger => ServerErrorHandling[F, ChannelError] =
-    ServerErrorHandling.handleCommonErrors[F, ChannelError] {
+  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, ChannelError] =
+    ServerErrorHandler.handleCommonErrors[F, ChannelError] {
       case CommonError.InvalidCredentials(_) =>
         ChannelError.BadCredentials("Invalid credentials")
       case CommonError.InsufficientPermissions(msg, _) =>

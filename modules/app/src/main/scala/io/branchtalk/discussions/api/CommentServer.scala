@@ -31,7 +31,7 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   implicit private val serverOptions: Http4sServerOptions[F] = CommentServer.serverOptions[F].apply(logger)
 
-  private val withErrorHandling = CommentServer.serverErrorHandling[F].apply(logger)
+  implicit private val errorHandler: ServerErrorHandler[F, CommentError] = CommentServer.errorHandler[F].apply(logger)
 
   private def testOwnership(channelID: ID[Channel], postID: ID[Post]) = postReads
     .requireById(postID)
@@ -69,72 +69,62 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     .serverLogicWithOwnership[F, Unit]
     .apply { case (_, channelID, postID, _, _, _) => testOwnership(channelID, postID) } {
       case ((_, _), _, postID, optOffset, optLimit, optReply) =>
-        withErrorHandling {
-          val sortBy = Comment.Sorting.Newest
-          val offset = paginationConfig.resolveOffset(optOffset)
-          val limit  = paginationConfig.resolveLimit(optLimit)
-          for {
-            paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
-          } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
-        }
+        val sortBy = Comment.Sorting.Newest
+        val offset = paginationConfig.resolveOffset(optOffset)
+        val limit  = paginationConfig.resolveLimit(optLimit)
+        for {
+          paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
+        } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
     }
 
   private val create = CommentAPIs.create
     .serverLogicWithOwnership[F, Unit]
     .apply { case (_, channelID, postID, _) => testOwnership(channelID, postID) } {
       case ((user, _), _, postID, createData) =>
-        withErrorHandling {
-          val userID = user.id
-          val data = createData
-            .into[Comment.Create]
-            .withFieldConst(_.authorID, userIDUsers2Discussions.get(userID))
-            .withFieldConst(_.postID, postID)
-            .transform
-          for {
-            CreationScheduled(commentID) <- commentWrites.createComment(data)
-          } yield CreateCommentResponse(commentID)
-        }
+        val userID = user.id
+        val data = createData
+          .into[Comment.Create]
+          .withFieldConst(_.authorID, userIDUsers2Discussions.get(userID))
+          .withFieldConst(_.postID, postID)
+          .transform
+        for {
+          CreationScheduled(commentID) <- commentWrites.createComment(data)
+        } yield CreateCommentResponse(commentID)
     }
 
   private val read = CommentAPIs.read
     .serverLogicWithOwnership[F, Unit]
     .apply { case (_, channelID, postID, commentID) => testOwnership(channelID, postID, commentID) } {
       case ((_, _), _, _, commentID) =>
-        withErrorHandling {
-          for {
-            comment <- commentReads.requireById(commentID)
-          } yield APIComment.fromDomain(comment)
-        }
+        for {
+          comment <- commentReads.requireById(commentID)
+        } yield APIComment.fromDomain(comment)
     }
 
   private val update = CommentAPIs.update
     .serverLogicWithOwnership[F, UserID]
     .apply { case (_, channelID, postID, commentID, _) => resolveOwnership(channelID, postID, commentID) } {
       case ((user, _), _, _, commentID, updateData) =>
-        withErrorHandling {
-          val userID = user.id
-          val data = updateData
-            .into[Comment.Update]
-            .withFieldConst(_.id, commentID)
-            .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-            .transform
-          for {
-            _ <- commentWrites.updateComment(data)
-          } yield UpdateCommentResponse(commentID)
-        }
+        val userID = user.id
+        val data = updateData
+          .into[Comment.Update]
+          .withFieldConst(_.id, commentID)
+          .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
+          .transform
+        for {
+          _ <- commentWrites.updateComment(data)
+        } yield UpdateCommentResponse(commentID)
     }
 
   private val delete = CommentAPIs.delete
     .serverLogicWithOwnership[F, UserID]
     .apply { case (_, channelID, postID, commentID) => resolveOwnership(channelID, postID, commentID) } {
       case ((user, _), _, _, commentID) =>
-        withErrorHandling {
-          val userID = user.id
-          val data   = Comment.Delete(commentID, userIDUsers2Discussions.get(userID))
-          for {
-            _ <- commentWrites.deleteComment(data)
-          } yield DeleteCommentResponse(commentID)
-        }
+        val userID = user.id
+        val data   = Comment.Delete(commentID, userIDUsers2Discussions.get(userID))
+        for {
+          _ <- commentWrites.deleteComment(data)
+        } yield DeleteCommentResponse(commentID)
     }
 
   private val restore = CommentAPIs.restore
@@ -142,13 +132,11 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     .apply { case (_, channelID, postID, commentID) =>
       resolveOwnership(channelID, postID, commentID, isDeleted = true)
     } { case ((user, _), _, _, commentID) =>
-      withErrorHandling {
-        val userID = user.id
-        val data   = Comment.Restore(commentID, userIDUsers2Discussions.get(userID))
-        for {
-          _ <- commentWrites.restoreComment(data)
-        } yield RestoreCommentResponse(commentID)
-      }
+      val userID = user.id
+      val data   = Comment.Restore(commentID, userIDUsers2Discussions.get(userID))
+      for {
+        _ <- commentWrites.restoreComment(data)
+      } yield RestoreCommentResponse(commentID)
     }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, CommentError, _, Any, F]] = NonEmptyList.of(
@@ -180,8 +168,8 @@ object CommentServer {
     )
   )
 
-  def serverErrorHandling[F[_]: Sync]: Logger => ServerErrorHandling[F, CommentError] =
-    ServerErrorHandling.handleCommonErrors[F, CommentError] {
+  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, CommentError] =
+    ServerErrorHandler.handleCommonErrors[F, CommentError] {
       case CommonError.InvalidCredentials(_) =>
         CommentError.BadCredentials("Invalid credentials")
       case CommonError.InsufficientPermissions(msg, _) =>

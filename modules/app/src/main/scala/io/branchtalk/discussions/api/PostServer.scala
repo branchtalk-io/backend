@@ -32,98 +32,86 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   implicit private val serverOptions: Http4sServerOptions[F] = PostServer.serverOptions[F].apply(logger)
 
-  private val withErrorHandling = PostServer.serverErrorHandling[F].apply(logger)
+  implicit private val errorHandler: ServerErrorHandler[F, PostError] = PostServer.errorHandler[F].apply(logger)
 
-  private def testOwnership(channelID: ID[Channel], postID: ID[Post], isDeleted: Boolean = true) = postReads
+  private def testOwnership(channelID: ID[Channel], postID: ID[Post], isDeleted: Boolean = false) = postReads
     .requireById(postID, isDeleted)
     .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
     .void
 
-  private def resolveOwnership(channelID: ID[Channel], postID: ID[Post], isDeleted: Boolean = true) = postReads
+  private def resolveOwnership(channelID: ID[Channel], postID: ID[Post], isDeleted: Boolean = false) = postReads
     .requireById(postID, isDeleted)
     .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
     .map(_.data.authorID)
     .map(userIDApi2Discussions.reverseGet)
 
   private val newest = PostAPIs.newest.serverLogic[F].apply { case ((_, _), channelID, optOffset, optLimit) =>
-    withErrorHandling {
-      val sortBy     = Post.Sorting.Newest
-      val offset     = paginationConfig.resolveOffset(optOffset)
-      val limit      = paginationConfig.resolveLimit(optLimit)
-      val channelIDS = SortedSet(channelID)
-      for {
-        paginated <- NonEmptySet.fromSet(channelIDS) match {
-          case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
-          case None             => Paginated.empty[Post].pure[F]
-        }
-      } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
-    }
+    val sortBy     = Post.Sorting.Newest
+    val offset     = paginationConfig.resolveOffset(optOffset)
+    val limit      = paginationConfig.resolveLimit(optLimit)
+    val channelIDS = SortedSet(channelID)
+    for {
+      paginated <- NonEmptySet.fromSet(channelIDS) match {
+        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
+        case None             => Paginated.empty[Post].pure[F]
+      }
+    } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
   }
 
   private val create = PostAPIs.create.serverLogic[F].apply { case ((user, _), channelID, createData) =>
-    withErrorHandling {
-      val userID = user.id
-      val data = createData
-        .into[Post.Create]
-        .withFieldConst(_.authorID, userIDUsers2Discussions.get(userID))
-        .withFieldConst(_.channelID, channelID)
-        .transform
-      for {
-        CreationScheduled(postID) <- postWrites.createPost(data)
-      } yield CreatePostResponse(postID)
-    }
+    val userID = user.id
+    val data = createData
+      .into[Post.Create]
+      .withFieldConst(_.authorID, userIDUsers2Discussions.get(userID))
+      .withFieldConst(_.channelID, channelID)
+      .transform
+    for {
+      CreationScheduled(postID) <- postWrites.createPost(data)
+    } yield CreatePostResponse(postID)
   }
 
   private val read = PostAPIs.read
     .serverLogicWithOwnership[F, Unit]
     .apply { case (_, channelID, postID) => testOwnership(channelID, postID) } { case ((_, _), _, postID) =>
-      withErrorHandling {
-        for {
-          post <- postReads.requireById(postID)
-        } yield APIPost.fromDomain(post)
-      }
+      for {
+        post <- postReads.requireById(postID)
+      } yield APIPost.fromDomain(post)
     }
 
   private val update = PostAPIs.update
     .serverLogicWithOwnership[F, UserID]
     .apply { case (_, channelID, postID, _) => resolveOwnership(channelID, postID) } {
       case ((user, _), _, postID, updateData) =>
-        withErrorHandling {
-          val userID = user.id
-          val data = updateData
-            .into[Post.Update]
-            .withFieldConst(_.id, postID)
-            .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-            .transform
-          for {
-            _ <- postWrites.updatePost(data)
-          } yield UpdatePostResponse(postID)
-        }
+        val userID = user.id
+        val data = updateData
+          .into[Post.Update]
+          .withFieldConst(_.id, postID)
+          .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
+          .transform
+        for {
+          _ <- postWrites.updatePost(data)
+        } yield UpdatePostResponse(postID)
     }
 
   private val delete = PostAPIs.delete
     .serverLogicWithOwnership[F, UserID]
     .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
-      withErrorHandling {
-        val userID = user.id
-        val data   = Post.Delete(postID, userIDUsers2Discussions.get(userID))
-        for {
-          _ <- postWrites.deletePost(data)
-        } yield DeletePostResponse(postID)
-      }
+      val userID = user.id
+      val data   = Post.Delete(postID, userIDUsers2Discussions.get(userID))
+      for {
+        _ <- postWrites.deletePost(data)
+      } yield DeletePostResponse(postID)
     }
 
   private val restore = PostAPIs.restore
     .serverLogicWithOwnership[F, UserID]
     .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID, isDeleted = true) } {
       case ((user, _), _, postID) =>
-        withErrorHandling {
-          val userID = user.id
-          val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))
-          for {
-            _ <- postWrites.restorePost(data)
-          } yield RestorePostResponse(postID)
-        }
+        val userID = user.id
+        val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))
+        for {
+          _ <- postWrites.restorePost(data)
+        } yield RestorePostResponse(postID)
     }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Any, F]] = NonEmptyList.of(
@@ -155,8 +143,8 @@ object PostServer {
     )
   )
 
-  def serverErrorHandling[F[_]: Sync]: Logger => ServerErrorHandling[F, PostError] =
-    ServerErrorHandling.handleCommonErrors[F, PostError] {
+  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, PostError] =
+    ServerErrorHandler.handleCommonErrors[F, PostError] {
       case CommonError.InvalidCredentials(_) =>
         PostError.BadCredentials("Invalid credentials")
       case CommonError.InsufficientPermissions(msg, _) =>

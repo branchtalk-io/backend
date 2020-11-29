@@ -42,30 +42,33 @@ final case class AuthedEndpoint[I, E, O, -R](
   makePermissions: I => RequiredPermissions
 ) {
 
-  def serverLogic[F[_]: Monad](implicit
+  def serverLogic[F[_]: Monad: ServerErrorHandler[*[_], E]](implicit
     auth: AuthMapping[F, I]
-  ): (auth.Out => F[Either[E, O]]) => ServerEndpoint[I, E, O, R, F] =
+  ): (auth.Out => F[O]) => ServerEndpoint[I, E, O, R, F] =
     logic =>
       endpoint.serverLogic { i =>
-        auth.authorize(i, makePermissions(i)).flatMap(logic)
+        implicitly[ServerErrorHandler[F, E]].apply {
+          auth.authorize(i, makePermissions(i)).flatMap(logic)
+        }
       }
 
-  // TODO: this isn't using translating CommonErrors into
-  def serverLogicWithOwnership[F[_]: MonadError[*[_], Throwable], OOwner](implicit
+  def serverLogicWithOwnership[F[_]: MonadError[*[_], Throwable]: ServerErrorHandler[*[_], E], OOwner](implicit
     auth:         AuthMappingWithOwnership[F, I] { type Owner = OOwner },
     codePosition: CodePosition
-  ): (I => F[auth.Owner]) => (auth.Out => F[Either[E, O]]) => ServerEndpoint[I, E, O, R, F] =
+  ): (I => F[auth.Owner]) => (auth.Out => F[O]) => ServerEndpoint[I, E, O, R, F] =
     ownership =>
       logic =>
         endpoint.serverLogic { i =>
-          ownership(i)
-            .handleErrorWith { _ =>
-              (CommonError.InsufficientPermissions("Ownership was not confirmed", codePosition): Throwable)
-                .raiseError[F, auth.Owner]
-            }
-            .flatMap { owner =>
-              auth.authorize(i, makePermissions(i), owner).flatMap(logic)
-            }
+          implicitly[ServerErrorHandler[F, E]].apply {
+            ownership(i)
+              .handleErrorWith { _ =>
+                (CommonError.InsufficientPermissions("Ownership was not confirmed", codePosition): Throwable)
+                  .raiseError[F, auth.Owner]
+              }
+              .flatMap { owner =>
+                auth.authorize(i, makePermissions(i), owner).flatMap(logic)
+              }
+          }
         }
 }
 // scalastyle:on structural.type
