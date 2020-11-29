@@ -2,8 +2,9 @@ package io.branchtalk.shared.infrastructure
 
 import io.scalaland.catnip.Semi
 import io.branchtalk.shared.infrastructure.PureconfigSupport._
+import io.branchtalk.shared.model.ShowPretty
 
-@Semi(ConfigReader) final case class DomainConfig(
+@Semi(ConfigReader, ShowPretty) final case class DomainConfig(
   name:              DomainName,
   database:          PostgresConfig,
   publishedEventBus: KafkaEventBusConfig,

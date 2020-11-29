@@ -3,8 +3,10 @@ package io.branchtalk.configs
 import cats.effect.{ ExitCode, Sync }
 import com.monovore.decline._
 import com.typesafe.config.{ Config, ConfigRenderOptions }
+import io.branchtalk.shared.model.ShowPretty
+import io.scalaland.catnip.Semi
 
-final case class AppArguments(
+@Semi(ShowPretty) final case class AppArguments(
   host:                      String = Defaults.host,
   port:                      Int = Defaults.port,
   runAPI:                    Boolean = Defaults.runAPI,

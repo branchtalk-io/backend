@@ -23,6 +23,7 @@ object Program {
       implicit0(logger: Logger[F]) <- Logger.create[F]
       env <- Configuration.getEnv[F]
       appArguments <- AppArguments.parse[F](args, env)
+      _ <- logger.info(s"Arguments passed: ${appArguments.show}")
       _ <-
         if (appArguments.isAnythingRun) initializeAndRunModules[F](appArguments)
         else logger.warn("Nothing to run, see --help for information how to turn on API server and projections")
@@ -40,8 +41,11 @@ object Program {
   )(implicit logger: Logger[F]): F[Unit] =
     for {
       apiConfig <- Configuration.readConfig[F, APIConfig]("api")
+      _ <- logger.info(s"App configs resolved to: ${apiConfig.show}")
       usersConfig <- Configuration.readConfig[F, DomainConfig]("users")
+      _ <- logger.info(s"Users configs resolved to: ${usersConfig.show}")
       discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
+      _ <- logger.info(s"Discussions configs resolved to: ${discussionsConfig.show}")
       _ <- Prometheus
         .collectorRegistry[F]
         .flatMap { registry =>

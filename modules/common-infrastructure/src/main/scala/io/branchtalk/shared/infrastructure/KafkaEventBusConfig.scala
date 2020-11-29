@@ -4,11 +4,11 @@ import cats.data.NonEmptyList
 import cats.effect.{ Concurrent, Sync, Timer }
 import fs2.kafka._
 import fs2.Pipe
-import io.branchtalk.shared.model.UUID
+import io.branchtalk.shared.model.{ ShowPretty, UUID }
 import io.branchtalk.shared.infrastructure.PureconfigSupport._
 import io.scalaland.catnip.Semi
 
-@Semi(ConfigReader) final case class KafkaEventBusConfig(
+@Semi(ConfigReader, ShowPretty) final case class KafkaEventBusConfig(
   servers: NonEmptyList[Server],
   topic:   Topic
 ) {

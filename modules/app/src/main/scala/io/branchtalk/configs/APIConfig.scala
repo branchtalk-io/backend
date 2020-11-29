@@ -1,5 +1,6 @@
 package io.branchtalk.configs
 
+import cats.Show
 import enumeratum._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
@@ -8,14 +9,14 @@ import eu.timepit.refined.string.{ MatchesRegex, Url }
 import io.branchtalk.api.{ PaginationLimit, PaginationOffset }
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.infrastructure.PureconfigSupport._
-import io.branchtalk.shared.model.{ ID, UUID }
+import io.branchtalk.shared.model.{ ID, ShowPretty, UUID }
 import io.scalaland.catnip.Semi
 import pureconfig.error.CannotConvert
 import sttp.tapir.openapi.{ Contact, Info, License }
 
 import scala.concurrent.duration.FiniteDuration
 
-@Semi(ConfigReader) final case class APIContact(
+@Semi(ConfigReader, ShowPretty) final case class APIContact(
   name:  String,
   email: String Refined MatchesRegex["(.+)@(.+)"],
   url:   String Refined Url
@@ -27,8 +28,12 @@ import scala.concurrent.duration.FiniteDuration
     url = url.value.some
   )
 }
+object APIContact {
+  implicit private val showEmail: Show[String Refined MatchesRegex["(.+)@(.+)"]] = _.value
+  implicit private val showUrl:   Show[String Refined Url]                       = _.value
+}
 
-@Semi(ConfigReader) final case class APILicense(
+@Semi(ConfigReader, ShowPretty) final case class APILicense(
   name: String,
   url:  String Refined Url
 ) {
@@ -38,8 +43,11 @@ import scala.concurrent.duration.FiniteDuration
     url = url.value.some
   )
 }
+object APILicense {
+  implicit private val showUrl: Show[String Refined Url] = _.value
+}
 
-@Semi(ConfigReader) final case class APIInfo(
+@Semi(ConfigReader, ShowPretty) final case class APIInfo(
   title:          String Refined NonEmpty,
   version:        String Refined NonEmpty,
   description:    String Refined NonEmpty,
@@ -57,8 +65,12 @@ import scala.concurrent.duration.FiniteDuration
     license = license.toOpenAPI.some
   )
 }
+object APIInfo {
+  implicit private val showNES: Show[String Refined NonEmpty] = _.value
+  implicit private val showUrl: Show[String Refined Url]      = _.value
+}
 
-@Semi(ConfigReader) final case class APIHttp(
+@Semi(ConfigReader, ShowPretty) final case class APIHttp(
   logHeaders:           Boolean,
   logBody:              Boolean,
   http2Enabled:         Boolean,
@@ -68,8 +80,11 @@ import scala.concurrent.duration.FiniteDuration
   maxHeaderLineLength:  Int Refined Positive,
   maxRequestLineLength: Int Refined Positive
 )
+object APIHttp {
+  implicit private val showPositive: Show[Int Refined Positive] = _.value.toString
+}
 
-@Semi(ConfigReader) final case class PaginationConfig(
+@Semi(ConfigReader, ShowPretty) final case class PaginationConfig(
   defaultLimit: PaginationLimit,
   maxLimit:     PaginationLimit
 ) {
@@ -79,6 +94,9 @@ import scala.concurrent.duration.FiniteDuration
 
   def resolveLimit(passedLimit: Option[PaginationLimit]): PaginationLimit =
     passedLimit.filter(_.positiveInt.value <= maxLimit.positiveInt.value).getOrElse(defaultLimit)
+}
+object PaginationConfig {
+  implicit private val showLimit: Show[PaginationLimit] = _.positiveInt.value.toString
 }
 
 sealed trait APIPart extends EnumEntry
@@ -102,9 +120,10 @@ object APIPart extends Enum[APIPart] {
         }
         .map(_.toMap)
     }
+  implicit val show: Show[APIPart] = _.entryName
 }
 
-@Semi(ConfigReader) final case class APIConfig(
+@Semi(ConfigReader, ShowPretty) final case class APIConfig(
   info:            APIInfo,
   http:            APIHttp,
   defaultChannels: List[UUID],
