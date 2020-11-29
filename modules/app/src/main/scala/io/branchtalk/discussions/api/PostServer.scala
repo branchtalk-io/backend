@@ -7,11 +7,11 @@ import io.branchtalk.api._
 import io.branchtalk.auth._
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.PostModels._
-import io.branchtalk.discussions.model.Post
+import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.discussions.reads.PostReads
 import io.branchtalk.discussions.writes.PostWrites
 import io.branchtalk.mappings._
-import io.branchtalk.shared.model.{ CommonError, CreationScheduled, Paginated }
+import io.branchtalk.shared.model.{ CommonError, CreationScheduled, ID, Paginated }
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
@@ -33,6 +33,17 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
   implicit private val serverOptions: Http4sServerOptions[F] = PostServer.serverOptions[F].apply(logger)
 
   private val withErrorHandling = PostServer.serverErrorHandling[F].apply(logger)
+
+  private def testOwnership(channelID: ID[Channel], postID: ID[Post]) = postReads
+    .requireById(postID)
+    .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
+    .void
+
+  private def resolveOwnership(channelID: ID[Channel], postID: ID[Post]) = postReads
+    .requireById(postID)
+    .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
+    .map(_.data.authorID)
+    .map(userIDApi2Discussions.reverseGet)
 
   private val newest = PostAPIs.newest.serverLogic[F].apply { case ((_, _), channelID, optOffset, optLimit) =>
     withErrorHandling {
@@ -65,12 +76,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val read = PostAPIs.read
     .serverLogicWithOwnership[F, Unit]
-    .apply { case (_, channelID, postID) =>
-      postReads
-        .requireById(postID)
-        .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
-        .void
-    } { case ((_, _), _, postID) =>
+    .apply { case (_, channelID, postID) => testOwnership(channelID, postID) } { case ((_, _), _, postID) =>
       withErrorHandling {
         for {
           post <- postReads.requireById(postID)
@@ -80,35 +86,24 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val update = PostAPIs.update
     .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, _) =>
-      postReads
-        .requireById(postID)
-        .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
-        .map(_.data.authorID)
-        .map(userIDApi2Discussions.reverseGet)
-    } { case ((user, _), _, postID, updateData) =>
-      withErrorHandling {
-        val userID = user.id
-        val data = updateData
-          .into[Post.Update]
-          .withFieldConst(_.id, postID)
-          .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-          .transform
-        for {
-          _ <- postWrites.updatePost(data)
-        } yield UpdatePostResponse(postID)
-      }
+    .apply { case (_, channelID, postID, _) => resolveOwnership(channelID, postID) } {
+      case ((user, _), _, postID, updateData) =>
+        withErrorHandling {
+          val userID = user.id
+          val data = updateData
+            .into[Post.Update]
+            .withFieldConst(_.id, postID)
+            .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
+            .transform
+          for {
+            _ <- postWrites.updatePost(data)
+          } yield UpdatePostResponse(postID)
+        }
     }
 
   private val delete = PostAPIs.delete
     .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID) =>
-      postReads
-        .requireById(postID)
-        .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
-        .map(_.data.authorID)
-        .map(userIDApi2Discussions.reverseGet)
-    } { case ((user, _), _, postID) =>
+    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
       withErrorHandling {
         val userID = user.id
         val data   = Post.Delete(postID, userIDUsers2Discussions.get(userID))
@@ -120,13 +115,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val restore = PostAPIs.restore
     .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID) =>
-      postReads
-        .requireById(postID, isDeleted = true)
-        .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
-        .map(_.data.authorID)
-        .map(userIDApi2Discussions.reverseGet)
-    } { case ((user, _), _, postID) =>
+    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
       withErrorHandling {
         val userID = user.id
         val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))

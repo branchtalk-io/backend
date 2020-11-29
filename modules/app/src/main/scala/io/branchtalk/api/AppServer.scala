@@ -6,7 +6,7 @@ import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Sync,
 import com.softwaremill.macwire.wire
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfig }
-import io.branchtalk.discussions.api.{ ChannelServer, PostServer, SubscriptionServer }
+import io.branchtalk.discussions.api.{ ChannelServer, CommentServer, PostServer, SubscriptionServer }
 import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.users.api.UserServer
@@ -27,6 +27,7 @@ final class AppServer[F[_]: Concurrent: Timer](
   usesServer:         UserServer[F],
   channelServer:      ChannelServer[F],
   postServer:         PostServer[F],
+  commentServer:      CommentServer[F],
   subscriptionServer: SubscriptionServer[F],
   openAPIServer:      OpenAPIServer[F],
   metricsOps:         MetricsOps[F],
@@ -38,7 +39,14 @@ final class AppServer[F[_]: Concurrent: Timer](
   // TODO: X-Request-ID, then cache X-Request-ID to make it idempotent
   val routes: HttpApp[F] =
     NonEmptyList
-      .of(usesServer.routes, channelServer.routes, postServer.routes, subscriptionServer.routes, openAPIServer.routes)
+      .of(
+        usesServer.routes,
+        channelServer.routes,
+        postServer.routes,
+        commentServer.routes,
+        subscriptionServer.routes,
+        openAPIServer.routes
+      )
       .reduceK
       .pipe(GZip(_))
       .pipe(
@@ -93,6 +101,10 @@ object AppServer {
     val postServer: PostServer[F] = {
       val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Posts)
       wire[PostServer[F]]
+    }
+    val commentServer: CommentServer[F] = {
+      val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Comments)
+      wire[CommentServer[F]]
     }
     val subscriptionServer: SubscriptionServer[F] = {
       val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Posts)
