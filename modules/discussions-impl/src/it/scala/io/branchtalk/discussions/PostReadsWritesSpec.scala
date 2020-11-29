@@ -184,7 +184,6 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channel2ID).eventually()
-          // editorID <- editorIDCreate
           paginatedData <- (0 until 20).toList.traverse(_ => postCreate(channelID))
           paginatedIds <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
           nonPaginatedData <- (0 until 20).toList.traverse(_ => postCreate(channel2ID))

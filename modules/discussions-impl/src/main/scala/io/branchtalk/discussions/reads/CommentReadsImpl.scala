@@ -1,9 +1,12 @@
 package io.branchtalk.discussions.reads
 
 import cats.effect.Sync
-import io.branchtalk.discussions.model.Comment
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.numeric.{ NonNegative, Positive }
+import io.branchtalk.discussions.model.{ Comment, Post }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.model
+import io.branchtalk.shared.model.{ ID, Paginated }
 
 final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends CommentReads[F] {
 
@@ -22,9 +25,25 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
         |       replies_nr
         |FROM comments""".stripMargin
 
+  private val orderBy: Comment.Sorting => Fragment = { case Comment.Sorting.Newest =>
+    fr"ORDER BY created_at DESC"
+  }
+
   private def idExists(id: model.ID[Comment]): Fragment = fr"id = ${id} AND deleted = FALSE"
 
   private def idDeleted(id: model.ID[Comment]): Fragment = fr"id = ${id} AND deleted = TRUE"
+
+  override def paginate(
+    post:      ID[Post],
+    repliesTo: Option[ID[Comment]],
+    sortBy:    Comment.Sorting,
+    offset:    Long Refined NonNegative,
+    limit:     Int Refined Positive
+  ): F[Paginated[Comment]] =
+    (commonSelect ++ Fragments.whereAndOpt(fr"post_id = $post".some,
+                                           repliesTo.map(parent => fr"reply_to = $parent"),
+                                           fr"deleted = FALSE".some
+    ) ++ orderBy(sortBy)).paginate[Comment](offset, limit).transact(transactor)
 
   override def exists(id: model.ID[Comment]): F[Boolean] =
     (fr"SELECT 1 FROM comments WHERE" ++ idExists(id)).exists.transact(transactor)
