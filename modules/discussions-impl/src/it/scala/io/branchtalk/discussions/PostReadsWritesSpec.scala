@@ -191,8 +191,8 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
           _ <- (paginatedIds ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when
-          pagination <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), 0L, 10)
-          pagination2 <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), 10L, 10)
+          pagination <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), Post.Sorting.Newest, 0L, 10)
+          pagination2 <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), Post.Sorting.Newest, 10L, 10)
         } yield {
           // then
           pagination.entities must haveSize(10)

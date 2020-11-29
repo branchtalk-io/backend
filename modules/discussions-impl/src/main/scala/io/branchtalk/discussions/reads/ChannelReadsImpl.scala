@@ -20,10 +20,9 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
         |       last_modified_at
         |FROM channels""".stripMargin
 
-  private val orderBy: Option[Channel.Sorting] => Fragment = {
-    case Some(Channel.Sorting.Newest)         => fr"ORDER BY created_at DESC"
-    case Some(Channel.Sorting.Alphabetically) => fr"ORDER BY name ASC"
-    case None                                 => Fragment.empty
+  private val orderBy: Channel.Sorting => Fragment = {
+    case Channel.Sorting.Newest         => fr"ORDER BY created_at DESC"
+    case Channel.Sorting.Alphabetically => fr"ORDER BY name ASC"
   }
 
   private def idExists(id: ID[Channel]): Fragment = fr"id = ${id} AND deleted = FALSE"
@@ -31,7 +30,7 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
   private def idDeleted(id: ID[Channel]): Fragment = fr"id = ${id} AND deleted = TRUE"
 
   override def paginate(
-    sortBy: Option[Channel.Sorting],
+    sortBy: Channel.Sorting,
     offset: Long Refined NonNegative,
     limit:  Int Refined Positive
   ): F[Paginated[Channel]] =

@@ -10,6 +10,7 @@ trait PostReads[F[_]] {
 
   def paginate(
     channels: NonEmptySet[ID[Channel]],
+    sortBy:   Post.Sorting,
     offset:   Long Refined NonNegative,
     limit:    Int Refined Positive
   ): F[Paginated[Post]]

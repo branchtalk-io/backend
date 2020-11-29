@@ -22,12 +22,14 @@ trait PostProperties { self: Post.type =>
   type Text       = PostProperties.Text
   type Content    = PostProperties.Content
   type CommentsNr = PostProperties.CommentsNr
+  type Sorting    = PostProperties.Sorting
   val UrlTitle   = PostProperties.UrlTitle
   val Title      = PostProperties.Title
   val URL        = PostProperties.URL
   val Text       = PostProperties.Text
   val Content    = PostProperties.Content
   val CommentsNr = PostProperties.CommentsNr
+  val Sorting    = PostProperties.Sorting
 }
 object PostProperties {
 
@@ -110,5 +112,12 @@ object PostProperties {
     implicit val show: Show[CommentsNr] = (t: CommentsNr) => t.toNonNegativeInt.value.toString
     implicit val order: Order[CommentsNr] = (x: CommentsNr, y: CommentsNr) =>
       x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
+  }
+
+  sealed trait Sorting extends EnumEntry
+  object Sorting extends Enum[Sorting] {
+    case object Newest extends Sorting
+
+    val values = findValues
   }
 }

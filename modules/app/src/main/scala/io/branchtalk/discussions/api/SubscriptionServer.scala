@@ -7,7 +7,12 @@ import io.branchtalk.api._
 import io.branchtalk.auth._
 import io.branchtalk.configs.{ APIConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostModels._
-import io.branchtalk.discussions.api.SubscriptionModels.{ SubscribeResponse, SubscriptionError, UnsubscribeResponse }
+import io.branchtalk.discussions.api.SubscriptionModels.{
+  APISubscriptions,
+  SubscribeResponse,
+  SubscriptionError,
+  UnsubscribeResponse
+}
 import io.branchtalk.discussions.model.{ Post, Subscription }
 import io.branchtalk.discussions.reads.{ PostReads, SubscriptionReads }
 import io.branchtalk.discussions.writes.SubscriptionWrites
@@ -38,23 +43,29 @@ final class SubscriptionServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val withErrorHandling = SubscriptionServer.serverErrorHandling[F].apply(logger)
 
-  // TODO: split list (by e.g. name) and newest (by creation date)
   private val newest = SubscriptionAPIs.newest.serverLogic[F].apply { case ((optUser, _), optOffset, optLimit) =>
     withPortErrorHandling {
+      val sortBy = Post.Sorting.Newest
       val offset = paginationConfig.resolveOffset(optOffset)
       val limit  = paginationConfig.resolveLimit(optLimit)
       for {
         subscriptionOpt <- optUser.map(_.id).map(userIDUsers2Discussions.get).traverse(subscriptionReads.requireForUser)
         channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(apiConfig.signedOutSubscriptions))
         paginated <- NonEmptySet.fromSet(channelIDS) match {
-          case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+          case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
           case None             => Paginated.empty[Post].pure[F]
         }
       } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
     }
   }
 
-  // TODO: list
+  private val list = SubscriptionAPIs.list.serverLogic[F].apply { case (user, _) =>
+    withErrorHandling {
+      for {
+        subscription <- subscriptionReads.requireForUser(userIDUsers2Discussions.get(user.id))
+      } yield APISubscriptions(subscription.subscriptions.toList)
+    }
+  }
 
   private val subscribe = SubscriptionAPIs.subscribe.serverLogic[F].apply { case ((user, _), subscribeData) =>
     withErrorHandling {
@@ -78,6 +89,7 @@ final class SubscriptionServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   def endpoints: NonEmptyList[ServerEndpoint[_, _, _, Any, F]] = NonEmptyList.of(
     newest,
+    list,
     subscribe,
     unsubscribe
   )

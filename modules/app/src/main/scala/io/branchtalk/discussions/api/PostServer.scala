@@ -36,12 +36,13 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val newest = PostAPIs.newest.serverLogic[F].apply { case ((_, _), channelID, optOffset, optLimit) =>
     withErrorHandling {
+      val sortBy     = Post.Sorting.Newest
       val offset     = paginationConfig.resolveOffset(optOffset)
       val limit      = paginationConfig.resolveLimit(optLimit)
       val channelIDS = SortedSet(channelID)
       for {
         paginated <- NonEmptySet.fromSet(channelIDS) match {
-          case Some(channelIDs) => postReads.paginate(channelIDs, offset.nonNegativeLong, limit.positiveInt)
+          case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
           case None             => Paginated.empty[Post].pure[F]
         }
       } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)

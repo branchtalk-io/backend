@@ -8,7 +8,7 @@ import io.branchtalk.shared.model.{ ID, Paginated }
 trait ChannelReads[F[_]] {
 
   def paginate(
-    sortBy: Option[Channel.Sorting],
+    sortBy: Channel.Sorting,
     offset: Long Refined NonNegative,
     limit:  Int Refined Positive
   ): F[Paginated[Channel]]

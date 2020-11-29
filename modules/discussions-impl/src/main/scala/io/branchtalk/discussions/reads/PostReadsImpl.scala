@@ -26,16 +26,21 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
         |       comments_nr
         |FROM posts""".stripMargin
 
+  private val orderBy: Post.Sorting => Fragment = { case Post.Sorting.Newest =>
+    fr"ORDER BY created_at DESC"
+  }
+
   private def idExists(id: ID[Post]): Fragment = fr"id = ${id} AND deleted = FALSE"
 
   private def idDeleted(id: ID[Post]): Fragment = fr"id = ${id} AND deleted = TRUE"
 
   override def paginate(
     channels: NonEmptySet[ID[Channel]],
+    sortBy:   Post.Sorting,
     offset:   Long Refined NonNegative,
     limit:    Int Refined Positive
   ): F[Paginated[Post]] =
-    (commonSelect ++ Fragments.whereAnd(Fragments.in(fr"channel_id", channels), fr"deleted = FALSE"))
+    (commonSelect ++ Fragments.whereAnd(Fragments.in(fr"channel_id", channels), fr"deleted = FALSE") ++ orderBy(sortBy))
       .paginate[PostDao](offset, limit)
       .map(_.map(_.toDomain))
       .transact(transactor)
