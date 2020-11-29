@@ -50,6 +50,7 @@ final case class AuthedEndpoint[I, E, O, -R](
         auth.authorize(i, makePermissions(i)).flatMap(logic)
       }
 
+  // TODO: this isn't using translating CommonErrors into
   def serverLogicWithOwnership[F[_]: MonadError[*[_], Throwable], OOwner](implicit
     auth:         AuthMappingWithOwnership[F, I] { type Owner = OOwner },
     codePosition: CodePosition
@@ -58,10 +59,10 @@ final case class AuthedEndpoint[I, E, O, -R](
       logic =>
         endpoint.serverLogic { i =>
           ownership(i)
-            .handleErrorWith(_ =>
+            .handleErrorWith { _ =>
               (CommonError.InsufficientPermissions("Ownership was not confirmed", codePosition): Throwable)
                 .raiseError[F, auth.Owner]
-            )
+            }
             .flatMap { owner =>
               auth.authorize(i, makePermissions(i), owner).flatMap(logic)
             }

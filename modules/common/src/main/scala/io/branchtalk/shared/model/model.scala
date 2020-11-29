@@ -118,6 +118,14 @@ package object model {
   implicit class Untupled5[I1, I2, I3, I4, I5, Out](private val f: ((I1, I2, I3, I4, I5)) => Out) extends AnyVal {
     def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5): Out = f.apply((i1, i2, i3, i4, i5))
   }
+  implicit class Untupled6[I1, I2, I3, I4, I5, I6, Out](private val f: ((I1, I2, I3, I4, I5, I6)) => Out)
+      extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5, i6: I6): Out = f.apply((i1, i2, i3, i4, i5, i6))
+  }
+  implicit class Untupled7[I1, I2, I3, I4, I5, I6, I7, Out](private val f: ((I1, I2, I3, I4, I5, I6, I7)) => Out)
+      extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5, i6: I6, i7: I7): Out = f.apply((i1, i2, i3, i4, i5, i6, i7))
+  }
 
   private val basePattern: Pattern = Pattern.compile("([A-Z]+)([A-Z][a-z])")
   private val swapPattern: Pattern = Pattern.compile("([a-z\\d])([A-Z])")

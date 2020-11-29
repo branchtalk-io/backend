@@ -1,10 +1,9 @@
 package io.branchtalk.discussions.api
 
-import cats.effect.IO
 import io.branchtalk.api.{ Authentication, Pagination, PaginationLimit, PaginationOffset, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
-import io.branchtalk.discussions.api.PostModels._
-import io.branchtalk.discussions.model.Post
+import io.branchtalk.discussions.api.CommentModels._
+import io.branchtalk.discussions.model.Comment
 import io.branchtalk.mappings._
 import io.branchtalk.shared.model._
 import io.branchtalk.users.UsersFixtures
@@ -13,15 +12,15 @@ import monocle.macros.syntax.lens._
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
-final class PostServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
+final class CommentServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
   implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
-  "PostServer-provided endpoints" should {
+  "CommentServer-provided endpoints" should {
 
-    "on GET /discussions/channels/{channelID}/posts/newest" in {
+    "on GET /discussions/channels/{channelID}/posts/{postID}/comments/newest" in {
 
-      "return newest Posts for a specified Channels" in {
+      "return newest Comments for a specified Post" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
@@ -30,27 +29,37 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              postIDs <- (0 until 10).toList.traverse(_ =>
-                postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+              CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+              _ <- discussionsReads.postReads.requireById(postID).eventually()
+              commentIDs <- (0 until 10).toList.traverse(_ =>
+                commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.id)
               )
-              posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
+              comments <- commentIDs.traverse(discussionsReads.commentReads.requireById(_)).eventually()
               // when
-              response1 <- PostAPIs.newest.toTestCall.untupled(None, channelID, None, PaginationLimit(5).some)
-              response2 <- PostAPIs.newest.toTestCall.untupled(None,
-                                                               channelID,
-                                                               PaginationOffset(5L).some,
-                                                               PaginationLimit(5).some
+              response1 <- CommentAPIs.newest.toTestCall.untupled(None,
+                                                                  channelID,
+                                                                  postID,
+                                                                  None,
+                                                                  PaginationLimit(5).some,
+                                                                  None
+              )
+              response2 <- CommentAPIs.newest.toTestCall.untupled(None,
+                                                                  channelID,
+                                                                  postID,
+                                                                  PaginationOffset(5L).some,
+                                                                  PaginationLimit(5).some,
+                                                                  None
               )
             } yield {
               // then
               response1.code must_=== StatusCode.Ok
-              response1.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+              response1.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
               response2.code must_=== StatusCode.Ok
-              response2.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+              response2.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
               (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
                 .mapN { (pagination1, pagination2) =>
-                  (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== posts
-                    .map(APIPost.fromDomain)
+                  (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== comments
+                    .map(APIComment.fromDomain)
                     .toSet
                 }
                 .getOrElse(pass)
@@ -59,9 +68,9 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
       }
     }
 
-    "on POST /discussions/channels/{channelID}/posts" in {
+    "on POST /discussions/channels/{channelID}/posts/{postID}/comments" in {
 
-      "create a new Post" in {
+      "create a new Comment" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
@@ -75,24 +84,27 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              creationData <- postCreate(channelID)
+              CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+              _ <- discussionsReads.postReads.requireById(postID).eventually()
+              creationData <- commentCreate(postID)
               // when
-              response <- PostAPIs.create.toTestCall.untupled(
+              response <- CommentAPIs.create.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 channelID,
-                creationData.transformInto[CreatePostRequest]
+                postID,
+                creationData.transformInto[CreateCommentRequest]
               )
-              // TODO: check that this creates a new post eventually!
+              // TODO: check that this creates a new comment eventually!
             } yield {
               // then
               response.code must_=== StatusCode.Ok
-              response.body must beValid(beRight(anInstanceOf[CreatePostResponse]))
+              response.body must beValid(beRight(anInstanceOf[CreateCommentResponse]))
             }
         }
       }
     }
 
-    "on GET /discussions/channels/{channelID}/posts/{postID}" in {
+    "on GET /discussions/channels/{channelID}/posts/{postID}/{postID}/comments/{commentID}" in {
 
       "fetch existing Post" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
@@ -109,25 +121,30 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
-              post <- discussionsReads.postReads.requireById(postID).eventually()
+              _ <- discussionsReads.postReads.requireById(postID).eventually()
+              CreationScheduled(commentID) <- commentCreate(postID).flatMap(
+                discussionsWrites.commentWrites.createComment
+              )
+              comment <- discussionsReads.commentReads.requireById(commentID).eventually()
               // when
-              response <- PostAPIs.read.toTestCall.untupled(
+              response <- CommentAPIs.read.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)).some,
                 channelID,
-                postID
+                postID,
+                commentID
               )
             } yield {
               // then
               response.code must_=== StatusCode.Ok
-              response.body must beValid(beRight(be_===(APIPost.fromDomain(post))))
+              response.body must beValid(beRight(be_===(APIComment.fromDomain(comment))))
             }
         }
       }
     }
 
-    "on PUT /discussions/channels/{channelID}/posts/{postID}" in {
+    "on PUT /discussions/channels/{channelID}/posts/{postID}/comments/{commentID}" in {
 
-      "update existing Post when User is its Author" in {
+      "update existing Comment when User is its Author" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
@@ -141,47 +158,44 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              CreationScheduled(postID) <- postCreate(channelID)
-                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
-                .flatMap(discussionsWrites.postWrites.createPost)
-              post <- discussionsReads.postReads.requireById(postID).eventually()
-              newTitle <- Post.Title.parse[IO]("new title")
-              newContent = Post.Content.Text(Post.Text("lorem ipsum"))
+              CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+              _ <- discussionsReads.postReads.requireById(postID).eventually()
+              CreationScheduled(commentID) <- commentCreate(postID)
+                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Comment
+                .flatMap(discussionsWrites.commentWrites.createComment)
+              comment <- discussionsReads.commentReads.requireById(commentID).eventually()
+              newContent = Comment.Content("lorem ipsum")
               // when
-              response <- PostAPIs.update.toTestCall.untupled(
+              response <- CommentAPIs.update.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 channelID,
                 postID,
-                UpdatePostRequest(
-                  newTitle = Updatable.Set(newTitle),
+                commentID,
+                UpdateCommentRequest(
                   newContent = Updatable.Set(newContent)
                 )
               )
-              updatedPost <- discussionsReads.postReads
-                .requireById(postID)
+              updatedComment <- discussionsReads.commentReads
+                .requireById(commentID)
                 .assert("Updated entity should have lastModifiedAt set")(_.data.lastModifiedAt.isDefined)
                 .eventually()
             } yield {
               // then
               response.code must_=== StatusCode.Ok
-              response.body must beValid(beRight(be_===(UpdatePostResponse(postID))))
-              updatedPost must_=== post
-                .lens(_.data.title)
-                .set(newTitle)
+              response.body must beValid(beRight(be_===(UpdateCommentResponse(commentID))))
+              updatedComment must_=== comment
                 .lens(_.data.content)
                 .set(newContent)
-                .lens(_.data.urlTitle)
-                .set(Post.UrlTitle("new-title"))
                 .lens(_.data.lastModifiedAt)
-                .set(updatedPost.data.lastModifiedAt)
+                .set(updatedComment.data.lastModifiedAt)
             }
         }
       }
     }
 
-    "on DELETE /discussions/channels/{channelID}/posts/{postID}" in {
+    "on DELETE /discussions/channels/{channelID}/posts/{postID}/comments/{commentID}" in {
 
-      "delete existing Post when User is its Author" in {
+      "delete existing Comment when User is its Author" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
@@ -195,32 +209,35 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              CreationScheduled(postID) <- postCreate(channelID)
-                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
-                .flatMap(discussionsWrites.postWrites.createPost)
+              CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
               _ <- discussionsReads.postReads.requireById(postID).eventually()
+              CreationScheduled(commentID) <- commentCreate(postID)
+                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Comment
+                .flatMap(discussionsWrites.commentWrites.createComment)
+              _ <- discussionsReads.commentReads.requireById(commentID).eventually()
               // when
-              response <- PostAPIs.delete.toTestCall.untupled(
+              response <- CommentAPIs.delete.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 channelID,
-                postID
+                postID,
+                commentID
               )
-              _ <- discussionsReads.postReads
-                .deleted(postID)
-                .assert("Post should be eventually deleted")(identity)
+              _ <- discussionsReads.commentReads
+                .deleted(commentID)
+                .assert("Comment should be eventually deleted")(identity)
                 .eventually()
             } yield {
               // then
               response.code must_=== StatusCode.Ok
-              response.body must beValid(beRight(be_===(DeletePostResponse(postID))))
+              response.body must beValid(beRight(be_===(DeleteCommentResponse(commentID))))
             }
         }
       }
     }
 
-    "on POST /discussions/channels/{channelID}/posts/{postID}/restore" in {
+    "on POST /discussions/channels/{channelID}/posts/{postID}/comments/{commentID}/restore" in {
 
-      "restore deleted Post when User is its Author" in {
+      "restore deleted Comment when User is its Author" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
@@ -234,26 +251,31 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-              CreationScheduled(postID) <- postCreate(channelID)
-                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
-                .flatMap(discussionsWrites.postWrites.createPost)
+              CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
               _ <- discussionsReads.postReads.requireById(postID).eventually()
-              _ <- discussionsWrites.postWrites.deletePost(Post.Delete(postID, userIDUsers2Discussions.get(userID)))
-              _ <- discussionsReads.postReads.requireById(postID, isDeleted = true).eventually()
+              CreationScheduled(commentID) <- commentCreate(postID)
+                .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Comment
+                .flatMap(discussionsWrites.commentWrites.createComment)
+              _ <- discussionsReads.commentReads.requireById(commentID).eventually()
+              _ <- discussionsWrites.commentWrites.deleteComment(
+                Comment.Delete(commentID, userIDUsers2Discussions.get(userID))
+              )
+              _ <- discussionsReads.commentReads.requireById(commentID, isDeleted = true).eventually()
               // when
-              response <- PostAPIs.restore.toTestCall.untupled(
+              response <- CommentAPIs.restore.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
                 channelID,
-                postID
+                postID,
+                commentID
               )
               _ <- discussionsReads.postReads
                 .exists(postID)
-                .assert("Post should be eventually restored")(identity)
+                .assert("Comment should be eventually restored")(identity)
                 .eventually()
             } yield {
               // then
               response.code must_=== StatusCode.Ok
-              response.body must beValid(beRight(be_===(RestorePostResponse(postID))))
+              response.body must beValid(beRight(be_===(RestoreCommentResponse(commentID))))
             }
         }
       }

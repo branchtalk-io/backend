@@ -12,7 +12,8 @@ import sttp.tapir._
 object CommentAPIs {
 
   private val prefix =
-    "discussions" / "channels" / path[ID[Channel]].name("channelID") / "posts" / path[ID[Post]].name("postID")
+    "discussions" / "channels" / path[ID[Channel]].name("channelID") / "posts" / path[ID[Post]]
+      .name("postID") / "comments"
 
   private val errorMapping = oneOf[CommentError](
     statusMapping[CommentError.BadCredentials](StatusCode.Unauthorized, jsonBody[CommentError.BadCredentials]),

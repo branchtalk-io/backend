@@ -38,19 +38,29 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
     .void
 
-  private def testOwnership(channelID: ID[Channel], postID: ID[Post], commentID: ID[Comment]) = postReads
+  private def testOwnership(
+    channelID: ID[Channel],
+    postID:    ID[Post],
+    commentID: ID[Comment],
+    isDeleted: Boolean = false
+  ) = postReads
     .requireById(postID)
     .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
     .void >> commentReads
-    .requireById(commentID)
+    .requireById(commentID, isDeleted)
     .flatTap(comment => Sync[F].delay(assert(comment.data.postID === postID, "Comment should belong to Post")))
     .void
 
-  private def resolveOwnership(channelID: ID[Channel], postID: ID[Post], commentID: ID[Comment]) = postReads
+  private def resolveOwnership(
+    channelID: ID[Channel],
+    postID:    ID[Post],
+    commentID: ID[Comment],
+    isDeleted: Boolean = false
+  ) = postReads
     .requireById(postID)
     .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
     .void >> commentReads
-    .requireById(commentID)
+    .requireById(commentID, isDeleted)
     .flatTap(comment => Sync[F].delay(assert(comment.data.postID === postID, "Comment should belong to Post")))
     .map(_.data.authorID)
     .map(userIDApi2Discussions.reverseGet)
@@ -129,15 +139,16 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val restore = CommentAPIs.restore
     .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, commentID) => resolveOwnership(channelID, postID, commentID) } {
-      case ((user, _), _, _, commentID) =>
-        withErrorHandling {
-          val userID = user.id
-          val data   = Comment.Restore(commentID, userIDUsers2Discussions.get(userID))
-          for {
-            _ <- commentWrites.restoreComment(data)
-          } yield RestoreCommentResponse(commentID)
-        }
+    .apply { case (_, channelID, postID, commentID) =>
+      resolveOwnership(channelID, postID, commentID, isDeleted = true)
+    } { case ((user, _), _, _, commentID) =>
+      withErrorHandling {
+        val userID = user.id
+        val data   = Comment.Restore(commentID, userIDUsers2Discussions.get(userID))
+        for {
+          _ <- commentWrites.restoreComment(data)
+        } yield RestoreCommentResponse(commentID)
+      }
     }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, CommentError, _, Any, F]] = NonEmptyList.of(

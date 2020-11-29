@@ -34,13 +34,13 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val withErrorHandling = PostServer.serverErrorHandling[F].apply(logger)
 
-  private def testOwnership(channelID: ID[Channel], postID: ID[Post]) = postReads
-    .requireById(postID)
+  private def testOwnership(channelID: ID[Channel], postID: ID[Post], isDeleted: Boolean = true) = postReads
+    .requireById(postID, isDeleted)
     .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
     .void
 
-  private def resolveOwnership(channelID: ID[Channel], postID: ID[Post]) = postReads
-    .requireById(postID)
+  private def resolveOwnership(channelID: ID[Channel], postID: ID[Post], isDeleted: Boolean = true) = postReads
+    .requireById(postID, isDeleted)
     .flatTap(post => Sync[F].delay(assert(post.data.channelID === channelID, "Post should belong to Channel")))
     .map(_.data.authorID)
     .map(userIDApi2Discussions.reverseGet)
@@ -115,14 +115,15 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val restore = PostAPIs.restore
     .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
-      withErrorHandling {
-        val userID = user.id
-        val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))
-        for {
-          _ <- postWrites.restorePost(data)
-        } yield RestorePostResponse(postID)
-      }
+    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID, isDeleted = true) } {
+      case ((user, _), _, postID) =>
+        withErrorHandling {
+          val userID = user.id
+          val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))
+          for {
+            _ <- postWrites.restorePost(data)
+          } yield RestorePostResponse(postID)
+        }
     }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Any, F]] = NonEmptyList.of(
