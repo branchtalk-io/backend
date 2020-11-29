@@ -53,16 +53,18 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
             .assert("Subscriptions should be eventually added")(_.subscriptions === ids.toSet)
             .eventually()
           // when
-          _ <- discussionsWrites.subscriptionWrites.unsubscribe(
+          Subscription.Scheduled(left) <- discussionsWrites.subscriptionWrites.unsubscribe(
             Subscription.Unsubscribe(subscriberID, idsToRemove.toSet)
           )
           subscription <- discussionsReads.subscriptionReads
             .requireForUser(subscriberID)
             .assert("Subscriptions should be eventually deleted")(_.subscriptions === idsToKeep.toSet)
             .eventually()
-        } yield
-        // then
-        subscription must_=== Subscription(subscriberID, idsToKeep.toSet)
+        } yield {
+          // then
+          left must_=== Subscription(subscriberID, idsToKeep.toSet)
+          subscription must_=== Subscription(subscriberID, idsToKeep.toSet)
+        }
       }
     }
   }

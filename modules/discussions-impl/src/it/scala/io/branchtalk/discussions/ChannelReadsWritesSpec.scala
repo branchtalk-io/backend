@@ -7,6 +7,8 @@ import org.specs2.mutable.Specification
 
 final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
+  sequential // Channel pagination tests cannot be run in parallel to other Channel tests
+
   implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Channel Reads & Writes" should {
@@ -170,6 +172,13 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
         for {
           // given
           _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+          editorID <- editorIDCreate
+          cleanupIDs <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest, 0L, 10).map(_.entities.map(_.id))
+          _ <- cleanupIDs.traverse(id => discussionsWrites.channelWrites.deleteChannel(Channel.Delete(id, editorID)))
+          _ <- cleanupIDs
+            .traverse(discussionsReads.channelReads.deleted(_))
+            .assert("Channels should be deleted eventually")(_.forall(identity))
+            .eventually()
           paginatedData <- (0 until 20).toList.traverse(_ => channelCreate)
           paginatedIds <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
           _ <- paginatedIds.traverse(discussionsReads.channelReads.requireById(_)).eventually()
@@ -191,6 +200,16 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
         for {
           // given
           _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+          editorID <- editorIDCreate
+          cleanupIDs <- discussionsReads.channelReads
+            .paginate(Channel.Sorting.Newest, 0L, 1000)
+            .map(_.entities.map(_.id))
+            .flatMap(_.traverse(id => discussionsWrites.channelWrites.deleteChannel(Channel.Delete(id, editorID))))
+            .map(_.map(_.id))
+          _ <- cleanupIDs
+            .traverse(discussionsReads.channelReads.deleted(_))
+            .assert("Channels should be deleted eventually")(_.forall(identity))
+            .eventually()
           paginatedData <- (0 until 20).toList.traverse(_ => channelCreate)
           paginatedIds <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
           _ <- paginatedIds.traverse(discussionsReads.channelReads.requireById(_)).eventually()

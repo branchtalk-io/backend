@@ -15,21 +15,21 @@ import sttp.model.StatusCode
 
 final class ChannelServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
+  sequential // Channel pagination tests cannot be run in parallel to other Channel tests
+
   implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelServer-provided endpoints" should {
 
     "on GET /discussions/channels" in {
 
-      "return newest Posts for a specified Channels for signed-out User" in {
+      "return newest Channels" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
               // given
               _ <- usersProjector.logError("Error reported by Users projector").start
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-              CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
-              _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               channelIDs <- (0 until 10).toList.traverse(_ =>
                 channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
               )

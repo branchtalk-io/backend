@@ -156,7 +156,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
               response.body must beValid(beRight(anInstanceOf[APISubscriptions]))
               response.body.toValidOpt
                 .flatMap(_.toOption)
-                .map(subscriptions => subscriptions.channels must_=== List(channelID))
+                .map(subscriptions => subscriptions must_=== APISubscriptions(List(channelID)))
                 .getOrElse(pass)
             }
         }
@@ -242,7 +242,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
               response.body must beValid(beRight(anInstanceOf[UnsubscribeResponse]))
               response.body.toValidOpt
                 .flatMap(_.toOption)
-                .map(unsubscribed => unsubscribed.channels must_=== List(channelID))
+                .map(unsubscribed => unsubscribed must_=== UnsubscribeResponse(List()))
                 .getOrElse(pass)
               result must_=== Subscription(subscriberID, Set.empty)
             }
