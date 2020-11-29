@@ -164,5 +164,47 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
         }
       }
     }
+
+    "paginate newest Channels" in {
+      discussionsWrites.runProjector.use { discussionsProjector =>
+        for {
+          // given
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+          paginatedData <- (0 until 20).toList.traverse(_ => channelCreate)
+          paginatedIds <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
+          _ <- paginatedIds.traverse(discussionsReads.channelReads.requireById(_)).eventually()
+          // when
+          pagination <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest.some, 0L, 10)
+          pagination2 <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest.some, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+          pagination2.nextOffset.map(_.value) must beNone
+        }
+      }
+    }
+
+    "paginate Channels alphabetically" in {
+      discussionsWrites.runProjector.use { discussionsProjector =>
+        for {
+          // given
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+          paginatedData <- (0 until 20).toList.traverse(_ => channelCreate)
+          paginatedIds <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
+          _ <- paginatedIds.traverse(discussionsReads.channelReads.requireById(_)).eventually()
+          // when
+          pagination <- discussionsReads.channelReads.paginate(Channel.Sorting.Alphabetically.some, 0L, 10)
+          pagination2 <- discussionsReads.channelReads.paginate(Channel.Sorting.Alphabetically.some, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+          pagination2.nextOffset.map(_.value) must beNone
+        }
+      }
+    }
   }
 }

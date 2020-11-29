@@ -2,6 +2,7 @@ package io.branchtalk.discussions.model
 
 import cats.{ Eq, Order, Show }
 import cats.effect.Sync
+import enumeratum._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
@@ -13,9 +14,11 @@ trait ChannelProperties { self: Channel.type =>
   type UrlName     = ChannelProperties.UrlName
   type Name        = ChannelProperties.Name
   type Description = ChannelProperties.Description
+  type Sorting     = ChannelProperties.Sorting
   val UrlName     = ChannelProperties.UrlName
   val Name        = ChannelProperties.Name
   val Description = ChannelProperties.Description
+  val Sorting     = ChannelProperties.Sorting
 }
 object ChannelProperties {
 
@@ -48,5 +51,13 @@ object ChannelProperties {
     implicit val show: Show[Description] = (t: Description) => s"Description(${t.nonEmptyString.value.show})"
     implicit val eq: Eq[Description] = (x: Description, y: Description) =>
       x.nonEmptyString.value === y.nonEmptyString.value
+  }
+
+  sealed trait Sorting extends EnumEntry
+  object Sorting extends Enum[Sorting] {
+    case object Newest extends Sorting
+    case object Alphabetically extends Sorting
+
+    val values = findValues
   }
 }
