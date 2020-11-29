@@ -1,6 +1,8 @@
 import sbt._
 import Settings._
 
+Global / excludeLintKeys ++= Set(scalacOptions, trapExit)
+
 lazy val root = project.root
   .setName("branchtalk")
   .setDescription("branchtalk build")

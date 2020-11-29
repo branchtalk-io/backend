@@ -1,8 +1,12 @@
-import sbt.{ Def, _ }
+import com.typesafe.sbt.SbtNativePackager.Docker
+import sbt._
 import sbt.Keys._
 import sbt.TestFrameworks.Specs2
 import sbt.Tests.Argument
 import com.typesafe.sbt._
+import com.typesafe.sbt.packager.Keys.packageName
+import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
+import com.typesafe.sbt.packager.docker.DockerPlugin
 import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
 import sbtassembly.AssemblyPlugin.autoImport._
@@ -163,13 +167,18 @@ object Settings extends Dependencies {
 
     def configureRun(main: String): Project =
       project
+        .enablePlugins(JavaAppPackaging, DockerPlugin)
+        .settings(
+          Docker / packageName := "branchtalk-server"
+        )
         .settings(
           inTask(assembly)(
             Seq(
               assemblyJarName := s"${name.value}.jar",
               assemblyMergeStrategy := {
                 // required for OpenAPIServer to work
-                case PathList("META-INF", "maven", "org.webjars", "swagger-ui", "pom.properties") => MergeStrategy.singleOrError
+                case PathList("META-INF", "maven", "org.webjars", "swagger-ui", "pom.properties") =>
+                  MergeStrategy.singleOrError
                 // conflicts on random crap
                 case "module-info.class" => MergeStrategy.discard
                 // our own Catnip customizations
