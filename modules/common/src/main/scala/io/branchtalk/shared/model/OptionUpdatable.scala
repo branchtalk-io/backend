@@ -1,16 +1,11 @@
 package io.branchtalk.shared.model
 
-import cats.{ Applicative, Eq, Traverse }
+import cats.{ Applicative, Traverse }
+import io.scalaland.catnip.Semi
 
 import scala.annotation.nowarn
 
-sealed trait OptionUpdatable[+A] {
-
-  def map[B](f: A => B): OptionUpdatable[B] = this match {
-    case OptionUpdatable.Set(value) => OptionUpdatable.Set(f(value))
-    case OptionUpdatable.Erase      => OptionUpdatable.Erase
-    case OptionUpdatable.Keep       => OptionUpdatable.Keep
-  }
+@Semi(ShowPretty, FastEq) sealed trait OptionUpdatable[+A] {
 
   def fold[B](set: A => B, keep: => B, erase: => B): B = this match {
     case OptionUpdatable.Set(value) => set(value)
@@ -24,6 +19,7 @@ sealed trait OptionUpdatable[+A] {
     case OptionUpdatable.Keep       => None
   }
 }
+@nowarn("cat=unused") // macros
 object OptionUpdatable {
   final case class Set[+A](value: A) extends OptionUpdatable[A]
   case object Erase extends OptionUpdatable[Nothing]
@@ -31,9 +27,7 @@ object OptionUpdatable {
 
   def setFromOption[A](option: Option[A]): OptionUpdatable[A] = option.fold[OptionUpdatable[A]](Erase)(Set(_))
 
-  implicit def show[A: ShowPretty]: ShowPretty[OptionUpdatable[A]] = ShowPretty.semi
-  implicit def eq[A:   Eq]:         Eq[OptionUpdatable[A]]         = FastEq.semi
-  implicit val applicative: Applicative[OptionUpdatable] = new Applicative[OptionUpdatable] {
+  private val applicative: Applicative[OptionUpdatable] = new Applicative[OptionUpdatable] {
     override def pure[A](a:   A): OptionUpdatable[A] = Set(a)
     override def ap[A, B](ff: OptionUpdatable[A => B])(fa: OptionUpdatable[A]): OptionUpdatable[B] = (ff, fa) match {
       case (Set(f), Set(a)) => Set(f(a))
@@ -42,6 +36,6 @@ object OptionUpdatable {
       case _                => Keep
     }
   }
-  @nowarn("cat=unused") // macros
-  implicit val traverse: Traverse[OptionUpdatable] = cats.derived.semiauto.traverse[OptionUpdatable]
+  private val traverse:     Traverse[OptionUpdatable]            = cats.derived.semiauto.traverse[OptionUpdatable]
+  implicit val appTraverse: ApplicativeTraverse[OptionUpdatable] = ApplicativeTraverse.semi(applicative, traverse)
 }

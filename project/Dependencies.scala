@@ -31,6 +31,7 @@ object Dependencies {
   // resolvers
   val resolvers = Seq(
     Resolver sonatypeRepo "public",
+    Resolver.sonatypeRepo("releases"),
     Resolver typesafeRepo "releases"
   )
 
@@ -40,7 +41,7 @@ object Dependencies {
   val kindProjector = "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
   // https://github.com/typelevel/kind-projector/releases
   // functional libraries
-  val catnip            = "io.scalaland" %% "catnip" % "1.1.1" // https://github.com/scalalandio/catnip/releases
+  val catnip            = "io.scalaland" %% "catnip" % "1.1.2" // https://github.com/scalalandio/catnip/releases
   val cats              = "org.typelevel" %% "cats-core" % catsVersion
   val catsFree          = "org.typelevel" %% "cats-free" % catsVersion
   val catsEffect        = "org.typelevel" %% "cats-effect" % catsEffectVersion

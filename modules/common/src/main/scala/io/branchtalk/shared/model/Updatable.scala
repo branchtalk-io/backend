@@ -1,16 +1,12 @@
 package io.branchtalk.shared.model
 
-import cats.{ Applicative, Eq, Traverse }
+import cats.{ Applicative, Traverse }
 import io.branchtalk.ADT
+import io.scalaland.catnip.Semi
 
 import scala.annotation.nowarn
 
-sealed trait Updatable[+A] extends ADT {
-
-  def map[B](f: A => B): Updatable[B] = this match {
-    case Updatable.Set(value) => Updatable.Set(f(value))
-    case Updatable.Keep       => Updatable.Keep
-  }
+@Semi(ShowPretty, FastEq) sealed trait Updatable[+A] extends ADT {
 
   def fold[B](set: A => B, keep: => B): B = this match {
     case Updatable.Set(value) => set(value)
@@ -22,19 +18,18 @@ sealed trait Updatable[+A] extends ADT {
     case Updatable.Keep       => None
   }
 }
+@nowarn("cat=unused") // macros
 object Updatable {
   final case class Set[+A](value: A) extends Updatable[A]
   case object Keep extends Updatable[Nothing]
 
-  implicit def show[A: ShowPretty]: ShowPretty[Updatable[A]] = ShowPretty.semi
-  implicit def eq[A:   Eq]:         Eq[Updatable[A]]         = FastEq.semi
-  implicit val applicative: Applicative[Updatable] = new Applicative[Updatable] {
+  private val applicative: Applicative[Updatable] = new Applicative[Updatable] {
     override def pure[A](a:   A): Updatable[A] = Set(a)
     override def ap[A, B](ff: Updatable[A => B])(fa: Updatable[A]): Updatable[B] = (ff, fa) match {
       case (Set(f), Set(a)) => Set(f(a))
       case _                => Keep
     }
   }
-  @nowarn("cat=unused") // macros
-  implicit val traverse: Traverse[Updatable] = cats.derived.semiauto.traverse[Updatable]
+  private val traverse:     Traverse[Updatable]            = cats.derived.semiauto.traverse[Updatable]
+  implicit val appTraverse: ApplicativeTraverse[Updatable] = ApplicativeTraverse.semi(applicative, traverse)
 }
