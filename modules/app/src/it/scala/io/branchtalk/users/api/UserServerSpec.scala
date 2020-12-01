@@ -5,7 +5,7 @@ import io.branchtalk.api._
 import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings._
-import io.branchtalk.shared.model.{ CreationScheduled, OptionUpdatable, TestUUIDGenerator, Updatable }
+import io.branchtalk.shared.model._
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.model.{ Password, Session, User }
@@ -18,6 +18,84 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
   implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "UserServer-provided endpoints" should {
+
+    "on GET /users" in {
+
+      "return paginated Users" in {
+        (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
+          case (usersProjector, discussionsProjector) =>
+            for {
+              // given
+              _ <- usersProjector.logError("Error reported by Users projector").start
+              _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+              userIDs <- (0 until 10).toList.traverse(_ =>
+                userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+              )
+              users <- userIDs.traverse(usersReads.userReads.requireById(_)).eventually()
+              // when
+              response1 <- UserAPIs.paginate.toTestCall.untupled(None, None, PaginationLimit(5).some)
+              response2 <- UserAPIs.paginate.toTestCall.untupled(None,
+                PaginationOffset(5L).some,
+                PaginationLimit(5).some
+              )
+            } yield {
+              // then
+              response1.code must_=== StatusCode.Ok
+              response1.body must beValid(beRight(anInstanceOf[Pagination[APIUser]]))
+              response2.code must_=== StatusCode.Ok
+              response2.body must beValid(beRight(anInstanceOf[Pagination[APIUser]]))
+              (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
+                .mapN { (pagination1, pagination2) =>
+                  (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== users
+                    .map(APIUser.fromDomain)
+                    .toSet
+                }
+                .getOrElse(pass)
+            }
+        }
+      }
+    }
+
+    "on GET /users/newest" in {
+
+      "return newest Users" in {
+        (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
+          case (usersProjector, discussionsProjector) =>
+            for {
+              // given
+              _ <- usersProjector.logError("Error reported by Users projector").start
+              _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+              _ <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 1000).flatMap {
+                case Paginated(entities, _) =>
+                  entities.traverse_(user => usersWrites.userWrites.deleteUser(User.Delete(user.id, None)))
+              }
+              userIDs <- (0 until 10).toList.traverse(_ =>
+                userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+              )
+              users <- userIDs.traverse(usersReads.userReads.requireById(_)).eventually()
+              // when
+              response1 <- UserAPIs.newest.toTestCall.untupled(None, None, PaginationLimit(5).some)
+              response2 <- UserAPIs.newest.toTestCall.untupled(None,
+                PaginationOffset(5L).some,
+                PaginationLimit(5).some
+              )
+            } yield {
+              // then
+              response1.code must_=== StatusCode.Ok
+              response1.body must beValid(beRight(anInstanceOf[Pagination[APIUser]]))
+              response2.code must_=== StatusCode.Ok
+              response2.body must beValid(beRight(anInstanceOf[Pagination[APIUser]]))
+              (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
+                .mapN { (pagination1, pagination2) =>
+                  (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== users
+                    .map(APIUser.fromDomain)
+                    .toSet
+                }
+                .getOrElse(pass)
+            }
+        }
+      }
+    }
 
     "on POST /users" in {
 
@@ -143,7 +221,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               user <- usersReads.userReads.requireById(userID).eventually()
               _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
               // when
-              response <- UserAPIs.fetchProfile.toTestCall((None, userID))
+              response <- UserAPIs.fetchProfile.toTestCall.untupled(None, userID)
             } yield {
               // then
               response.code must_=== StatusCode.Ok
