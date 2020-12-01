@@ -15,8 +15,10 @@ import io.scalaland.catnip.Semi
 trait SessionProperties {
   type ExpirationTime = SessionProperties.ExpirationTime
   type Usage          = SessionProperties.Usage
+  type Sorting        = SessionProperties.Sorting
   val ExpirationTime = SessionProperties.ExpirationTime
   val Usage          = SessionProperties.Usage
+  val Sorting        = SessionProperties.Sorting
 }
 object SessionProperties {
 
@@ -24,8 +26,10 @@ object SessionProperties {
 
     def plusDays(days: Long): ExpirationTime = ExpirationTime(offsetDateTime.plusDays(days))
   }
+
   object ExpirationTime {
     def unapply(expirationTime: ExpirationTime): Option[OffsetDateTime] = expirationTime.offsetDateTime.some
+
     def now[F[_]: Functor: Clock]: F[ExpirationTime] =
       Clock[F]
         .realTime(scala.concurrent.duration.MILLISECONDS)
@@ -40,14 +44,19 @@ object SessionProperties {
   }
 
   @Semi(FastEq, ShowPretty) sealed trait Usage extends ADT
+
   object Usage {
 
     case object UserSession extends Usage
+
     final case class OAuth(permissions: Permissions) extends Usage
 
     @Semi(FastEq, ShowPretty) sealed trait Type extends EnumEntry with Hyphencase
+
     object Type extends Enum[Type] {
+
       case object UserSession extends Type
+
       case object OAuth extends Type
 
       val values: IndexedSeq[Type] = findValues
@@ -66,5 +75,12 @@ object SessionProperties {
 
       def unapply(usage: Usage): Option[(Type, Permissions)] = unpack(usage).some
     }
+  }
+
+  sealed trait Sorting extends EnumEntry
+  object Sorting extends Enum[Sorting] {
+    case object ClosestToExpiry extends Sorting
+
+    val values = findValues
   }
 }

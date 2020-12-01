@@ -169,18 +169,16 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           // given
           _ <- usersProjector.logError("Error reported by Users projector").start
           goodPassword <- passwordCreate("password")
+          rawGoodPassword <- Password.Raw.parse[IO]("password".getBytes)
+          rawBadPassword <- Password.Raw.parse[IO]("bad".getBytes)
           userId <- userCreate
             .map(_.copy(password = goodPassword))
             .flatMap(usersWrites.userWrites.createUser)
             .map(_._1.id)
           user <- usersReads.userReads.requireById(userId).eventually()
           // when
-          ok <- usersReads.userReads
-            .authenticate(user.data.username, Password.Raw.parse[IO]("password".getBytes).unsafeRunSync())
-            .attempt
-          fail <- usersReads.userReads
-            .authenticate(user.data.username, Password.Raw.parse[IO]("bad".getBytes).unsafeRunSync())
-            .attempt
+          ok <- usersReads.userReads.authenticate(user.data.username, rawGoodPassword).attempt
+          fail <- usersReads.userReads.authenticate(user.data.username, rawBadPassword).attempt
         } yield {
           // then
           ok must beRight(user)

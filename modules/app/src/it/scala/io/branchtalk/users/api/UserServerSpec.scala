@@ -35,8 +35,8 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               // when
               response1 <- UserAPIs.paginate.toTestCall.untupled(None, None, PaginationLimit(5).some)
               response2 <- UserAPIs.paginate.toTestCall.untupled(None,
-                PaginationOffset(5L).some,
-                PaginationLimit(5).some
+                                                                 PaginationOffset(5L).some,
+                                                                 PaginationLimit(5).some
               )
             } yield {
               // then
@@ -75,10 +75,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               users <- userIDs.traverse(usersReads.userReads.requireById(_)).eventually()
               // when
               response1 <- UserAPIs.newest.toTestCall.untupled(None, None, PaginationLimit(5).some)
-              response2 <- UserAPIs.newest.toTestCall.untupled(None,
-                PaginationOffset(5L).some,
-                PaginationLimit(5).some
-              )
+              response2 <- UserAPIs.newest.toTestCall.untupled(None, PaginationOffset(5L).some, PaginationLimit(5).some)
             } yield {
               // then
               response1.code must_=== StatusCode.Ok

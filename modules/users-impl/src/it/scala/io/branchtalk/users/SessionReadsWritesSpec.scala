@@ -64,5 +64,32 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
         session must beRight[Session]
       }
     }
+
+    "paginate Sessions" in {
+      usersWrites.runProjector.use { usersProjector =>
+        for {
+          // given
+          _ <- usersProjector.logError("Error reported by Users projector").start
+          goodPassword <- passwordCreate("password")
+          (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate
+            .map(_.copy(password = goodPassword))
+            .flatMap(
+              usersWrites.userWrites.createUser
+            )
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          paginatedData <- (0 until 19).toList.traverse(_ => sessionCreate(userID))
+          _ <- paginatedData.traverse(usersWrites.sessionWrites.createSession).map(_.map(_.id))
+          // when
+          pagination <- usersReads.sessionReads.paginate(userID, Session.Sorting.ClosestToExpiry, 0L, 10)
+          pagination2 <- usersReads.sessionReads.paginate(userID, Session.Sorting.ClosestToExpiry, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+          pagination2.nextOffset.map(_.value) must beNone
+        }
+      }
+    }
   }
 }
