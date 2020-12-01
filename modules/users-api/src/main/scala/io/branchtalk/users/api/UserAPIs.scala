@@ -21,7 +21,43 @@ object UserAPIs {
     statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
-  // TODO: paginate users
+  val paginate: AuthedEndpoint[
+    (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
+    UserError,
+    Pagination[APIUser],
+    Any
+  ] = endpoint
+    .name("Fetch Users")
+    .summary("Paginate Users by name")
+    .description("Returns paginated Users")
+    .tags(List(UsersTags.domain, UsersTags.sessions))
+    .get
+    .in(optAuthHeader)
+    .in(prefix)
+    .in(query[Option[PaginationOffset]]("offset"))
+    .in(query[Option[PaginationLimit]]("limit"))
+    .out(jsonBody[Pagination[APIUser]])
+    .errorOut(errorMapping)
+    .notRequiringPermissions
+
+  val newest: AuthedEndpoint[
+    (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
+    UserError,
+    Pagination[APIUser],
+    Any
+  ] = endpoint
+    .name("Newest Users")
+    .summary("Paginate newest Users")
+    .description("Returns newest paginated Users")
+    .tags(List(UsersTags.domain, UsersTags.sessions))
+    .get
+    .in(optAuthHeader)
+    .in(prefix / "newest")
+    .in(query[Option[PaginationOffset]]("offset"))
+    .in(query[Option[PaginationLimit]]("limit"))
+    .out(jsonBody[Pagination[APIUser]])
+    .errorOut(errorMapping)
+    .notRequiringPermissions
 
   val signUp: Endpoint[SignUpRequest, UserError, SignUpResponse, Any] = endpoint
     .name("Sign up")

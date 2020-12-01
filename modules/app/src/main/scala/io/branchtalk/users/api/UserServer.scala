@@ -16,13 +16,11 @@ import org.http4s._
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
-import scala.annotation.unused
-
 final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
-  authServices:             AuthServices[F],
-  usersReads:               UsersReads[F],
-  usersWrites:              UsersWrites[F],
-  @unused paginationConfig: PaginationConfig // TODO: paginate users
+  authServices:     AuthServices[F],
+  usersReads:       UsersReads[F],
+  usersWrites:      UsersWrites[F],
+  paginationConfig: PaginationConfig
 ) {
 
   implicit private val as: AuthServices[F] = authServices
@@ -34,6 +32,24 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
   implicit private val serverOptions: Http4sServerOptions[F] = UserServer.serverOptions[F].apply(logger)
 
   implicit private val errorHandler: ServerErrorHandler[F, UserError] = UserServer.errorHandler[F].apply(logger)
+
+  private val paginate = UserAPIs.paginate.serverLogic[F].apply { case ((_, _), optOffset, optLimit) =>
+    val sortBy = User.Sorting.NameAlphabetically
+    val offset = paginationConfig.resolveOffset(optOffset)
+    val limit  = paginationConfig.resolveLimit(optLimit)
+    for {
+      paginated <- usersReads.userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+    } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
+  }
+
+  private val newest = UserAPIs.newest.serverLogic[F].apply { case ((_, _), optOffset, optLimit) =>
+    val sortBy = User.Sorting.Newest
+    val offset = paginationConfig.resolveOffset(optOffset)
+    val limit  = paginationConfig.resolveLimit(optLimit)
+    for {
+      paginated <- usersReads.userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+    } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
+  }
 
   private val signUp = UserAPIs.signUp.serverLogic { signup =>
     errorHandler {
@@ -110,6 +126,8 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     }
 
   def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Any, F]] = NonEmptyList.of(
+    paginate,
+    newest,
     signUp,
     signIn,
     signOut,
