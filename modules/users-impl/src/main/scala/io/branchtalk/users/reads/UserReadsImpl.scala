@@ -26,6 +26,12 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
         |       last_modified_at
         |FROM users""".stripMargin
 
+  private val orderBy: User.Sorting => Fragment = {
+    case User.Sorting.Newest              => fr"ORDER BY created_at DESC"
+    case User.Sorting.NameAlphabetically  => fr"ORDER BY name ASC"
+    case User.Sorting.EmailAlphabetically => fr"ORDER BY email ASC"
+  }
+
   private def idExists(id: ID[User]): Fragment = fr"id = ${id}"
 
   override def authenticate(username: User.Name, password: Password.Raw): F[User] =
@@ -42,10 +48,11 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
       }
 
   override def paginate(
+    sortBy: User.Sorting,
     offset: Long Refined NonNegative,
     limit:  Int Refined Positive
   ): F[Paginated[User]] =
-    commonSelect.paginate[UserDao](offset, limit).map(_.map(_.toDomain)).transact(transactor)
+    (commonSelect ++ orderBy(sortBy)).paginate[UserDao](offset, limit).map(_.map(_.toDomain)).transact(transactor)
 
   override def exists(id: ID[User]): F[Boolean] =
     (fr"SELECT 1 FROM users WHERE" ++ idExists(id)).exists.transact(transactor)

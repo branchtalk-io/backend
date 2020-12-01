@@ -2,6 +2,7 @@ package io.branchtalk.users.model
 
 import cats.{ Eq, Order, Show }
 import cats.effect.Sync
+import enumeratum.{ Enum, EnumEntry }
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
@@ -13,9 +14,11 @@ trait UserProperties {
   type Email       = UserProperties.Email
   type Name        = UserProperties.Name
   type Description = UserProperties.Description
+  type Sorting     = UserProperties.Sorting
   val Email       = UserProperties.Email
   val Name        = UserProperties.Name
   val Description = UserProperties.Description
+  val Sorting     = UserProperties.Sorting
 }
 object UserProperties {
 
@@ -45,5 +48,14 @@ object UserProperties {
 
     implicit val show: Show[Description] = (t: Description) => s"Email(${t.string.show})"
     implicit val eq:   Eq[Description]   = (x: Description, y: Description) => x.string === y.string
+  }
+
+  sealed trait Sorting extends EnumEntry
+  object Sorting extends Enum[Sorting] {
+    case object Newest extends Sorting
+    case object NameAlphabetically extends Sorting
+    case object EmailAlphabetically extends Sorting
+
+    val values = findValues
   }
 }

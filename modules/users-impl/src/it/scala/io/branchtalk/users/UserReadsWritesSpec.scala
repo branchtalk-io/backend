@@ -188,5 +188,65 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
         }
       }
     }
+
+    "paginate newest Users" in {
+      usersWrites.runProjector.use { usersProjector =>
+        for {
+          // given
+          _ <- usersProjector.logError("Error reported by Users projector").start
+          paginatedData <- (0 until 20).toList.traverse(_ => userCreate)
+          paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
+          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually()
+          // when
+          pagination <- usersReads.userReads.paginate(User.Sorting.Newest, 0L, 10)
+          pagination2 <- usersReads.userReads.paginate(User.Sorting.Newest, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+        }
+      }
+    }
+
+    "paginate Users by name alphabetically" in {
+      usersWrites.runProjector.use { usersProjector =>
+        for {
+          // given
+          _ <- usersProjector.logError("Error reported by Users projector").start
+          paginatedData <- (0 until 20).toList.traverse(_ => userCreate)
+          paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
+          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually()
+          // when
+          pagination <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 10)
+          pagination2 <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+        }
+      }
+    }
+
+    "paginate Users by email alphabetically" in {
+      usersWrites.runProjector.use { usersProjector =>
+        for {
+          // given
+          _ <- usersProjector.logError("Error reported by Users projector").start
+          paginatedData <- (0 until 20).toList.traverse(_ => userCreate)
+          paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
+          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually()
+          // when
+          pagination <- usersReads.userReads.paginate(User.Sorting.EmailAlphabetically, 0L, 10)
+          pagination2 <- usersReads.userReads.paginate(User.Sorting.EmailAlphabetically, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+        }
+      }
+    }
   }
 }
