@@ -14,5 +14,5 @@ trait SessionReads[F[_]] {
     limit:  Int Refined Positive
   ): F[Paginated[Session]]
 
-  def requireSession(id: ID[Session]): F[Session]
+  def requireById(id: ID[Session]): F[Session]
 }

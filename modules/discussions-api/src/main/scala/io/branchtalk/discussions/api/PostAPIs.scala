@@ -112,7 +112,7 @@ object PostAPIs {
     )
     .out(jsonBody[UpdatePostResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID, _, _) =>
+    .requiringPermissions { case (_, channelID, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
@@ -131,7 +131,7 @@ object PostAPIs {
     .in(prefix / path[ID[Post]].name("postID"))
     .out(jsonBody[DeletePostResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID, _) =>
+    .requiringPermissions { case (_, channelID, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
@@ -150,7 +150,7 @@ object PostAPIs {
     .in(prefix / path[ID[Post]].name("postID") / "restore")
     .out(jsonBody[RestorePostResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID, _) =>
+    .requiringPermissions { case (_, channelID, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 

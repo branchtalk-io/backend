@@ -22,7 +22,7 @@ object UserAPIs {
   )
 
   val paginate: AuthedEndpoint[
-    (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
+    (Authentication, Option[PaginationOffset], Option[PaginationLimit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -32,30 +32,49 @@ object UserAPIs {
     .description("Returns paginated Users")
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .get
-    .in(optAuthHeader)
+    .in(authHeader)
     .in(prefix)
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
     .out(jsonBody[Pagination[APIUser]])
     .errorOut(errorMapping)
-    .notRequiringPermissions
+    .requiringPermissions(_ => RequiredPermissions.one(Permission.ModerateUsers))
 
   val newest: AuthedEndpoint[
-    (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
+    (Authentication, Option[PaginationOffset], Option[PaginationLimit]),
     UserError,
     Pagination[APIUser],
     Any
   ] = endpoint
-    .name("Newest Users")
+    .name("Paginate newest Users")
     .summary("Paginate newest Users")
-    .description("Returns newest paginated Users")
+    .description("Returns paginated newest Users")
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .get
-    .in(optAuthHeader)
-    .in(prefix / "newest")
+    .in(authHeader)
+    .in(prefix / "sessions")
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
     .out(jsonBody[Pagination[APIUser]])
+    .errorOut(errorMapping)
+    .requiringPermissions(_ => RequiredPermissions.one(Permission.ModerateUsers))
+
+  val sessions: AuthedEndpoint[
+    (Authentication, Option[PaginationOffset], Option[PaginationLimit]),
+    UserError,
+    Pagination[APISession],
+    Any
+  ] = endpoint
+    .name("Paginate Session")
+    .summary("Paginate Sessions")
+    .description("Returns paginated Sessions by closest expiration date")
+    .tags(List(UsersTags.domain, UsersTags.sessions))
+    .get
+    .in(authHeader)
+    .in(prefix / "sessions")
+    .in(query[Option[PaginationOffset]]("offset"))
+    .in(query[Option[PaginationLimit]]("limit"))
+    .out(jsonBody[Pagination[APISession]])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
@@ -150,7 +169,9 @@ object UserAPIs {
       )
       .out(jsonBody[UpdateUserResponse])
       .errorOut(errorMapping)
-      .requiringPermssions { case (_, _, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
+      .requiringPermissions { case (_, _, _) =>
+        RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers)
+      }
 
   val deleteProfile: AuthedEndpoint[(Authentication, ID[User]), UserError, DeleteUserResponse, Any] = endpoint
     .name("Delete profile")
@@ -162,5 +183,5 @@ object UserAPIs {
     .in(prefix / path[ID[User]].name("userID"))
     .out(jsonBody[DeleteUserResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
+    .requiringPermissions { case (_, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
 }

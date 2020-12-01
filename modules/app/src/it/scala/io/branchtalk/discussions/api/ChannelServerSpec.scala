@@ -71,7 +71,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               creationData <- channelCreate
               // when
               response <- ChannelAPIs.create.toTestCall.untupled(
@@ -101,7 +101,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               channel <- discussionsReads.channelReads.requireById(channelID).eventually()
               // when
@@ -131,7 +131,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               channel <- discussionsReads.channelReads.requireById(channelID).eventually()
               newUrlName <- Channel.UrlName.parse[IO]("new-name")
@@ -182,7 +182,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               // when
@@ -216,7 +216,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               _ <- discussionsWrites.channelWrites.deleteChannel(

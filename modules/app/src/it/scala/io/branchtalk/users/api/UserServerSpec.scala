@@ -28,15 +28,23 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               // given
               _ <- usersProjector.logError("Error reported by Users projector").start
               _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-              userIDs <- (0 until 10).toList.traverse(_ =>
-                userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+                usersWrites.userWrites.createUser
               )
+              userIDs <- (0 until 9).toList
+                .traverse(_ => userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id))
+                .map(_ :+ userID)
               users <- userIDs.traverse(usersReads.userReads.requireById(_)).eventually()
               // when
-              response1 <- UserAPIs.paginate.toTestCall.untupled(None, None, PaginationLimit(5).some)
-              response2 <- UserAPIs.paginate.toTestCall.untupled(None,
-                                                                 PaginationOffset(5L).some,
-                                                                 PaginationLimit(5).some
+              response1 <- UserAPIs.paginate.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                None,
+                PaginationLimit(5).some
+              )
+              response2 <- UserAPIs.paginate.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                PaginationOffset(5L).some,
+                PaginationLimit(5).some
               )
             } yield {
               // then
@@ -69,13 +77,24 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                 case Paginated(entities, _) =>
                   entities.traverse_(user => usersWrites.userWrites.deleteUser(User.Delete(user.id, None)))
               }
-              userIDs <- (0 until 10).toList.traverse(_ =>
-                userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+                usersWrites.userWrites.createUser
               )
+              userIDs <- (0 until 9).toList
+                .traverse(_ => userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id))
+                .map(_ :+ userID)
               users <- userIDs.traverse(usersReads.userReads.requireById(_)).eventually()
               // when
-              response1 <- UserAPIs.newest.toTestCall.untupled(None, None, PaginationLimit(5).some)
-              response2 <- UserAPIs.newest.toTestCall.untupled(None, PaginationOffset(5L).some, PaginationLimit(5).some)
+              response1 <- UserAPIs.newest.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                None,
+                PaginationLimit(5).some
+              )
+              response2 <- UserAPIs.newest.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                PaginationOffset(5L).some,
+                PaginationLimit(5).some
+              )
             } yield {
               // then
               response1.code must_=== StatusCode.Ok
@@ -86,6 +105,56 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                 .mapN { (pagination1, pagination2) =>
                   (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== users
                     .map(APIUser.fromDomain)
+                    .toSet
+                }
+                .getOrElse(pass)
+            }
+        }
+      }
+    }
+
+    "on GET /users/sessions" in {
+
+      "return newest Users" in {
+        (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
+          case (usersProjector, discussionsProjector) =>
+            for {
+              // given
+              _ <- usersProjector.logError("Error reported by Users projector").start
+              _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+              _ <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 1000).flatMap {
+                case Paginated(entities, _) =>
+                  entities.traverse_(user => usersWrites.userWrites.deleteUser(User.Delete(user.id, None)))
+              }
+              (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+                usersWrites.userWrites.createUser
+              )
+              _ <- usersReads.userReads.requireById(userID).eventually()
+              sessionIDs <- (0 until 9).toList
+                .traverse(_ => sessionCreate(userID).flatMap(usersWrites.sessionWrites.createSession).map(_.id))
+                .map(_ :+ sessionID)
+              sessions <- sessionIDs.traverse(usersReads.sessionReads.requireById(_)).eventually()
+              // when
+              response1 <- UserAPIs.sessions.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                None,
+                PaginationLimit(5).some
+              )
+              response2 <- UserAPIs.sessions.toTestCall.untupled(
+                Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+                PaginationOffset(5L).some,
+                PaginationLimit(5).some
+              )
+            } yield {
+              // then
+              response1.code must_=== StatusCode.Ok
+              response1.body must beValid(beRight(anInstanceOf[Pagination[APISession]]))
+              response2.code must_=== StatusCode.Ok
+              response2.body must beValid(beRight(anInstanceOf[Pagination[APISession]]))
+              (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
+                .mapN { (pagination1, pagination2) =>
+                  (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== sessions
+                    .map(APISession.fromDomain)
                     .toSet
                 }
                 .getOrElse(pass)
@@ -116,7 +185,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               )
               possibleResult = response.body.toOption.flatMap(_.toOption)
               user <- possibleResult.map(_.userID).traverse(usersReads.userReads.requireById).eventually()
-              session <- possibleResult.map(_.sessionID).traverse(usersReads.sessionReads.requireSession).eventually()
+              session <- possibleResult.map(_.sessionID).traverse(usersReads.sessionReads.requireById).eventually()
             } yield {
               // then
               response.code must_=== StatusCode.Ok
@@ -145,7 +214,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                 .map(_.copy(password = Password.create(password)))
                 .flatMap(usersWrites.userWrites.createUser)
               user <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               // when
               sessionResponse <- UserAPIs.signIn.toTestCall(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID))
@@ -181,7 +250,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                 .map(_.copy(password = Password.create(password)))
                 .flatMap(usersWrites.userWrites.createUser)
               user <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               // when
               sessionResponse <- UserAPIs.signOut.toTestCall(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID))
@@ -216,7 +285,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                 usersWrites.userWrites.createUser
               )
               user <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               // when
               response <- UserAPIs.fetchProfile.toTestCall.untupled(None, userID)
             } yield {
@@ -241,7 +310,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                 usersWrites.userWrites.createUser
               )
               user <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               newUsername <- User.Name.parse[IO]("new test name")
               newDescription = User.Description("new test description")
               newPassword <- Password.Raw.parse[IO]("new password".getBytes)
@@ -291,7 +360,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               // when
               response <- UserAPIs.deleteProfile.toTestCall.untupled(
                 Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),

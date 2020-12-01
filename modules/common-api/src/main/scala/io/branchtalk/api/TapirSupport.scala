@@ -27,7 +27,7 @@ object TapirSupport extends TapirCodecRefined with TapirJsonJsoniter {
     def notRequiringPermissions: AuthedEndpoint[I, E, O, R] =
       AuthedEndpoint(endpoint, _ => RequiredPermissions.empty)
 
-    def requiringPermssions(permissions: I => RequiredPermissions): AuthedEndpoint[I, E, O, R] =
+    def requiringPermissions(permissions: I => RequiredPermissions): AuthedEndpoint[I, E, O, R] =
       AuthedEndpoint(endpoint, permissions)
   }
 

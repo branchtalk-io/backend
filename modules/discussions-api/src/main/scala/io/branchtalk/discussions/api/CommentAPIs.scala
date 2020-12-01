@@ -120,7 +120,7 @@ object CommentAPIs {
     )
     .out(jsonBody[UpdateCommentResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID, _, _, _) =>
+    .requiringPermissions { case (_, channelID, _, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
@@ -139,7 +139,7 @@ object CommentAPIs {
     .in(prefix / path[ID[Comment]].name("commentID"))
     .out(jsonBody[DeleteCommentResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID, _, _) =>
+    .requiringPermissions { case (_, channelID, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
@@ -158,7 +158,7 @@ object CommentAPIs {
     .in(prefix / path[ID[Comment]].name("commentID") / "restore")
     .out(jsonBody[RestoreCommentResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID, _, _) =>
+    .requiringPermissions { case (_, channelID, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 

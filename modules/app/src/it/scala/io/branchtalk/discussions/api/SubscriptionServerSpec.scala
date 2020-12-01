@@ -78,7 +78,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               subscriberID = userIDUsers2Discussions.get(userID)
@@ -135,7 +135,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               subscriberID = userIDUsers2Discussions.get(userID)
@@ -176,7 +176,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               subscriberID = userIDUsers2Discussions.get(userID)
@@ -216,7 +216,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               subscriberID = userIDUsers2Discussions.get(userID)

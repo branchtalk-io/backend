@@ -37,7 +37,7 @@ final class SessionReadsImpl[F[_]: Sync](
       .map(_.map(_.toDomain))
       .transact(transactor)
 
-  override def requireSession(id: ID[Session]): F[Session] =
+  override def requireById(id: ID[Session]): F[Session] =
     (commonSelect ++ fr"WHERE id = ${id}")
       .query[SessionDao]
       .map(_.toDomain)

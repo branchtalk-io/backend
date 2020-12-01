@@ -48,7 +48,7 @@ final class SessionWritesImpl[F[_]: Sync](
     } yield session
 
   override def deleteSession(deletedSession: Session.Delete): F[Unit] =
-    reads.requireSession(deletedSession.id).attempt.flatMap {
+    reads.requireById(deletedSession.id).attempt.flatMap {
       case Left(_) =>
         Sync[F].unit
       case Right(session) =>

@@ -72,7 +72,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               creationData <- postCreate(channelID)
@@ -105,7 +105,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
@@ -138,7 +138,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               CreationScheduled(postID) <- postCreate(channelID)
@@ -192,7 +192,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               CreationScheduled(postID) <- postCreate(channelID)
@@ -231,7 +231,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
                 usersWrites.userWrites.createUser
               )
               _ <- usersReads.userReads.requireById(userID).eventually()
-              _ <- usersReads.sessionReads.requireSession(sessionID).eventually()
+              _ <- usersReads.sessionReads.requireById(sessionID).eventually()
               CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
               _ <- discussionsReads.channelReads.requireById(channelID).eventually()
               CreationScheduled(postID) <- postCreate(channelID)

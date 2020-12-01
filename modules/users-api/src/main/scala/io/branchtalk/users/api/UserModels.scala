@@ -11,6 +11,7 @@ import io.branchtalk.ADT
 import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.api.TapirSupport._
 import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
+import io.branchtalk.users.model.SessionProperties.Usage.Type
 import io.branchtalk.users.model._
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
@@ -57,6 +58,34 @@ object UserModels {
     @Semi(JsCodec) final case class NoPermission(msg: String) extends UserError
     @Semi(JsCodec) final case class NotFound(msg: String) extends UserError
     @Semi(JsCodec) final case class ValidationFailed(error: NonEmptyList[String]) extends UserError
+  }
+
+  @Semi(JsCodec) final case class APISession(
+    id:          ID[Session],
+    userID:      ID[User],
+    sessionType: APISession.SessionType,
+    expiresAt:   Session.ExpirationTime
+  )
+  object APISession {
+
+    @Semi(JsCodec) sealed trait SessionType extends ADT
+    object SessionType {
+      case object UserSession extends SessionType
+      case object OAuth extends SessionType
+    }
+
+    def fromDomain(session: Session): APISession = {
+      val Session.Usage.Tupled(domainSessionType, _) = session.data.usage
+      val sessionType = domainSessionType match {
+        case Type.UserSession => SessionType.UserSession
+        case Type.OAuth       => SessionType.OAuth
+      }
+      session.data
+        .into[APISession]
+        .withFieldConst(_.id, session.id)
+        .withFieldConst(_.sessionType, sessionType)
+        .transform
+    }
   }
 
   @Semi(JsCodec) final case class SignUpRequest(

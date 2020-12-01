@@ -21,7 +21,7 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
           // when
           toCreate <- creationData.traverse(usersWrites.sessionWrites.createSession)
           ids = toCreate.map(_.id)
-          users <- ids.traverse(usersReads.sessionReads.requireSession)
+          users <- ids.traverse(usersReads.sessionReads.requireById)
         } yield
         // then
         ids must containTheSameElementsAs(users.map(_.id))
@@ -38,10 +38,10 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
           creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
           toCreate <- creationData.traverse(usersWrites.sessionWrites.createSession)
           ids = toCreate.map(_.id)
-          _ <- ids.traverse(usersReads.sessionReads.requireSession)
+          _ <- ids.traverse(usersReads.sessionReads.requireById)
           // when
           _ <- ids.map(Session.Delete.apply).traverse(usersWrites.sessionWrites.deleteSession)
-          sessions <- ids.traverse(usersReads.sessionReads.requireSession(_).attempt)
+          sessions <- ids.traverse(usersReads.sessionReads.requireById(_).attempt)
         } yield
         // then
         sessions must contain(beLeft[Throwable]).foreach
@@ -58,7 +58,7 @@ final class SessionReadsWritesSpec extends Specification with UsersIOTest with U
           )
           _ <- usersReads.userReads.requireById(userID).eventually()
           // when
-          session <- usersReads.sessionReads.requireSession(sessionID).attempt
+          session <- usersReads.sessionReads.requireById(sessionID).attempt
         } yield
         // then
         session must beRight[Session]

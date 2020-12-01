@@ -113,7 +113,7 @@ object ChannelAPIs {
     )
     .out(jsonBody[UpdateChannelResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID, _) =>
+    .requiringPermissions { case (_, channelID, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
@@ -127,7 +127,7 @@ object ChannelAPIs {
     .in(prefix / path[ID[Channel]].name("channelID"))
     .out(jsonBody[DeleteChannelResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID) =>
+    .requiringPermissions { case (_, channelID) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
@@ -141,7 +141,7 @@ object ChannelAPIs {
     .in(prefix / path[ID[Channel]].name("channelID") / "restore")
     .out(jsonBody[RestoreChannelResponse])
     .errorOut(errorMapping)
-    .requiringPermssions { case (_, channelID) =>
+    .requiringPermissions { case (_, channelID) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 }

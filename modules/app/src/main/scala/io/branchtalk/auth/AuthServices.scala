@@ -30,7 +30,7 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
 
   private def authSessionID(sessionID: api.SessionID) =
     for {
-      session <- sessionReads.requireSession(sessionIDApi2Users.get(sessionID))
+      session <- sessionReads.requireById(sessionIDApi2Users.get(sessionID))
       user <- userReads.requireById(session.data.userID)
     } yield (user, session)
 
