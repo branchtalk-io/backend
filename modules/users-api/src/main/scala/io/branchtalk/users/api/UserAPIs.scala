@@ -52,7 +52,7 @@ object UserAPIs {
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .get
     .in(authHeader)
-    .in(prefix / "sessions")
+    .in(prefix / "newest")
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
     .out(jsonBody[Pagination[APIUser]])

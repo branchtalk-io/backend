@@ -15,6 +15,8 @@ import sttp.model.StatusCode
 
 final class UserServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
+  sequential // User pagination tests cannot be run in parallel to other User tests
+
   implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "UserServer-provided endpoints" should {
@@ -115,7 +117,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
     "on GET /users/sessions" in {
 
-      "return newest Users" in {
+      "return newest Sesions" in {
         (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
           case (usersProjector, discussionsProjector) =>
             for {
@@ -132,7 +134,7 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
               _ <- usersReads.userReads.requireById(userID).eventually()
               sessionIDs <- (0 until 9).toList
                 .traverse(_ => sessionCreate(userID).flatMap(usersWrites.sessionWrites.createSession).map(_.id))
-                .map(_ :+ sessionID)
+                .map(sessionID +: _)
               sessions <- sessionIDs.traverse(usersReads.sessionReads.requireById(_)).eventually()
               // when
               response1 <- UserAPIs.sessions.toTestCall.untupled(

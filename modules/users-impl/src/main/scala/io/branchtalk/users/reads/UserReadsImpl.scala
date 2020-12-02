@@ -28,7 +28,7 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
 
   private val orderBy: User.Sorting => Fragment = {
     case User.Sorting.Newest              => fr"ORDER BY created_at DESC"
-    case User.Sorting.NameAlphabetically  => fr"ORDER BY name ASC"
+    case User.Sorting.NameAlphabetically  => fr"ORDER BY username ASC"
     case User.Sorting.EmailAlphabetically => fr"ORDER BY email ASC"
   }
 

@@ -51,6 +51,15 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
+  private val sessions = UserAPIs.sessions.serverLogic[F].apply { case ((user, _), optOffset, optLimit) =>
+    val sortBy = Session.Sorting.ClosestToExpiry
+    val offset = paginationConfig.resolveOffset(optOffset)
+    val limit  = paginationConfig.resolveLimit(optLimit)
+    for {
+      paginated <- usersReads.sessionReads.paginate(user.id, sortBy, offset.nonNegativeLong, limit.positiveInt)
+    } yield Pagination.fromPaginated(paginated.map(APISession.fromDomain), offset, limit)
+  }
+
   private val signUp = UserAPIs.signUp.serverLogic { signup =>
     errorHandler {
       for {
@@ -128,6 +137,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
   def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Any, F]] = NonEmptyList.of(
     paginate,
     newest,
+    sessions,
     signUp,
     signIn,
     signOut,

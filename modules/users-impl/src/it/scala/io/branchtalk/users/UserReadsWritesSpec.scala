@@ -6,7 +6,11 @@ import io.branchtalk.users.model.{ Password, Permission, Permissions, User }
 import monocle.macros.syntax.lens._
 import org.specs2.mutable.Specification
 
+import scala.concurrent.duration.DurationInt
+
 final class UserReadsWritesSpec extends Specification with UsersIOTest with UsersFixtures {
+
+  sequential // User pagination tests cannot be run in parallel to other User tests
 
   implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
@@ -192,17 +196,17 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
         for {
           // given
           _ <- usersProjector.logError("Error reported by Users projector").start
-          paginatedData <- (0 until 20).toList.traverse(_ => userCreate)
+          paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually()
+          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually(delay = 1.second)
           // when
-          pagination <- usersReads.userReads.paginate(User.Sorting.Newest, 0L, 10)
-          pagination2 <- usersReads.userReads.paginate(User.Sorting.Newest, 10L, 10)
+          pagination <- usersReads.userReads.paginate(User.Sorting.Newest, 0L, 5)
+          pagination2 <- usersReads.userReads.paginate(User.Sorting.Newest, 5L, 5)
         } yield {
           // then
-          pagination.entities must haveSize(10)
-          pagination.nextOffset.map(_.value) must beSome(10)
-          pagination2.entities must haveSize(10)
+          pagination.entities must haveSize(5)
+          pagination.nextOffset.map(_.value) must beSome(5)
+          pagination2.entities must haveSize(5)
         }
       }
     }
@@ -212,17 +216,17 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
         for {
           // given
           _ <- usersProjector.logError("Error reported by Users projector").start
-          paginatedData <- (0 until 20).toList.traverse(_ => userCreate)
+          paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually()
+          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually(delay = 1.second)
           // when
-          pagination <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 10)
-          pagination2 <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 10L, 10)
+          pagination <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 5)
+          pagination2 <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 5L, 5)
         } yield {
           // then
-          pagination.entities must haveSize(10)
-          pagination.nextOffset.map(_.value) must beSome(10)
-          pagination2.entities must haveSize(10)
+          pagination.entities must haveSize(5)
+          pagination.nextOffset.map(_.value) must beSome(5)
+          pagination2.entities must haveSize(5)
         }
       }
     }
@@ -232,17 +236,17 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
         for {
           // given
           _ <- usersProjector.logError("Error reported by Users projector").start
-          paginatedData <- (0 until 20).toList.traverse(_ => userCreate)
+          paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually()
+          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually(delay = 1.second)
           // when
-          pagination <- usersReads.userReads.paginate(User.Sorting.EmailAlphabetically, 0L, 10)
-          pagination2 <- usersReads.userReads.paginate(User.Sorting.EmailAlphabetically, 10L, 10)
+          pagination <- usersReads.userReads.paginate(User.Sorting.EmailAlphabetically, 0L, 5)
+          pagination2 <- usersReads.userReads.paginate(User.Sorting.EmailAlphabetically, 5L, 5)
         } yield {
           // then
-          pagination.entities must haveSize(10)
-          pagination.nextOffset.map(_.value) must beSome(10)
-          pagination2.entities must haveSize(10)
+          pagination.entities must haveSize(5)
+          pagination.nextOffset.map(_.value) must beSome(5)
+          pagination2.entities must haveSize(5)
         }
       }
     }
