@@ -198,7 +198,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           _ <- usersProjector.logError("Error reported by Users projector").start
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually(delay = 1.second)
+          _ <- paginatedIds
+            .traverse(usersReads.userReads.requireById(_))
+            .eventually(delay = 1.second, timeout = 30.seconds)
           // when
           pagination <- usersReads.userReads.paginate(User.Sorting.Newest, 0L, 5)
           pagination2 <- usersReads.userReads.paginate(User.Sorting.Newest, 5L, 5)
@@ -218,7 +220,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           _ <- usersProjector.logError("Error reported by Users projector").start
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually(delay = 1.second)
+          _ <- paginatedIds
+            .traverse(usersReads.userReads.requireById(_))
+            .eventually(delay = 1.second, timeout = 30.seconds)
           // when
           pagination <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 5)
           pagination2 <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 5L, 5)
@@ -238,7 +242,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           _ <- usersProjector.logError("Error reported by Users projector").start
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds.traverse(usersReads.userReads.requireById(_)).eventually(delay = 1.second)
+          _ <- paginatedIds
+            .traverse(usersReads.userReads.requireById(_))
+            .eventually(delay = 1.second, timeout = 30.seconds)
           // when
           pagination <- usersReads.userReads.paginate(User.Sorting.EmailAlphabetically, 0L, 5)
           pagination2 <- usersReads.userReads.paginate(User.Sorting.EmailAlphabetically, 5L, 5)
