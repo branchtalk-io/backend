@@ -78,6 +78,8 @@ object Dependencies {
   val flyway         = "org.flywaydb" % "flyway-core" % "7.2.0" // https://github.com/flyway/flyway/releases
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.1.0" // https://github.com/fd4s/fs2-kafka/releases
   val macwire        = "com.softwaremill.macwire" %% "macros" % "2.3.7" % "provided" // GH releases are out of date
+  val redis4cats =
+    "dev.profunktor" %% "redis4cats-effects" % "0.10.3" // https://github.com/profunktor/redis4cats/releases
   // API
   val sttpCats = "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats" % "3.0.0-RC9"
   // same as the one used by tapir

@@ -72,6 +72,7 @@ val commonInfrastructure = project
       Dependencies.pureConfig,
       Dependencies.pureConfigCats,
       Dependencies.pureConfigEnumeratum,
+      Dependencies.redis4cats,
       Dependencies.refinedPureConfig
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")

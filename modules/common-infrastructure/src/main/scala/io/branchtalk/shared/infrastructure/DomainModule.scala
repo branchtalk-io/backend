@@ -27,7 +27,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
   ): Resource[F, ReadsInfrastructure[F, Event]] =
     for {
       transactor <- new PostgresDatabase(domainConfig.databaseReads).transactor(registry)
-      consumerStreamBuilder = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus, _)
+      consumerStreamBuilder <- ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus, _)
     } yield ReadsInfrastructure(transactor, consumerStreamBuilder)
 
   def setupWrites[F[_]: ConcurrentEffect: ContextShift: Timer](
@@ -37,7 +37,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
     for {
       transactor <- new PostgresDatabase(domainConfig.databaseWrites).transactor(registry)
       internalProducer = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
-      internalConsumerStream = ConsumerStream
+      internalConsumerStream <- ConsumerStream
         .fromConfigs[F, InternalEvent](domainConfig.internalEventBus, domainConfig.internalConsumer)
       producer = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
     } yield WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer)

@@ -11,8 +11,7 @@ import io.scalaland.catnip.Semi
 @Semi(ConfigReader, ShowPretty) final case class KafkaEventBusConfig(
   servers:       NonEmptyList[Server],
   topic:         Topic,
-  cache:         Server,
-  cachePassword: Option[DatabasePassword]
+  cache:         Server
 ) {
 
   def toConsumerConfig[F[_]: Sync, Event: SafeDeserializer[F, *]](
