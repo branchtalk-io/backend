@@ -18,12 +18,14 @@ services:
     command: ["--host=0.0.0.0", "--monolith"]
     environment:
       JAVA_OPTS: '
-        -Dusers.database.url=jdbc:postgresql://postgres:5432/users
+        -Dusers.database-reads.url=jdbc:postgresql://postgres:5432/users
+        -Dusers.database-writes.url=jdbc:postgresql://postgres:5432/users
         -Dusers.published-event-bus.servers.0.host=kafka
         -Dusers.published-event-bus.servers.0.port=9092
         -Dusers.internal-event-bus.servers.0.host=kafka
         -Dusers.internal-event-bus.servers.0.port=9092
-        -Ddiscussions.database.url=jdbc:postgresql://postgres:5432/discussions
+        -Ddiscussions.database-reads.url=jdbc:postgresql://postgres:5432/discussions
+        -Ddiscussions.database-writes.url=jdbc:postgresql://postgres:5432/discussions
         -Ddiscussions.published-event-bus.servers.0.host=kafka
         -Ddiscussions.published-event-bus.servers.0.port=9092
         -Ddiscussions.internal-event-bus.servers.0.host=kafka

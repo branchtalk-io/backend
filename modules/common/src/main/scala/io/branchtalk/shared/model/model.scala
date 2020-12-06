@@ -39,7 +39,7 @@ package object model {
       UUID.parse[F](string).map(ID[Entity])
 
     implicit def show[Entity]:  Show[ID[Entity]]  = (id: ID[Entity]) => s"ID(${id.uuid.show})"
-    implicit def order[Entity]: Order[ID[Entity]] = /*_*/ Order[UUID].coerce[Order[ID[Entity]]] /*_*/
+    implicit def order[Entity]: Order[ID[Entity]] = Order[UUID].coerce[Order[ID[Entity]]]
   }
 
   @newtype final case class CreationTime(offsetDateTime: OffsetDateTime)
@@ -79,7 +79,7 @@ package object model {
 
     implicit def show[Entity]: Show[CreationScheduled[Entity]] =
       (t: CreationScheduled[Entity]) => s"CreationScheduled(${t.id.show})"
-    implicit def eq[Entity]: Eq[CreationScheduled[Entity]] = /*_*/ Eq[ID[Entity]].coerce /*_*/
+    implicit def eq[Entity]: Eq[CreationScheduled[Entity]] = Eq[ID[Entity]].coerce
   }
   @newtype final case class UpdateScheduled[Entity](id: ID[Entity])
   object UpdateScheduled {
@@ -87,7 +87,7 @@ package object model {
 
     implicit def show[Entity]: Show[UpdateScheduled[Entity]] =
       (t: UpdateScheduled[Entity]) => s"UpdateScheduled(${t.id.show})"
-    implicit def eq[Entity]: Eq[UpdateScheduled[Entity]] = /*_*/ Eq[ID[Entity]].coerce /*_*/
+    implicit def eq[Entity]: Eq[UpdateScheduled[Entity]] = Eq[ID[Entity]].coerce
   }
   @newtype final case class DeletionScheduled[Entity](id: ID[Entity])
   object DeletionScheduled {
@@ -95,7 +95,7 @@ package object model {
 
     implicit def show[Entity]: Show[DeletionScheduled[Entity]] =
       (t: DeletionScheduled[Entity]) => s"DeletionScheduled(${t.id.show})"
-    implicit def eq[Entity]: Eq[DeletionScheduled[Entity]] = /*_*/ Eq[ID[Entity]].coerce /*_*/
+    implicit def eq[Entity]: Eq[DeletionScheduled[Entity]] = Eq[ID[Entity]].coerce
   }
   @newtype final case class RestoreScheduled[Entity](id: ID[Entity])
   object RestoreScheduled {
@@ -103,7 +103,7 @@ package object model {
 
     implicit def show[Entity]: Show[RestoreScheduled[Entity]] =
       (t: RestoreScheduled[Entity]) => s"RestoreScheduled(${t.id.show})"
-    implicit def eq[Entity]: Eq[RestoreScheduled[Entity]] = /*_*/ Eq[ID[Entity]].coerce /*_*/
+    implicit def eq[Entity]: Eq[RestoreScheduled[Entity]] = Eq[ID[Entity]].coerce
   }
 
   implicit class Untupled2[I1, I2, Out](private val f: ((I1, I2)) => Out) extends AnyVal {

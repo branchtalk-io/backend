@@ -6,7 +6,8 @@ import io.branchtalk.shared.model.ShowPretty
 
 @Semi(ConfigReader, ShowPretty) final case class DomainConfig(
   name:              DomainName,
-  database:          PostgresConfig,
+  databaseReads:     PostgresConfig,
+  databaseWrites:    PostgresConfig,
   publishedEventBus: KafkaEventBusConfig,
   internalEventBus:  KafkaEventBusConfig,
   consumers:         Map[String, KafkaEventConsumerConfig]

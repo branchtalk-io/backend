@@ -33,5 +33,5 @@ object TestUsersConfig {
       db <- TestResources.postgresConfigResource[F](dbTest)
       publishedES <- TestResources.kafkaEventBusConfigResource[F](publishedESTest)
       internalES <- TestResources.kafkaEventBusConfigResource[F](internalESTest)
-    } yield DomainConfig(DomainName("discussions-test"), db, publishedES, internalES, consumers)
+    } yield DomainConfig(DomainName("discussions-test"), db, db, publishedES, internalES, consumers)
 }

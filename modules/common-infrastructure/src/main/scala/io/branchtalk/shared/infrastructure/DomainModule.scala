@@ -26,7 +26,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
     registry:     CollectorRegistry
   ): Resource[F, ReadsInfrastructure[F, Event]] =
     for {
-      transactor <- new PostgresDatabase(domainConfig.database).transactor(registry)
+      transactor <- new PostgresDatabase(domainConfig.databaseReads).transactor(registry)
       consumerStreamBuilder = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus, _)
     } yield ReadsInfrastructure(transactor, consumerStreamBuilder)
 
@@ -35,7 +35,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
     registry:     CollectorRegistry
   ): Resource[F, WritesInfrastructure[F, Event, InternalEvent]] =
     for {
-      transactor <- new PostgresDatabase(domainConfig.database).transactor(registry)
+      transactor <- new PostgresDatabase(domainConfig.databaseWrites).transactor(registry)
       internalProducer = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
       internalConsumerStream = ConsumerStream
         .fromConfigs[F, InternalEvent](domainConfig.internalEventBus, domainConfig.internalConsumer)
