@@ -8,8 +8,10 @@ import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
 
 @Semi(ConfigReader) final case class TestKafkaEventBusConfig(
-  servers:     NonEmptyList[Server],
-  topicPrefix: Topic
+  servers:       NonEmptyList[Server],
+  topicPrefix:   Topic,
+  cache:         Server,
+  cachePassword: Option[DatabasePassword]
 ) {
 
   def topic(generatedSuffix: String): Topic =
