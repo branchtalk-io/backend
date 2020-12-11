@@ -9,9 +9,9 @@ import io.branchtalk.shared.infrastructure.PureconfigSupport._
 import io.scalaland.catnip.Semi
 
 @Semi(ConfigReader, ShowPretty) final case class KafkaEventBusConfig(
-  servers:       NonEmptyList[Server],
-  topic:         Topic,
-  cache:         Server
+  servers: NonEmptyList[Server],
+  topic:   Topic,
+  cache:   Server
 ) {
 
   def toConsumerConfig[F[_]: Sync, Event: SafeDeserializer[F, *]](

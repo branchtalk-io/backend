@@ -16,7 +16,7 @@ import io.lettuce.core.codec.{ RedisCodec => JRedisCodec }
 final class ConsumerStream[F[_], Event](
   consumer:  EventBusConsumer[F, Event],
   committer: EventBusCommitter[F],
-  cache:     RedisCommands[F, UUID, Event]
+  cache:     Cache[F, UUID, Event]
 ) {
 
   // Runs pipe (projections) on events and commit them once they are processed.
@@ -26,7 +26,6 @@ final class ConsumerStream[F[_], Event](
       consumer
         .zip(stream)
         .flatMap { case (event, _) =>
-          // TODO: if result in cache, use it instead of calculating a new value
           Stream(event.record.value)
             .evalTap(_ => logger.info(s"Processing event key = ${event.record.key.toString}"))
             .through(f)
@@ -77,7 +76,7 @@ object ConsumerStream {
         new ConsumerStream(
           consumer = KafkaEventBus.consumer[F, Event](busConfig, consumerCfg),
           committer = busConfig.toCommitBatch[F](consumerCfg),
-          cache = redis
+          cache = Cache.fromRedis(redis)
         )
       }
 }
