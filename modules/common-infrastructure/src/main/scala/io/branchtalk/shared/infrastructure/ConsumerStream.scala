@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync, Timer }
 import cats.effect.syntax.all._
-import dev.profunktor.redis4cats.{ Redis, RedisCommands }
+import dev.profunktor.redis4cats.Redis
 import dev.profunktor.redis4cats.effect.Log.Stdout._
 import dev.profunktor.redis4cats.data.RedisCodec
 import fs2.{ io => _, _ }
@@ -38,7 +38,7 @@ final class ConsumerStream[F[_], Event](
 }
 object ConsumerStream {
 
-  private def prepareCodec[F[_]: ConcurrentEffect: Sync, Event: Serializer[F, *]: SafeDeserializer[F, *]](
+  private def prepareCodec[F[_]: ConcurrentEffect, Event: Serializer[F, *]: SafeDeserializer[F, *]](
     topic: String
   ): RedisCodec[UUID, Event] = RedisCodec(
     new JRedisCodec[UUID, Event] {
@@ -49,7 +49,7 @@ object ConsumerStream {
         SafeDeserializer[F, Event]
           .deserialize(topic, Headers.empty, bytes.array())
           .flatMap {
-            case Left(error)  => error.raiseError[F, Event]
+            case Left(error)  => new Exception(error.toString).raiseError[F, Event]
             case Right(value) => value.pure[F]
           }
           .toIO
@@ -63,16 +63,15 @@ object ConsumerStream {
     }
   )
 
-  def fromConfigs[F[_]: ConcurrentEffect: ContextShift: Timer, Event: SafeDeserializer[F, *]](
-    busConfig:   KafkaEventBusConfig,
-    consumerCfg: KafkaEventConsumerConfig
-  ): Resource[F, ConsumerStream[F, Event]] =
+  def fromConfigs[F[_]: ConcurrentEffect: ContextShift: Timer, Event: Serializer[F, *]: SafeDeserializer[F, *]](
+    busConfig: KafkaEventBusConfig
+  ): Resource[F, KafkaEventConsumerConfig => ConsumerStream[F, Event]] =
     Redis[F]
       .simple(
         s"redis://${busConfig.cache.host.value}:${busConfig.cache.port}",
         prepareCodec[F, Event](busConfig.topic.nonEmptyString.value)
       )
-      .map { redis =>
+      .map { redis => consumerCfg =>
         new ConsumerStream(
           consumer = KafkaEventBus.consumer[F, Event](busConfig, consumerCfg),
           committer = busConfig.toCommitBatch[F](consumerCfg),
