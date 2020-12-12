@@ -7,7 +7,6 @@ import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._
 import io.branchtalk.shared.model._
 import io.branchtalk.shared.infrastructure._
-import _root_.io.branchtalk.discussions.reads.ChannelReads
 import com.softwaremill.macwire.wire
 import io.prometheus.client.CollectorRegistry
 
@@ -53,7 +52,7 @@ object DiscussionsModule {
     Logger.getLogger[F].pipe { logger =>
       Resource.make(logger.info("Initialize Discussions writes"))(_ => logger.info("Shut down Discussions writes")) >>
         module.setupWrites[F](domainConfig, registry).map {
-          case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer) =>
+          case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer, cache) =>
             val channelWrites:      ChannelWrites[F]      = wire[ChannelWritesImpl[F]]
             val postWrites:         PostWrites[F]         = wire[PostWritesImpl[F]]
             val commentWrites:      CommentWrites[F]      = wire[CommentWritesImpl[F]]
@@ -68,7 +67,9 @@ object DiscussionsModule {
               )
               .reduce
             val runProjector: Resource[F, F[Unit]] =
-              internalConsumerStream.withPipeToResource(logger)(projector andThen producer)
+              internalConsumerStream.withCachedPipeToResource(logger, cache)(
+                ConsumerStream.Helpers.second andThen projector andThen producer andThen ConsumerStream.Helpers.produced
+              )
 
             wire[DiscussionsWrites[F]]
         }

@@ -17,7 +17,8 @@ final case class WritesInfrastructure[F[_], Event, InternalEvent](
   transactor:             Transactor[F],
   internalProducer:       EventBusProducer[F, InternalEvent],
   internalConsumerStream: ConsumerStream[F, InternalEvent],
-  producer:               EventBusProducer[F, Event]
+  producer:               EventBusProducer[F, Event],
+  cache:                  Cache[F, String, Event]
 )
 final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
 
@@ -27,7 +28,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
   ): Resource[F, ReadsInfrastructure[F, Event]] =
     for {
       transactor <- new PostgresDatabase(domainConfig.databaseReads).transactor(registry)
-      consumerStreamBuilder <- ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus)
+      consumerStreamBuilder = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus)
     } yield ReadsInfrastructure(transactor, consumerStreamBuilder)
 
   def setupWrites[F[_]: ConcurrentEffect: ContextShift: Timer](
@@ -36,13 +37,16 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
   ): Resource[F, WritesInfrastructure[F, Event, InternalEvent]] =
     for {
       transactor <- new PostgresDatabase(domainConfig.databaseWrites).transactor(registry)
-      internalProducer = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
-      internalConsumerStream <- ConsumerStream.fromConfigs[F, InternalEvent](domainConfig.internalEventBus)
-      producer = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
-    } yield WritesInfrastructure(transactor,
-                                 internalProducer,
-                                 internalConsumerStream(domainConfig.internalConsumer),
-                                 producer
+      internalProducer       = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
+      internalConsumerStream = ConsumerStream.fromConfigs[F, InternalEvent](domainConfig.internalEventBus)
+      producer               = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
+      cache <- Cache.fromConfigs[F, Event](domainConfig.internalEventBus)
+    } yield WritesInfrastructure(
+      transactor,
+      internalProducer,
+      internalConsumerStream(domainConfig.internalConsumer),
+      producer,
+      cache
     )
 }
 object DomainModule {

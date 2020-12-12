@@ -46,7 +46,7 @@ object UsersModule {
     Logger.getLogger[F].pipe { logger =>
       Resource.make(logger.info("Initialize Users writes"))(_ => logger.info("Shut down Users writes")) >>
         module.setupWrites[F](domainConfig, registry).map {
-          case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer) =>
+          case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer, cache) =>
             val userWrites:    UserWrites[F]    = wire[UserWritesImpl[F]]
             val sessionWrites: SessionWrites[F] = wire[SessionWritesImpl[F]]
 
@@ -56,7 +56,9 @@ object UsersModule {
               )
               .reduce
             val runProjector: Resource[F, F[Unit]] =
-              internalConsumerStream.withPipeToResource(logger)(projector andThen producer)
+              internalConsumerStream.withCachedPipeToResource(logger, cache)(
+                ConsumerStream.Helpers.second andThen projector andThen producer andThen ConsumerStream.Helpers.produced
+              )
 
             wire[UsersWrites[F]]
         }
