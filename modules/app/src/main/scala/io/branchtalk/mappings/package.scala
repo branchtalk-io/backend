@@ -35,21 +35,29 @@ package object mappings {
   @SuppressWarnings(Array("org.wartremover.warts.Throw")) // too PITA to do it right
   def permissionApi2Users(owner: UserID): Iso[api.Permission, users.model.Permission] =
     Iso[api.Permission, users.model.Permission] {
+      case api.Permission.Administrate =>
+        users.model.Permission.Administrate
       case api.Permission.IsOwner =>
         users.model.Permission.IsUser(userIDApi2Users.get(owner))
-      case api.Permission.ModerateChannel(channelID) =>
-        users.model.Permission.ModerateChannel(channelIDApi2Users.get(channelID))
       case api.Permission.ModerateUsers =>
         users.model.Permission.ModerateUsers
+      case api.Permission.ModerateChannel(channelID) =>
+        users.model.Permission.ModerateChannel(channelIDApi2Users.get(channelID))
+      case api.Permission.CanPublish(channelID) =>
+        users.model.Permission.CanPublish(channelIDApi2Users.get(channelID))
     } {
+      case users.model.Permission.Administrate =>
+        api.Permission.Administrate
       case users.model.Permission.IsUser(userID) if userID.uuid === owner.uuid && owner =!= UserID.empty =>
         api.Permission.IsOwner
       case users.model.Permission.IsUser(_) =>
         throw new Exception("Cannot map User to Owner if ID doesn't match current Owner ID")
-      case users.model.Permission.ModerateChannel(channelID) =>
-        api.Permission.ModerateChannel(channelIDApi2Users.reverseGet(channelID))
       case users.model.Permission.ModerateUsers =>
         api.Permission.ModerateUsers
+      case users.model.Permission.ModerateChannel(channelID) =>
+        api.Permission.ModerateChannel(channelIDApi2Users.reverseGet(channelID))
+      case users.model.Permission.CanPublish(channelID) =>
+        api.Permission.CanPublish(channelIDApi2Users.reverseGet(channelID))
     }
 
   // scalastyle:off cyclomatic.complexity
