@@ -7,6 +7,7 @@ import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
 import com.typesafe.sbt.packager.docker.DockerPlugin
 import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
+import org.scalastyle.sbt.ScalastylePlugin.autoImport._
 import sbtassembly.AssemblyPlugin.autoImport._
 import scoverage._
 import wartremover.WartRemover.autoImport._
@@ -21,7 +22,7 @@ object Settings extends Dependencies {
     scalaVersion := scalaVersionUsed,
     crossScalaVersions := crossScalaVersionsUsed,
     // kind of required to avoid "{project}/doc" task failure, because of Catnip :/
-    Compile / doc / sources  := Seq.empty,
+    Compile / doc / sources := Seq.empty,
     Compile / packageDoc / publishArtifact := false
   )
 
@@ -157,7 +158,8 @@ object Settings extends Dependencies {
       Wart.PublicInference,
       Wart.NonUnitStatements,
       Wart.Nothing
-    )
+    ),
+    scalastyleFailOnError := true
   )
 
   def customPredef(imports: String*): Def.Setting[Task[Seq[String]]] =
@@ -206,6 +208,8 @@ object Settings extends Dependencies {
           inConfig(config)(
             Seq(
               scalafmtOnCompile := true,
+              scalastyleConfig := baseDirectory.value / "scalastyle-test-config.xml",
+              scalastyleFailOnError := false,
               fork := requiresFork,
               testFrameworks := Seq(Specs2)
             )

@@ -6,8 +6,8 @@ object Dependencies {
 
   // scala version
   val scalaOrganization  = "org.scala-lang"
-  val scalaVersion       = "2.13.3"
-  val crossScalaVersions = Seq("2.13.3")
+  val scalaVersion       = "2.13.4"
+  val crossScalaVersions = Seq("2.13.4")
 
   // libraries versions
   val avro4sVersion     = "4.0.0" // https://github.com/sksamuel/avro4s/releases
@@ -38,7 +38,7 @@ object Dependencies {
   // compiler plugins
   val betterMonadicFor =
     "com.olegpy" %% "better-monadic-for" % "0.3.1" // https://github.com/oleg-py/better-monadic-for/releases
-  val kindProjector = "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+  val kindProjector = "org.typelevel" %% "kind-projector" % "0.11.2" cross CrossVersion.full
   // https://github.com/typelevel/kind-projector/releases
   // functional libraries
   val catnip            = "io.scalaland" %% "catnip" % "1.1.2" // https://github.com/scalalandio/catnip/releases
