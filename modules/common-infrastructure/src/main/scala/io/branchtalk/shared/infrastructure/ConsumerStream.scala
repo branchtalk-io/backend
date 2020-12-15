@@ -19,7 +19,7 @@ final class ConsumerStream[F[_], Event](
       consumer
         .zip(stream)
         .flatMap { case (event, _) =>
-          Stream(s"${event.record.topic}:${event.record.offset}" -> event.record.value)
+          Stream(s"${event.record.topic}:${event.record.offset.toString}" -> event.record.value)
             .evalTap(_ => logger.info(s"Processing event key = ${event.record.key.toString}"))
             .through(f)
             .map(_ => event.offset)

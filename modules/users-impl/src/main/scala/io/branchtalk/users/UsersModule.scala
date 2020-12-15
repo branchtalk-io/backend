@@ -10,6 +10,8 @@ import io.branchtalk.users.reads._
 import io.branchtalk.users.writes._
 import io.prometheus.client.CollectorRegistry
 
+import scala.annotation.nowarn
+
 final case class UsersReads[F[_]](
   userReads:    UserReads[F],
   sessionReads: SessionReads[F]
@@ -20,7 +22,7 @@ final case class UsersWrites[F[_]](
   sessionWrites: SessionWrites[F],
   runProjector:  Resource[F, F[Unit]]
 )
-
+@nowarn("cat=unused") // macwire
 object UsersModule {
 
   private val module = DomainModule[UsersEvent, UsersCommandEvent]

@@ -8,7 +8,7 @@ import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
-import io.branchtalk.shared.model.{ FastEq, ParseRefined, ShowPretty }
+import io.branchtalk.shared.model.{ FastEq, ParseRefined, ShowPretty, branchtalkCharset }
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 
@@ -92,7 +92,7 @@ object Password {
       ParseRefined[F].parse[NonEmpty](bytes).map(Raw.apply)
 
     def fromString(string: String Refined NonEmpty): Raw =
-      Raw(ParseRefined[IO].parse[NonEmpty](string.getBytes).unsafeRunSync())
+      Raw(ParseRefined[IO].parse[NonEmpty](string.getBytes(branchtalkCharset)).unsafeRunSync())
 
     implicit val show: Show[Raw] = (_: Raw) => s"Password.Raw(EDITED OUT)"
     implicit val eq:   Eq[Raw]   = (x: Raw, y: Raw) => x.nonEmptyBytes.value sameElements y.nonEmptyBytes.value

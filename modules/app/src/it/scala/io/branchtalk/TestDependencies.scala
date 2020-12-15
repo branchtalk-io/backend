@@ -7,6 +7,8 @@ import io.branchtalk.shared.model.UUIDGenerator
 import io.branchtalk.users.{ TestUsersConfig, UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 
+import scala.annotation.nowarn
+
 final case class TestDependencies[F[_]](
   usersReads:        UsersReads[F],
   usersWrites:       UsersWrites[F],
@@ -15,6 +17,7 @@ final case class TestDependencies[F[_]](
 )
 object TestDependencies {
 
+  @nowarn("cat=unused") // macwire
   def resources[F[_]: ConcurrentEffect: ContextShift: Timer](registry: CollectorRegistry)(implicit
     uuidGenerator: UUIDGenerator
   ): Resource[F, TestDependencies[F]] =

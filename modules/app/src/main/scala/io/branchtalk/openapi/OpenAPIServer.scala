@@ -15,6 +15,7 @@ import sttp.tapir.openapi._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.swagger.http4s.SwaggerHttp4s
 
+import scala.annotation.nowarn
 import scala.collection.immutable.ListMap
 
 final class OpenAPIServer[F[_]: Sync: ContextShift](
@@ -54,11 +55,12 @@ object OpenAPIServer {
   implicit val referenceCodec: JsCodec[Reference] =
     summonCodec[Ref](JsonCodecMaker.make).map[Reference](r => Reference(r.$ref))(r => Ref(r.$ref))
 
-  // apparently Jsonite cannot find this...
+  // apparently Jsonite cannot find this if private...
   def referenceOrCodec[T: JsCodec]: JsCodec[ReferenceOr[T]] = JsEncoderOnly[ReferenceOr[T]] { (x, out) =>
     x.fold(referenceCodec.encodeValue(_, out), summonCodec[T].encodeValue(_, out))
   }
   // so I have to apply this manually
+  @nowarn("msg=Implicit resolves to enclosing value") // here this is just because of recursion
   implicit val referenceOrSchemaCodec: JsCodec[ReferenceOr[Schema]] =
     referenceOrCodec(summonCodec[Schema](JsonCodecMaker.make))
   implicit val referenceOrParameterCodec: JsCodec[ReferenceOr[Parameter]] =

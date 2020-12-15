@@ -9,7 +9,7 @@ import dev.profunktor.redis4cats.effect.Log
 import dev.profunktor.redis4cats.{ Redis, RedisCommands }
 import fs2.kafka.{ Headers, Serializer }
 import fs2.{ Pipe, Stream }
-import io.branchtalk.shared.model.Logger
+import io.branchtalk.shared.model.{ Logger, branchtalkCharset }
 import io.lettuce.core.codec.{ RedisCodec => JRedisCodec }
 
 import scala.util.control.NoStackTrace
@@ -19,6 +19,8 @@ abstract class Cache[F[_]: Sync, K, V] {
   def apply(key: K)(value: F[V]): F[(K, V)]
 
   final private case object EmptyStream extends Exception with NoStackTrace
+
+  @SuppressWarnings(Array("org.wartremover.warts.Throw")) // will be handled just after use
   private def unliftPipe[I](pipe: Pipe[F, I, V]): I => F[V] =
     i => Stream(i).through(pipe).compile.last.map(_.getOrElse(throw EmptyStream))
 
@@ -49,7 +51,7 @@ object Cache {
         override def info(msg:  => String): F[Unit] = logger.info(msg)
       }
       redis <- Redis[F].simple(
-        s"redis://${busConfig.cache.host.value}:${busConfig.cache.port}",
+        s"redis://${busConfig.cache.host.value}:${busConfig.cache.port.value.toString}",
         prepareCodec[F, Event](busConfig.topic.nonEmptyString.value)
       )
     } yield fromRedis(redis)
@@ -58,9 +60,11 @@ object Cache {
     topic: String
   ): RedisCodec[String, Event] = RedisCodec(
     new JRedisCodec[String, Event] {
-      override def decodeKey(bytes: ByteBuffer): String = new String(bytes.array())
+      override def decodeKey(bytes: ByteBuffer): String = new String(bytes.array(), branchtalkCharset)
 
-      @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null")) // null = empty cache
+      @SuppressWarnings(
+        Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Null", "org.wartremover.warts.ToString")
+      ) // null = empty cache
       override def decodeValue(bytes: ByteBuffer): Event =
         if (bytes.hasArray) {
           SafeDeserializer[F, Event]
@@ -73,7 +77,7 @@ object Cache {
             .unsafeRunSync()
         } else null.asInstanceOf[Event] // scalastyle:ignore null
 
-      override def encodeKey(key: String): ByteBuffer = ByteBuffer.wrap(key.getBytes)
+      override def encodeKey(key: String): ByteBuffer = ByteBuffer.wrap(key.getBytes(branchtalkCharset))
 
       override def encodeValue(value: Event): ByteBuffer =
         Serializer[F, Event].serialize(topic, Headers.empty, value).map(ByteBuffer.wrap).toIO.unsafeRunSync()

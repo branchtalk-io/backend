@@ -21,6 +21,7 @@ import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware._
 import sttp.tapir.server.ServerEndpoint
 
+import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 
 final class AppServer[F[_]: Concurrent: Timer](
@@ -73,6 +74,8 @@ final class AppServer[F[_]: Concurrent: Timer](
 object AppServer {
 
   // scalastyle:off method.length
+  @nowarn("cat=unused") // macwire
+  @SuppressWarnings(Array("org.wartremover.warts.GlobalExecutionContext")) // TODO: make configurable
   def asResource[F[_]: ConcurrentEffect: ContextShift: Timer](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
@@ -130,7 +133,7 @@ object AppServer {
     val logger = io.branchtalk.shared.model.Logger.getLogger[F]
 
     Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
-      BlazeServerBuilder[F](ExecutionContext.global) // TODO: make configurable
+      BlazeServerBuilder[F](ExecutionContext.global)
         .enableHttp2(apiConfig.http.http2Enabled)
         .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength.value,
                           maxHeadersLen = apiConfig.http.maxHeaderLineLength.value

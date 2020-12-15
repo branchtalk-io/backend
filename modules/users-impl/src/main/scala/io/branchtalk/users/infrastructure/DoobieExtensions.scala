@@ -4,19 +4,28 @@ import cats.Id
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.model.{ ID, UUID }
+import io.branchtalk.shared.model.{ ID, UUID, branchtalkLocale }
 import io.branchtalk.users.model.{ Password, Permission, Permissions, Session }
 import io.estatico.newtype.Coercible
 import org.postgresql.util.PGobject
 
+import scala.annotation.nowarn
+
 object DoobieExtensions {
 
   implicit val passwordAlgorithmMeta: Meta[Password.Algorithm] =
-    pgEnumString("password_algorithm", Password.Algorithm.withNameInsensitive, _.entryName.toLowerCase)
+    pgEnumString("password_algorithm",
+                 Password.Algorithm.withNameInsensitive,
+                 _.entryName.toLowerCase(branchtalkLocale)
+    )
 
   implicit val sessionUsageTypeMeta: Meta[Session.Usage.Type] =
-    pgEnumString("session_usage_type", Session.Usage.Type.withNameInsensitive, _.entryName.toLowerCase)
+    pgEnumString("session_usage_type",
+                 Session.Usage.Type.withNameInsensitive,
+                 _.entryName.toLowerCase(branchtalkLocale)
+    )
 
+  @nowarn("cat=unused") // macros
   @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
   implicit val permissionsMeta: Meta[Permissions] = {
     implicit def idCodec[A](implicit ev: Coercible[UUID, ID[A]]): JsonValueCodec[ID[A]] =

@@ -10,6 +10,8 @@ import io.branchtalk.shared.infrastructure._
 import com.softwaremill.macwire.wire
 import io.prometheus.client.CollectorRegistry
 
+import scala.annotation.nowarn
+
 final case class DiscussionsReads[F[_]](
   channelReads:      ChannelReads[F],
   postReads:         PostReads[F],
@@ -25,6 +27,7 @@ final case class DiscussionsWrites[F[_]](
   runProjector:       Resource[F, F[Unit]]
 )
 
+@nowarn("cat=unused") // macwire
 object DiscussionsModule {
 
   private val module = DomainModule[DiscussionEvent, DiscussionCommandEvent]

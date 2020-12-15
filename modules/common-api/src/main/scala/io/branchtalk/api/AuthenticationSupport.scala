@@ -6,28 +6,28 @@ import cats.effect.IO
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import io.branchtalk.api.Authentication.{ Credentials, Session }
-import io.branchtalk.shared.model.{ ParseRefined, UUIDGenerator }
+import io.branchtalk.shared.model.{ ParseRefined, UUIDGenerator, branchtalkCharset }
 import io.branchtalk.shared.model.UUIDGenerator.FastUUIDGenerator
-import sttp.tapir.{ EndpointIO, _ }
+import sttp.tapir._
 
 import scala.util.Try
 
 object AuthenticationSupport {
 
   private object base64 { // scalastyle:ignore object.name
-    def apply(string:   String): String = Base64.getEncoder.encodeToString(string.getBytes)
+    def apply(string:   String): String = Base64.getEncoder.encodeToString(string.getBytes(branchtalkCharset))
     def unapply(string: String): Option[String] =
-      Try(new String(Base64.getDecoder.decode(string))).toOption
+      Try(new String(Base64.getDecoder.decode(string), branchtalkCharset)).toOption
   }
 
   private val basicR = raw"Basic (.+)".r
   private val upR    = raw"([^:]+):(.+)".r
   private object basic { // scalastyle:ignore object.name
     def apply(username: String, password: Array[Byte] Refined NonEmpty): String =
-      s"""Basic ${base64(s"${username}:${new String(password.value)}")}"""
+      s"""Basic ${base64(s"${username}:${new String(password.value, branchtalkCharset)}")}"""
     def unapply(string: String): Option[(String, Array[Byte] Refined NonEmpty)] = string match {
       case basicR(base64(upR(username, password))) =>
-        ParseRefined[IO].parse[NonEmpty](password.getBytes).option.unsafeRunSync().map(username -> _)
+        ParseRefined[IO].parse[NonEmpty](password.getBytes(branchtalkCharset)).option.unsafeRunSync().map(username -> _)
       case _ => None
     }
   }

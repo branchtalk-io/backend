@@ -7,6 +7,7 @@ import com.sksamuel.avro4s.{ AvroInputStream, AvroOutputStream, Decoder, Encoder
 import com.typesafe.scalalogging.Logger
 import fs2.kafka.{ Deserializer, Serializer }
 import io.branchtalk.ADT
+import io.branchtalk.shared.model.branchtalkCharset
 
 sealed trait DeserializationError extends ADT
 object DeserializationError {
@@ -39,13 +40,13 @@ object KafkaSerialization {
               case Some(value) =>
                 value.asRight[DeserializationError]
               case None =>
-                logger.error(s"No Avro message to deserialize for '${new String(arr)}'")
+                logger.error(s"No Avro message to deserialize for '${new String(arr, branchtalkCharset)}'")
                 DeserializationError.NoAvroMessage.asLeft[A]
             }
           }
           .handleError { error: Throwable =>
-            logger.error(s"Avro deserialization error for '${new String(arr)}'", error)
-            DeserializationError.DecodingError(new String(arr), error).asLeft[A]
+            logger.error(s"Avro deserialization error for '${new String(arr, branchtalkCharset)}'", error)
+            DeserializationError.DecodingError(new String(arr, branchtalkCharset), error).asLeft[A]
           }
       }
     }

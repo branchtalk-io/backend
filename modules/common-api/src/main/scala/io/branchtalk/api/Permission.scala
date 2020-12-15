@@ -7,6 +7,7 @@ import io.branchtalk.shared.model.{ FastEq, ShowPretty, UUID }
 import io.scalaland.catnip.Semi
 
 @Semi(FastEq, ShowPretty, JsCodec) sealed trait Permission extends ADT
+@SuppressWarnings(Array("org.wartremover.warts.All")) // macros
 object Permission {
 
   case object Administrate extends Permission

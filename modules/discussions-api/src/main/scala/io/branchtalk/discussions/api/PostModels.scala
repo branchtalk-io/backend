@@ -17,6 +17,7 @@ import io.scalaland.chimney.dsl._
 import sttp.tapir.Schema
 import sttp.tapir.generic.Configuration
 
+import scala.annotation.unused
 import scala.util.Try
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
@@ -50,7 +51,8 @@ object PostModels {
   implicit val postTextSchema: Schema[Post.Text] =
     summonSchema[String].asNewtype[Post.Text]
   implicit val postContentSchema: Schema[Post.Content] = {
-    implicit val customConfiguration: Configuration =
+    // used in macros
+    @unused implicit val customConfiguration: Configuration =
       Configuration.default.copy(toEncodedName = discriminatorNameMapper("."))
     Schema.derivedSchema[Post.Content]
   }

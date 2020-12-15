@@ -3,8 +3,6 @@ package io.branchtalk.shared.model
 import cats.{ Applicative, Traverse }
 import io.scalaland.catnip.Semi
 
-import scala.annotation.nowarn
-
 @Semi(ShowPretty, FastEq) sealed trait OptionUpdatable[+A] {
 
   def fold[B](set: A => B, keep: => B, erase: => B): B = this match {
@@ -19,7 +17,6 @@ import scala.annotation.nowarn
     case OptionUpdatable.Keep       => None
   }
 }
-@nowarn("cat=unused") // macros
 object OptionUpdatable {
   final case class Set[+A](value: A) extends OptionUpdatable[A]
   case object Erase extends OptionUpdatable[Nothing]

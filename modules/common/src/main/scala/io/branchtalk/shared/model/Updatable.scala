@@ -4,8 +4,6 @@ import cats.{ Applicative, Traverse }
 import io.branchtalk.ADT
 import io.scalaland.catnip.Semi
 
-import scala.annotation.nowarn
-
 @Semi(ShowPretty, FastEq) sealed trait Updatable[+A] extends ADT {
 
   def fold[B](set: A => B, keep: => B): B = this match {
@@ -18,7 +16,6 @@ import scala.annotation.nowarn
     case Updatable.Keep       => None
   }
 }
-@nowarn("cat=unused") // macros
 object Updatable {
   final case class Set[+A](value: A) extends Updatable[A]
   case object Keep extends Updatable[Nothing]

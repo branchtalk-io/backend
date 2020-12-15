@@ -25,6 +25,12 @@ addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;cover
 
 // commons
 
+val commonMacros = project
+  .from("common-macros")
+  .setName("common-macros")
+  .setDescription("Common macro definitions")
+  .configureModule
+
 val common = project
   .from("common")
   .setName("common")
@@ -51,6 +57,7 @@ val common = project
       Seq(file)
     }
   )
+  .dependsOn(commonMacros)
 
 val commonInfrastructure = project
   .from("common-infrastructure")
@@ -79,6 +86,12 @@ val commonInfrastructure = project
   )
   .dependsOn(common)
 
+val commonApiMacros = project
+  .from("common-api-macros")
+  .setName("common-api-macros")
+  .setDescription("Common API macro definitions")
+  .configureModule
+
 val commonApi = project
   .from("common-api")
   .setName("common-api")
@@ -95,7 +108,7 @@ val commonApi = project
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
-  .dependsOn(common)
+  .dependsOn(common, commonApiMacros)
 
 // discussions
 

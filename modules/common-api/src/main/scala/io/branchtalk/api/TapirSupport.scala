@@ -12,6 +12,9 @@ import sttp.tapir.codec.refined.TapirCodecRefined
 import sttp.tapir.generic.Configuration
 import sttp.tapir.json.jsoniter.TapirJsonJsoniter
 
+import scala.annotation.nowarn
+
+@nowarn("cat=unused")
 object TapirSupport extends TapirCodecRefined with TapirJsonJsoniter {
 
   // shortcuts
