@@ -3,7 +3,7 @@ package io.branchtalk.discussions.writes
 import cats.effect.{ Sync, Timer }
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.discussions.events.{ DiscussionCommandEvent, PostCommandEvent }
+import io.branchtalk.discussions.events.{ DiscussionsCommandEvent, PostCommandEvent }
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, NormalizeForUrl, Writes }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
@@ -11,11 +11,11 @@ import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
 final class PostWritesImpl[F[_]: Sync: Timer](
-  producer:   EventBusProducer[F, DiscussionCommandEvent],
+  producer:   EventBusProducer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit
   uuidGenerator: UUIDGenerator
-) extends Writes[F, Post, DiscussionCommandEvent](producer)
+) extends Writes[F, Post, DiscussionsCommandEvent](producer)
     with PostWrites[F] {
 
   private val channelCheck = new ParentCheck[Channel]("Channel", transactor)
@@ -41,7 +41,7 @@ final class PostWritesImpl[F[_]: Sync: Timer](
         .withFieldConst(_.urlTitle, urlTitle)
         .withFieldConst(_.createdAt, now)
         .transform
-      _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
+      _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield CreationScheduled(id)
 
   override def updatePost(updatedPost: Post.Update): F[UpdateScheduled[Post]] =
@@ -55,7 +55,7 @@ final class PostWritesImpl[F[_]: Sync: Timer](
         .withFieldConst(_.newUrlTitle, newUrlTitle)
         .withFieldConst(_.modifiedAt, now)
         .transform
-      _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
+      _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield UpdateScheduled(id)
 
   override def deletePost(deletedPost: Post.Delete): F[DeletionScheduled[Post]] =
@@ -63,7 +63,7 @@ final class PostWritesImpl[F[_]: Sync: Timer](
       id <- deletedPost.id.pure[F]
       _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
       command = deletedPost.into[PostCommandEvent.Delete].transform
-      _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
+      _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield DeletionScheduled(id)
 
   override def restorePost(restoredPost: Post.Restore): F[RestoreScheduled[Post]] =
@@ -71,6 +71,6 @@ final class PostWritesImpl[F[_]: Sync: Timer](
       id <- restoredPost.id.pure[F]
       _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = TRUE""")
       command = restoredPost.into[PostCommandEvent.Restore].transform
-      _ <- postEvent(id, DiscussionCommandEvent.ForPost(command))
+      _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield RestoreScheduled(id)
 }

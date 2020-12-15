@@ -4,21 +4,21 @@ import cats.data.NonEmptyList
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
-import io.branchtalk.discussions.events.{ ChannelCommandEvent, ChannelEvent, DiscussionCommandEvent, DiscussionEvent }
+import io.branchtalk.discussions.events.{ ChannelCommandEvent, ChannelEvent, DiscussionEvent, DiscussionsCommandEvent }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
 import io.scalaland.chimney.dsl._
 
 final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
-    extends Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] {
+    extends Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
 
   implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
-  override def apply(in: Stream[F, DiscussionCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect { case DiscussionCommandEvent.ForChannel(event) =>
+  override def apply(in: Stream[F, DiscussionsCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
+    in.collect { case DiscussionsCommandEvent.ForChannel(event) =>
       event
     }.evalMap[F, (UUID, ChannelEvent)] {
       case event: ChannelCommandEvent.Create  => toCreate(event).widen

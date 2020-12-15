@@ -2,7 +2,7 @@ package io.branchtalk.discussions
 
 import cats.data.NonEmptyList
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
-import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent }
+import io.branchtalk.discussions.events.{ DiscussionEvent, DiscussionsCommandEvent }
 import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._
 import io.branchtalk.shared.model._
@@ -30,7 +30,7 @@ final case class DiscussionsWrites[F[_]](
 @nowarn("cat=unused") // macwire
 object DiscussionsModule {
 
-  private val module = DomainModule[DiscussionEvent, DiscussionCommandEvent]
+  private val module = DomainModule[DiscussionEvent, DiscussionsCommandEvent]
 
   def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig,
@@ -61,7 +61,7 @@ object DiscussionsModule {
             val commentWrites:      CommentWrites[F]      = wire[CommentWritesImpl[F]]
             val subscriptionWrites: SubscriptionWrites[F] = wire[SubscriptionWritesImpl[F]]
 
-            val projector: Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList
+            val projector: Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList
               .of(
                 new ChannelProjector[F](transactor),
                 new CommentProjector[F](transactor),

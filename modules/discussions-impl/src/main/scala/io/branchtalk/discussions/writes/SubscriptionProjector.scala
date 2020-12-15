@@ -4,8 +4,8 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import io.branchtalk.discussions.events.{
-  DiscussionCommandEvent,
   DiscussionEvent,
+  DiscussionsCommandEvent,
   SubscriptionCommandEvent,
   SubscriptionEvent
 }
@@ -15,14 +15,14 @@ import io.branchtalk.shared.model.UUID
 import io.scalaland.chimney.dsl._
 
 final class SubscriptionProjector[F[_]: Sync](transactor: Transactor[F])
-    extends Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] {
+    extends Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
 
   implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
-  override def apply(in: Stream[F, DiscussionCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect { case DiscussionCommandEvent.ForSubscription(event) =>
+  override def apply(in: Stream[F, DiscussionsCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
+    in.collect { case DiscussionsCommandEvent.ForSubscription(event) =>
       event
     }.evalMap[F, (UUID, SubscriptionEvent)] {
       case event: SubscriptionCommandEvent.Subscribe   => toSubscribe(event).widen

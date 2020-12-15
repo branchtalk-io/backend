@@ -8,4 +8,5 @@ import io.scalaland.catnip.Semi
 @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait UsersCommandEvent extends ADT
 object UsersCommandEvent {
   final case class ForUser(user: UserCommandEvent) extends UsersCommandEvent
+  final case class ForBan(ban: BanCommandEvent) extends UsersCommandEvent
 }

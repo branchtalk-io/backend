@@ -5,7 +5,7 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
-import io.branchtalk.discussions.events.{ DiscussionCommandEvent, DiscussionEvent, PostCommandEvent, PostEvent }
+import io.branchtalk.discussions.events.{ DiscussionEvent, DiscussionsCommandEvent, PostCommandEvent, PostEvent }
 import io.branchtalk.discussions.infrastructure.DoobieExtensions._
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.shared.infrastructure.DoobieSupport._
@@ -14,14 +14,14 @@ import io.branchtalk.shared.model.UUID
 import io.scalaland.chimney.dsl._
 
 final class PostProjector[F[_]: Sync](transactor: Transactor[F])
-    extends Projector[F, DiscussionCommandEvent, (UUID, DiscussionEvent)] {
+    extends Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
 
   implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
-  override def apply(in: Stream[F, DiscussionCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect { case DiscussionCommandEvent.ForPost(event) =>
+  override def apply(in: Stream[F, DiscussionsCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
+    in.collect { case DiscussionsCommandEvent.ForPost(event) =>
       event
     }.evalMap[F, (UUID, PostEvent)] {
       case event: PostCommandEvent.Create  => toCreate(event).widen

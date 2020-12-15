@@ -14,4 +14,7 @@ object UsersEvent {
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor)
   final case class ForSession(session: SessionEvent) extends UsersEvent
+
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor)
+  final case class ForBans(ban: BanEvent) extends UsersEvent
 }
