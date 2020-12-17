@@ -5,13 +5,16 @@ import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.model.{ ID, UUID, branchtalkLocale }
-import io.branchtalk.users.model.{ Password, Permission, Permissions, Session }
+import io.branchtalk.users.model.{ Ban, Password, Permission, Permissions, Session }
 import io.estatico.newtype.Coercible
 import org.postgresql.util.PGobject
 
 import scala.annotation.nowarn
 
 object DoobieExtensions {
+
+  implicit val banScopeTypeMeta: Meta[Ban.Scope.Type] =
+    pgEnumString("user_ban_type", Ban.Scope.Type.withNameInsensitive, _.entryName.toLowerCase(branchtalkLocale))
 
   implicit val passwordAlgorithmMeta: Meta[Password.Algorithm] =
     pgEnumString("password_algorithm",

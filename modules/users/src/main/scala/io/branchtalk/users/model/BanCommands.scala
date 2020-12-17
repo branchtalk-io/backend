@@ -14,11 +14,13 @@ object BanCommands {
   @Semi(FastEq, ShowPretty) final case class Order(
     bannedUserID: ID[User],
     reason:       Ban.Reason,
-    scope:        Ban.Scope
+    scope:        Ban.Scope,
+    moderatorID:  Option[ID[User]]
   )
 
   @Semi(FastEq, ShowPretty) final case class Lift(
     bannedUserID: ID[User],
-    scope:        Ban.Scope
+    scope:        Ban.Scope,
+    moderatorID:  Option[ID[User]]
   )
 }

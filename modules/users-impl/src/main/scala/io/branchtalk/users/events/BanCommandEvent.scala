@@ -12,12 +12,16 @@ object BanCommandEvent {
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class OrderBan(
     bannedUserID: ID[User],
+    moderatorID:  Option[ID[User]],
     reason:       Ban.Reason,
-    scope:        Ban.Scope
+    scope:        Ban.Scope,
+    createdAt:    CreationTime
   ) extends BanCommandEvent
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class LiftBan(
     bannedUserID: ID[User],
-    scope:        Ban.Scope
+    moderatorID:  Option[ID[User]],
+    scope:        Ban.Scope,
+    modifiedAt:   ModificationTime
   ) extends BanCommandEvent
 }

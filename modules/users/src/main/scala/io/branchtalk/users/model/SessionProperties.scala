@@ -46,17 +46,12 @@ object SessionProperties {
   @Semi(FastEq, ShowPretty) sealed trait Usage extends ADT
 
   object Usage {
-
     case object UserSession extends Usage
-
     final case class OAuth(permissions: Permissions) extends Usage
 
     @Semi(FastEq, ShowPretty) sealed trait Type extends EnumEntry with Hyphencase
-
     object Type extends Enum[Type] {
-
       case object UserSession extends Type
-
       case object OAuth extends Type
 
       val values: IndexedSeq[Type] = findValues

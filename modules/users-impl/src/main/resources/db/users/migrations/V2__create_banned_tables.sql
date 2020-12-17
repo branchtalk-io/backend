@@ -4,8 +4,9 @@ CREATE TYPE USER_BAN_TYPE AS ENUM ('per-channel', 'globally');
 
 -- Banned Users
 
-CREATE TABLE banned_users (
+CREATE TABLE bans (
   user_id     UUID          NOT NULL REFERENCES users ON DELETE CASCADE ON UPDATE CASCADE,
   ban_type    USER_BAN_TYPE NOT NULL,
-  channel_ids UUID[]        NOT NULL
+  ban_id      UUID,
+  reason      TEXT          NOT NULL
 );
