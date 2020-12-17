@@ -4,29 +4,24 @@ import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import io.branchtalk.ADT
 import io.branchtalk.shared.model._
 import io.branchtalk.shared.model.AvroSupport._
-import io.branchtalk.users.model.{ Ban, Channel, User }
+import io.branchtalk.users.model.{ Ban, User }
 import io.scalaland.catnip.Semi
 
 @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait BanEvent extends ADT
 object BanEvent {
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class BannedInChannel(
-    userID:    ID[User],
-    channelID: ID[Channel],
-    reason:    Ban.Reason
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Banned(
+    bannedUserID: ID[User],
+    moderatorID:  Option[ID[User]],
+    scope:        Ban.Scope,
+    reason:       Ban.Reason,
+    createdAt:    CreationTime
   ) extends BanEvent
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class UnbannedInChannel(
-    userID:    ID[User],
-    channelID: ID[Channel]
-  ) extends BanEvent
-
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class BannedGlobally(
-    userID: ID[User],
-    reason: Ban.Reason
-  ) extends BanEvent
-
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class UnbannedGlobally(
-    userID: ID[User]
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Unbanned(
+    bannedUserID: ID[User],
+    moderatorID:  Option[ID[User]],
+    scope:        Ban.Scope,
+    modifiedAt:   ModificationTime
   ) extends BanEvent
 }

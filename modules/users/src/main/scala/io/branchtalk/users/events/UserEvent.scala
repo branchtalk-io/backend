@@ -13,9 +13,9 @@ object UserEvent {
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Created(
     id:               ID[User],
-    createdAt:        CreationTime,
     sessionID:        ID[Session], // session created by registration
-    sessionExpiresAt: Session.ExpirationTime
+    sessionExpiresAt: Session.ExpirationTime,
+    createdAt:        CreationTime
   ) extends UserEvent
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Updated(
@@ -26,11 +26,7 @@ object UserEvent {
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Deleted(
     id:          ID[User],
-    moderatorID: Option[ID[User]]
-  ) extends UserEvent
-
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Restored(
-    id:          ID[User],
-    moderatorID: Option[ID[User]]
+    moderatorID: Option[ID[User]],
+    deletedAt:   ModificationTime
   ) extends UserEvent
 }
