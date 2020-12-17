@@ -9,6 +9,7 @@ import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.events.{ BanCommandEvent, BanEvent, UsersCommandEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.Ban
+import io.branchtalk.users.model.BanProperties.Scope
 import io.scalaland.chimney.dsl._
 
 final class BanProjector[F[_]: Sync](transactor: Transactor[F])
@@ -49,11 +50,18 @@ final class BanProjector[F[_]: Sync](transactor: Transactor[F])
   }
 
   def toLift(event: BanCommandEvent.LiftBan): F[(UUID, BanEvent.Unbanned)] = {
-    val Ban.Scope.Tupled(banType, banID) = event.scope
-    sql"""DELETE FROM bans
-         |WHERE user_id  = ${event.bannedUserID}
-         |  AND ban_type = ${banType}
-         |  AND ban_id   = ${banID}""".stripMargin.update.run.transact(transactor) >>
+    val Ban.Scope.Tupled(banType, _) = event.scope
+    (event.scope match {
+      case Scope.ForChannel(channelID) =>
+        sql"""DELETE FROM bans
+             |WHERE user_id  = ${event.bannedUserID}
+             |  AND ban_type = $banType
+             |  AND ban_id   = $channelID""".stripMargin
+      case Scope.Globally =>
+        sql"""DELETE FROM bans
+             |WHERE user_id  = ${event.bannedUserID}
+             |  AND ban_type = $banType""".stripMargin
+    }).update.run.transact(transactor) >>
       (event.bannedUserID.uuid -> event.transformInto[BanEvent.Unbanned]).pure[F]
   }
 }

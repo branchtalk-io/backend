@@ -1,6 +1,6 @@
 -- Enums
 
-CREATE TYPE USER_BAN_TYPE AS ENUM ('per-channel', 'globally');
+CREATE TYPE USER_BAN_TYPE AS ENUM ('for-channel', 'globally');
 
 -- Banned Users
 

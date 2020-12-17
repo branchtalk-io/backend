@@ -14,12 +14,14 @@ import scala.annotation.nowarn
 
 final case class UsersReads[F[_]](
   userReads:    UserReads[F],
-  sessionReads: SessionReads[F]
+  sessionReads: SessionReads[F],
+  banReads:     BanReads[F]
 )
 
 final case class UsersWrites[F[_]](
   userWrites:    UserWrites[F],
   sessionWrites: SessionWrites[F],
+  banWrites:     BanWrites[F],
   runProjector:  Resource[F, F[Unit]]
 )
 @nowarn("cat=unused") // macwire
@@ -37,6 +39,7 @@ object UsersModule {
       module.setupReads[F](domainConfig, registry).map { case ReadsInfrastructure(transactor, _) =>
         val userReads:    UserReads[F]    = wire[UserReadsImpl[F]]
         val sessionReads: SessionReads[F] = wire[SessionReadsImpl[F]]
+        val banReads:     BanReads[F]     = wire[BanReadsImpl[F]]
 
         wire[UsersReads[F]]
       }
@@ -51,10 +54,12 @@ object UsersModule {
           case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer, cache) =>
             val userWrites:    UserWrites[F]    = wire[UserWritesImpl[F]]
             val sessionWrites: SessionWrites[F] = wire[SessionWritesImpl[F]]
+            val banWrites:     BanWrites[F]     = wire[BanWritesImpl[F]]
 
             val projector: Projector[F, UsersCommandEvent, (UUID, UsersEvent)] = NonEmptyList
               .of(
-                wire[UserProjector[F]]: Projector[F, UsersCommandEvent, (UUID, UsersEvent)]
+                wire[UserProjector[F]],
+                wire[BanProjector[F]]
               )
               .reduce
             val runProjector: Resource[F, F[Unit]] =

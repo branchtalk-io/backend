@@ -2,7 +2,7 @@ package io.branchtalk.users
 
 import cats.effect.{ Clock, IO }
 import io.branchtalk.shared.model._
-import io.branchtalk.users.model.{ Channel, Password, Session, User }
+import io.branchtalk.users.model.{ Ban, Channel, Password, Session, User }
 import io.branchtalk.shared.Fixtures._
 
 trait UsersFixtures {
@@ -27,4 +27,11 @@ trait UsersFixtures {
       (Session.Usage.UserSession: Session.Usage).pure[IO],
       Session.ExpirationTime.now[IO]
     ).mapN(Session.Create.apply)
+
+  def banCreate(userID: ID[User], channelID: ID[Channel]): IO[Ban] =
+    (
+      userID.pure[IO],
+      textProducer.map(_.loremIpsum()).flatMap(Ban.Reason.parse[IO]),
+      Ban.Scope.ForChannel(channelID).pure[IO]
+    ).mapN(Ban.apply _)
 }
