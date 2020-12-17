@@ -10,24 +10,13 @@ import io.scalaland.catnip.Semi
 @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait BanCommandEvent extends ADT
 object BanCommandEvent {
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class BanInChannel(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class OrderBan(
     bannedUserID: ID[User],
     reason:       Ban.Reason,
     scope:        Ban.Scope
   ) extends BanCommandEvent
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class LiftBanInChannel(
-    bannedUserID: ID[User],
-    scope:        Ban.Scope
-  ) extends BanCommandEvent
-
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class BanGlobally(
-    bannedUserID: ID[User],
-    reason:       Ban.Reason,
-    scope:        Ban.Scope
-  )
-
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class LiftBanGlobally(
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class LiftBan(
     bannedUserID: ID[User],
     scope:        Ban.Scope
   ) extends BanCommandEvent

@@ -32,6 +32,7 @@ package object mappings {
     channelID => ID[users.model.Channel](channelID.uuid)
   }(channelID => api.ChannelID(channelID.uuid))
 
+  // scalastyle:off cyclomatic.complexity
   @SuppressWarnings(Array("org.wartremover.warts.Throw")) // too PITA to do it right
   def permissionApi2Users(owner: UserID): Iso[api.Permission, users.model.Permission] =
     Iso[api.Permission, users.model.Permission] {
@@ -59,6 +60,7 @@ package object mappings {
       case users.model.Permission.CanPublish(channelID) =>
         api.Permission.CanPublish(channelIDApi2Users.reverseGet(channelID))
     }
+  // scalastyle:on cyclomatic.complexity
 
   // scalastyle:off cyclomatic.complexity
   def requiredPermissionsApi2Users(owner: UserID): Iso[api.RequiredPermissions, users.model.RequiredPermissions] = {
