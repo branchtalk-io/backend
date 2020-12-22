@@ -13,13 +13,10 @@ final class OpenAPIServerSpec extends Specification with ServerIOTest {
   "OpenAPIServer" should {
 
     "return valid OpenAPI v3 specification" in {
-      (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
-        case (usersProjector, discussionsProjector) =>
-          for {
-            _ <- usersProjector.logError("Error reported by Users projector").start
-            _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-            result <- basicRequest.get(sttpBaseUri.withWholePath("docs/swagger.json")).send(client)
-          } yield result.code must_=== StatusCode.Ok
+      withAllProjections {
+        for {
+          result <- basicRequest.get(sttpBaseUri.withWholePath("docs/swagger.json")).send(client)
+        } yield result.code must_=== StatusCode.Ok
       }
     }
   }

@@ -40,6 +40,16 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> serverResource
 
+  protected def withAllProjections[A](fa: IO[A]): IO[A] =
+    (usersWrites.runProjector, discussionsWrites.runProjector).tupled.use {
+      case (usersProjector, discussionsProjector) =>
+        for {
+          _ <- usersProjector.logError("Error reported by Users projector").start
+          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+          a <- fa
+        } yield a
+    }
+
   implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Any]) {
 
     val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = (input: I) =>

@@ -3,6 +3,7 @@ package io.branchtalk.users
 import cats.data.NonEmptyList
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import com.softwaremill.macwire.wire
+import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.shared.infrastructure._
 import io.branchtalk.shared.model.{ Logger, UUID, UUIDGenerator }
 import io.branchtalk.users.events.{ UsersCommandEvent, UsersEvent }
@@ -19,10 +20,11 @@ final case class UsersReads[F[_]](
 )
 
 final case class UsersWrites[F[_]](
-  userWrites:    UserWrites[F],
-  sessionWrites: SessionWrites[F],
-  banWrites:     BanWrites[F],
-  runProjector:  Resource[F, F[Unit]]
+  userWrites:             UserWrites[F],
+  sessionWrites:          SessionWrites[F],
+  banWrites:              BanWrites[F],
+  runProjector:           Resource[F, F[Unit]],
+  runDiscussionsConsumer: ConsumerStream[F, DiscussionEvent] => Resource[F, F[Unit]]
 )
 @nowarn("cat=unused") // macwire
 object UsersModule {
@@ -64,7 +66,16 @@ object UsersModule {
               .reduce
             val runProjector: Resource[F, F[Unit]] =
               internalConsumerStream.withCachedPipeToResource(logger, cache)(
-                ConsumerStream.Helpers.second andThen projector andThen producer andThen ConsumerStream.Helpers.produced
+                ConsumerStream.noID.andThen(projector).andThen(producer).andThen(ConsumerStream.produced)
+              )
+
+            val discussionsConsumer: DiscussionsConsumer[F] = wire[DiscussionsConsumer[F]]
+            val runDiscussionsConsumer: ConsumerStream[F, DiscussionEvent] => Resource[F, F[Unit]] =
+              _.withPipeToResource(logger)(
+                ConsumerStream.noID
+                  .andThen(discussionsConsumer)
+                  .andThen(internalProducer)
+                  .andThen(ConsumerStream.produced)
               )
 
             wire[UsersWrites[F]]

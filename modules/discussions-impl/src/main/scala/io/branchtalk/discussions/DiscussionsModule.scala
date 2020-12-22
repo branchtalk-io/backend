@@ -71,7 +71,7 @@ object DiscussionsModule {
               .reduce
             val runProjector: Resource[F, F[Unit]] =
               internalConsumerStream.withCachedPipeToResource(logger, cache)(
-                ConsumerStream.Helpers.second andThen projector andThen producer andThen ConsumerStream.Helpers.produced
+                ConsumerStream.noID.andThen(projector).andThen(producer).andThen(ConsumerStream.produced)
               )
 
             wire[DiscussionsWrites[F]]

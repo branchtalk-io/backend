@@ -47,11 +47,8 @@ object ConsumerStream {
         committer = busConfig.toCommitBatch[F](consumerCfg)
       )
 
-  object Helpers {
+  def noID[F[_], A, B]: Pipe[F, (A, B), B] = _.map(_._2)
 
-    def second[F[_], A, B]: Pipe[F, (A, B), B] = _.map(_._2)
-
-    def produced[F[_], A]: Pipe[F, ProducerResult[UUID, A, Unit], A] =
-      _.flatMap(pr => Stream(pr.records.map(_._1.value).toList: _*))
-  }
+  def produced[F[_], A]: Pipe[F, ProducerResult[UUID, A, Unit], A] =
+    _.flatMap(pr => Stream(pr.records.map(_._1.value).toList: _*))
 }

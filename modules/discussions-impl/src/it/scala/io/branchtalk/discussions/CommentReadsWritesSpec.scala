@@ -12,10 +12,9 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
   "Comment Reads & Writes" should {
 
     "don't create a Comment if there is no Post for it" in {
-      discussionsWrites.runProjector.use { discussionsProjector =>
+      withDiscussionsProjections {
         for {
           // given
-          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           postID <- ID.create[IO, Post]
           creationData <- (0 until 3).toList.traverse(_ => commentCreate(postID))
           // when
@@ -27,10 +26,9 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
     }
 
     "create a Comment and eventually read it" in {
-      discussionsWrites.runProjector.use { discussionsProjector =>
+      withDiscussionsProjections {
         for {
           // given
-          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
@@ -54,10 +52,9 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
     }
 
     "don't update a Comment that doesn't exists" in {
-      discussionsWrites.runProjector.use { discussionsProjector =>
+      withDiscussionsProjections {
         for {
           // given
-          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
@@ -81,10 +78,9 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
     }
 
     "update an existing Comment" in {
-      discussionsWrites.runProjector.use { discussionsProjector =>
+      withDiscussionsProjections {
         for {
           // given
-          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
@@ -133,10 +129,9 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
     }
 
     "allow delete and restore of a created Comment" in {
-      discussionsWrites.runProjector.use { discussionsProjector =>
+      withDiscussionsProjections {
         for {
           // given
-          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
@@ -179,10 +174,9 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
     }
 
     "paginate newest Comments by Posts" in {
-      discussionsWrites.runProjector.use { discussionsProjector =>
+      withDiscussionsProjections {
         for {
           // given
-          _ <- discussionsProjector.logError("Error reported by Discussions projector").start
           channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)

@@ -19,4 +19,12 @@ trait DiscussionsIOTest extends IOTest with ResourcefulTest {
   } yield ()
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> discussionsResource
+
+  protected def withDiscussionsProjections[A](fa: IO[A]): IO[A] =
+    discussionsWrites.runProjector.use { discussionsProjector =>
+      for {
+        _ <- discussionsProjector.logError("Error reported by Discussions projector").start
+        a <- fa
+      } yield a
+    }
 }

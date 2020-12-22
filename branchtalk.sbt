@@ -195,7 +195,7 @@ val usersImpl = project
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .compileAndTestDependsOn(commonInfrastructure)
-  .dependsOn(users, common % "compile->compile;it->test")
+  .dependsOn(users, discussions, common % "compile->compile;it->test")
 
 // application
 

@@ -17,10 +17,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
   "User Reads & Writes" should {
 
     "create a User and eventually read it" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Users projector").start
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
           // when
           toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
@@ -40,10 +39,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "don't update a User that doesn't exists" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Users projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -68,10 +66,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "update an existing User" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Users projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -141,10 +138,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "allow delete of a created User" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Users projector").start
           moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(moderatorID).eventually()
           creationData <- (0 until 3).toList.traverse(_ => userCreate)
@@ -168,10 +164,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "allow password checking" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Users projector").start
           goodPassword <- passwordCreate("password")
           rawGoodPassword <- Password.Raw.parse[IO]("password".getBytes)
           rawBadPassword <- Password.Raw.parse[IO]("bad".getBytes)
@@ -192,10 +187,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "paginate newest Users" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Users projector").start
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
           _ <- paginatedIds
@@ -214,10 +208,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "paginate Users by name alphabetically" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Users projector").start
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
           _ <- paginatedIds
@@ -236,10 +229,9 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
     }
 
     "paginate Users by email alphabetically" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Users projector").start
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
           paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
           _ <- paginatedIds

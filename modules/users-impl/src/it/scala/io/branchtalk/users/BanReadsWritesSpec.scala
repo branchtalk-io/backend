@@ -13,10 +13,9 @@ final class BanReadsWritesSpec extends Specification with UsersIOTest with Users
   "Ban Reads & Writes" should {
 
     "order a User's Ban and lift User's ban and eventually execute command" in {
-      usersWrites.runProjector.use { usersProjector =>
+      withUsersProjections {
         for {
           // given
-          _ <- usersProjector.logError("Error reported by Bans projector").start
           userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
           _ <- usersReads.userReads.requireById(userID).eventually()
           channelID <- channelIDCreate
