@@ -14,7 +14,7 @@ final class ConsumerStream[F[_], Event](
   // Projections start when you run F[Unit] and stop when you exit Resource.
   def withPipeToResource[B](
     logger: Logger[F]
-  )(f:      Pipe[F, (String, Event), B])(implicit F: Sync[F]): Resource[F, F[Unit]] =
+  )(f:      Pipe[F, (String, Event), B])(implicit F: Sync[F]): ConsumerStream.AsResource[F] =
     KillSwitch.asStream[F, F[Unit]] { stream =>
       consumer
         .zip(stream)
@@ -33,14 +33,18 @@ final class ConsumerStream[F[_], Event](
   def withCachedPipeToResource[B](
     logger: Logger[F],
     cache:  Cache[F, String, B]
-  )(f:      Pipe[F, (String, Event), B])(implicit F: Sync[F]): Resource[F, F[Unit]] =
+  )(f:      Pipe[F, (String, Event), B])(implicit F: Sync[F]): ConsumerStream.AsResource[F] =
     withPipeToResource(logger)(cache.piped(_._1, f))
 }
 object ConsumerStream {
 
+  type AsResource[F[_]]     = Resource[F, F[Unit]]
+  type Builder[F[_], Event] = KafkaEventConsumerConfig => ConsumerStream[F, Event]
+  type Runner[F[_], Event]  = ConsumerStream[F, Event] => AsResource[F]
+
   def fromConfigs[F[_]: ConcurrentEffect: ContextShift: Timer, Event: Serializer[F, *]: SafeDeserializer[F, *]](
     busConfig: KafkaEventBusConfig
-  ): KafkaEventConsumerConfig => ConsumerStream[F, Event] =
+  ): Builder[F, Event] =
     consumerCfg =>
       new ConsumerStream(
         consumer = KafkaEventBus.consumer[F, Event](busConfig, consumerCfg),

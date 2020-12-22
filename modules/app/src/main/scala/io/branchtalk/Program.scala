@@ -6,8 +6,9 @@ import cats.effect.implicits._
 import com.typesafe.config.ConfigFactory
 import io.branchtalk.api.AppServer
 import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
+import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
-import io.branchtalk.shared.infrastructure.DomainConfig
+import io.branchtalk.shared.infrastructure.{ ConsumerStream, DomainConfig }
 import io.branchtalk.shared.model.{ Logger, UUIDGenerator }
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
@@ -58,14 +59,24 @@ object Program {
               DiscussionsModule.writes[F](discussionsConfig, registry)
             ).tupled
         }
-        .use((runModules[F](appArguments, apiConfig, awaitTerminationSignal[F]) _).tupled)
+        .use(
+          (runModules[F](appArguments,
+                         apiConfig,
+                         awaitTerminationSignal[F],
+                         UsersModule.listenToUsers[F](usersConfig)
+          ) _).tupled
+        )
     } yield ()
 
   // scalastyle:off number.of.parameters
   def runModules[F[_]: ConcurrentEffect: ContextShift: Timer](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
-    terminationSignal: F[Unit]
+    terminationSignal: F[Unit],
+    makeUsersDiscussionsConsumer: (
+      ConsumerStream.Builder[F, DiscussionEvent],
+      ConsumerStream.Runner[F, DiscussionEvent]
+    ) => ConsumerStream.AsResource[F]
   )(
     registry:          CollectorRegistry,
     usersReads:        UsersReads[F],
@@ -87,17 +98,23 @@ object Program {
         .void
         .conditionally(appArguments.runAPI)(orElse = ()),
       usersWrites.runProjector.conditionally(condition = appArguments.runUsersProjections)(orElse = ().pure[F]),
+      makeUsersDiscussionsConsumer(
+        discussionsReads.discussionEventConsumer,
+        usersWrites.runDiscussionsConsumer
+      ).conditionally(condition = appArguments.runUsersProjections)(orElse = ().pure[F]),
       discussionsWrites.runProjector.conditionally(condition = appArguments.runDiscussionsProjections)(orElse =
         ().pure[F]
       )
-    ).tupled.use { case (_, usersProjector, discussionsProjector) =>
+    ).tupled.use { case (_, usersProjector, usersDiscussionsConsumer, discussionsProjector) =>
       logger.info("Start projections if needed") >>
         usersProjector.start >> // run Users projections on a separate thread
+        usersDiscussionsConsumer.start >> // run consumer on a separate thread
         discussionsProjector.start >> // run Users projections on a separate thread
         logger.info("Services initialized") >>
         terminationSignal >> // here we are blocking until e.g. user press Ctrl+C
         logger.info("Received exit signal")
     }
+  // scalastyle:on number.of.parameters
 
   // kudos to Łukasz Byczyński
   private def awaitTerminationSignal[F[_]: Concurrent]: F[Unit] = {

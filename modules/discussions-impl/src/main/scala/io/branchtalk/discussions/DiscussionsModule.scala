@@ -13,10 +13,11 @@ import io.prometheus.client.CollectorRegistry
 import scala.annotation.nowarn
 
 final case class DiscussionsReads[F[_]](
-  channelReads:      ChannelReads[F],
-  postReads:         PostReads[F],
-  commentReads:      CommentReads[F],
-  subscriptionReads: SubscriptionReads[F]
+  channelReads:            ChannelReads[F],
+  postReads:               PostReads[F],
+  commentReads:            CommentReads[F],
+  subscriptionReads:       SubscriptionReads[F],
+  discussionEventConsumer: ConsumerStream.Builder[F, DiscussionEvent]
 )
 
 final case class DiscussionsWrites[F[_]](
@@ -24,7 +25,7 @@ final case class DiscussionsWrites[F[_]](
   postWrites:         PostWrites[F],
   channelWrites:      ChannelWrites[F],
   subscriptionWrites: SubscriptionWrites[F],
-  runProjector:       Resource[F, F[Unit]]
+  runProjector:       ConsumerStream.AsResource[F]
 )
 
 @nowarn("cat=unused") // macwire
@@ -39,7 +40,7 @@ object DiscussionsModule {
     Logger.getLogger[F].pipe { logger =>
       Resource.make(logger.info("Initialize Discussions reads"))(_ => logger.info("Shut down Discussions reads"))
     } >>
-      module.setupReads[F](domainConfig, registry).map { case ReadsInfrastructure(transactor, _) =>
+      module.setupReads[F](domainConfig, registry).map { case ReadsInfrastructure(transactor, consumer) =>
         val channelReads:      ChannelReads[F]      = wire[ChannelReadsImpl[F]]
         val postReads:         PostReads[F]         = wire[PostReadsImpl[F]]
         val commentReads:      CommentReads[F]      = wire[CommentReadsImpl[F]]
@@ -69,7 +70,7 @@ object DiscussionsModule {
                 new SubscriptionProjector[F](transactor)
               )
               .reduce
-            val runProjector: Resource[F, F[Unit]] =
+            val runProjector: ConsumerStream.AsResource[F] =
               internalConsumerStream.withCachedPipeToResource(logger, cache)(
                 ConsumerStream.noID.andThen(projector).andThen(producer).andThen(ConsumerStream.produced)
               )

@@ -23,8 +23,8 @@ final case class UsersWrites[F[_]](
   userWrites:             UserWrites[F],
   sessionWrites:          SessionWrites[F],
   banWrites:              BanWrites[F],
-  runProjector:           Resource[F, F[Unit]],
-  runDiscussionsConsumer: ConsumerStream[F, DiscussionEvent] => Resource[F, F[Unit]]
+  runProjector:           ConsumerStream.AsResource[F],
+  runDiscussionsConsumer: ConsumerStream.Runner[F, DiscussionEvent]
 )
 @nowarn("cat=unused") // macwire
 object UsersModule {
@@ -64,13 +64,13 @@ object UsersModule {
                 wire[BanProjector[F]]
               )
               .reduce
-            val runProjector: Resource[F, F[Unit]] =
+            val runProjector: ConsumerStream.AsResource[F] =
               internalConsumerStream.withCachedPipeToResource(logger, cache)(
                 ConsumerStream.noID.andThen(projector).andThen(producer).andThen(ConsumerStream.produced)
               )
 
             val discussionsConsumer: DiscussionsConsumer[F] = wire[DiscussionsConsumer[F]]
-            val runDiscussionsConsumer: ConsumerStream[F, DiscussionEvent] => Resource[F, F[Unit]] =
+            val runDiscussionsConsumer: ConsumerStream.Runner[F, DiscussionEvent] =
               _.withPipeToResource(logger)(
                 ConsumerStream.noID
                   .andThen(discussionsConsumer)
@@ -81,4 +81,10 @@ object UsersModule {
             wire[UsersWrites[F]]
         }
     }
+
+  def listenToUsers[F[_]](domainConfig: DomainConfig)(
+    discussionEventConsumer:            ConsumerStream.Builder[F, DiscussionEvent],
+    runDiscussionsConsumer:             ConsumerStream.Runner[F, DiscussionEvent]
+  ): ConsumerStream.AsResource[F] =
+    (discussionEventConsumer andThen runDiscussionsConsumer)(domainConfig.consumers("discussions"))
 }
