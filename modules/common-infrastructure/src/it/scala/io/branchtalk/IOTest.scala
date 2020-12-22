@@ -1,6 +1,6 @@
 package io.branchtalk
 
-import cats.effect.{ ContextShift, IO, Timer }
+import cats.effect.{ ContextShift, ExitCode, IO, IOApp, Timer }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.shared.model.CodePosition
 import org.specs2.matcher.MatchResult
@@ -16,10 +16,8 @@ trait IOTest {
 
   val pass: MatchResult[Boolean] = true must beTrue
 
-  implicit protected val contextShift: ContextShift[IO] =
-    IO.contextShift(scala.concurrent.ExecutionContext.fromExecutor(null))
-  implicit protected val timer: Timer[IO] =
-    IO.timer(scala.concurrent.ExecutionContext.fromExecutor(null))
+  implicit protected val contextShift: ContextShift[IO] = IOTest.AllTheRightImplicits.contextShift
+  implicit protected val timer:        Timer[IO]        = IOTest.AllTheRightImplicits.timer
 
   private val ignoreErrorForLogging: PartialFunction[Throwable, Unit] = { case _: fs2.kafka.CommitTimeoutException =>
   }
@@ -48,5 +46,13 @@ trait IOTest {
 
   implicit protected def ioAsTest[T: AsExecution]: AsExecution[IO[T]] = new AsExecution[IO[T]] {
     override def execute(t: => IO[T]): Execution = AsExecution[T].execute(t.unsafeRunSync())
+  }
+}
+object IOTest {
+
+  object AllTheRightImplicits extends IOApp {
+    override def run(args: List[String]): IO[ExitCode] = ???
+    override def contextShift: ContextShift[IO] = super.contextShift
+    override def timer:        Timer[IO]        = super.timer
   }
 }
