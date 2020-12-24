@@ -25,7 +25,6 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
       "return paginated Users" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -66,7 +65,6 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
       "return newest Users" in {
         withAllProjections {
-
           for {
             // given
             _ <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 1000).flatMap {
@@ -109,9 +107,8 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
     "on GET /users/sessions" in {
 
-      "return newest Sesions" in {
+      "return newest Sessions" in {
         withAllProjections {
-
           for {
             // given
             _ <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 1000).flatMap {
@@ -159,7 +156,6 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
       "schedule User and Session creation on valid JSON" in {
         withAllProjections {
-
           for {
             // given
             password <- Password.Raw.parse[IO]("password".getBytes)
@@ -194,7 +190,6 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
       "log User in on valid credentials" in {
         withAllProjections {
-
           for {
             // given
             password <- Password.Raw.parse[IO]("password".getBytes)
@@ -228,7 +223,6 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
       "log out User" in {
         withAllProjections {
-
           for {
             // given
             password <- Password.Raw.parse[IO]("password".getBytes)
@@ -262,7 +256,6 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
       "should return User's profile" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -285,7 +278,6 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
       "should update User's profile if Session belongs to them" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -333,7 +325,6 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
 
       "should update User's profile if Session belongs to them" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(

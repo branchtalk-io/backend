@@ -22,7 +22,6 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
 
       "return newest Comments for a specified Post" in {
         withAllProjections {
-
           for {
             // given
             CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
@@ -70,7 +69,6 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
 
       "create a new Comment" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -104,7 +102,6 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
 
       "fetch existing Post" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -140,7 +137,6 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
 
       "update existing Comment when User is its Author" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -189,7 +185,6 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
 
       "delete existing Comment when User is its Author" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -229,7 +224,6 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
 
       "restore deleted Comment when User is its Author" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(

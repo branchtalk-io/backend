@@ -23,7 +23,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
       "return newest Posts for a specified Channels" in {
         withAllProjections {
-
           for {
             // given
             CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
@@ -59,7 +58,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
       "create a new Post" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -90,7 +88,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
       "fetch existing Post" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -121,7 +118,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
       "update existing Post when User is its Author" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -173,7 +169,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
       "delete existing Post when User is its Author" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -210,7 +205,6 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
 
       "restore deleted Post when User is its Author" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(

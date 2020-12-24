@@ -86,7 +86,6 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
 
       "fetch existing Channel" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -114,7 +113,6 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
 
       "update existing Channel when User is allowed to do it" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -163,7 +161,6 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
 
       "delete existing Channel when User is allowed to do it" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -195,7 +192,6 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
 
       "restore deleted Channel when User is allowed to do it" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(

@@ -23,10 +23,8 @@ package object model {
 
     @SuppressWarnings(Array("org.wartremover.warts.All")) // Eval should be stack-safe
     def validatePermissions(required: RequiredPermissions, existing: Permissions): Boolean = {
-      def permitted(permission: Permission) = existing.set.contains(permission) ||
-        permission.isInstanceOf[Permission.ModerateChannel] || // TODO we have no way of defining moderators for now
-        permission == Permission.ModerateUsers // TODO we have no way of defining user moderators for now
-      def evaluate(req: RequiredPermissions): Eval[Boolean] = req match {
+      def permitted(permission: Permission) = existing.set.contains(permission)
+      def evaluate(req:         RequiredPermissions): Eval[Boolean] = req match {
         case RequiredPermissions.Empty      => Eval.True
         case RequiredPermissions.AllOf(set) => Eval.later(set.forall(permitted))
         case RequiredPermissions.AnyOf(set) => Eval.later(set.exists(permitted))

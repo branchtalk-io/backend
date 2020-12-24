@@ -30,7 +30,6 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
 
       "return newest Posts for default Channels for signed-out User" in {
         withAllProjections {
-
           for {
             // given
             CreationScheduled(channelID) <- channelCreate
@@ -65,7 +64,6 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
 
       "return newest Posts for Channels subscribed by current User" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -118,7 +116,6 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
 
       "list Users subscriptions" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -157,7 +154,6 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
 
       "subscribe to posted Channels" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -195,7 +191,6 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
 
       "unsubscribe to posted Channels" in {
         withAllProjections {
-
           for {
             // given
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
