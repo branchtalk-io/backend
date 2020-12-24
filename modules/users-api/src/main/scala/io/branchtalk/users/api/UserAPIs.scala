@@ -30,7 +30,7 @@ object UserAPIs {
     .name("Fetch Users")
     .summary("Paginate Users by name")
     .description("Returns paginated Users")
-    .tags(List(UsersTags.domain, UsersTags.sessions))
+    .tags(List(UsersTags.domain, UsersTags.users))
     .get
     .in(authHeader)
     .in(prefix)
@@ -49,7 +49,7 @@ object UserAPIs {
     .name("Paginate newest Users")
     .summary("Paginate newest Users")
     .description("Returns paginated newest Users")
-    .tags(List(UsersTags.domain, UsersTags.sessions))
+    .tags(List(UsersTags.domain, UsersTags.users))
     .get
     .in(authHeader)
     .in(prefix / "newest")

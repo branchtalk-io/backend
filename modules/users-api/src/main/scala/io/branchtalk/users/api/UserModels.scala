@@ -130,4 +130,12 @@ object UserModels {
   @Semi(JsCodec) final case class UpdateUserResponse(id: ID[User])
 
   @Semi(JsCodec) final case class DeleteUserResponse(id: ID[User])
+
+  @Semi(JsCodec) final case class GrantModerationRequest(ids: Set[ID[User]])
+
+  @Semi(JsCodec) final case class GrantModerationResponse(ids: Set[ID[User]])
+
+  @Semi(JsCodec) final case class RevokeModerationRequest(ids: Set[ID[User]])
+
+  @Semi(JsCodec) final case class RevokeModerationResponse(ids: Set[ID[User]])
 }
