@@ -2,6 +2,7 @@ package io.branchtalk.users
 
 import cats.effect.IO
 import io.branchtalk.shared.model.{ CommonError, ID, OptionUpdatable, TestUUIDGenerator, Updatable }
+import io.branchtalk.users.model.Permission.ModerateChannel
 import io.branchtalk.users.model.{ Password, Permission, Permissions, User }
 import monocle.macros.syntax.lens._
 import org.specs2.mutable.Specification
@@ -191,8 +192,8 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
         for {
           // given
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
-          paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds
+          paginatedIDs <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
+          _ <- paginatedIDs
             .traverse(usersReads.userReads.requireById(_))
             .eventually(delay = 1.second, timeout = 30.seconds)
           // when
@@ -212,8 +213,8 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
         for {
           // given
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
-          paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds
+          paginatedIDs <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
+          _ <- paginatedIDs
             .traverse(usersReads.userReads.requireById(_))
             .eventually(delay = 1.second, timeout = 30.seconds)
           // when
@@ -233,8 +234,8 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
         for {
           // given
           paginatedData <- (0 until 10).toList.traverse(_ => userCreate)
-          paginatedIds <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
-          _ <- paginatedIds
+          paginatedIDs <- paginatedData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
+          _ <- paginatedIDs
             .traverse(usersReads.userReads.requireById(_))
             .eventually(delay = 1.second, timeout = 30.seconds)
           // when
@@ -245,6 +246,55 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
           pagination.entities must haveSize(5)
           pagination.nextOffset.map(_.value) must beSome(5)
           pagination2.entities must haveSize(5)
+        }
+      }
+    }
+
+    "paginate Users filtered by permissions" in {
+      withUsersProjections {
+        for {
+          // given
+          channelID <- channelIDCreate
+          permissions = List(
+            Permission.Administrate,
+            Permission.ModerateUsers,
+            ModerateChannel(channelID)
+          )
+          creationdData <- permissions.traverse(_ => userCreate)
+          paginatedIDs <- creationdData.traverse(usersWrites.userWrites.createUser).map(_.map(_._1.id))
+          _ <- paginatedIDs
+            .traverse(usersReads.userReads.requireById(_))
+            .eventually(delay = 1.second, timeout = 30.seconds)
+          updateData = (paginatedIDs zip permissions).map { case (userID, permission) =>
+            User.Update(
+              id = userID,
+              moderatorID = None,
+              newUsername = Updatable.Keep,
+              newDescription = OptionUpdatable.Keep,
+              newPassword = Updatable.Keep,
+              updatePermissions = List(Permission.Update.Add(permission))
+            )
+          }
+          _ <- updateData.traverse(usersWrites.userWrites.updateUser)
+          _ <- paginatedIDs
+            .traverse(usersReads.userReads.requireById)
+            .assert("Users should be eventually updated")(_.forall(_.data.lastModifiedAt.isDefined))
+            .eventually(delay = 1.second, timeout = 30.seconds)
+          // when
+          paginations1 <- permissions.traverse(permission =>
+            usersReads.userReads.paginate(User.Sorting.Newest, 0L, 1, List(User.Filter.HasPermission(permission)))
+          )
+          paginations2 <- permissions.traverse(permission =>
+            usersReads.userReads.paginate(User.Sorting.Newest,
+                                          0L,
+                                          1,
+                                          List(User.Filter.HasPermissions(Permissions(Set(permission))))
+            )
+          )
+        } yield {
+          // then
+          paginations1.map(_.entities.size) must_=== permissions.map(_ => 1)
+          paginations2.map(_.entities.size) must_=== permissions.map(_ => 1)
         }
       }
     }

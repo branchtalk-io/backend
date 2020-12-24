@@ -175,8 +175,8 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
             .assert("Channels should be deleted eventually")(_.forall(identity))
             .eventually()
           paginatedData <- (0 until 20).toList.traverse(_ => channelCreate)
-          paginatedIds <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
-          _ <- paginatedIds.traverse(discussionsReads.channelReads.requireById(_)).eventually()
+          paginatedIDs <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
+          _ <- paginatedIDs.traverse(discussionsReads.channelReads.requireById(_)).eventually()
           // when
           pagination <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest, 0L, 10)
           pagination2 <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest, 10L, 10)
@@ -205,8 +205,8 @@ final class ChannelReadsWritesSpec extends Specification with DiscussionsIOTest 
             .assert("Channels should be deleted eventually")(_.forall(identity))
             .eventually()
           paginatedData <- (0 until 20).toList.traverse(_ => channelCreate)
-          paginatedIds <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
-          _ <- paginatedIds.traverse(discussionsReads.channelReads.requireById(_)).eventually()
+          paginatedIDs <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
+          _ <- paginatedIDs.traverse(discussionsReads.channelReads.requireById(_)).eventually()
           // when
           pagination <- discussionsReads.channelReads.paginate(Channel.Sorting.Alphabetically, 0L, 10)
           pagination2 <- discussionsReads.channelReads.paginate(Channel.Sorting.Alphabetically, 10L, 10)

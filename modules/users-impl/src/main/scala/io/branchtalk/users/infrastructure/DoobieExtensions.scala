@@ -30,18 +30,24 @@ object DoobieExtensions {
 
   @nowarn("cat=unused") // macros
   @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
-  implicit val permissionsMeta: Meta[Permissions] = {
-    implicit def idCodec[A](implicit ev: Coercible[UUID, ID[A]]): JsonValueCodec[ID[A]] =
-      Coercible.unsafeWrapMM[JsonValueCodec, Id, UUID, ID[A]].apply(JsonCodecMaker.make)
-    implicit val permissionCodec: JsonValueCodec[Permission] = JsonCodecMaker.make[Permission]
-    implicit val permissionsCodec: JsonValueCodec[Permissions] =
-      Coercible[JsonValueCodec[Set[Permission]], JsonValueCodec[Permissions]].apply(JsonCodecMaker.make)
+  implicit private def idCodec[A](implicit ev: Coercible[UUID, ID[A]]): JsonValueCodec[ID[A]] =
+    Coercible.unsafeWrapMM[JsonValueCodec, Id, UUID, ID[A]].apply(JsonCodecMaker.make)
+  @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
+  implicit private val permissionCodec: JsonValueCodec[Permission] = JsonCodecMaker.make[Permission]
+  @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
+  implicit private val permissionsCodec: JsonValueCodec[Permissions] =
+    Coercible[JsonValueCodec[Set[Permission]], JsonValueCodec[Permissions]].apply(JsonCodecMaker.make)
 
-    val jsonType = "jsonb"
+  private val jsonType = "jsonb"
 
+  implicit val permissionMeta: Meta[Permission] =
+    Meta.Advanced.other[PGobject](jsonType).timap[Permission](pgObj => readFromString[Permission](pgObj.getValue)) {
+      permission => new PGobject().tap(_.setType(jsonType)).tap(_.setValue(writeToString(permission)))
+    }
+
+  implicit val permissionsMeta: Meta[Permissions] =
     // imap instead of timap because a @newtype cannot have TypeTag
     Meta.Advanced.other[PGobject](jsonType).imap[Permissions](pgObj => readFromString[Permissions](pgObj.getValue)) {
       permissions => new PGobject().tap(_.setType(jsonType)).tap(_.setValue(writeToString(permissions)))
     }
-  }
 }

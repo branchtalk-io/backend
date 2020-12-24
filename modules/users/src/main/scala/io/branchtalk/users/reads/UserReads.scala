@@ -10,9 +10,10 @@ trait UserReads[F[_]] {
   def authenticate(username: User.Name, password: Password.Raw): F[User]
 
   def paginate(
-    sortBy: User.Sorting,
-    offset: Long Refined NonNegative,
-    limit:  Int Refined Positive
+    sortBy:  User.Sorting,
+    offset:  Long Refined NonNegative,
+    limit:   Int Refined Positive,
+    filters: List[User.Filter] = List.empty
   ): F[Paginated[User]]
 
   def exists(id: ID[User]): F[Boolean]

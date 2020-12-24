@@ -7,6 +7,7 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import eu.timepit.refined.types.string.NonEmptyString
+import io.branchtalk.ADT
 import io.branchtalk.shared.model.ParseRefined
 import io.estatico.newtype.macros.newtype
 
@@ -14,10 +15,12 @@ trait UserProperties {
   type Email       = UserProperties.Email
   type Name        = UserProperties.Name
   type Description = UserProperties.Description
+  type Filter      = UserProperties.Filter
   type Sorting     = UserProperties.Sorting
   val Email       = UserProperties.Email
   val Name        = UserProperties.Name
   val Description = UserProperties.Description
+  val Filter      = UserProperties.Filter
   val Sorting     = UserProperties.Sorting
 }
 object UserProperties {
@@ -48,6 +51,12 @@ object UserProperties {
 
     implicit val show: Show[Description] = (t: Description) => s"Email(${t.string.show})"
     implicit val eq:   Eq[Description]   = (x: Description, y: Description) => x.string === y.string
+  }
+
+  sealed trait Filter extends ADT
+  object Filter {
+    final case class HasPermission(permission: Permission) extends Filter
+    final case class HasPermissions(permissions: Permissions) extends Filter
   }
 
   sealed trait Sorting extends EnumEntry

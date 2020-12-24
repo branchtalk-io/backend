@@ -68,7 +68,7 @@ object Program {
         )
     } yield ()
 
-  // scalastyle:off number.of.parameters
+  // scalastyle:off parameter.number
   def runModules[F[_]: ConcurrentEffect: ContextShift: Timer](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
@@ -114,7 +114,7 @@ object Program {
         terminationSignal >> // here we are blocking until e.g. user press Ctrl+C
         logger.info("Received exit signal")
     }
-  // scalastyle:on number.of.parameters
+  // scalastyle:on parameter.number
 
   // kudos to Łukasz Byczyński
   private def awaitTerminationSignal[F[_]: Concurrent]: F[Unit] = {

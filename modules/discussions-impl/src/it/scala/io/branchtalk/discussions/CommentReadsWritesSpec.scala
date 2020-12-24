@@ -184,10 +184,10 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
           post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
           _ <- discussionsReads.postReads.requireById(post2ID).eventually()
           paginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID))
-          paginatedIds <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+          paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
           nonPaginatedData <- (0 until 20).toList.traverse(_ => commentCreate(post2ID))
           nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
-          _ <- (paginatedIds ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
+          _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
           // when
           pagination <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Newest, 0L, 10)
           pagination2 <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Newest, 10L, 10)

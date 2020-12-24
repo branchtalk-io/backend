@@ -26,6 +26,11 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
         |       last_modified_at
         |FROM users""".stripMargin
 
+  private val filtered: User.Filter => Fragment = {
+    case User.Filter.HasPermission(permission)   => fr"permissions @> jsonb_build_array($permission)"
+    case User.Filter.HasPermissions(permissions) => fr"permissions @> $permissions"
+  }
+
   private val orderBy: User.Sorting => Fragment = {
     case User.Sorting.Newest              => fr"ORDER BY created_at DESC"
     case User.Sorting.NameAlphabetically  => fr"ORDER BY username ASC"
@@ -48,11 +53,15 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
       }
 
   override def paginate(
-    sortBy: User.Sorting,
-    offset: Long Refined NonNegative,
-    limit:  Int Refined Positive
+    sortBy:  User.Sorting,
+    offset:  Long Refined NonNegative,
+    limit:   Int Refined Positive,
+    filters: List[User.Filter] = List.empty
   ): F[Paginated[User]] =
-    (commonSelect ++ orderBy(sortBy)).paginate[UserDao](offset, limit).map(_.map(_.toDomain)).transact(transactor)
+    (commonSelect ++ Fragments.whereAnd(filters.map(filtered): _*) ++ orderBy(sortBy))
+      .paginate[UserDao](offset, limit)
+      .map(_.map(_.toDomain))
+      .transact(transactor)
 
   override def exists(id: ID[User]): F[Boolean] =
     (fr"SELECT 1 FROM users WHERE" ++ idExists(id)).exists.transact(transactor)
