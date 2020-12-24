@@ -9,7 +9,7 @@ import io.branchtalk.users.model.Channel
 import sttp.model.StatusCode
 import sttp.tapir._
 
-// TODO: implement, wire and test endpoints
+// TODO: test endpoints
 object ChannelModerationAPIs {
 
   private val prefix = "discussions" / "channels" / path[ID[Channel]].name("channelID") / "moderation"
@@ -42,7 +42,7 @@ object ChannelModerationAPIs {
       RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.uuid)), Permission.Administrate)
     }
 
-  val grantUserModeration: AuthedEndpoint[
+  val grantChannelModeration: AuthedEndpoint[
     (Authentication, ID[Channel], GrantModerationRequest),
     UserError,
     GrantModerationResponse,
@@ -62,7 +62,7 @@ object ChannelModerationAPIs {
       RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.uuid)), Permission.Administrate)
     }
 
-  val revokeUserModeration: AuthedEndpoint[
+  val revokeChannelModeration: AuthedEndpoint[
     (Authentication, ID[Channel], RevokeModerationRequest),
     UserError,
     RevokeModerationResponse,
@@ -72,7 +72,7 @@ object ChannelModerationAPIs {
     .summary("Revoke Channel Moderation permission")
     .description("Removes Channel Moderation permission from Users")
     .tags(List(UsersTags.domain, UsersTags.channelModerators))
-    .post
+    .delete
     .in(authHeader)
     .in(prefix)
     .in(jsonBody[RevokeModerationRequest])

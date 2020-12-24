@@ -7,7 +7,7 @@ import io.branchtalk.users.api.UserModels._
 import sttp.model.StatusCode
 import sttp.tapir._
 
-// TODO: implement, wire and test endpoints
+// TODO: test endpoints
 object UserModerationAPIs {
 
   private val prefix = "users" / "moderation"
@@ -66,7 +66,7 @@ object UserModerationAPIs {
     .summary("Revoke User Moderation permission")
     .description("Removes User Moderation permission from Users")
     .tags(List(UsersTags.domain, UsersTags.userModerators))
-    .post
+    .delete
     .in(authHeader)
     .in(prefix)
     .in(jsonBody[RevokeModerationRequest])

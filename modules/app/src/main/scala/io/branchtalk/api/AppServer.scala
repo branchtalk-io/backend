@@ -9,7 +9,7 @@ import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfi
 import io.branchtalk.discussions.api.{ ChannelServer, CommentServer, PostServer, SubscriptionServer }
 import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.openapi.OpenAPIServer
-import io.branchtalk.users.api.UserServer
+import io.branchtalk.users.api.{ ChannelModerationServer, UserModerationServer, UserServer }
 import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 import org.http4s._
@@ -25,14 +25,16 @@ import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 
 final class AppServer[F[_]: Concurrent: Timer](
-  usesServer:         UserServer[F],
-  channelServer:      ChannelServer[F],
-  postServer:         PostServer[F],
-  commentServer:      CommentServer[F],
-  subscriptionServer: SubscriptionServer[F],
-  openAPIServer:      OpenAPIServer[F],
-  metricsOps:         MetricsOps[F],
-  apiConfig:          APIConfig
+  usesServer:              UserServer[F],
+  userModerationServer:    UserModerationServer[F],
+  channelModerationServer: ChannelModerationServer[F],
+  channelServer:           ChannelServer[F],
+  postServer:              PostServer[F],
+  commentServer:           CommentServer[F],
+  subscriptionServer:      SubscriptionServer[F],
+  openAPIServer:           OpenAPIServer[F],
+  metricsOps:              MetricsOps[F],
+  apiConfig:               APIConfig
 ) {
 
   private val logger = com.typesafe.scalalogging.Logger(getClass)
@@ -42,6 +44,8 @@ final class AppServer[F[_]: Concurrent: Timer](
     NonEmptyList
       .of(
         usesServer.routes,
+        userModerationServer.routes,
+        channelModerationServer.routes,
         channelServer.routes,
         postServer.routes,
         commentServer.routes,
@@ -97,6 +101,14 @@ object AppServer {
       val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Users)
       wire[UserServer[F]]
     }
+    val userModerationServer: UserModerationServer[F] = {
+      val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Users)
+      wire[UserModerationServer[F]]
+    }
+    val channelModerationServer: ChannelModerationServer[F] = {
+      val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Users)
+      wire[ChannelModerationServer[F]]
+    }
     val channelServer: ChannelServer[F] = {
       val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Channels)
       wire[ChannelServer[F]]
@@ -119,6 +131,8 @@ object AppServer {
         NonEmptyList
           .of(
             usersServer.endpoints,
+            userModerationServer.endpoints,
+            channelModerationServer.endpoints,
             channelServer.endpoints,
             postServer.endpoints,
             commentServer.endpoints,
