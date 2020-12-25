@@ -37,29 +37,29 @@ make dev-down # shuts down services
 ### Local testing
 
 While in sbt with Docker started run
-```
+```bash
 sbt:branchtalk> application/run --monolith
 ```
 to start application in a fork. Ctrl+D to send shutdown signal.
 
 OpenAPI will be available at:
-```
+```bash
 http://localhost:8080/docs/index.html?url=/docs/swagger.json
 ```
 
 ### Running locally without sbt
 
 Build docker image:
-```
+```bash
 sbt:branchtalk> application/docker:publishLocal
 ```
 
 Once the image is published you can:
-```
+```bash
 make local-bg # or
 make local-up
 ```
-(It it fails I suggest running `make dev-down` before running local env).
+(If it fails I suggest running `make dev-down` before running local env).
 
 You can use Ctrl+D to gracefully shutdown service. Server will be available at
-http://0.0.0.0:8080` and Swagger at http://0.0.0.0:8080/docs/index.html?url=/docs/swagger.json
+http://0.0.0.0:8080 and Swagger at http://0.0.0.0:8080/docs/index.html?url=/docs/swagger.json
