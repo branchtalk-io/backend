@@ -1,13 +1,14 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.IO
-import io.branchtalk.api.{ Authentication, Pagination, PaginationLimit, PaginationOffset, ServerIOTest }
+import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.ChannelModels._
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.mappings._
 import io.branchtalk.shared.model._
 import io.branchtalk.users.UsersFixtures
+import io.branchtalk.users.model.{ Permission, RequiredPermissions }
 import io.scalaland.chimney.dsl._
 import monocle.macros.syntax.lens._
 import org.specs2.mutable.Specification
@@ -120,8 +121,18 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
             )
             _ <- usersReads.userReads.requireById(userID).eventually()
             _ <- usersReads.sessionReads.requireById(sessionID).eventually()
-            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            CreationScheduled(channelID) <- channelCreate
+              .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+              .flatMap(discussionsWrites.channelWrites.createChannel)
             channel <- discussionsReads.channelReads.requireById(channelID).eventually()
+            _ <- usersReads.userReads
+              .requireById(userID)
+              .assert("User should eventually become own's Channel Moderator")(
+                _.data.permissions.allow(
+                  RequiredPermissions.one(Permission.ModerateChannel(channelIDUsers2Discussions.reverseGet(channelID)))
+                )
+              )
+              .eventually()
             newUrlName <- Channel.UrlName.parse[IO]("new-name")
             newName <- Channel.Name.parse[IO]("new name")
             newDescription <- Channel.Description.parse[IO]("lorem ipsum")
@@ -168,8 +179,18 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
             )
             _ <- usersReads.userReads.requireById(userID).eventually()
             _ <- usersReads.sessionReads.requireById(sessionID).eventually()
-            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            CreationScheduled(channelID) <- channelCreate
+              .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+              .flatMap(discussionsWrites.channelWrites.createChannel)
             _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            _ <- usersReads.userReads
+              .requireById(userID)
+              .assert("User should eventually become own's Channel Moderator")(
+                _.data.permissions.allow(
+                  RequiredPermissions.one(Permission.ModerateChannel(channelIDUsers2Discussions.reverseGet(channelID)))
+                )
+              )
+              .eventually()
             // when
             response <- ChannelAPIs.delete.toTestCall.untupled(
               Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
@@ -199,8 +220,18 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
             )
             _ <- usersReads.userReads.requireById(userID).eventually()
             _ <- usersReads.sessionReads.requireById(sessionID).eventually()
-            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            CreationScheduled(channelID) <- channelCreate
+              .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+              .flatMap(discussionsWrites.channelWrites.createChannel)
             _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            _ <- usersReads.userReads
+              .requireById(userID)
+              .assert("User should eventually become own's Channel Moderator")(
+                _.data.permissions.allow(
+                  RequiredPermissions.one(Permission.ModerateChannel(channelIDUsers2Discussions.reverseGet(channelID)))
+                )
+              )
+              .eventually()
             _ <- discussionsWrites.channelWrites.deleteChannel(
               Channel.Delete(channelID, userIDUsers2Discussions.get(userID))
             )

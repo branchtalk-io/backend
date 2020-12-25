@@ -1,14 +1,14 @@
 package io.branchtalk.users.api
 
 import cats.effect.IO
-import io.branchtalk.api._
+import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
 import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings._
 import io.branchtalk.shared.model._
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels._
-import io.branchtalk.users.model.{ Password, Session, User }
+import io.branchtalk.users.model.{ Password, Permission, RequiredPermissions, Session, User }
 import monocle.macros.syntax.lens._
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
@@ -30,6 +30,23 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
               usersWrites.userWrites.createUser
             )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersWrites.userWrites.updateUser(
+              User.Update(
+                id = userID,
+                moderatorID = None,
+                newUsername = Updatable.Keep,
+                newDescription = OptionUpdatable.Keep,
+                newPassword = Updatable.Keep,
+                updatePermissions = List(Permission.Update.Add(Permission.ModerateUsers))
+              )
+            )
+            _ <- usersReads.userReads
+              .requireById(userID)
+              .assert("User should eventually have Moderator status")(
+                _.data.permissions.allow(RequiredPermissions.one(Permission.ModerateUsers))
+              )
+              .eventually()
             userIDs <- (0 until 9).toList
               .traverse(_ => userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id))
               .map(_ :+ userID)
@@ -74,6 +91,23 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
             (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
               usersWrites.userWrites.createUser
             )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersWrites.userWrites.updateUser(
+              User.Update(
+                id = userID,
+                moderatorID = None,
+                newUsername = Updatable.Keep,
+                newDescription = OptionUpdatable.Keep,
+                newPassword = Updatable.Keep,
+                updatePermissions = List(Permission.Update.Add(Permission.ModerateUsers))
+              )
+            )
+            _ <- usersReads.userReads
+              .requireById(userID)
+              .assert("User should eventually have Moderator status")(
+                _.data.permissions.allow(RequiredPermissions.one(Permission.ModerateUsers))
+              )
+              .eventually()
             userIDs <- (0 until 9).toList
               .traverse(_ => userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id))
               .map(_ :+ userID)

@@ -12,7 +12,8 @@ final class DiscussionsConsumer[F[_]: Sync] extends Projector[F, DiscussionEvent
 
   override def apply(in: Stream[F, DiscussionEvent]): Stream[F, (UUID, UsersCommandEvent)] =
     in.collect { case DiscussionEvent.ForChannel(created: ChannelEvent.Created) =>
-      created.authorID.uuid -> UsersCommandEvent.ForUser(toGrantedChannelModerator(created))
+      val event = toGrantedChannelModerator(created)
+      event.id.uuid -> UsersCommandEvent.ForUser(event)
     }
 
   def toGrantedChannelModerator(created: ChannelEvent.Created): UserCommandEvent.Update =
