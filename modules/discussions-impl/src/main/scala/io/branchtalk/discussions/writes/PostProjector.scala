@@ -7,10 +7,10 @@ import doobie.Transactor
 import fs2.Stream
 import io.branchtalk.discussions.events.{ DiscussionEvent, DiscussionsCommandEvent, PostCommandEvent, PostEvent }
 import io.branchtalk.discussions.infrastructure.DoobieExtensions._
-import io.branchtalk.discussions.model.Post
+import io.branchtalk.discussions.model.{ Post, User, Vote }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
-import io.branchtalk.shared.model.UUID
+import io.branchtalk.shared.model.{ ID, UUID }
 import io.scalaland.chimney.dsl._
 
 final class PostProjector[F[_]: Sync](transactor: Transactor[F])
@@ -60,8 +60,9 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
          |  ${contentRaw},
          |  ${event.createdAt}
          |)
-         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.transact(transactor) >>
-      (event.id.uuid -> event.transformInto[PostEvent.Created]).pure[F]
+         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[PostEvent.Created])
   }
 
   def toUpdate(event: PostCommandEvent.Update): F[(UUID, PostEvent.Updated)] = {
@@ -80,21 +81,125 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
           fr"WHERE id = ${event.id}").update.run.transact(transactor).void
       case None =>
         Sync[F].delay(logger.warn(s"Post update ignored as it doesn't contain any modification:\n${event.show}"))
-    }) >>
-      (event.id.uuid -> event.transformInto[PostEvent.Updated]).pure[F]
+    }).as(event.id.uuid -> event.transformInto[PostEvent.Updated])
   }
 
   def toDelete(event: PostCommandEvent.Delete): F[(UUID, PostEvent.Deleted)] =
-    sql"UPDATE posts SET deleted = TRUE WHERE id = ${event.id}".update.run.transact(transactor) >>
-      (event.id.uuid -> event.transformInto[PostEvent.Deleted]).pure[F]
+    sql"UPDATE posts SET deleted = TRUE WHERE id = ${event.id}".update.run
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[PostEvent.Deleted])
 
   def toRestore(event: PostCommandEvent.Restore): F[(UUID, PostEvent.Restored)] =
-    sql"UPDATE posts SET deleted = FALSE WHERE id = ${event.id}".update.run.transact(transactor) >>
-      (event.id.uuid -> event.transformInto[PostEvent.Restored]).pure[F]
+    sql"UPDATE posts SET deleted = FALSE WHERE id = ${event.id}".update.run
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[PostEvent.Restored])
 
-  def toUpvote(event: PostCommandEvent.Upvote): F[(UUID, PostEvent.Upvoted)] = ???
+  private def fetchVote(postID: ID[Post], voterID: ID[User]) =
+    sql"SELECT vote FROM post_votes WHERE post_id = ${postID} AND voter_id = ${voterID}".query[Vote.Type].option
 
-  def toDownvote(event: PostCommandEvent.Downvote): F[(UUID, PostEvent.Downvoted)] = ???
+  def toUpvote(event: PostCommandEvent.Upvote): F[(UUID, PostEvent.Upvoted)] =
+    fetchVote(event.id, event.voterID)
+      .flatMap {
+        case Some(Vote.Type.Upvote) =>
+          // do nothing - upvote already exists
+          ().pure[ConnectionIO]
+        case Some(Vote.Type.Downvote) =>
+          // swap downvote->upvote
+          sql"""UPDATE post_votes
+               |SET vote = ${Vote.Type.upvote}
+               |WHERE post_id = ${event.id}
+               |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+            sql"""UPDATE comments
+                 |SET upvotes_nr = upvotes_nr + 1,
+                 |    downvotes_nr = downvotes_nr - 1,
+                 |    total_score = (upvotes_nr + 1) - (downvotes_nr - 1),
+                 |    controversial_score = MAX((upvotes_nr + 1), (downvotes_nr - 1))
+                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+        case None =>
+          // create new upvote
+          sql"""INSERT INTO post_votes (
+               |  post_id,
+               |  voter_id,
+               |  vote
+               |) VALUES (
+               |  ${event.id},
+               |  ${event.voterID},
+               |  ${Vote.Type.upvote}
+               |)""".stripMargin.update.run >>
+            sql"""UPDATE comments
+                 |SET upvotes_nr = upvotes_nr + 1,
+                 |    total_score = (upvotes_nr + 1) - downvotes_nr,
+                 |    controversial_score = MAX((upvotes_nr + 1), downvotes_nr)
+                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+      }
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[PostEvent.Upvoted])
 
-  def toRevokeVote(event: PostCommandEvent.RevokeVote): F[(UUID, PostEvent.VoteRevoked)] = ???
+  def toDownvote(event: PostCommandEvent.Downvote): F[(UUID, PostEvent.Downvoted)] =
+    fetchVote(event.id, event.voterID)
+      .flatMap {
+        case Some(Vote.Type.Upvote) =>
+          // swap upvote->downvote
+          sql"""UPDATE post_votes
+               |SET vote = ${Vote.Type.downvote}
+               |WHERE post_id = ${event.id}
+               |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+            sql"""UPDATE comments
+                 |SET upvotes_nr = upvotes_nr - 1,
+                 |    downvotes_nr = downvotes_nr + 1,
+                 |    total_score = (upvotes_nr - 1) - (downvotes_nr + 1),
+                 |    controversial_score = MAX((upvotes_nr - 1), (downvotes_nr + 1))
+                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+        case Some(Vote.Type.Downvote) =>
+          // do nothing - downvote already exists
+          ().pure[ConnectionIO]
+        case None =>
+          // create new downvote
+          sql"""INSERT INTO post_votes (
+               |  post_id,
+               |  voter_id,
+               |  vote
+               |) VALUES (
+               |  ${event.id},
+               |  ${event.voterID},
+               |  ${Vote.Type.downvote}
+               |)""".stripMargin.update.run >>
+            sql"""UPDATE comments
+                 |SET upvotes_nr = downvotes_nr + 1,
+                 |    total_score = upvotes_nr - (downvotes_nr + 1),
+                 |    controversial_score = MAX(upvotes_nr, (downvotes_nr + 1))
+                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+      }
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[PostEvent.Downvoted])
+
+  def toRevokeVote(event: PostCommandEvent.RevokeVote): F[(UUID, PostEvent.VoteRevoked)] =
+    fetchVote(event.id, event.voterID)
+      .flatMap {
+        case Some(Vote.Type.Upvote) =>
+          // delete upvote
+          sql"""DELETE FROM post_votes
+               |WHERE post_id = ${event.id}
+               |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+            sql"""UPDATE comments
+                 |SET upvotes_nr = upvotes - 1,
+                 |    total_score = (upvotes_nr - 1) - downvotes_nr,
+                 |    controversial_score = MAX((upvotes_nr - 1), downvotes_nr)
+                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+        case Some(Vote.Type.Downvote) =>
+          // delete downvote
+          sql"""DELETE FROM post_votes
+               |WHERE post_id = ${event.id}
+               |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+            sql"""UPDATE comments
+                 |SET downvotes_nr = downvotes_nr - 1,
+                 |    total_score = upvotes_nr - (downvotes_nr - 1),
+                 |    controversial_score = MAX(upvotes_nr, (downvotes_nr - 1))
+                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+        case None =>
+          // do nothing - vote doesn't exist
+          ().pure[ConnectionIO]
+      }
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[PostEvent.VoteRevoked])
 }

@@ -14,6 +14,9 @@ object Vote {
     case object Upvote extends Type
     case object Downvote extends Type
 
+    def upvote:   Type = Upvote
+    def downvote: Type = Downvote
+
     val values = findValues
   }
 }

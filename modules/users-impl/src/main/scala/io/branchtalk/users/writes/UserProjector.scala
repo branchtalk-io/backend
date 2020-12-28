@@ -112,8 +112,10 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
           )
       }
 
-    fetchPermissionsIfNecessary.flatMap(updateUser).transact(transactor) >>
-      (id.uuid -> event.transformInto[UserEvent.Updated]).pure[F]
+    fetchPermissionsIfNecessary
+      .flatMap(updateUser)
+      .transact(transactor)
+      .as(id.uuid -> event.transformInto[UserEvent.Updated])
   }
 
   def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] = {
@@ -121,6 +123,5 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
       sql"""INSERT INTO deleted_users (id, deleted_at)
            |VALUES (${event.id}, ${event.deletedAt})
            ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
-  }.transact(transactor) >>
-    (event.id.uuid -> event.transformInto[UserEvent.Deleted]).pure[F]
+  }.transact(transactor).as(event.id.uuid -> event.transformInto[UserEvent.Deleted])
 }

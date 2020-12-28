@@ -47,31 +47,35 @@ final class ChannelProjector[F[_]: Sync](transactor: Transactor[F])
          |  ${event.description},
          |  ${event.createdAt}
          |)
-         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.transact(transactor) >>
-      (event.id.uuid -> event.transformInto[ChannelEvent.Created]).pure[F]
+         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[ChannelEvent.Created])
 
   def toUpdate(event: ChannelCommandEvent.Update): F[(UUID, ChannelEvent.Updated)] =
-    (NonEmptyList.fromList(
-      List(
-        event.newUrlName.toUpdateFragment(fr"url_name"),
-        event.newName.toUpdateFragment(fr"name"),
-        event.newDescription.toUpdateFragment(fr"description")
-      ).flatten
-    ) match {
-      case Some(updates) =>
+    NonEmptyList
+      .fromList(
+        List(
+          event.newUrlName.toUpdateFragment(fr"url_name"),
+          event.newName.toUpdateFragment(fr"name"),
+          event.newDescription.toUpdateFragment(fr"description")
+        ).flatten
+      )
+      .fold(
+        Sync[F].delay(logger.warn(s"Channel update ignored as it doesn't contain any modification:\n${event.show}"))
+      )(updates =>
         (fr"UPDATE channels SET" ++
           (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
           fr"WHERE id = ${event.id}").update.run.transact(transactor).void
-      case None =>
-        Sync[F].delay(logger.warn(s"Channel update ignored as it doesn't contain any modification:\n${event.show}"))
-    }) >>
-      (event.id.uuid -> event.transformInto[ChannelEvent.Updated]).pure[F]
+      )
+      .as(event.id.uuid -> event.transformInto[ChannelEvent.Updated])
 
   def toDelete(event: ChannelCommandEvent.Delete): F[(UUID, ChannelEvent.Deleted)] =
-    sql"UPDATE channels SET deleted = TRUE WHERE id = ${event.id}".update.run.transact(transactor) >>
-      (event.id.uuid -> event.transformInto[ChannelEvent.Deleted]).pure[F]
+    sql"UPDATE channels SET deleted = TRUE WHERE id = ${event.id}".update.run
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[ChannelEvent.Deleted])
 
   def toRestore(event: ChannelCommandEvent.Restore): F[(UUID, ChannelEvent.Restored)] =
-    sql"UPDATE channels SET deleted = FALSE WHERE id = ${event.id}".update.run.transact(transactor) >>
-      (event.id.uuid -> event.transformInto[ChannelEvent.Restored]).pure[F]
+    sql"UPDATE channels SET deleted = FALSE WHERE id = ${event.id}".update.run
+      .transact(transactor)
+      .as(event.id.uuid -> event.transformInto[ChannelEvent.Restored])
 }
