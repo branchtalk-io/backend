@@ -38,4 +38,19 @@ object PostCommandEvent {
     id:       ID[Post],
     editorID: ID[User]
   ) extends PostCommandEvent
+
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Upvote(
+    id:      ID[Post],
+    voterID: ID[User]
+  ) extends PostCommandEvent
+
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Downvote(
+    id:      ID[Post],
+    voterID: ID[User]
+  ) extends PostCommandEvent
+
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class RevokeVote(
+    id:      ID[Post],
+    voterID: ID[User]
+  ) extends PostCommandEvent
 }

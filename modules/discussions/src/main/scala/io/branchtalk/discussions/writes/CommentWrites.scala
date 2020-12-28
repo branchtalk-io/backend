@@ -5,8 +5,11 @@ import io.branchtalk.shared.model.{ CreationScheduled, DeletionScheduled, Restor
 
 trait CommentWrites[F[_]] {
 
-  def createComment(newComment:      Comment.Create):  F[CreationScheduled[Comment]]
-  def updateComment(updatedComment:  Comment.Update):  F[UpdateScheduled[Comment]]
-  def deleteComment(updatedComment:  Comment.Delete):  F[DeletionScheduled[Comment]]
-  def restoreComment(restoreComment: Comment.Restore): F[RestoreScheduled[Comment]]
+  def createComment(newComment:      Comment.Create):     F[CreationScheduled[Comment]]
+  def updateComment(updatedComment:  Comment.Update):     F[UpdateScheduled[Comment]]
+  def deleteComment(updatedComment:  Comment.Delete):     F[DeletionScheduled[Comment]]
+  def restoreComment(restoreComment: Comment.Restore):    F[RestoreScheduled[Comment]]
+  def upvoteComment(vote:            Comment.Upvote):     F[Unit]
+  def downvoteComment(vote:          Comment.Downvote):   F[Unit]
+  def revokePostComment(vote:        Comment.RevokeVote): F[Unit]
 }

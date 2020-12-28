@@ -16,20 +16,28 @@ import io.branchtalk.ADT
 import io.branchtalk.shared.model.{ FastEq, ParseRefined, ShowPretty }
 
 trait PostProperties { self: Post.type =>
-  type UrlTitle   = PostProperties.UrlTitle
-  type Title      = PostProperties.Title
-  type URL        = PostProperties.URL
-  type Text       = PostProperties.Text
-  type Content    = PostProperties.Content
-  type CommentsNr = PostProperties.CommentsNr
-  type Sorting    = PostProperties.Sorting
-  val UrlTitle   = PostProperties.UrlTitle
-  val Title      = PostProperties.Title
-  val URL        = PostProperties.URL
-  val Text       = PostProperties.Text
-  val Content    = PostProperties.Content
-  val CommentsNr = PostProperties.CommentsNr
-  val Sorting    = PostProperties.Sorting
+  type UrlTitle           = PostProperties.UrlTitle
+  type Title              = PostProperties.Title
+  type URL                = PostProperties.URL
+  type Text               = PostProperties.Text
+  type Content            = PostProperties.Content
+  type CommentsNr         = PostProperties.CommentsNr
+  type Upvotes            = PostProperties.Upvotes
+  type Downvotes          = PostProperties.Downvotes
+  type TotalScore         = PostProperties.TotalScore
+  type ControversialScore = PostProperties.ControversialScore
+  type Sorting            = PostProperties.Sorting
+  val UrlTitle           = PostProperties.UrlTitle
+  val Title              = PostProperties.Title
+  val URL                = PostProperties.URL
+  val Text               = PostProperties.Text
+  val Content            = PostProperties.Content
+  val CommentsNr         = PostProperties.CommentsNr
+  val Upvotes            = PostProperties.Upvotes
+  val Downvotes          = PostProperties.Downvotes
+  val TotalScore         = PostProperties.TotalScore
+  val ControversialScore = PostProperties.ControversialScore
+  val Sorting            = PostProperties.Sorting
 }
 object PostProperties {
 
@@ -114,9 +122,46 @@ object PostProperties {
       x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
   }
 
+  @newtype final case class Upvotes(toNonNegativeInt: Int Refined NonNegative)
+  object Upvotes {
+    def unapply(upvotes: Upvotes): Option[Int Refined NonNegative] = upvotes.toNonNegativeInt.some
+
+    implicit val show: Show[Upvotes] = (t: Upvotes) => t.toNonNegativeInt.value.toString
+    implicit val order: Order[Upvotes] = (x: Upvotes, y: Upvotes) =>
+      x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
+  }
+
+  @newtype final case class Downvotes(toNonNegativeInt: Int Refined NonNegative)
+  object Downvotes {
+    def unapply(downvotes: Downvotes): Option[Int Refined NonNegative] = downvotes.toNonNegativeInt.some
+
+    implicit val show: Show[Downvotes] = (t: Downvotes) => t.toNonNegativeInt.value.toString
+    implicit val order: Order[Downvotes] = (x: Downvotes, y: Downvotes) =>
+      x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
+  }
+
+  @newtype final case class TotalScore(toInt: Int)
+  object TotalScore {
+    def unapply(totalScore: TotalScore): Option[Int] = totalScore.toInt.some
+
+    implicit val show:  Show[TotalScore]  = (t: TotalScore) => t.toInt.toString
+    implicit val order: Order[TotalScore] = (x: TotalScore, y: TotalScore) => x.toInt compareTo y.toInt
+  }
+
+  @newtype final case class ControversialScore(toInt: Int)
+  object ControversialScore {
+    def unapply(controversialScore: ControversialScore): Option[Int] = controversialScore.toInt.some
+
+    implicit val show: Show[ControversialScore] = (t: ControversialScore) => t.toInt.toString
+    implicit val order: Order[ControversialScore] = (x: ControversialScore, y: ControversialScore) =>
+      x.toInt compareTo y.toInt
+  }
+
   sealed trait Sorting extends EnumEntry
   object Sorting extends Enum[Sorting] {
     case object Newest extends Sorting
+    case object TotalScore extends Sorting
+    case object ControversialScore extends Sorting
 
     val values = findValues
   }

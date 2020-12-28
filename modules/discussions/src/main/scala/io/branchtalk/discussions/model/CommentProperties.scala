@@ -10,14 +10,22 @@ import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 
 trait CommentProperties { self: Comment.type =>
-  type Content      = CommentProperties.Content
-  type NestingLevel = CommentProperties.NestingLevel
-  type RepliesNr    = CommentProperties.RepliesNr
-  type Sorting      = CommentProperties.Sorting
-  val Content      = CommentProperties.Content
-  val NestingLevel = CommentProperties.NestingLevel
-  val RepliesNr    = CommentProperties.RepliesNr
-  val Sorting      = CommentProperties.Sorting
+  type Content            = CommentProperties.Content
+  type NestingLevel       = CommentProperties.NestingLevel
+  type RepliesNr          = CommentProperties.RepliesNr
+  type Upvotes            = CommentProperties.Upvotes
+  type Downvotes          = CommentProperties.Downvotes
+  type TotalScore         = CommentProperties.TotalScore
+  type ControversialScore = CommentProperties.ControversialScore
+  type Sorting            = CommentProperties.Sorting
+  val Content            = CommentProperties.Content
+  val NestingLevel       = CommentProperties.NestingLevel
+  val RepliesNr          = CommentProperties.RepliesNr
+  val Upvotes            = CommentProperties.Upvotes
+  val Downvotes          = CommentProperties.Downvotes
+  val TotalScore         = CommentProperties.TotalScore
+  val ControversialScore = CommentProperties.ControversialScore
+  val Sorting            = CommentProperties.Sorting
 }
 object CommentProperties {
 
@@ -49,9 +57,46 @@ object CommentProperties {
       x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
   }
 
+  @newtype final case class Upvotes(toNonNegativeInt: Int Refined NonNegative)
+  object Upvotes {
+    def unapply(upvotes: Upvotes): Option[Int Refined NonNegative] = upvotes.toNonNegativeInt.some
+
+    implicit val show: Show[Upvotes] = (t: Upvotes) => t.toNonNegativeInt.value.toString
+    implicit val order: Order[Upvotes] = (x: Upvotes, y: Upvotes) =>
+      x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
+  }
+
+  @newtype final case class Downvotes(toNonNegativeInt: Int Refined NonNegative)
+  object Downvotes {
+    def unapply(downvotes: Downvotes): Option[Int Refined NonNegative] = downvotes.toNonNegativeInt.some
+
+    implicit val show: Show[Downvotes] = (t: Downvotes) => t.toNonNegativeInt.value.toString
+    implicit val order: Order[Downvotes] = (x: Downvotes, y: Downvotes) =>
+      x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
+  }
+
+  @newtype final case class TotalScore(toInt: Int)
+  object TotalScore {
+    def unapply(totalScore: TotalScore): Option[Int] = totalScore.toInt.some
+
+    implicit val show:  Show[TotalScore]  = (t: TotalScore) => t.toInt.toString
+    implicit val order: Order[TotalScore] = (x: TotalScore, y: TotalScore) => x.toInt compareTo y.toInt
+  }
+
+  @newtype final case class ControversialScore(toInt: Int)
+  object ControversialScore {
+    def unapply(controversialScore: ControversialScore): Option[Int] = controversialScore.toInt.some
+
+    implicit val show: Show[ControversialScore] = (t: ControversialScore) => t.toInt.toString
+    implicit val order: Order[ControversialScore] = (x: ControversialScore, y: ControversialScore) =>
+      x.toInt compareTo y.toInt
+  }
+
   sealed trait Sorting extends EnumEntry
   object Sorting extends Enum[Sorting] {
     case object Newest extends Sorting
+    case object TotalScore extends Sorting
+    case object ControversialScore extends Sorting
 
     val values = findValues
   }

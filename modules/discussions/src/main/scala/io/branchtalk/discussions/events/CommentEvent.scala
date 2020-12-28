@@ -36,4 +36,19 @@ object CommentEvent {
     id:       ID[Comment],
     editorID: ID[User]
   ) extends CommentEvent
+
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Upvoted(
+    id:      ID[Comment],
+    voterID: ID[User]
+  ) extends CommentEvent
+
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Downvoted(
+    id:      ID[Comment],
+    voterID: ID[User]
+  ) extends CommentEvent
+
+  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class VoteRevoked(
+    id:      ID[Comment],
+    voterID: ID[User]
+  ) extends CommentEvent
 }
