@@ -24,10 +24,13 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
     in.collect { case DiscussionsCommandEvent.ForPost(event) =>
       event
     }.evalMap[F, (UUID, PostEvent)] {
-      case event: PostCommandEvent.Create  => toCreate(event).widen
-      case event: PostCommandEvent.Update  => toUpdate(event).widen
-      case event: PostCommandEvent.Delete  => toDelete(event).widen
-      case event: PostCommandEvent.Restore => toRestore(event).widen
+      case event: PostCommandEvent.Create     => toCreate(event).widen
+      case event: PostCommandEvent.Update     => toUpdate(event).widen
+      case event: PostCommandEvent.Delete     => toDelete(event).widen
+      case event: PostCommandEvent.Restore    => toRestore(event).widen
+      case event: PostCommandEvent.Upvote     => toUpvote(event).widen
+      case event: PostCommandEvent.Downvote   => toDownvote(event).widen
+      case event: PostCommandEvent.RevokeVote => toRevokeVote(event).widen
     }.map { case (key, value) =>
       key -> DiscussionEvent.ForPost(value)
     }.handleErrorWith { error =>
@@ -88,4 +91,10 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
   def toRestore(event: PostCommandEvent.Restore): F[(UUID, PostEvent.Restored)] =
     sql"UPDATE posts SET deleted = FALSE WHERE id = ${event.id}".update.run.transact(transactor) >>
       (event.id.uuid -> event.transformInto[PostEvent.Restored]).pure[F]
+
+  def toUpvote(event: PostCommandEvent.Upvote): F[(UUID, PostEvent.Upvoted)] = ???
+
+  def toDownvote(event: PostCommandEvent.Downvote): F[(UUID, PostEvent.Downvoted)] = ???
+
+  def toRevokeVote(event: PostCommandEvent.RevokeVote): F[(UUID, PostEvent.VoteRevoked)] = ???
 }

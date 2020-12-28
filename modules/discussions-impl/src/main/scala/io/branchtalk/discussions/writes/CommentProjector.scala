@@ -22,10 +22,13 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
     in.collect { case DiscussionsCommandEvent.ForComment(event) =>
       event
     }.evalMap[F, (UUID, CommentEvent)] {
-      case event: CommentCommandEvent.Create  => toCreate(event).widen
-      case event: CommentCommandEvent.Update  => toUpdate(event).widen
-      case event: CommentCommandEvent.Delete  => toDelete(event).widen
-      case event: CommentCommandEvent.Restore => toRestore(event).widen
+      case event: CommentCommandEvent.Create     => toCreate(event).widen
+      case event: CommentCommandEvent.Update     => toUpdate(event).widen
+      case event: CommentCommandEvent.Delete     => toDelete(event).widen
+      case event: CommentCommandEvent.Restore    => toRestore(event).widen
+      case event: CommentCommandEvent.Upvote     => toUpvote(event).widen
+      case event: CommentCommandEvent.Downvote   => toDownvote(event).widen
+      case event: CommentCommandEvent.RevokeVote => toRevokeVote(event).widen
     }.map { case (key, value) =>
       key -> DiscussionEvent.ForComment(value)
     }.handleErrorWith { error =>
@@ -116,4 +119,10 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
            |WHERE id = subquery.reply_to
            |""".stripMargin.update.run).transact(transactor) >>
       (event.id.uuid -> event.transformInto[CommentEvent.Restored]).pure[F]
+
+  def toUpvote(event: CommentCommandEvent.Upvote): F[(UUID, CommentEvent.Upvoted)] = ???
+
+  def toDownvote(event: CommentCommandEvent.Downvote): F[(UUID, CommentEvent.Downvoted)] = ???
+
+  def toRevokeVote(event: CommentCommandEvent.RevokeVote): F[(UUID, CommentEvent.VoteRevoked)] = ???
 }

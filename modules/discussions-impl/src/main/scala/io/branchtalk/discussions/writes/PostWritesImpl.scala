@@ -73,4 +73,28 @@ final class PostWritesImpl[F[_]: Sync: Timer](
       command = restoredPost.into[PostCommandEvent.Restore].transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield RestoreScheduled(id)
+
+  override def upvotePost(vote: Post.Upvote): F[Unit] =
+    for {
+      id <- vote.id.pure[F]
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = TRUE""")
+      command = vote.into[PostCommandEvent.Upvote].transform
+      _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
+    } yield ()
+
+  override def downvotePost(vote: Post.Downvote): F[Unit] =
+    for {
+      id <- vote.id.pure[F]
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = TRUE""")
+      command = vote.into[PostCommandEvent.Downvote].transform
+      _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
+    } yield ()
+
+  override def revokePostVote(vote: Post.RevokeVote): F[Unit] =
+    for {
+      id <- vote.id.pure[F]
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = TRUE""")
+      command = vote.into[PostCommandEvent.RevokeVote].transform
+      _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
+    } yield ()
 }

@@ -4,16 +4,20 @@ import io.branchtalk.shared.model.{ CreationTime, ID, ModificationTime }
 import io.scalaland.chimney.dsl._
 
 final case class PostDao(
-  id:             ID[Post],
-  authorID:       ID[User],
-  channelID:      ID[Channel],
-  urlTitle:       Post.UrlTitle,
-  title:          Post.Title,
-  contentType:    Post.Content.Type,
-  contentRaw:     Post.Content.Raw,
-  createdAt:      CreationTime,
-  lastModifiedAt: Option[ModificationTime],
-  commentsNr:     Post.CommentsNr
+  id:                 ID[Post],
+  authorID:           ID[User],
+  channelID:          ID[Channel],
+  urlTitle:           Post.UrlTitle,
+  title:              Post.Title,
+  contentType:        Post.Content.Type,
+  contentRaw:         Post.Content.Raw,
+  createdAt:          CreationTime,
+  lastModifiedAt:     Option[ModificationTime],
+  commentsNr:         Post.CommentsNr,
+  upvotes:            Post.Upvotes,
+  downvores:          Post.Downvotes,
+  totalScore:         Post.TotalScore,
+  controversialScore: Post.ControversialScore
 ) {
 
   def toDomain: Post =

@@ -11,5 +11,5 @@ trait CommentWrites[F[_]] {
   def restoreComment(restoreComment: Comment.Restore):    F[RestoreScheduled[Comment]]
   def upvoteComment(vote:            Comment.Upvote):     F[Unit]
   def downvoteComment(vote:          Comment.Downvote):   F[Unit]
-  def revokePostComment(vote:        Comment.RevokeVote): F[Unit]
+  def revokeCommentVote(vote:        Comment.RevokeVote): F[Unit]
 }
