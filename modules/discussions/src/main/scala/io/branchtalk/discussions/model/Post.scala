@@ -19,7 +19,7 @@ object Post extends PostProperties with PostCommands {
     lastModifiedAt:     Option[ModificationTime],
     commentsNr:         Post.CommentsNr,
     upvotes:            Post.Upvotes,
-    downvores:          Post.Downvotes,
+    downvotes:          Post.Downvotes,
     totalScore:         Post.TotalScore,
     controversialScore: Post.ControversialScore
   )

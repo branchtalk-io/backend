@@ -7,7 +7,7 @@ import enumeratum.EnumEntry.Hyphencase
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.ADT
-import io.branchtalk.shared.model.{ FastEq, ID, ParseRefined, ShowPretty, UUID }
+import io.branchtalk.shared.model._
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 
@@ -19,13 +19,13 @@ trait BanProperties {
 }
 object BanProperties {
 
-  @newtype final case class Reason(string: NonEmptyString)
+  @newtype final case class Reason(nonEmptyString: NonEmptyString)
   object Reason {
-    def unapply(reason: Reason): Option[NonEmptyString] = reason.string.some
+    def unapply(reason: Reason): Option[NonEmptyString] = reason.nonEmptyString.some
     def parse[F[_]: Sync](string: String): F[Reason] = ParseRefined[F].parse[NonEmpty](string).map(Reason.apply)
 
-    implicit val show:  Show[Reason]  = (t: Reason) => s"Reason(${t.string.value.show})"
-    implicit val order: Order[Reason] = (x: Reason, y: Reason) => x.string.value compareTo y.string.value
+    implicit val show:  Show[Reason]  = Show.wrap(_.nonEmptyString.value)
+    implicit val order: Order[Reason] = Order.by(_.nonEmptyString.value)
   }
 
   @Semi(FastEq, ShowPretty) sealed trait Scope extends ADT

@@ -15,7 +15,19 @@ import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 
+import scala.annotation.unused
+import scala.reflect.runtime.universe.{ WeakTypeTag, weakTypeOf }
+
 package object model {
+
+  implicit class ShowCompanionOps(@unused private val s: Show.type) extends AnyVal {
+
+    // displays "wrapper.package.WrapperName(content)"
+    def wrap[Wrapper: WeakTypeTag, Content: Show](f: Wrapper => Content): Show[Wrapper] = {
+      @SuppressWarnings(Array("org.wartremover.warts.ToString")) val name = weakTypeOf[Wrapper].toString
+      s => show"$name(${f(s)})"
+    }
+  }
 
   type Logger[F[_]] = SelfAwareStructuredLogger[F]
   val Logger = Slf4jLogger
@@ -39,7 +51,7 @@ package object model {
     def parse[F[_]: Sync, Entity](string: String)(implicit uuidGenerator: UUIDGenerator): F[ID[Entity]] =
       UUID.parse[F](string).map(ID[Entity])
 
-    implicit def show[Entity]:  Show[ID[Entity]]  = (id: ID[Entity]) => s"ID(${id.uuid.show})"
+    implicit def show[Entity]:  Show[ID[Entity]]  = Show.wrap(_.uuid)
     implicit def order[Entity]: Order[ID[Entity]] = Order[UUID].coerce[Order[ID[Entity]]]
   }
 
@@ -53,10 +65,9 @@ package object model {
         .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
         .map(CreationTime(_))
 
-    implicit val show: Show[CreationTime] =
-      (t: CreationTime) => s"CreationTime(${DateTimeFormatter.ISO_INSTANT.format(t.offsetDateTime)})"
+    implicit val show: Show[CreationTime] = Show.wrap(_.offsetDateTime.pipe(DateTimeFormatter.ISO_INSTANT.format))
     implicit val order: Order[CreationTime] =
-      (x: CreationTime, y: CreationTime) => x.offsetDateTime.compareTo(y.offsetDateTime)
+      Order.by[CreationTime, OffsetDateTime](_.offsetDateTime)(Order.fromComparable)
   }
   @newtype final case class ModificationTime(offsetDateTime: OffsetDateTime)
   object ModificationTime {
@@ -68,43 +79,38 @@ package object model {
         .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
         .map(ModificationTime(_))
 
-    implicit val show: Show[ModificationTime] =
-      (t: ModificationTime) => s"ModificationTime(${DateTimeFormatter.ISO_INSTANT.format(t.offsetDateTime)})"
+    implicit val show: Show[ModificationTime] = Show.wrap(_.offsetDateTime.pipe(DateTimeFormatter.ISO_INSTANT.format))
     implicit val order: Order[ModificationTime] =
-      (x: ModificationTime, y: ModificationTime) => x.offsetDateTime.compareTo(y.offsetDateTime)
+      Order.by[ModificationTime, OffsetDateTime](_.offsetDateTime)(Order.fromComparable)
   }
 
   @newtype final case class CreationScheduled[Entity](id: ID[Entity])
   object CreationScheduled {
     def unapply[Entity](creationScheduled: CreationScheduled[Entity]): Option[ID[Entity]] = creationScheduled.id.some
 
-    implicit def show[Entity]: Show[CreationScheduled[Entity]] =
-      (t: CreationScheduled[Entity]) => s"CreationScheduled(${t.id.show})"
-    implicit def eq[Entity]: Eq[CreationScheduled[Entity]] = Eq[ID[Entity]].coerce
+    implicit def show[Entity]: Show[CreationScheduled[Entity]] = Show.wrap(_.id)
+    implicit def eq[Entity]:   Eq[CreationScheduled[Entity]]   = Eq[ID[Entity]].coerce
   }
   @newtype final case class UpdateScheduled[Entity](id: ID[Entity])
   object UpdateScheduled {
     def unapply[Entity](updateScheduled: UpdateScheduled[Entity]): Option[ID[Entity]] = updateScheduled.id.some
 
-    implicit def show[Entity]: Show[UpdateScheduled[Entity]] =
-      (t: UpdateScheduled[Entity]) => s"UpdateScheduled(${t.id.show})"
-    implicit def eq[Entity]: Eq[UpdateScheduled[Entity]] = Eq[ID[Entity]].coerce
+    implicit def show[Entity]: Show[UpdateScheduled[Entity]] = Show.wrap(_.id)
+    implicit def eq[Entity]:   Eq[UpdateScheduled[Entity]]   = Eq[ID[Entity]].coerce
   }
   @newtype final case class DeletionScheduled[Entity](id: ID[Entity])
   object DeletionScheduled {
     def unapply[Entity](deletionScheduled: DeletionScheduled[Entity]): Option[ID[Entity]] = deletionScheduled.id.some
 
-    implicit def show[Entity]: Show[DeletionScheduled[Entity]] =
-      (t: DeletionScheduled[Entity]) => s"DeletionScheduled(${t.id.show})"
-    implicit def eq[Entity]: Eq[DeletionScheduled[Entity]] = Eq[ID[Entity]].coerce
+    implicit def show[Entity]: Show[DeletionScheduled[Entity]] = Show.wrap(_.id)
+    implicit def eq[Entity]:   Eq[DeletionScheduled[Entity]]   = Eq[ID[Entity]].coerce
   }
   @newtype final case class RestoreScheduled[Entity](id: ID[Entity])
   object RestoreScheduled {
     def unapply[Entity](restoreScheduled: RestoreScheduled[Entity]): Option[ID[Entity]] = restoreScheduled.id.some
 
-    implicit def show[Entity]: Show[RestoreScheduled[Entity]] =
-      (t: RestoreScheduled[Entity]) => s"RestoreScheduled(${t.id.show})"
-    implicit def eq[Entity]: Eq[RestoreScheduled[Entity]] = Eq[ID[Entity]].coerce
+    implicit def show[Entity]: Show[RestoreScheduled[Entity]] = Show.wrap(_.id)
+    implicit def eq[Entity]:   Eq[RestoreScheduled[Entity]]   = Eq[ID[Entity]].coerce
   }
 
   implicit class Untupled2[I1, I2, Out](private val f: ((I1, I2)) => Out) extends AnyVal {

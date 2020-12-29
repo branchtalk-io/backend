@@ -1,6 +1,7 @@
 package io.branchtalk.users
 
 import cats.{ Eq, Eval, Show }
+import io.branchtalk.shared.model.ShowCompanionOps
 import io.estatico.newtype.macros.newtype
 
 package object model {
@@ -18,8 +19,8 @@ package object model {
 
     def empty: Permissions = Permissions(Set.empty)
 
-    implicit val show: Show[Permissions] = (t: Permissions) => s"Permissions(${t.set.mkString(", ")})"
-    implicit val eq:   Eq[Permissions]   = (x: Permissions, y: Permissions) => x.set === y.set
+    implicit val show: Show[Permissions] = Show.wrap(_.set.mkString(", "))
+    implicit val eq:   Eq[Permissions]   = Eq.by(_.set)
 
     @SuppressWarnings(Array("org.wartremover.warts.All")) // Eval should be stack-safe
     def validatePermissions(required: RequiredPermissions, existing: Permissions): Boolean = {

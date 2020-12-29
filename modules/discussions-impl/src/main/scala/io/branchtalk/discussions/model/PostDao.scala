@@ -15,14 +15,15 @@ final case class PostDao(
   lastModifiedAt:     Option[ModificationTime],
   commentsNr:         Post.CommentsNr,
   upvotes:            Post.Upvotes,
-  downvores:          Post.Downvotes,
+  downvotes:          Post.Downvotes,
   totalScore:         Post.TotalScore,
   controversialScore: Post.ControversialScore
 ) {
 
   def toDomain: Post =
-    Post(id = id,
-         data = this.into[Post.Data].withFieldConst(_.content, Post.Content.Tupled(contentType, contentRaw)).transform
+    Post(
+      id = id,
+      data = this.into[Post.Data].withFieldConst(_.content, Post.Content.Tupled(contentType, contentRaw)).transform
     )
 }
 object PostDao {

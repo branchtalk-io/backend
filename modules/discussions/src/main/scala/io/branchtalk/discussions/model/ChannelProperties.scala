@@ -1,13 +1,13 @@
 package io.branchtalk.discussions.model
 
-import cats.{ Eq, Order, Show }
+import cats.{ Order, Show }
 import cats.effect.Sync
 import enumeratum._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.shared.model.ParseRefined
+import io.branchtalk.shared.model._
 import io.estatico.newtype.macros.newtype
 
 trait ChannelProperties { self: Channel.type =>
@@ -22,14 +22,16 @@ trait ChannelProperties { self: Channel.type =>
 }
 object ChannelProperties {
 
-  @newtype final case class UrlName(urlString: String Refined MatchesRegex["[A-Za-z0-9_-]+"])
+  @newtype final case class UrlName(urlString: String Refined MatchesRegex[UrlName.Pattern])
   object UrlName {
-    def unapply(urlName: UrlName): Option[String Refined MatchesRegex["[A-Za-z0-9_-]+"]] = urlName.urlString.some
-    def parse[F[_]: Sync](string: String): F[UrlName] =
-      ParseRefined[F].parse[MatchesRegex["[A-Za-z0-9_-]+"]](string).map(UrlName.apply)
+    type Pattern = "[A-Za-z0-9_-]+"
 
-    implicit val show:  Show[UrlName]  = (t: UrlName) => s"UrlName(${t.urlString.value.show})"
-    implicit val order: Order[UrlName] = (x: UrlName, y: UrlName) => x.urlString.value compareTo y.urlString.value
+    def unapply(urlName: UrlName): Option[String Refined MatchesRegex[Pattern]] = urlName.urlString.some
+    def parse[F[_]: Sync](string: String): F[UrlName] =
+      ParseRefined[F].parse[MatchesRegex[Pattern]](string).map(UrlName.apply)
+
+    implicit val show:  Show[UrlName]  = Show.wrap(_.urlString.value)
+    implicit val order: Order[UrlName] = Order.by(_.urlString.value)
   }
 
   @newtype final case class Name(nonEmptyString: NonEmptyString)
@@ -38,8 +40,8 @@ object ChannelProperties {
     def parse[F[_]: Sync](string: String): F[Name] =
       ParseRefined[F].parse[NonEmpty](string).map(Name.apply)
 
-    implicit val show:  Show[Name]  = (t: Name) => s"Name(${t.nonEmptyString.value.show})"
-    implicit val order: Order[Name] = (x: Name, y: Name) => x.nonEmptyString.value compareTo y.nonEmptyString.value
+    implicit val show:  Show[Name]  = Show.wrap(_.nonEmptyString.value)
+    implicit val order: Order[Name] = Order.by(_.nonEmptyString.value)
   }
 
   @newtype final case class Description(nonEmptyString: NonEmptyString)
@@ -48,9 +50,8 @@ object ChannelProperties {
     def parse[F[_]: Sync](string: String): F[Description] =
       ParseRefined[F].parse[NonEmpty](string).map(Description.apply)
 
-    implicit val show: Show[Description] = (t: Description) => s"Description(${t.nonEmptyString.value.show})"
-    implicit val eq: Eq[Description] = (x: Description, y: Description) =>
-      x.nonEmptyString.value === y.nonEmptyString.value
+    implicit val show: Show[Description]  = Show.wrap(_.nonEmptyString.value)
+    implicit val eq:   Order[Description] = Order.by(_.nonEmptyString.value)
   }
 
   sealed trait Sorting extends EnumEntry

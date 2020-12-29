@@ -8,7 +8,7 @@ import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
-import io.branchtalk.shared.model.{ FastEq, ParseRefined, ShowPretty, branchtalkCharset }
+import io.branchtalk.shared.model._
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 
@@ -52,7 +52,7 @@ object Password {
       override def entryName: String = "bcrypt"
 
       override def createSalt: Password.Salt = {
-        val bytes = new Array[Byte](16) // required by BCrypt to have 16 bytes
+        val bytes = new Array[Byte](at.favre.lib.crypto.bcrypt.BCrypt.SALT_LENGTH)
         sr.nextBytes(bytes)
         Password.Salt(bytes)
       }
@@ -73,16 +73,16 @@ object Password {
   object Hash {
     def unapply(hash: Hash): Option[Array[Byte]] = hash.bytes.some
 
-    implicit val show: Show[Hash] = (_: Hash) => s"Password.Hash(EDITED OUT)"
-    implicit val eq:   Eq[Hash]   = (x: Hash, y: Hash) => x.bytes sameElements y.bytes
+    implicit val show: Show[Hash] = Show.wrap(_ => "EDITED OUT")
+    implicit val eq:   Eq[Hash]   = _.bytes sameElements _.bytes
   }
 
   @newtype final case class Salt(bytes: Array[Byte])
   object Salt {
     def unapply(salt: Salt): Option[Array[Byte]] = salt.bytes.some
 
-    implicit val show: Show[Salt] = (_: Salt) => s"Password.Salt(EDITED OUT)"
-    implicit val eq:   Eq[Salt]   = (x: Salt, y: Salt) => x.bytes sameElements y.bytes
+    implicit val show: Show[Salt] = Show.wrap(_ => "EDITED OUT")
+    implicit val eq:   Eq[Salt]   = _.bytes sameElements _.bytes
   }
 
   @newtype final case class Raw(nonEmptyBytes: Array[Byte] Refined NonEmpty)
@@ -94,8 +94,8 @@ object Password {
     def fromString(string: String Refined NonEmpty): Raw =
       Raw(ParseRefined[IO].parse[NonEmpty](string.getBytes(branchtalkCharset)).unsafeRunSync())
 
-    implicit val show: Show[Raw] = (_: Raw) => s"Password.Raw(EDITED OUT)"
-    implicit val eq:   Eq[Raw]   = (x: Raw, y: Raw) => x.nonEmptyBytes.value sameElements y.nonEmptyBytes.value
+    implicit val show: Show[Raw] = Show.wrap(_ => "EDITED OUT")
+    implicit val eq:   Eq[Raw]   = _.nonEmptyBytes.value sameElements _.nonEmptyBytes.value
   }
 
   def create(raw: Password.Raw): Password = {

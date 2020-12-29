@@ -4,16 +4,16 @@ import java.net.URI
 
 import cats.effect.Sync
 import cats.{ Order, Show }
-import eu.timepit.refined.types.string.NonEmptyString
 import enumeratum._
 import enumeratum.EnumEntry.Hyphencase
+import io.branchtalk.ADT
+import io.branchtalk.shared.model._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.NonNegative
+import eu.timepit.refined.types.string.NonEmptyString
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
-import io.branchtalk.ADT
-import io.branchtalk.shared.model.{ FastEq, ParseRefined, ShowPretty }
 
 trait PostProperties { self: Post.type =>
   type UrlTitle           = PostProperties.UrlTitle
@@ -47,9 +47,8 @@ object PostProperties {
     def parse[F[_]: Sync](string: String): F[UrlTitle] =
       ParseRefined[F].parse[NonEmpty](string).map(UrlTitle.apply)
 
-    implicit val show: Show[UrlTitle] = (t: UrlTitle) => s"UrlTitle(${t.nonEmptyString.value.show})"
-    implicit val order: Order[UrlTitle] = (x: UrlTitle, y: UrlTitle) =>
-      x.nonEmptyString.value compareTo y.nonEmptyString.value
+    implicit val show:  Show[UrlTitle]  = Show.wrap(_.nonEmptyString.value)
+    implicit val order: Order[UrlTitle] = Order.by(_.nonEmptyString.value)
   }
 
   @newtype final case class Title(nonEmptyString: NonEmptyString)
@@ -58,24 +57,24 @@ object PostProperties {
     def parse[F[_]: Sync](string: String): F[Title] =
       ParseRefined[F].parse[NonEmpty](string).map(Title.apply)
 
-    implicit val show:  Show[Title]  = (t: Title) => s"Title(${t.nonEmptyString.value.show})"
-    implicit val order: Order[Title] = (x: Title, y: Title) => x.nonEmptyString.value compareTo y.nonEmptyString.value
+    implicit val show:  Show[Title]  = Show.wrap(_.nonEmptyString.value)
+    implicit val order: Order[Title] = Order.by(_.nonEmptyString.value)
   }
 
   @newtype final case class URL(uri: URI)
   object URL {
     def unapply(url: URL): Option[URI] = url.uri.some
 
-    implicit val show:  Show[URL]  = (t: URL) => t.uri.toString
-    implicit val order: Order[URL] = (x: URL, y: URL) => x.uri compareTo y.uri
+    implicit val show:  Show[URL]  = _.uri.toString // without wrapper because it lives only within Context.Url
+    implicit val order: Order[URL] = Order.by[URL, URI](_.uri)(Order.fromComparable)
   }
 
   @newtype final case class Text(string: String)
   object Text {
     def unapply(text: Text): Option[String] = text.string.some
 
-    implicit val show:  Show[Text]  = (t: Text) => t.string
-    implicit val order: Order[Text] = (x: Text, y: Text) => x.string compareTo y.string
+    implicit val show:  Show[Text]  = _.string // without wrapper because it lives only within Context.Text
+    implicit val order: Order[Text] = Order.by(_.string)
   }
 
   @Semi(FastEq, ShowPretty) sealed trait Content extends ADT
@@ -94,8 +93,8 @@ object PostProperties {
     object Raw {
       def unapply(raw: Raw): Option[String] = raw.string.some
 
-      implicit val show:  Show[Raw]  = (t: Raw) => t.string
-      implicit val order: Order[Raw] = (x: Raw, y: Raw) => x.string compareTo y.string
+      implicit val show:  Show[Raw]  = Show.wrap(_.string)
+      implicit val order: Order[Raw] = Order.by(_.string)
     }
 
     object Tupled {
@@ -117,44 +116,41 @@ object PostProperties {
   object CommentsNr {
     def unapply(commentsNr: CommentsNr): Option[Int Refined NonNegative] = commentsNr.toNonNegativeInt.some
 
-    implicit val show: Show[CommentsNr] = (t: CommentsNr) => t.toNonNegativeInt.value.toString
-    implicit val order: Order[CommentsNr] = (x: CommentsNr, y: CommentsNr) =>
-      x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
+    implicit val show:  Show[CommentsNr]  = Show.wrap(_.toNonNegativeInt.value)
+    implicit val order: Order[CommentsNr] = Order.by(_.toNonNegativeInt.value)
   }
 
   @newtype final case class Upvotes(toNonNegativeInt: Int Refined NonNegative)
   object Upvotes {
     def unapply(upvotes: Upvotes): Option[Int Refined NonNegative] = upvotes.toNonNegativeInt.some
 
-    implicit val show: Show[Upvotes] = (t: Upvotes) => t.toNonNegativeInt.value.toString
-    implicit val order: Order[Upvotes] = (x: Upvotes, y: Upvotes) =>
-      x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
+    implicit val show:  Show[Upvotes]  = Show.wrap(_.toNonNegativeInt.value)
+    implicit val order: Order[Upvotes] = Order.by(_.toNonNegativeInt.value)
   }
 
   @newtype final case class Downvotes(toNonNegativeInt: Int Refined NonNegative)
   object Downvotes {
     def unapply(downvotes: Downvotes): Option[Int Refined NonNegative] = downvotes.toNonNegativeInt.some
 
-    implicit val show: Show[Downvotes] = (t: Downvotes) => t.toNonNegativeInt.value.toString
-    implicit val order: Order[Downvotes] = (x: Downvotes, y: Downvotes) =>
-      x.toNonNegativeInt.value compareTo y.toNonNegativeInt.value
+    implicit val show:  Show[Downvotes]  = Show.wrap(_.toNonNegativeInt.value)
+    implicit val order: Order[Downvotes] = Order.by(_.toNonNegativeInt.value)
   }
 
   @newtype final case class TotalScore(toInt: Int)
   object TotalScore {
     def unapply(totalScore: TotalScore): Option[Int] = totalScore.toInt.some
 
-    implicit val show:  Show[TotalScore]  = (t: TotalScore) => t.toInt.toString
-    implicit val order: Order[TotalScore] = (x: TotalScore, y: TotalScore) => x.toInt compareTo y.toInt
+    implicit val show:  Show[TotalScore]  = Show.wrap(_.toInt)
+    implicit val order: Order[TotalScore] = Order.by(_.toInt)
   }
 
-  @newtype final case class ControversialScore(toInt: Int)
+  @newtype final case class ControversialScore(toNonNegativeInt: Int Refined NonNegative)
   object ControversialScore {
-    def unapply(controversialScore: ControversialScore): Option[Int] = controversialScore.toInt.some
+    def unapply(controversialScore: ControversialScore): Option[Int Refined NonNegative] =
+      controversialScore.toNonNegativeInt.some
 
-    implicit val show: Show[ControversialScore] = (t: ControversialScore) => t.toInt.toString
-    implicit val order: Order[ControversialScore] = (x: ControversialScore, y: ControversialScore) =>
-      x.toInt compareTo y.toInt
+    implicit val show:  Show[ControversialScore]  = Show.wrap(_.toNonNegativeInt.value)
+    implicit val order: Order[ControversialScore] = Order.by(_.toNonNegativeInt.value)
   }
 
   sealed trait Sorting extends EnumEntry

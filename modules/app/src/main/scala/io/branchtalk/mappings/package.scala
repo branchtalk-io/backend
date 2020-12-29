@@ -14,7 +14,7 @@ package object mappings {
 
   val usernameApi2Users: Iso[api.Username, users.model.User.Name] = Iso[api.Username, users.model.User.Name] {
     username => users.model.User.Name(username.nonEmptyString)
-  }(username => api.Username(username.string))
+  }(username => api.Username(username.nonEmptyString))
 
   val passwordApi2Users: Iso[api.Password, users.model.Password.Raw] = Iso[api.Password, users.model.Password.Raw] {
     password => users.model.Password.Raw(password.nonEmptyBytes)

@@ -4,8 +4,8 @@ import enumeratum.{ Enum, EnumEntry }
 import io.branchtalk.shared.model.ID
 
 final case class Vote[Entity](
-  id:       ID[Entity],
-  voter_id: ID[User]
+  id:      ID[Entity],
+  voterID: ID[User]
 )
 object Vote {
 

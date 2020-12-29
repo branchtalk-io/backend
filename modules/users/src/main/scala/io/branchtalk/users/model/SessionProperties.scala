@@ -8,7 +8,7 @@ import cats.effect.Clock
 import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
 import io.branchtalk.ADT
-import io.branchtalk.shared.model.{ FastEq, ShowPretty }
+import io.branchtalk.shared.model._
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 
@@ -37,10 +37,9 @@ object SessionProperties {
         .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
         .map(ExpirationTime(_))
 
-    implicit val show: Show[ExpirationTime] =
-      (t: ExpirationTime) => s"CreationTime(${DateTimeFormatter.ISO_INSTANT.format(t.offsetDateTime)})"
+    implicit val show: Show[ExpirationTime] = Show.wrap(_.offsetDateTime.pipe(DateTimeFormatter.ISO_INSTANT.format))
     implicit val order: Order[ExpirationTime] =
-      (x: ExpirationTime, y: ExpirationTime) => x.offsetDateTime.compareTo(y.offsetDateTime)
+      Order.by[ExpirationTime, OffsetDateTime](_.offsetDateTime)(Order.fromComparable)
   }
 
   @Semi(FastEq, ShowPretty) sealed trait Usage extends ADT
