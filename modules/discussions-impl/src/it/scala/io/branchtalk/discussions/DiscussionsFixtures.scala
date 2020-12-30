@@ -11,6 +11,8 @@ trait DiscussionsFixtures {
 
   def subscriberIDCreate(implicit uuidGenerator: UUIDGenerator): IO[ID[User]] = ID.create[IO, User]
 
+  def voterIDCreate(implicit uuidGenerator: UUIDGenerator): IO[ID[User]] = ID.create[IO, User]
+
   def channelCreate(implicit uuidGenerator: UUIDGenerator): IO[Channel.Create] =
     (
       ID.create[IO, User],

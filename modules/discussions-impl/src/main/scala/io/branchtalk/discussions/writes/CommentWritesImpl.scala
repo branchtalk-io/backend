@@ -64,7 +64,7 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
   override def upvoteComment(vote: Comment.Upvote): F[Unit] =
     for {
       id <- vote.id.pure[F]
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = TRUE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
       command = vote.into[CommentCommandEvent.Upvote].transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForComment(command))
     } yield ()
@@ -72,7 +72,7 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
   override def downvoteComment(vote: Comment.Downvote): F[Unit] =
     for {
       id <- vote.id.pure[F]
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = TRUE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
       command = vote.into[CommentCommandEvent.Downvote].transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForComment(command))
     } yield ()
@@ -80,7 +80,7 @@ final class CommentWritesImpl[F[_]: Sync: Timer](
   override def revokeCommentVote(vote: Comment.RevokeVote): F[Unit] =
     for {
       id <- vote.id.pure[F]
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = TRUE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
       command = vote.into[CommentCommandEvent.RevokeVote].transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForComment(command))
     } yield ()

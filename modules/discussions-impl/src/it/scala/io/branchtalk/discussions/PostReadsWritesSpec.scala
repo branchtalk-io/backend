@@ -127,6 +127,65 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
       }
     }
 
+    "handle Upvoting and Downvoting of Posts" in {
+      withDiscussionsProjections {
+        for {
+          // given
+          channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          creationData <- (0 until 4).toList.traverse(_ => postCreate(channelID))
+          toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
+          ids = toCreate.map(_.id)
+          _ <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
+          user1ID <- voterIDCreate
+          user2ID <- voterIDCreate
+          user3ID <- voterIDCreate
+          user4ID <- voterIDCreate
+          // when
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(0), user1ID))
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(1), user2ID))
+          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(2), user3ID))
+          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(3), user4ID))
+          firstVotes <- ids
+            .traverse(discussionsReads.postReads.requireById(_))
+            .assert("Posts should have first Votes applied")(_.forall(_.data.totalScore.toInt =!= 0))
+            .eventually()
+          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(0), user1ID))
+          _ <- discussionsWrites.postWrites.revokePostVote(Post.RevokeVote(ids(1), user2ID))
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(2), user3ID))
+          _ <- discussionsWrites.postWrites.revokePostVote(Post.RevokeVote(ids(3), user4ID))
+          secondsVotes <- ids
+            .traverse(discussionsReads.postReads.requireById(_))
+            .assert("Posts should have second Votes applied")(
+              _.map(_.data.totalScore).zip(firstVotes.map(_.data.totalScore)).forall { case (l, r) => l =!= r }
+            )
+            .eventually()
+        } yield {
+          // then
+          firstVotes.map(_.data.totalScore) must_=== List(Post.TotalScore(1),
+                                                          Post.TotalScore(1),
+                                                          Post.TotalScore(-1),
+                                                          Post.TotalScore(-1)
+          )
+          firstVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(1),
+                                                                  Post.ControversialScore(1),
+                                                                  Post.ControversialScore(1),
+                                                                  Post.ControversialScore(1)
+          )
+          secondsVotes.map(_.data.totalScore) must_=== List(Post.TotalScore(-1),
+                                                            Post.TotalScore(0),
+                                                            Post.TotalScore(1),
+                                                            Post.TotalScore(0)
+          )
+          secondsVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(1),
+                                                                    Post.ControversialScore(0),
+                                                                    Post.ControversialScore(1),
+                                                                    Post.ControversialScore(0)
+          )
+        }
+      }
+    }
+
     "allow delete and restore of a created Post" in {
       withDiscussionsProjections {
         for {

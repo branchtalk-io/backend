@@ -6,6 +6,7 @@ import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
 import io.branchtalk.discussions.events.{ CommentCommandEvent, CommentEvent, DiscussionEvent, DiscussionsCommandEvent }
+import io.branchtalk.discussions.infrastructure.DoobieExtensions._
 import io.branchtalk.discussions.model.{ Comment, User, Vote }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
@@ -143,7 +144,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
                  |SET upvotes_nr = upvotes_nr + 1,
                  |    downvotes_nr = downvotes_nr - 1,
                  |    total_score = (upvotes_nr + 1) - (downvotes_nr - 1),
-                 |    controversial_score = MAX((upvotes_nr + 1), (downvotes_nr - 1))
+                 |    controversial_score = GREATEST((upvotes_nr + 1), (downvotes_nr - 1))
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
         case None =>
           // create new upvote
@@ -159,7 +160,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
             sql"""UPDATE comments
                  |SET upvotes_nr = upvotes_nr + 1,
                  |    total_score = (upvotes_nr + 1) - downvotes_nr,
-                 |    controversial_score = MAX((upvotes_nr + 1), downvotes_nr)
+                 |    controversial_score = GREATEST((upvotes_nr + 1), downvotes_nr)
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
       }
       .transact(transactor)
@@ -178,7 +179,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
                  |SET upvotes_nr = upvotes_nr - 1,
                  |    downvotes_nr = downvotes_nr + 1,
                  |    total_score = (upvotes_nr - 1) - (downvotes_nr + 1),
-                 |    controversial_score = MAX((upvotes_nr - 1), (downvotes_nr + 1))
+                 |    controversial_score = GREATEST((upvotes_nr - 1), (downvotes_nr + 1))
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
         case Some(Vote.Type.Downvote) =>
           // do nothing - downvote already exists
@@ -195,9 +196,9 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
                |  ${Vote.Type.downvote}
                |)""".stripMargin.update.run >>
             sql"""UPDATE comments
-                 |SET upvotes_nr = downvotes_nr + 1,
+                 |SET downvotes_nr = downvotes_nr + 1,
                  |    total_score = upvotes_nr - (downvotes_nr + 1),
-                 |    controversial_score = MAX(upvotes_nr, (downvotes_nr + 1))
+                 |    controversial_score = GREATEST(upvotes_nr, (downvotes_nr + 1))
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
       }
       .transact(transactor)
@@ -212,9 +213,9 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
                |WHERE comment_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
             sql"""UPDATE comments
-                 |SET upvotes_nr = upvotes - 1,
+                 |SET upvotes_nr = upvotes_nr - 1,
                  |    total_score = (upvotes_nr - 1) - downvotes_nr,
-                 |    controversial_score = MAX((upvotes_nr - 1), downvotes_nr)
+                 |    controversial_score = GREATEST((upvotes_nr - 1), downvotes_nr)
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
         case Some(Vote.Type.Downvote) =>
           // delete downvote
@@ -224,7 +225,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
             sql"""UPDATE comments
                  |SET downvotes_nr = downvotes_nr - 1,
                  |    total_score = upvotes_nr - (downvotes_nr - 1),
-                 |    controversial_score = MAX(upvotes_nr, (downvotes_nr - 1))
+                 |    controversial_score = GREATEST(upvotes_nr, (downvotes_nr - 1))
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
         case None =>
           // do nothing - vote doesn't exist
