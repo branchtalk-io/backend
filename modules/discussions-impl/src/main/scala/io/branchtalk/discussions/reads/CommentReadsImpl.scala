@@ -22,8 +22,8 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
         |       created_at,
         |       last_modified_at,
         |       replies_nr,
-        |       upvotes,
-        |       downvotes,
+        |       upvotes_nr,
+        |       downvotes_nr,
         |       total_score,
         |       controversial_score
         |FROM comments""".stripMargin

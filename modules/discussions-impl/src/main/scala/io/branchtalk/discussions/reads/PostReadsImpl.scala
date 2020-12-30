@@ -24,8 +24,8 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
         |       created_at,
         |       last_modified_at,
         |       comments_nr,
-        |       upvotes,
-        |       downvotes,
+        |       upvotes_nr,
+        |       downvotes_nr,
         |       total_score,
         |       controversial_score
         |FROM posts""".stripMargin

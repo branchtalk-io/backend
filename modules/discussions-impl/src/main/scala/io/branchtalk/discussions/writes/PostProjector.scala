@@ -113,7 +113,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
                  |SET upvotes_nr = upvotes_nr + 1,
                  |    downvotes_nr = downvotes_nr - 1,
                  |    total_score = (upvotes_nr + 1) - (downvotes_nr - 1),
-                 |    controversial_score = MAX((upvotes_nr + 1), (downvotes_nr - 1))
+                 |    controversial_score = GREATEST((upvotes_nr + 1), (downvotes_nr - 1))
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
         case None =>
           // create new upvote
@@ -129,7 +129,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
             sql"""UPDATE comments
                  |SET upvotes_nr = upvotes_nr + 1,
                  |    total_score = (upvotes_nr + 1) - downvotes_nr,
-                 |    controversial_score = MAX((upvotes_nr + 1), downvotes_nr)
+                 |    controversial_score = GREATEST((upvotes_nr + 1), downvotes_nr)
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
       }
       .transact(transactor)
@@ -148,7 +148,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
                  |SET upvotes_nr = upvotes_nr - 1,
                  |    downvotes_nr = downvotes_nr + 1,
                  |    total_score = (upvotes_nr - 1) - (downvotes_nr + 1),
-                 |    controversial_score = MAX((upvotes_nr - 1), (downvotes_nr + 1))
+                 |    controversial_score = GREATEST((upvotes_nr - 1), (downvotes_nr + 1))
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
         case Some(Vote.Type.Downvote) =>
           // do nothing - downvote already exists
@@ -167,7 +167,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
             sql"""UPDATE comments
                  |SET upvotes_nr = downvotes_nr + 1,
                  |    total_score = upvotes_nr - (downvotes_nr + 1),
-                 |    controversial_score = MAX(upvotes_nr, (downvotes_nr + 1))
+                 |    controversial_score = GREATEST(upvotes_nr, (downvotes_nr + 1))
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
       }
       .transact(transactor)
@@ -184,7 +184,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
             sql"""UPDATE comments
                  |SET upvotes_nr = upvotes - 1,
                  |    total_score = (upvotes_nr - 1) - downvotes_nr,
-                 |    controversial_score = MAX((upvotes_nr - 1), downvotes_nr)
+                 |    controversial_score = GREATEST((upvotes_nr - 1), downvotes_nr)
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
         case Some(Vote.Type.Downvote) =>
           // delete downvote
@@ -194,7 +194,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
             sql"""UPDATE comments
                  |SET downvotes_nr = downvotes_nr - 1,
                  |    total_score = upvotes_nr - (downvotes_nr - 1),
-                 |    controversial_score = MAX(upvotes_nr, (downvotes_nr - 1))
+                 |    controversial_score = GREATEST(upvotes_nr, (downvotes_nr - 1))
                  |WHERE id = ${event.id}""".stripMargin.update.run.void
         case None =>
           // do nothing - vote doesn't exist
