@@ -285,6 +285,111 @@ final class CommentReadsWritesSpec extends Specification with DiscussionsIOTest 
       }
     }
 
-    // TODO: paginate replies
+    "paginate newest Comments by Replies" in {
+      withDiscussionsProjections {
+        for {
+          // given
+          channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          commentID <- commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.id)
+          paginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID).map(_.copy(replyTo = commentID.some)))
+          paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+          nonPaginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID))
+          nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+          _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
+          // when
+          pagination <- discussionsReads.commentReads.paginate(postID, commentID.some, Comment.Sorting.Newest, 0L, 10)
+          pagination2 <- discussionsReads.commentReads.paginate(postID, commentID.some, Comment.Sorting.Newest, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+          pagination2.nextOffset.map(_.value) must beNone
+        }
+      }
+    }
+
+    "paginate hottest Comments by Posts" in {
+      withDiscussionsProjections {
+        for {
+          // given
+          channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+          _ <- discussionsReads.postReads.requireById(post2ID).eventually()
+          paginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID))
+          paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+          nonPaginatedData <- (0 until 20).toList.traverse(_ => commentCreate(post2ID))
+          nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+          _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
+          user1ID <- voterIDCreate
+          user2ID <- voterIDCreate
+          _ <- paginatedIDs.traverse(id => discussionsWrites.commentWrites.upvoteComment(Comment.Upvote(id, user1ID)))
+          _ <- paginatedIDs
+            .take(10)
+            .traverse(id => discussionsWrites.commentWrites.upvoteComment(Comment.Upvote(id, user2ID)))
+          _ <- paginatedIDs
+            .traverse(discussionsReads.commentReads.requireById(_))
+            .assert("Votes should be eventually applied")(
+              _.forall(e => e.data.totalScore.toInt > 0 || e.data.controversialScore.toNonNegativeInt.value > 0)
+            )
+            .eventually(delay = 1.second)
+          // when
+          pagination <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Hottest, 0L, 10)
+          pagination2 <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Hottest, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+          pagination2.nextOffset.map(_.value) must beNone
+        }
+      }
+    }
+
+    "paginate controversial Comments by Posts" in {
+      withDiscussionsProjections {
+        for {
+          // given
+          channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+          _ <- discussionsReads.postReads.requireById(post2ID).eventually()
+          paginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID))
+          paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+          nonPaginatedData <- (0 until 20).toList.traverse(_ => commentCreate(post2ID))
+          nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+          _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
+          user1ID <- voterIDCreate
+          user2ID <- voterIDCreate
+          _ <- paginatedIDs.traverse(id => discussionsWrites.commentWrites.upvoteComment(Comment.Upvote(id, user1ID)))
+          _ <- paginatedIDs
+            .take(10)
+            .traverse(id => discussionsWrites.commentWrites.downvoteComment(Comment.Downvote(id, user2ID)))
+          _ <- paginatedIDs
+            .traverse(discussionsReads.commentReads.requireById(_))
+            .assert("Votes should be eventually applied")(
+              _.forall(e => e.data.totalScore.toInt > 0 || e.data.controversialScore.toNonNegativeInt.value > 0)
+            )
+            .eventually(delay = 1.second)
+          // when
+          pagination <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Controversial, 0L, 10)
+          pagination2 <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Controversial, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+          pagination2.nextOffset.map(_.value) must beNone
+        }
+      }
+    }
   }
 }

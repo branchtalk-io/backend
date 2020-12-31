@@ -91,8 +91,8 @@ object CommentProperties {
   sealed trait Sorting extends EnumEntry
   object Sorting extends Enum[Sorting] {
     case object Newest extends Sorting
-    case object TotalScore extends Sorting
-    case object ControversialScore extends Sorting
+    case object Hottest extends Sorting
+    case object Controversial extends Sorting
 
     val values = findValues
   }

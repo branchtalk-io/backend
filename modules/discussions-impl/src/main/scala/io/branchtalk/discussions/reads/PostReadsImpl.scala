@@ -31,9 +31,9 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
         |FROM posts""".stripMargin
 
   private val orderBy: Post.Sorting => Fragment = {
-    case Post.Sorting.Newest             => fr"ORDER BY created_at DESC"
-    case Post.Sorting.TotalScore         => fr"ORDER by total_score DESC"
-    case Post.Sorting.ControversialScore => fr"ORDER by controversial_score DESC"
+    case Post.Sorting.Newest        => fr"ORDER BY created_at DESC"
+    case Post.Sorting.Hottest       => fr"ORDER by total_score DESC"
+    case Post.Sorting.Controversial => fr"ORDER by controversial_score DESC"
   }
 
   private def idExists(id: ID[Post]): Fragment = fr"id = ${id} AND deleted = FALSE"

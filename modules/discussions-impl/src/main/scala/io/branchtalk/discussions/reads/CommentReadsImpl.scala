@@ -29,9 +29,9 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
         |FROM comments""".stripMargin
 
   private val orderBy: Comment.Sorting => Fragment = {
-    case Comment.Sorting.Newest             => fr"ORDER BY created_at DESC"
-    case Comment.Sorting.TotalScore         => fr"ORDER by total_score DESC"
-    case Comment.Sorting.ControversialScore => fr"ORDER by controversial_score DESC"
+    case Comment.Sorting.Newest        => fr"ORDER BY created_at DESC"
+    case Comment.Sorting.Hottest       => fr"ORDER by total_score DESC"
+    case Comment.Sorting.Controversial => fr"ORDER by controversial_score DESC"
   }
 
   private def idExists(id: ID[Comment]): Fragment = fr"id = ${id} AND deleted = FALSE"

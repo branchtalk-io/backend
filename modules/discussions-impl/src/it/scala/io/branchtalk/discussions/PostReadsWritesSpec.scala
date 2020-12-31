@@ -265,9 +265,84 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           nonPaginatedData <- (0 until 20).toList.traverse(_ => postCreate(channel2ID))
           nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
           _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById(_)).eventually()
+          channels = NonEmptySet.of(channelID)
           // when
-          pagination <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), Post.Sorting.Newest, 0L, 10)
-          pagination2 <- discussionsReads.postReads.paginate(NonEmptySet.of(channelID), Post.Sorting.Newest, 10L, 10)
+          pagination <- discussionsReads.postReads.paginate(channels, Post.Sorting.Newest, 0L, 10)
+          pagination2 <- discussionsReads.postReads.paginate(channels, Post.Sorting.Newest, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+          pagination2.nextOffset.map(_.value) must beNone
+        }
+      }
+    }
+
+    "paginate hottest Posts by Channels" in {
+      withDiscussionsProjections {
+        for {
+          // given
+          channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channel2ID).eventually()
+          paginatedData <- (0 until 20).toList.traverse(_ => postCreate(channelID))
+          paginatedIDs <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+          nonPaginatedData <- (0 until 20).toList.traverse(_ => postCreate(channel2ID))
+          nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+          _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById(_)).eventually()
+          user1ID <- voterIDCreate
+          user2ID <- voterIDCreate
+          _ <- paginatedIDs.traverse(id => discussionsWrites.postWrites.upvotePost(Post.Upvote(id, user1ID)))
+          _ <- paginatedIDs.take(10).traverse(id => discussionsWrites.postWrites.upvotePost(Post.Upvote(id, user2ID)))
+          _ <- paginatedIDs
+            .traverse(discussionsReads.postReads.requireById(_))
+            .assert("Votes should be eventually applied")(_.forall(_.data.totalScore.toInt > 0))
+            .eventually(delay = 1.second)
+          channels = NonEmptySet.of(channelID)
+          // when
+          pagination <- discussionsReads.postReads.paginate(channels, Post.Sorting.Hottest, 0L, 10)
+          pagination2 <- discussionsReads.postReads.paginate(channels, Post.Sorting.Hottest, 10L, 10)
+        } yield {
+          // then
+          pagination.entities must haveSize(10)
+          pagination.nextOffset.map(_.value) must beSome(10)
+          pagination2.entities must haveSize(10)
+          pagination2.nextOffset.map(_.value) must beNone
+        }
+      }
+    }
+
+    "paginate controversial Posts by Channels" in {
+      withDiscussionsProjections {
+        for {
+          // given
+          channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          _ <- discussionsReads.channelReads.requireById(channel2ID).eventually()
+          paginatedData <- (0 until 20).toList.traverse(_ => postCreate(channelID))
+          paginatedIDs <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+          nonPaginatedData <- (0 until 20).toList.traverse(_ => postCreate(channel2ID))
+          nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+          _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById(_)).eventually()
+          user1ID <- voterIDCreate
+          user2ID <- voterIDCreate
+          _ <- paginatedIDs.traverse(id => discussionsWrites.postWrites.upvotePost(Post.Upvote(id, user1ID)))
+          _ <- paginatedIDs
+            .take(10)
+            .traverse(id => discussionsWrites.postWrites.downvotePost(Post.Downvote(id, user2ID)))
+          _ <- paginatedIDs
+            .traverse(discussionsReads.postReads.requireById(_))
+            .assert("Votes should be eventually applied")(
+              _.forall(e => e.data.totalScore.toInt > 0 || e.data.controversialScore.toNonNegativeInt.value > 0)
+            )
+            .eventually(delay = 1.second)
+          channels = NonEmptySet.of(channelID)
+          // when
+          pagination <- discussionsReads.postReads.paginate(channels, Post.Sorting.Controversial, 0L, 10)
+          pagination2 <- discussionsReads.postReads.paginate(channels, Post.Sorting.Controversial, 10L, 10)
         } yield {
           // then
           pagination.entities must haveSize(10)
