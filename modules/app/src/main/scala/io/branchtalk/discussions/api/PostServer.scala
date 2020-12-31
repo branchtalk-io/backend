@@ -58,6 +58,32 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
   }
 
+  private val hottest = PostAPIs.hottest.serverLogic[F].apply { case ((_, _), channelID) =>
+    val sortBy     = Post.Sorting.Hottest
+    val offset     = paginationConfig.resolveOffset(None)
+    val limit      = paginationConfig.resolveLimit(None)
+    val channelIDS = SortedSet(channelID)
+    for {
+      paginated <- NonEmptySet.fromSet(channelIDS) match {
+        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
+        case None             => Paginated.empty[Post].pure[F]
+      }
+    } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
+  }
+
+  private val controversial = PostAPIs.controversial.serverLogic[F].apply { case ((_, _), channelID) =>
+    val sortBy     = Post.Sorting.Controversial
+    val offset     = paginationConfig.resolveOffset(None)
+    val limit      = paginationConfig.resolveLimit(None)
+    val channelIDS = SortedSet(channelID)
+    for {
+      paginated <- NonEmptySet.fromSet(channelIDS) match {
+        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
+        case None             => Paginated.empty[Post].pure[F]
+      }
+    } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
+  }
+
   private val create = PostAPIs.create.serverLogic[F].apply { case ((user, _), channelID, createData) =>
     val userID = user.id
     val data = createData
@@ -114,13 +140,48 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
         } yield RestorePostResponse(postID)
     }
 
+  private val upvote = PostAPIs.upvote
+    .serverLogicWithOwnership[F, UserID]
+    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
+      val userID = user.id
+      val data   = Post.Upvote(postID, userIDUsers2Discussions.get(userID))
+      for {
+        _ <- postWrites.upvotePost(data)
+      } yield ()
+    }
+
+  private val downvote = PostAPIs.downvote
+    .serverLogicWithOwnership[F, UserID]
+    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
+      val userID = user.id
+      val data   = Post.Downvote(postID, userIDUsers2Discussions.get(userID))
+      for {
+        _ <- postWrites.downvotePost(data)
+      } yield ()
+    }
+
+  private val revokeVote = PostAPIs.revokeVote
+    .serverLogicWithOwnership[F, UserID]
+    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
+      val userID = user.id
+      val data   = Post.RevokeVote(postID, userIDUsers2Discussions.get(userID))
+      for {
+        _ <- postWrites.revokePostVote(data)
+      } yield ()
+    }
+
   def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Any, F]] = NonEmptyList.of(
     newest,
+    hottest,
+    controversial,
     create,
     read,
     update,
     delete,
-    restore
+    restore,
+    upvote,
+    downvote,
+    revokeVote
   )
 
   val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK

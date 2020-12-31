@@ -49,6 +49,52 @@ object CommentAPIs {
     .errorOut(errorMapping)
     .notRequiringPermissions
 
+  val hottest: AuthedEndpoint[
+    (
+      Option[Authentication],
+      ID[Channel],
+      ID[Post],
+      Option[ID[Comment]]
+    ),
+    CommentError,
+    Pagination[APIComment],
+    Any
+  ] = endpoint
+    .name("Fetch hottest Comments")
+    .summary("Paginate hottest Comments for a Post")
+    .description("Returns paginated Comments for a specific Post (and maybe even replies to a specific Comment")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
+    .get
+    .in(optAuthHeader)
+    .in(prefix / "hottest")
+    .in(query[Option[ID[Comment]]]("reply-to"))
+    .out(jsonBody[Pagination[APIComment]])
+    .errorOut(errorMapping)
+    .notRequiringPermissions
+
+  val controversial: AuthedEndpoint[
+    (
+      Option[Authentication],
+      ID[Channel],
+      ID[Post],
+      Option[ID[Comment]]
+    ),
+    CommentError,
+    Pagination[APIComment],
+    Any
+  ] = endpoint
+    .name("Fetch controversial Comments")
+    .summary("Paginate controversial Comments for a Post")
+    .description("Returns paginated Comments for a specific Post (and maybe even replies to a specific Comment")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
+    .get
+    .in(optAuthHeader)
+    .in(prefix / "controversial")
+    .in(query[Option[ID[Comment]]]("reply-to"))
+    .out(jsonBody[Pagination[APIComment]])
+    .errorOut(errorMapping)
+    .notRequiringPermissions
+
   val create: AuthedEndpoint[
     (Authentication, ID[Channel], ID[Post], CreateCommentRequest),
     CommentError,
@@ -162,7 +208,51 @@ object CommentAPIs {
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
-  // TODO: upvote+revoke
+  val upvote: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post], ID[Comment]),
+    CommentError,
+    Unit,
+    Any
+  ] = endpoint
+    .name("Upvotes Comment")
+    .summary("Upvotes specific Comment")
+    .description("Schedule specific Comment's upvote")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
+    .post
+    .in(authHeader)
+    .in(prefix / path[ID[Comment]].name("commentID") / "upvote")
+    .errorOut(errorMapping)
+    .notRequiringPermissions
 
-  // TODO: downvote+revoke
+  val downvote: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post], ID[Comment]),
+    CommentError,
+    Unit,
+    Any
+  ] = endpoint
+    .name("Downvotes Comment")
+    .summary("Downvotes specific Comment")
+    .description("Schedule specific Comment's downvote")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
+    .post
+    .in(authHeader)
+    .in(prefix / path[ID[Comment]].name("commentID") / "downvote")
+    .errorOut(errorMapping)
+    .notRequiringPermissions
+
+  val revokeVote: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post], ID[Comment]),
+    CommentError,
+    Unit,
+    Any
+  ] = endpoint
+    .name("Revokes Comment vote")
+    .summary("Revokes vote for a specific Comment")
+    .description("Schedule specific Comment's vote's revoke")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
+    .post
+    .in(authHeader)
+    .in(prefix / path[ID[Comment]].name("commentID") / "vote-revoke")
+    .errorOut(errorMapping)
+    .notRequiringPermissions
 }

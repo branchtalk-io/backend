@@ -41,6 +41,31 @@ object PostAPIs {
     .errorOut(errorMapping)
     .notRequiringPermissions
 
+  val hottest: AuthedEndpoint[(Option[Authentication], ID[Channel]), PostError, Pagination[APIPost], Any] = endpoint
+    .name("Fetch hottest Posts")
+    .summary("Paginate hottest Posts for a Channel")
+    .description("Returns paginated Posts for a specific Channel")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
+    .get
+    .in(optAuthHeader)
+    .in(prefix / "hottest")
+    .out(jsonBody[Pagination[APIPost]])
+    .errorOut(errorMapping)
+    .notRequiringPermissions
+
+  val controversial: AuthedEndpoint[(Option[Authentication], ID[Channel]), PostError, Pagination[APIPost], Any] =
+    endpoint
+      .name("Fetch controversial Posts")
+      .summary("Paginate controversial Posts for a Channel")
+      .description("Returns paginated Posts for a specific Channel")
+      .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
+      .get
+      .in(optAuthHeader)
+      .in(prefix / "controversial")
+      .out(jsonBody[Pagination[APIPost]])
+      .errorOut(errorMapping)
+      .notRequiringPermissions
+
   val create: AuthedEndpoint[(Authentication, ID[Channel], CreatePostRequest), PostError, CreatePostResponse, Any] =
     endpoint
       .name("Create Post")
@@ -154,7 +179,51 @@ object PostAPIs {
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
-  // TODO: upvote+revoke
+  val upvote: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post]),
+    PostError,
+    Unit,
+    Any
+  ] = endpoint
+    .name("Upvotes Post")
+    .summary("Upvotes specific Post")
+    .description("Schedule specific Post's upvote")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
+    .post
+    .in(authHeader)
+    .in(prefix / path[ID[Post]].name("postID") / "upvote")
+    .errorOut(errorMapping)
+    .notRequiringPermissions
 
-  // TODO: downvote+revoke
+  val downvote: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post]),
+    PostError,
+    Unit,
+    Any
+  ] = endpoint
+    .name("Downvotes Post")
+    .summary("Downvotes specific Post")
+    .description("Schedule specific Post's downvote")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
+    .post
+    .in(authHeader)
+    .in(prefix / path[ID[Post]].name("postID") / "upvote")
+    .errorOut(errorMapping)
+    .notRequiringPermissions
+
+  val revokeVote: AuthedEndpoint[
+    (Authentication, ID[Channel], ID[Post]),
+    PostError,
+    Unit,
+    Any
+  ] = endpoint
+    .name("Revokes Post vote")
+    .summary("Revokes vote for a specific Post")
+    .description("Schedule specific Post's vote's revoke")
+    .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
+    .post
+    .in(authHeader)
+    .in(prefix / path[ID[Post]].name("postID") / "revoke-vote")
+    .errorOut(errorMapping)
+    .notRequiringPermissions
 }
