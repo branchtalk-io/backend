@@ -54,6 +54,60 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
       }
     }
 
+    "on GET /discussions/channels/{channelID}/posts/hottest" in {
+
+      "return hottest Posts for a specified Channels" in {
+        withAllProjections {
+          for {
+            // given
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            postIDs <- (0 until 10).toList.traverse(_ =>
+              postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+            )
+            posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
+            // when
+            response <- PostAPIs.hottest.toTestCall.untupled(None, channelID)
+          } yield {
+            // then
+            response.code must_=== StatusCode.Ok
+            response.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+            response.body.toValidOpt
+              .flatMap(_.toOption)
+              .map(pagination => pagination.entities.toSet must_=== posts.map(APIPost.fromDomain).toSet)
+              .getOrElse(pass)
+          }
+        }
+      }
+    }
+
+    "on GET /discussions/channels/{channelID}/posts/controversial" in {
+
+      "return controversial Posts for a specified Channels" in {
+        withAllProjections {
+          for {
+            // given
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            postIDs <- (0 until 10).toList.traverse(_ =>
+              postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+            )
+            posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
+            // when
+            response <- PostAPIs.controversial.toTestCall.untupled(None, channelID)
+          } yield {
+            // then
+            response.code must_=== StatusCode.Ok
+            response.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+            response.body.toValidOpt
+              .flatMap(_.toOption)
+              .map(_.entities.toSet must_=== posts.map(APIPost.fromDomain).toSet)
+              .getOrElse(pass)
+          }
+        }
+      }
+    }
+
     "on POST /discussions/channels/{channelID}/posts" in {
 
       "create a new Post" in {
@@ -235,6 +289,108 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
             response.code must_=== StatusCode.Ok
             response.body must beValid(beRight(be_===(RestorePostResponse(postID))))
           }
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID}/posts/{postID}/upvote" in {
+
+      "upvotes existing Post" in {
+        withAllProjections {
+          for {
+            // given
+            (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+              usersWrites.userWrites.createUser
+            )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+            // when
+            response <- PostAPIs.upvote.toTestCall.untupled(
+              Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+              channelID,
+              postID
+            )
+            _ <- discussionsReads.postReads
+              .requireById(postID)
+              .assert("Upvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+              .eventually()
+          } yield
+          // then
+          response.code must_=== StatusCode.Ok
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID}/posts/{postID}/downvote" in {
+
+      "downvotes existing Post" in {
+        withAllProjections {
+          for {
+            // given
+            (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+              usersWrites.userWrites.createUser
+            )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+            // when
+            response <- PostAPIs.downvote.toTestCall.untupled(
+              Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+              channelID,
+              postID
+            )
+            _ <- discussionsReads.postReads
+              .requireById(postID)
+              .assert("Downvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+              .eventually()
+          } yield
+          // then
+          response.code must_=== StatusCode.Ok
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID}/posts/{postID}/revoke-vote" in {
+
+      "revoke vote for existing Post" in {
+        withAllProjections {
+          for {
+            // given
+            (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+              usersWrites.userWrites.createUser
+            )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+
+            _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(postID, userIDUsers2Discussions.get(userID)))
+            _ <- discussionsReads.postReads
+              .requireById(postID)
+              .assert("Upvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+              .eventually()
+            // when
+            response <- PostAPIs.revokeVote.toTestCall.untupled(
+              Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+              channelID,
+              postID
+            )
+            _ <- discussionsReads.postReads
+              .requireById(postID)
+              .assert("Revoked-vote entity should have changed score")(_.data.totalScore.toInt === 0)
+              .eventually()
+          } yield
+          // then
+          response.code must_=== StatusCode.Ok
         }
       }
     }

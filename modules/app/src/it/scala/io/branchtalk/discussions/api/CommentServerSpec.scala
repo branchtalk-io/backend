@@ -65,6 +65,66 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
       }
     }
 
+    "on GET /discussions/channels/{channelID}/posts/{postID}/comments/hottest" in {
+
+      "return hottest Comments for a specified Post" in {
+        withAllProjections {
+          for {
+            // given
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+            commentIDs <- (0 until 10).toList.traverse(_ =>
+              commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.id)
+            )
+            comments <- commentIDs.traverse(discussionsReads.commentReads.requireById(_)).eventually()
+            // when
+            response <- CommentAPIs.hottest.toTestCall.untupled(None, channelID, postID, None)
+          } yield {
+            // then
+            response.code must_=== StatusCode.Ok
+            response.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
+            response.body.toValidOpt
+              .flatMap(_.toOption)
+              .map { pagination =>
+                pagination.entities.toSet must_=== comments.map(APIComment.fromDomain).toSet
+              }
+              .getOrElse(pass)
+          }
+        }
+      }
+    }
+
+    "on GET /discussions/channels/{channelID}/posts/{postID}/comments/controversial" in {
+
+      "return controversial Comments for a specified Post" in {
+        withAllProjections {
+          for {
+            // given
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+            commentIDs <- (0 until 10).toList.traverse(_ =>
+              commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.id)
+            )
+            comments <- commentIDs.traverse(discussionsReads.commentReads.requireById(_)).eventually()
+            // when
+            response <- CommentAPIs.controversial.toTestCall.untupled(None, channelID, postID, None)
+          } yield {
+            // then
+            response.code must_=== StatusCode.Ok
+            response.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
+            response.body.toValidOpt
+              .flatMap(_.toOption)
+              .map(_.entities.toSet must_=== comments.map(APIComment.fromDomain).toSet)
+              .getOrElse(pass)
+          }
+        }
+      }
+    }
+
     "on POST /discussions/channels/{channelID}/posts/{postID}/comments" in {
 
       "create a new Comment" in {
@@ -259,6 +319,118 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
             response.code must_=== StatusCode.Ok
             response.body must beValid(beRight(be_===(RestoreCommentResponse(commentID))))
           }
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID}/posts/{postID}/comments/{commentID}/upvote" in {
+
+      "upvote existing Comment" in {
+        withAllProjections {
+          for {
+            // given
+            (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+              usersWrites.userWrites.createUser
+            )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+            CreationScheduled(commentID) <- commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment)
+            _ <- discussionsReads.commentReads.requireById(commentID).eventually()
+            // when
+            response <- CommentAPIs.upvote.toTestCall.untupled(
+              Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+              channelID,
+              postID,
+              commentID
+            )
+            _ <- discussionsReads.commentReads
+              .requireById(commentID)
+              .assert("Upvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+              .eventually()
+          } yield
+          // then
+          response.code must_=== StatusCode.Ok
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID}/posts/{postID}/comments/{commentID}/downvote" in {
+
+      "downvote existing Comment" in {
+        withAllProjections {
+          for {
+            // given
+            (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+              usersWrites.userWrites.createUser
+            )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+            CreationScheduled(commentID) <- commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment)
+            _ <- discussionsReads.commentReads.requireById(commentID).eventually()
+            // when
+            response <- CommentAPIs.downvote.toTestCall.untupled(
+              Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+              channelID,
+              postID,
+              commentID
+            )
+            _ <- discussionsReads.commentReads
+              .requireById(commentID)
+              .assert("Downvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+              .eventually()
+          } yield
+          // then
+          response.code must_=== StatusCode.Ok
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID}/posts/{postID}/comments/{commentID}/revoke-vote" in {
+
+      "revoke vote for existing Comment" in {
+        withAllProjections {
+          for {
+            // given
+            (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+              usersWrites.userWrites.createUser
+            )
+            _ <- usersReads.userReads.requireById(userID).eventually()
+            _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+            CreationScheduled(commentID) <- commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment)
+            _ <- discussionsReads.commentReads.requireById(commentID).eventually()
+            _ <- discussionsWrites.commentWrites.upvoteComment(
+              Comment.Upvote(commentID, userIDUsers2Discussions.get(userID))
+            )
+            _ <- discussionsReads.commentReads
+              .requireById(commentID)
+              .assert("Upvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+              .eventually()
+            // when
+            response <- CommentAPIs.revokeVote.toTestCall.untupled(
+              Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+              channelID,
+              postID,
+              commentID
+            )
+            _ <- discussionsReads.commentReads
+              .requireById(commentID)
+              .assert("Revoked-vote entity should have changed score")(_.data.totalScore.toInt === 0)
+              .eventually()
+          } yield
+          // then
+          response.code must_=== StatusCode.Ok
         }
       }
     }

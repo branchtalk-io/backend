@@ -189,7 +189,7 @@ object PostAPIs {
     .summary("Upvotes specific Post")
     .description("Schedule specific Post's upvote")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
-    .post
+    .put
     .in(authHeader)
     .in(prefix / path[ID[Post]].name("postID") / "upvote")
     .errorOut(errorMapping)
@@ -205,7 +205,7 @@ object PostAPIs {
     .summary("Downvotes specific Post")
     .description("Schedule specific Post's downvote")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
-    .post
+    .put
     .in(authHeader)
     .in(prefix / path[ID[Post]].name("postID") / "upvote")
     .errorOut(errorMapping)
@@ -221,7 +221,7 @@ object PostAPIs {
     .summary("Revokes vote for a specific Post")
     .description("Schedule specific Post's vote's revoke")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
-    .post
+    .put
     .in(authHeader)
     .in(prefix / path[ID[Post]].name("postID") / "revoke-vote")
     .errorOut(errorMapping)

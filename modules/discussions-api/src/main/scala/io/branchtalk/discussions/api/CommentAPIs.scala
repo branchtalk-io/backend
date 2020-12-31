@@ -218,7 +218,7 @@ object CommentAPIs {
     .summary("Upvotes specific Comment")
     .description("Schedule specific Comment's upvote")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
-    .post
+    .put
     .in(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID") / "upvote")
     .errorOut(errorMapping)
@@ -234,7 +234,7 @@ object CommentAPIs {
     .summary("Downvotes specific Comment")
     .description("Schedule specific Comment's downvote")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
-    .post
+    .put
     .in(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID") / "downvote")
     .errorOut(errorMapping)
@@ -250,7 +250,7 @@ object CommentAPIs {
     .summary("Revokes vote for a specific Comment")
     .description("Schedule specific Comment's vote's revoke")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
-    .post
+    .put
     .in(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID") / "vote-revoke")
     .errorOut(errorMapping)
