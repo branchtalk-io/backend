@@ -24,7 +24,7 @@ ALTER TABLE posts
   ADD COLUMN upvotes_nr          INT NOT NULL DEFAULT 0 CHECK (upvotes_nr >= 0),
   ADD COLUMN downvotes_nr        INT NOT NULL DEFAULT 0 CHECK (downvotes_nr >= 0),
   ADD COLUMN total_score         INT NOT NULL DEFAULT 0 CHECK (total_score = upvotes_nr - downvotes_nr),
-  ADD COLUMN controversial_score INT NOT NULL DEFAULT 0 CHECK (controversial_score = GREATEST(upvotes_nr, downvotes_nr));
+  ADD COLUMN controversial_score INT NOT NULL DEFAULT 0 CHECK (controversial_score = LEAST(upvotes_nr, downvotes_nr));
 
 -- Comments
 
@@ -32,4 +32,4 @@ ALTER TABLE comments
   ADD COLUMN upvotes_nr          INT NOT NULL DEFAULT 0 CHECK (upvotes_nr >= 0),
   ADD COLUMN downvotes_nr        INT NOT NULL DEFAULT 0 CHECK (downvotes_nr >= 0),
   ADD COLUMN total_score         INT NOT NULL DEFAULT 0 CHECK (total_score = upvotes_nr - downvotes_nr),
-  ADD COLUMN controversial_score INT NOT NULL DEFAULT 0 CHECK (controversial_score = GREATEST(upvotes_nr, downvotes_nr));
+  ADD COLUMN controversial_score INT NOT NULL DEFAULT 0 CHECK (controversial_score = LEAST(upvotes_nr, downvotes_nr));

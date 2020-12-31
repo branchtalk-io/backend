@@ -128,6 +128,18 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
       .query[Vote.Type]
       .option
 
+  private def updateCommentVotes(commentID: ID[Comment], upvotes: Fragment, downvotes: Fragment) =
+    (fr"WITH nw AS (SELECT" ++ upvotes ++ fr"AS upvotes,"
+      ++ downvotes ++ fr"AS downvotes FROM comments WHERE id = ${commentID})" ++
+      fr"""
+          |UPDATE comments
+          |SET upvotes_nr          = nw.upvotes,
+          |    downvotes_nr        = nw.downvotes,
+          |    total_score         = nw.upvotes - nw.downvotes,
+          |    controversial_score = LEAST(nw.upvotes, nw.downvotes)
+          |FROM nw
+          |WHERE id = ${commentID}""".stripMargin).update.run
+
   def toUpvote(event: CommentCommandEvent.Upvote): F[(UUID, CommentEvent.Upvoted)] =
     fetchVote(event.id, event.voterID)
       .flatMap {
@@ -140,12 +152,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
                |SET vote = ${Vote.Type.upvote}
                |WHERE comment_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
-            sql"""UPDATE comments
-                 |SET upvotes_nr = upvotes_nr + 1,
-                 |    downvotes_nr = downvotes_nr - 1,
-                 |    total_score = (upvotes_nr + 1) - (downvotes_nr - 1),
-                 |    controversial_score = GREATEST((upvotes_nr + 1), (downvotes_nr - 1))
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updateCommentVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr - 1").void
         case None =>
           // create new upvote
           sql"""INSERT INTO comment_votes (
@@ -157,11 +164,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
                |  ${event.voterID},
                |  ${Vote.Type.upvote}
                |)""".stripMargin.update.run >>
-            sql"""UPDATE comments
-                 |SET upvotes_nr = upvotes_nr + 1,
-                 |    total_score = (upvotes_nr + 1) - downvotes_nr,
-                 |    controversial_score = GREATEST((upvotes_nr + 1), downvotes_nr)
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updateCommentVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr").void
       }
       .transact(transactor)
       .as(event.id.uuid -> event.transformInto[CommentEvent.Upvoted])
@@ -175,12 +178,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
                |SET vote = ${Vote.Type.downvote}
                |WHERE comment_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
-            sql"""UPDATE comments
-                 |SET upvotes_nr = upvotes_nr - 1,
-                 |    downvotes_nr = downvotes_nr + 1,
-                 |    total_score = (upvotes_nr - 1) - (downvotes_nr + 1),
-                 |    controversial_score = GREATEST((upvotes_nr - 1), (downvotes_nr + 1))
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updateCommentVotes(event.id, fr"upvotes_nr - 1", fr"downvotes_nr + 1").void
         case Some(Vote.Type.Downvote) =>
           // do nothing - downvote already exists
           ().pure[ConnectionIO]
@@ -195,11 +193,7 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
                |  ${event.voterID},
                |  ${Vote.Type.downvote}
                |)""".stripMargin.update.run >>
-            sql"""UPDATE comments
-                 |SET downvotes_nr = downvotes_nr + 1,
-                 |    total_score = upvotes_nr - (downvotes_nr + 1),
-                 |    controversial_score = GREATEST(upvotes_nr, (downvotes_nr + 1))
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updateCommentVotes(event.id, fr"upvotes_nr", fr"downvotes_nr + 1").void
       }
       .transact(transactor)
       .as(event.id.uuid -> event.transformInto[CommentEvent.Downvoted])
@@ -212,21 +206,13 @@ final class CommentProjector[F[_]: Sync](transactor: Transactor[F])
           sql"""DELETE FROM comment_votes
                |WHERE comment_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
-            sql"""UPDATE comments
-                 |SET upvotes_nr = upvotes_nr - 1,
-                 |    total_score = (upvotes_nr - 1) - downvotes_nr,
-                 |    controversial_score = GREATEST((upvotes_nr - 1), downvotes_nr)
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updateCommentVotes(event.id, fr"upvotes_nr - 1", fr"downvotes_nr").void
         case Some(Vote.Type.Downvote) =>
           // delete downvote
           sql"""DELETE FROM comment_votes
                |WHERE comment_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
-            sql"""UPDATE comments
-                 |SET downvotes_nr = downvotes_nr - 1,
-                 |    total_score = upvotes_nr - (downvotes_nr - 1),
-                 |    controversial_score = GREATEST(upvotes_nr, (downvotes_nr - 1))
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updateCommentVotes(event.id, fr"upvotes_nr", fr"downvotes_nr - 1").void
         case None =>
           // do nothing - vote doesn't exist
           ().pure[ConnectionIO]

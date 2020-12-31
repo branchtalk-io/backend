@@ -97,6 +97,18 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
   private def fetchVote(postID: ID[Post], voterID: ID[User]) =
     sql"SELECT vote FROM post_votes WHERE post_id = ${postID} AND voter_id = ${voterID}".query[Vote.Type].option
 
+  private def updatePostVotes(postID: ID[Post], upvotes: Fragment, downvotes: Fragment) =
+    (fr"WITH nw AS (SELECT" ++ upvotes ++ fr"AS upvotes,"
+      ++ downvotes ++ fr"AS downvotes FROM posts WHERE id = ${postID})" ++
+      fr"""
+          |UPDATE posts
+          |SET upvotes_nr          = nw.upvotes,
+          |    downvotes_nr        = nw.downvotes,
+          |    total_score         = nw.upvotes - nw.downvotes,
+          |    controversial_score = LEAST(nw.upvotes, nw.downvotes)
+          |FROM nw
+          |WHERE id = ${postID}""".stripMargin).update.run
+
   def toUpvote(event: PostCommandEvent.Upvote): F[(UUID, PostEvent.Upvoted)] =
     fetchVote(event.id, event.voterID)
       .flatMap {
@@ -109,12 +121,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
                |SET vote = ${Vote.Type.upvote}
                |WHERE post_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
-            sql"""UPDATE posts
-                 |SET upvotes_nr = upvotes_nr + 1,
-                 |    downvotes_nr = downvotes_nr - 1,
-                 |    total_score = (upvotes_nr + 1) - (downvotes_nr - 1),
-                 |    controversial_score = GREATEST((upvotes_nr + 1), (downvotes_nr - 1))
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updatePostVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr - 1").void
         case None =>
           // create new upvote
           sql"""INSERT INTO post_votes (
@@ -126,11 +133,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
                |  ${event.voterID},
                |  ${Vote.Type.upvote}
                |)""".stripMargin.update.run >>
-            sql"""UPDATE posts
-                 |SET upvotes_nr = upvotes_nr + 1,
-                 |    total_score = (upvotes_nr + 1) - downvotes_nr,
-                 |    controversial_score = GREATEST((upvotes_nr + 1), downvotes_nr)
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updatePostVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr").void
       }
       .transact(transactor)
       .as(event.id.uuid -> event.transformInto[PostEvent.Upvoted])
@@ -144,12 +147,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
                |SET vote = ${Vote.Type.downvote}
                |WHERE post_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
-            sql"""UPDATE posts
-                 |SET upvotes_nr = upvotes_nr - 1,
-                 |    downvotes_nr = downvotes_nr + 1,
-                 |    total_score = (upvotes_nr - 1) - (downvotes_nr + 1),
-                 |    controversial_score = GREATEST((upvotes_nr - 1), (downvotes_nr + 1))
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updatePostVotes(event.id, fr"upvotes_nr - 1", fr"downvotes_nr + 1").void
         case Some(Vote.Type.Downvote) =>
           // do nothing - downvote already exists
           ().pure[ConnectionIO]
@@ -164,11 +162,7 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
                |  ${event.voterID},
                |  ${Vote.Type.downvote}
                |)""".stripMargin.update.run >>
-            sql"""UPDATE posts
-                 |SET downvotes_nr = downvotes_nr + 1,
-                 |    total_score = upvotes_nr - (downvotes_nr + 1),
-                 |    controversial_score = GREATEST(upvotes_nr, (downvotes_nr + 1))
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updatePostVotes(event.id, fr"upvotes_nr", fr"downvotes_nr + 1").void
       }
       .transact(transactor)
       .as(event.id.uuid -> event.transformInto[PostEvent.Downvoted])
@@ -181,21 +175,13 @@ final class PostProjector[F[_]: Sync](transactor: Transactor[F])
           sql"""DELETE FROM post_votes
                |WHERE post_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
-            sql"""UPDATE posts
-                 |SET upvotes_nr = upvotes_nr - 1,
-                 |    total_score = (upvotes_nr - 1) - downvotes_nr,
-                 |    controversial_score = GREATEST((upvotes_nr - 1), downvotes_nr)
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updatePostVotes(event.id, fr"upvotes_nr - 1", fr"downvotes_nr").void
         case Some(Vote.Type.Downvote) =>
           // delete downvote
           sql"""DELETE FROM post_votes
                |WHERE post_id = ${event.id}
                |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
-            sql"""UPDATE posts
-                 |SET downvotes_nr = downvotes_nr - 1,
-                 |    total_score = upvotes_nr - (downvotes_nr - 1),
-                 |    controversial_score = GREATEST(upvotes_nr, (downvotes_nr - 1))
-                 |WHERE id = ${event.id}""".stripMargin.update.run.void
+            updatePostVotes(event.id, fr"upvotes_nr", fr"downvotes_nr - 1").void
         case None =>
           // do nothing - vote doesn't exist
           ().pure[ConnectionIO]

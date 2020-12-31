@@ -6,6 +6,8 @@ import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.model.{ ID, TestUUIDGenerator, Updatable }
 import org.specs2.mutable.Specification
 
+import scala.concurrent.duration.DurationInt
+
 final class PostReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
   implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
@@ -137,29 +139,40 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
           toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
           ids = toCreate.map(_.id)
           _ <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
+          user0ID <- voterIDCreate
           user1ID <- voterIDCreate
           user2ID <- voterIDCreate
           user3ID <- voterIDCreate
-          user4ID <- voterIDCreate
           // when
-          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(0), user1ID))
-          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(1), user2ID))
-          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(2), user3ID))
-          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(3), user4ID))
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(0), user0ID))
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(1), user1ID))
+          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(2), user2ID))
+          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(3), user3ID))
           firstVotes <- ids
             .traverse(discussionsReads.postReads.requireById(_))
             .assert("Posts should have first Votes applied")(_.forall(_.data.totalScore.toInt =!= 0))
-            .eventually()
-          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(0), user1ID))
-          _ <- discussionsWrites.postWrites.revokePostVote(Post.RevokeVote(ids(1), user2ID))
-          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(2), user3ID))
-          _ <- discussionsWrites.postWrites.revokePostVote(Post.RevokeVote(ids(3), user4ID))
+            .eventually(delay = 1.second)
+          _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(0), user0ID))
+          _ <- discussionsWrites.postWrites.revokePostVote(Post.RevokeVote(ids(1), user1ID))
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(2), user2ID))
+          _ <- discussionsWrites.postWrites.revokePostVote(Post.RevokeVote(ids(3), user3ID))
           secondsVotes <- ids
             .traverse(discussionsReads.postReads.requireById(_))
             .assert("Posts should have second Votes applied")(
               _.map(_.data.totalScore).zip(firstVotes.map(_.data.totalScore)).forall { case (l, r) => l =!= r }
             )
-            .eventually()
+            .eventually(delay = 1.second)
+          user4ID <- voterIDCreate
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(0), user4ID))
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(1), user4ID))
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(2), user4ID))
+          _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(ids(3), user4ID))
+          thirdsVotes <- ids
+            .traverse(discussionsReads.postReads.requireById(_))
+            .assert("Posts should have third Votes applied")(
+              _.forall(p => p.data.totalScore.toInt > 0 || p.data.controversialScore.toNonNegativeInt.toInt > 0)
+            )
+            .eventually(delay = 1.second)
         } yield {
           // then
           firstVotes.map(_.data.totalScore) must_=== List(Post.TotalScore(1),
@@ -167,20 +180,30 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
                                                           Post.TotalScore(-1),
                                                           Post.TotalScore(-1)
           )
-          firstVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(1),
-                                                                  Post.ControversialScore(1),
-                                                                  Post.ControversialScore(1),
-                                                                  Post.ControversialScore(1)
+          firstVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(0),
+                                                                  Post.ControversialScore(0),
+                                                                  Post.ControversialScore(0),
+                                                                  Post.ControversialScore(0)
           )
           secondsVotes.map(_.data.totalScore) must_=== List(Post.TotalScore(-1),
                                                             Post.TotalScore(0),
                                                             Post.TotalScore(1),
                                                             Post.TotalScore(0)
           )
-          secondsVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(1),
+          secondsVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(0),
                                                                     Post.ControversialScore(0),
-                                                                    Post.ControversialScore(1),
+                                                                    Post.ControversialScore(0),
                                                                     Post.ControversialScore(0)
+          )
+          thirdsVotes.map(_.data.totalScore) must_=== List(Post.TotalScore(0),
+                                                           Post.TotalScore(1),
+                                                           Post.TotalScore(2),
+                                                           Post.TotalScore(1)
+          )
+          thirdsVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(1),
+                                                                   Post.ControversialScore(0),
+                                                                   Post.ControversialScore(0),
+                                                                   Post.ControversialScore(0)
           )
         }
       }
