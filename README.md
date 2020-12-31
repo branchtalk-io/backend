@@ -62,4 +62,4 @@ make local-up
 (If it fails I suggest running `make dev-down` before running local env).
 
 You can use Ctrl+D to gracefully shutdown service. Server will be available at
-http://0.0.0.0:8080 and Swagger at http://0.0.0.0:8080/docs/index.html?url=/docs/swagger.json
+http://localhost:8080 and Swagger at http://localhost:8080/docs/index.html?url=/docs/swagger.json
