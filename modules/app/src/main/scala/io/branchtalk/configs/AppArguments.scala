@@ -86,6 +86,7 @@ object AppArguments {
       .flatMap(result => Sync[F].fromEither(result.leftMap(NoConfig.apply)))
 
   private def logVariables = List(
+    ("BRANCHTALK_CONTEXT_NAME", "branchtalk-monolith", "define context name (e.g. instance ID) used in each log"),
     ("DEFAULT_LOG_LEVEL", "INFO", "log level of everything not overridden by settings below"),
     ("BRANCHTALK_LOG_LEVEL", "INFO", "default log level of app's own logic"),
     ("BRANCHTALK_API_LOG_LEVEL", "$BRANCHTALK_LOG_LEVEL", "overrides level for API and HTTP related logs"),
