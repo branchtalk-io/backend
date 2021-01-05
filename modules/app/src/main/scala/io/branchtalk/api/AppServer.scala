@@ -2,7 +2,7 @@ package io.branchtalk.api
 
 import cats.arrow.FunctionK
 import cats.data.NonEmptyList
-import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Sync, Timer }
+import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Timer }
 import com.softwaremill.macwire.wire
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfig }
@@ -26,7 +26,7 @@ import sttp.tapir.server.ServerEndpoint
 import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 
-final class AppServer[F[_]: Concurrent: Timer](
+final class AppServer[F[_]: Concurrent: Timer: MDC](
   usesServer:              UserServer[F],
   userModerationServer:    UserModerationServer[F],
   channelModerationServer: ChannelModerationServer[F],
@@ -47,14 +47,16 @@ final class AppServer[F[_]: Concurrent: Timer](
     maxAge = apiConfig.http.corsMaxAge.toSeconds
   )
 
-  private val logger = com.typesafe.scalalogging.Logger(getClass)
+  private val logger = io.branchtalk.shared.model.Logger.getLogger[F]
 
   private val logRoutes = Logger[F, F](
     logHeaders = apiConfig.http.logHeaders,
     logBody = apiConfig.http.logBody,
     fk = FunctionK.id,
-    logAction = ((s: String) => Sync[F].delay(logger.info(s))).some
+    logAction = ((s: String) => logger.info(s)).some
   )(_)
+
+  private val enableMDCPropagation: Http[F, F] => Http[F, F] = _.mapF(MDC[F].enable(_))
 
   val routes: HttpApp[F] =
     NonEmptyList
@@ -76,6 +78,7 @@ final class AppServer[F[_]: Concurrent: Timer](
       .pipe(requestIDOps.httpRoutes) // TODO: cache requests with the same X-Request-ID AND auth header
       .orNotFound
       .pipe(logRoutes)
+      .pipe(enableMDCPropagation)
 }
 object AppServer {
 

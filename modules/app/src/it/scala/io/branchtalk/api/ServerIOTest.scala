@@ -16,6 +16,8 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   // IO doesn't have Local like Monix
   implicit private val noopMDC: MDC[IO] = new MDC[IO] {
+    override def enable[A](fa: IO[A]): IO[A] = fa
+
     override def get(key: String): IO[Option[String]] = IO.pure(None)
 
     override def set(key: String, value: String): IO[Unit] = IO.unit
