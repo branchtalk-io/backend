@@ -52,6 +52,8 @@ object Dependencies {
   val droste            = "io.higherkindness" %% "droste-core" % drosteVersion
   val enumeratum        = "com.beachape" %% "enumeratum" % enumeratumVersion
   val fastuuid          = "com.eatthepath" % "fast-uuid" % "0.1" // https://github.com/jchambers/fast-uuid/releases
+  val uuidGenerator     = "com.fasterxml.uuid" % "java-uuid-generator" % "4.0.1" // https://github.com/cowtowncoder/java-uuid-generator/releases
+  //Thanks for using https://jar-download.com
   val fs2               = "co.fs2" %% "fs2-core" % fs2Version
   val fs2IO             = "co.fs2" %% "fs2-io" % fs2Version
   val magnolia          = "com.propensive" %% "magnolia" % "0.17.0" // https://github.com/propensive/magnolia/releases
@@ -135,6 +137,7 @@ trait Dependencies {
     chimney,
     enumeratum,
     fastuuid,
+    uuidGenerator,
     log4cats,
     log4catsSlf4j,
     magnolia,
