@@ -1,9 +1,9 @@
 package io.branchtalk.logging
 
+import java.{ util => ju }
+
 import monix.execution.misc.Local
 import ch.qos.logback.classic.util.LogbackMDCAdapter
-
-import java.{ util => ju }
 
 // solution described by OlegPy in https://olegpy.com/better-logging-monix-1/
 final class MonixMDCAdapter extends LogbackMDCAdapter {
