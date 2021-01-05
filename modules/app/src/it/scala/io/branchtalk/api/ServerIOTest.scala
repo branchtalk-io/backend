@@ -15,7 +15,11 @@ import sttp.tapir.client.sttp._
 trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   // IO doesn't have Local like Monix
-  implicit private val noopMDC: MDC[IO] = (_, _) => IO.unit
+  implicit private val noopMDC: MDC[IO] = new MDC[IO] {
+    override def get(key: String): IO[Option[String]] = IO.pure(None)
+
+    override def set(key: String, value: String): IO[Unit] = IO.unit
+  }
 
   // populated by resources
   protected var server: Server[IO]           = _

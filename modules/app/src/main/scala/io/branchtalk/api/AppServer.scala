@@ -37,12 +37,25 @@ final class AppServer[F[_]: Concurrent: Timer](
   openAPIServer:           OpenAPIServer[F],
   metricsOps:              MetricsOps[F],
   correlationIDOps:        CorrelationIDOps[F],
+  requestIDOps:            RequestIDOps[F],
   apiConfig:               APIConfig
 ) {
 
+  private val corsConfig = CORSConfig(
+    anyOrigin = apiConfig.http.corsAnyOrigin,
+    allowCredentials = apiConfig.http.corsAllowCredentials,
+    maxAge = apiConfig.http.corsMaxAge.toSeconds
+  )
+
   private val logger = com.typesafe.scalalogging.Logger(getClass)
 
-  // TODO: X-Request-ID, then cache X-Request-ID to make it idempotent
+  private val logRoutes = Logger[F, F](
+    logHeaders = apiConfig.http.logHeaders,
+    logBody = apiConfig.http.logBody,
+    fk = FunctionK.id,
+    logAction = ((s: String) => Sync[F].delay(logger.info(s))).some
+  )(_)
+
   val routes: HttpApp[F] =
     NonEmptyList
       .of(
@@ -57,27 +70,12 @@ final class AppServer[F[_]: Concurrent: Timer](
       )
       .reduceK
       .pipe(GZip(_))
-      .pipe(
-        CORS(
-          _,
-          CORSConfig(
-            anyOrigin = apiConfig.http.corsAnyOrigin,
-            allowCredentials = apiConfig.http.corsAllowCredentials,
-            maxAge = apiConfig.http.corsMaxAge.toSeconds
-          )
-        )
-      )
+      .pipe(CORS(_, corsConfig))
       .pipe(Metrics[F](metricsOps))
-      .pipe(correlationIDOps.configure)
+      .pipe(correlationIDOps.httpRoutes)
+      .pipe(requestIDOps.httpRoutes) // TODO: cache requests with the same X-Request-ID AND auth header
       .orNotFound
-      .pipe(
-        Logger[F, F](
-          logHeaders = apiConfig.http.logHeaders,
-          logBody = apiConfig.http.logBody,
-          fk = FunctionK.id,
-          logAction = ((s: String) => Sync[F].delay(logger.info(s))).some
-        )(_)
-      )
+      .pipe(logRoutes)
 }
 object AppServer {
 
@@ -95,6 +93,8 @@ object AppServer {
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, Server[F]] =
     Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
       val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
+
+      val requestIDOps: RequestIDOps[F] = RequestIDOps[F]
 
       // this is kind of silly...
       import usersReads.{ sessionReads, userReads }
