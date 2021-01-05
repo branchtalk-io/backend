@@ -8,6 +8,7 @@ import io.branchtalk.api.AppServer
 import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
 import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
+import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.{ ConsumerStream, DomainConfig }
 import io.branchtalk.shared.model.{ Logger, UUIDGenerator }
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
@@ -19,12 +20,12 @@ object Program {
 
   implicit protected val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
-  def runApplication[F[_]: ConcurrentEffect: ContextShift: Timer](args: List[String]): F[ExitCode] =
+  def runApplication[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](args: List[String]): F[ExitCode] =
     (for {
       implicit0(logger: Logger[F]) <- Logger.create[F]
       env <- Configuration.getEnv[F]
       appArguments <- AppArguments.parse[F](args, env)
-      _ <- logger.info(s"Arguments passed: ${appArguments.show}")
+      _ <- logger.info(show"Arguments passed: ${appArguments}")
       _ <-
         if (appArguments.isAnythingRun) initializeAndRunModules[F](appArguments)
         else logger.warn("Nothing to run, see --help for information how to turn on API server and projections")
@@ -37,16 +38,16 @@ object Program {
         ExitCode.Error
     }
 
-  def initializeAndRunModules[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def initializeAndRunModules[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     appArguments:    AppArguments
   )(implicit logger: Logger[F]): F[Unit] =
     for {
       apiConfig <- Configuration.readConfig[F, APIConfig]("api")
-      _ <- logger.info(s"App configs resolved to: ${apiConfig.show}")
+      _ <- logger.info(show"App configs resolved to: ${apiConfig}")
       usersConfig <- Configuration.readConfig[F, DomainConfig]("users")
-      _ <- logger.info(s"Users configs resolved to: ${usersConfig.show}")
+      _ <- logger.info(show"Users configs resolved to: ${usersConfig}")
       discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
-      _ <- logger.info(s"Discussions configs resolved to: ${discussionsConfig.show}")
+      _ <- logger.info(show"Discussions configs resolved to: ${discussionsConfig}")
       _ <- Prometheus
         .collectorRegistry[F]
         .flatMap { registry =>
@@ -69,7 +70,7 @@ object Program {
     } yield ()
 
   // scalastyle:off parameter.number
-  def runModules[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def runModules[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
     terminationSignal: F[Unit],
