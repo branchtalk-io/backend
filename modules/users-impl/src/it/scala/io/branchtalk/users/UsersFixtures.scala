@@ -7,7 +7,7 @@ import io.branchtalk.shared.Fixtures._
 
 trait UsersFixtures {
 
-  def channelIDCreate(implicit UUIDGenerator: UUIDGenerator): IO[ID[Channel]] =
+  def channelIDCreate(implicit uuidGenerator: UUIDGenerator): IO[ID[Channel]] =
     ID.create[IO, Channel]
 
   def passwordCreate(password: String = "pass"): IO[Password] =

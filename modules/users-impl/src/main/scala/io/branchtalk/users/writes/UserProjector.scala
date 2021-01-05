@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
+import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
@@ -12,7 +13,7 @@ import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Permission, Permissions, Session }
 import io.scalaland.chimney.dsl._
 
-final class UserProjector[F[_]: Sync](transactor: Transactor[F])
+final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, UsersCommandEvent, (UUID, UsersEvent)] {
 
   private val logger = Logger(getClass)
@@ -33,47 +34,49 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
       Stream.empty
     }
 
-  def toCreate(event: UserCommandEvent.Create): F[(UUID, UserEvent.Created)] = {
-    val Session.Usage.Tupled(sessionType, sessionPermissions) = Session.Usage.UserSession
-    sql"""INSERT INTO users (
-         |  id,
-         |  email,
-         |  username,
-         |  description,
-         |  passwd_algorithm,
-         |  passwd_hash,
-         |  passwd_salt,
-         |  permissions,
-         |  created_at
-         |)
-         |VALUES (
-         |  ${event.id},
-         |  ${event.email},
-         |  ${event.username},
-         |  ${event.description},
-         |  ${event.password.algorithm},
-         |  ${event.password.hash},
-         |  ${event.password.salt},
-         |  ${Permissions(Set.empty)},
-         |  ${event.createdAt}
-         |)
-         |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run >>
-      sql"""INSERT INTO sessions (
-           |  id,
-           |  user_id,
-           |  usage_type,
-           |  permissions,
-           |  expires_at
-           |)
-           |VALUES (
-           |  ${event.sessionID},
-           |  ${event.id},
-           |  ${sessionType},
-           |  ${sessionPermissions},
-           |  ${event.sessionExpiresAt}
-           |)""".stripMargin.update.run
-  }.transact(transactor) >>
-    (event.id.uuid -> event.transformInto[UserEvent.Created]).pure[F]
+  def toCreate(event: UserCommandEvent.Create): F[(UUID, UserEvent.Created)] =
+    withCorrelationID(event.correlationID) {
+      {
+        val Session.Usage.Tupled(sessionType, sessionPermissions) = Session.Usage.UserSession
+        sql"""INSERT INTO users (
+             |  id,
+             |  email,
+             |  username,
+             |  description,
+             |  passwd_algorithm,
+             |  passwd_hash,
+             |  passwd_salt,
+             |  permissions,
+             |  created_at
+             |)
+             |VALUES (
+             |  ${event.id},
+             |  ${event.email},
+             |  ${event.username},
+             |  ${event.description},
+             |  ${event.password.algorithm},
+             |  ${event.password.hash},
+             |  ${event.password.salt},
+             |  ${Permissions(Set.empty)},
+             |  ${event.createdAt}
+             |)
+             |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run >>
+          sql"""INSERT INTO sessions (
+               |  id,
+               |  user_id,
+               |  usage_type,
+               |  permissions,
+               |  expires_at
+               |)
+               |VALUES (
+               |  ${event.sessionID},
+               |  ${event.id},
+               |  ${sessionType},
+               |  ${sessionPermissions},
+               |  ${event.sessionExpiresAt}
+               |)""".stripMargin.update.run
+      }.transact(transactor) >> (event.id.uuid -> event.transformInto[UserEvent.Created]).pure[F]
+    }
 
   def toUpdate(event: UserCommandEvent.Update): F[(UUID, UserEvent.Updated)] = {
     import event._
@@ -112,16 +115,21 @@ final class UserProjector[F[_]: Sync](transactor: Transactor[F])
           )
       }
 
-    fetchPermissionsIfNecessary
-      .flatMap(updateUser)
-      .transact(transactor)
-      .as(id.uuid -> event.transformInto[UserEvent.Updated])
+    withCorrelationID(event.correlationID) {
+      fetchPermissionsIfNecessary
+        .flatMap(updateUser)
+        .transact(transactor)
+        .as(id.uuid -> event.transformInto[UserEvent.Updated])
+    }
   }
 
-  def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] = {
-    sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
-      sql"""INSERT INTO deleted_users (id, deleted_at)
-           |VALUES (${event.id}, ${event.deletedAt})
-           ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
-  }.transact(transactor).as(event.id.uuid -> event.transformInto[UserEvent.Deleted])
+  def toDelete(event: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
+    withCorrelationID(event.correlationID) {
+      {
+        sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
+          sql"""INSERT INTO deleted_users (id, deleted_at)
+               |VALUES (${event.id}, ${event.deletedAt})
+             ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
+      }.transact(transactor).as(event.id.uuid -> event.transformInto[UserEvent.Deleted])
+    }
 }

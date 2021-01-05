@@ -1,6 +1,7 @@
 package io.branchtalk.users.writes
 
 import cats.effect.Sync
+import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.model.{ ID, UUIDGenerator }
@@ -10,11 +11,12 @@ import io.branchtalk.users.model.{ Session, SessionDao }
 import io.branchtalk.users.reads.SessionReadsImpl
 import io.scalaland.chimney.dsl._
 
-final class SessionWritesImpl[F[_]: Sync](
-  producer:               EventBusProducer[F, UsersEvent],
-  transactor:             Transactor[F]
-)(implicit UUIDGenerator: UUIDGenerator)
-    extends Writes[F, Session, UsersEvent](producer)
+final class SessionWritesImpl[F[_]: Sync: MDC](
+  producer:   EventBusProducer[F, UsersEvent],
+  transactor: Transactor[F]
+)(implicit
+  uuidGenerator: UUIDGenerator
+) extends Writes[F, Session, UsersEvent](producer)
     with SessionWrites[F] {
 
   private val reads = new SessionReadsImpl[F](transactor)
@@ -24,6 +26,7 @@ final class SessionWritesImpl[F[_]: Sync](
   override def createSession(newSession: Session.Create): F[Session] =
     for {
       id <- ID.create[F, Session]
+      correlationID <- CorrelationID.getCurrentOrGenerate[F]
       session = Session(
         id = id,
         data = newSession.transformInto[Session.Data]
@@ -43,7 +46,11 @@ final class SessionWritesImpl[F[_]: Sync](
                 |  ${sessionDao.usagePermissions},
                 |  ${sessionDao.expiresAt}
                 |)""".stripMargin.update.run.transact(transactor)
-      event = session.data.into[SessionEvent.LoggedIn].withFieldConst(_.id, id).transform
+      event = session.data
+        .into[SessionEvent.LoggedIn]
+        .withFieldConst(_.id, id)
+        .withFieldConst(_.correlationID, correlationID)
+        .transform
       _ <- postEvent(id, UsersEvent.ForSession(event))
     } yield session
 
@@ -53,9 +60,14 @@ final class SessionWritesImpl[F[_]: Sync](
         Sync[F].unit
       case Right(session) =>
         for {
-          id <- session.id.pure[F]
+          correlationID <- CorrelationID.getCurrentOrGenerate[F]
+          id = session.id
           _ <- sql"""DELETE FROM sessions WHERE id = ${deletedSession.id}""".update.run.transact(transactor)
-          event = session.data.into[SessionEvent.LoggedOut].withFieldConst(_.id, id).transform
+          event = session.data
+            .into[SessionEvent.LoggedOut]
+            .withFieldConst(_.id, id)
+            .withFieldConst(_.correlationID, correlationID)
+            .transform
           _ <- postEvent(id, UsersEvent.ForSession(event))
         } yield ()
     }

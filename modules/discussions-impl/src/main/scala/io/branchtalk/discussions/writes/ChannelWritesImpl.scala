@@ -3,12 +3,13 @@ package io.branchtalk.discussions.writes
 import cats.effect.{ Sync, Timer }
 import io.branchtalk.discussions.events.{ ChannelCommandEvent, DiscussionsCommandEvent }
 import io.branchtalk.discussions.model.Channel
+import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
-final class ChannelWritesImpl[F[_]: Sync: Timer](
+final class ChannelWritesImpl[F[_]: Sync: Timer: MDC](
   producer:   EventBusProducer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit
@@ -21,11 +22,13 @@ final class ChannelWritesImpl[F[_]: Sync: Timer](
   override def createChannel(newChannel: Channel.Create): F[CreationScheduled[Channel]] =
     for {
       id <- ID.create[F, Channel]
+      correlationID <- CorrelationID.getCurrentOrGenerate[F]
       now <- CreationTime.now[F]
       command = newChannel
         .into[ChannelCommandEvent.Create]
         .withFieldConst(_.id, id)
         .withFieldConst(_.createdAt, now)
+        .withFieldConst(_.correlationID, correlationID)
         .transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForChannel(command))
     } yield CreationScheduled(id)
@@ -35,23 +38,33 @@ final class ChannelWritesImpl[F[_]: Sync: Timer](
       id <- updatedChannel.id.pure[F]
       _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = ${id} AND deleted = FALSE""")
       now <- ModificationTime.now[F]
-      command = updatedChannel.into[ChannelCommandEvent.Update].withFieldConst(_.modifiedAt, now).transform
+      correlationID <- CorrelationID.getCurrentOrGenerate[F]
+      command = updatedChannel
+        .into[ChannelCommandEvent.Update]
+        .withFieldConst(_.modifiedAt, now)
+        .withFieldConst(_.correlationID, correlationID)
+        .transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForChannel(command))
     } yield UpdateScheduled(id)
 
   override def deleteChannel(deletedChannel: Channel.Delete): F[DeletionScheduled[Channel]] =
     for {
-      id <- deletedChannel.id.pure[F]
+      correlationID <- CorrelationID.getCurrentOrGenerate[F]
+      id = deletedChannel.id
       _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = ${id} AND deleted = FALSE""")
-      command = deletedChannel.into[ChannelCommandEvent.Delete].transform
+      command = deletedChannel.into[ChannelCommandEvent.Delete].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForChannel(command))
     } yield DeletionScheduled(id)
 
   override def restoreChannel(restoredChannel: Channel.Restore): F[RestoreScheduled[Channel]] =
     for {
-      id <- restoredChannel.id.pure[F]
+      correlationID <- CorrelationID.getCurrentOrGenerate[F]
+      id = restoredChannel.id
       _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = ${id} AND deleted = TRUE""")
-      command = restoredChannel.into[ChannelCommandEvent.Restore].transform
+      command = restoredChannel
+        .into[ChannelCommandEvent.Restore]
+        .withFieldConst(_.correlationID, correlationID)
+        .transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForChannel(command))
     } yield RestoreScheduled(id)
 }

@@ -2,7 +2,6 @@ package io.branchtalk.api
 
 import cats.effect.{ IO, Resource }
 import io.branchtalk.discussions.DiscussionsIOTest
-import io.branchtalk.logging.MDC
 import io.branchtalk.users.{ UsersIOTest, UsersModule }
 import org.http4s.server.Server
 import org.specs2.matcher.{ OptionLikeCheckedMatcher, OptionLikeMatcher, ValueCheck }
@@ -13,15 +12,6 @@ import sttp.tapir._
 import sttp.tapir.client.sttp._
 
 trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
-
-  // IO doesn't have Local like Monix
-  implicit private val noopMDC: MDC[IO] = new MDC[IO] {
-    override def enable[A](fa: IO[A]): IO[A] = fa
-
-    override def get(key: String): IO[Option[String]] = IO.pure(None)
-
-    override def set(key: String, value: String): IO[Unit] = IO.unit
-  }
 
   // populated by resources
   protected var server: Server[IO]           = _

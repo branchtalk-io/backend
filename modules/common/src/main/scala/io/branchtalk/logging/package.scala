@@ -1,6 +1,6 @@
 package io.branchtalk
 
-import cats.Show
+import cats.{ Order, Show }
 import cats.effect.Sync
 import io.branchtalk.shared.model.UUIDGenerator
 import io.estatico.newtype.macros.newtype
@@ -16,12 +16,16 @@ package object logging {
 
     private val key = "correlation-id"
 
-    def getCurrent[F[_]: MDC]: F[Option[CorrelationID]] = MDC[F].get(key).coerce
-
     def generate[F[_]: Sync](implicit uuidGenerator: UUIDGenerator): F[CorrelationID] =
       uuidGenerator.create[F].map(_.toString).map(CorrelationID(_))
 
-    implicit val show: Show[CorrelationID] = Show[String].coerce
+    def getCurrent[F[_]: MDC]: F[Option[CorrelationID]] = MDC[F].get(key).coerce
+
+    def getCurrentOrGenerate[F[_]: Sync: MDC](implicit uuidGenerator: UUIDGenerator): F[CorrelationID] =
+      getCurrent[F].flatMap(_.fold(generate[F])(_.pure[F]))
+
+    implicit val show:  Show[CorrelationID]  = Show[String].coerce
+    implicit val order: Order[CorrelationID] = Order[String].coerce
   }
 
   @newtype final case class RequestID(show: String) {
@@ -32,11 +36,15 @@ package object logging {
 
     private val key = "request-id"
 
-    def getCurrent[F[_]: MDC]: F[Option[RequestID]] = MDC[F].get(key).coerce
-
     def generate[F[_]: Sync](implicit uuidGenerator: UUIDGenerator): F[RequestID] =
       uuidGenerator.create[F].map(_.toString).map(RequestID(_))
 
-    implicit val show: Show[RequestID] = Show[String].coerce
+    def getCurrent[F[_]: MDC]: F[Option[RequestID]] = MDC[F].get(key).coerce
+
+    def getCurrentOrGenerate[F[_]: Sync: MDC](implicit uuidGenerator: UUIDGenerator): F[RequestID] =
+      getCurrent[F].flatMap(_.fold(generate[F])(_.pure[F]))
+
+    implicit val show:  Show[RequestID]  = Show[String].coerce
+    implicit val order: Order[RequestID] = Order[String].coerce
   }
 }

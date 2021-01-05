@@ -24,6 +24,7 @@ final class DiscussionsConsumer[F[_]: Sync] extends Projector[F, DiscussionEvent
       newDescription = OptionUpdatable.Keep,
       newPassword = Updatable.Keep,
       updatePermissions = List(Permission.Update.Add(Permission.ModerateChannel(ID[Channel](created.id.uuid)))),
-      modifiedAt = ModificationTime(created.createdAt.offsetDateTime)
+      modifiedAt = ModificationTime(created.createdAt.offsetDateTime),
+      correlationID = created.correlationID
     )
 }

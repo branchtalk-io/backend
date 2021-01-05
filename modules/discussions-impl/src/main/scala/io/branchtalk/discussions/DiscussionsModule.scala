@@ -8,6 +8,7 @@ import io.branchtalk.discussions.writes._
 import io.branchtalk.shared.model._
 import io.branchtalk.shared.infrastructure._
 import com.softwaremill.macwire.wire
+import io.branchtalk.logging.MDC
 import io.prometheus.client.CollectorRegistry
 
 import scala.annotation.nowarn
@@ -49,7 +50,7 @@ object DiscussionsModule {
         wire[DiscussionsReads[F]]
       }
 
-  def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def writes[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     domainConfig:           DomainConfig,
     registry:               CollectorRegistry
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =

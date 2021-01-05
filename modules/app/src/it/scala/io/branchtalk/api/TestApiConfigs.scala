@@ -30,8 +30,8 @@ object TestApiConfigs {
 
   private def portResource[F[_]: Sync: Timer]: Resource[F, Int] = Resource.make(acquirePort[F])(releasePort[F](_))
 
-  def asResource[F[_]: Sync: Timer](implicit UUIDGenerator: UUIDGenerator): Resource[F, (AppArguments, APIConfig)] =
-    (Resource.liftF(UUIDGenerator.create[F]), portResource[F]).mapN { (defaultChannelID, port) =>
+  def asResource[F[_]: Sync: Timer](implicit uuidGenerator: UUIDGenerator): Resource[F, (AppArguments, APIConfig)] =
+    (Resource.liftF(uuidGenerator.create[F]), portResource[F]).mapN { (defaultChannelID, port) =>
       val host = "localhost"
       val app = AppArguments(
         host = host,

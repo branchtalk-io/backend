@@ -2,6 +2,8 @@ package io.branchtalk.shared.infrastructure
 
 import cats.Monoid
 import fs2._
+import _root_.io.branchtalk.logging.{ CorrelationID, MDC }
+import cats.effect.Sync
 
 trait Projector[F[_], -I, +O] extends Pipe[F, I, O] {
   def contramap[I2](f: I2 => I): Projector[F, I2, O] = (_: Stream[F, I2]).map(f).through(apply)
@@ -11,6 +13,9 @@ trait Projector[F[_], -I, +O] extends Pipe[F, I, O] {
   def map[O2](f: O => O2): Projector[F, I, O2] = (_: Stream[F, I]).through(apply).map(f)
 
   def mapStream[O2](f: O => Stream[F, O2]): Projector[F, I, O2] = (_: Stream[F, I]).through(apply).flatMap(f)
+
+  def withCorrelationID[A](correlationID: CorrelationID)(fa: F[A])(implicit F: Sync[F], mdc: MDC[F]): F[A] =
+    correlationID.updateMDC[F] >> mdc.enable(fa)
 }
 object Projector {
 

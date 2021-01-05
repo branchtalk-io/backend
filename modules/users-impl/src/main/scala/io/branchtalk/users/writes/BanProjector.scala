@@ -3,6 +3,7 @@ package io.branchtalk.users.writes
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
+import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
@@ -12,7 +13,7 @@ import io.branchtalk.users.model.Ban
 import io.branchtalk.users.model.BanProperties.Scope
 import io.scalaland.chimney.dsl._
 
-final class BanProjector[F[_]: Sync](transactor: Transactor[F])
+final class BanProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, UsersCommandEvent, (UUID, UsersEvent)] {
 
   private val logger = Logger(getClass)
@@ -32,36 +33,38 @@ final class BanProjector[F[_]: Sync](transactor: Transactor[F])
       Stream.empty
     }
 
-  def toOrder(event: BanCommandEvent.OrderBan): F[(UUID, BanEvent.Banned)] = {
-    val Ban.Scope.Tupled(banType, banID) = event.scope
-    sql"""INSERT INTO bans (
-         |  user_id,
-         |  ban_type,
-         |  ban_id,
-         |  reason
-         |)
-         |VALUES (
-         |  ${event.bannedUserID},
-         |  ${banType},
-         |  ${banID},
-         |  ${event.reason}
-         |)""".stripMargin.update.run.transact(transactor) >>
-      (event.bannedUserID.uuid -> event.transformInto[BanEvent.Banned]).pure[F]
-  }
+  def toOrder(event: BanCommandEvent.OrderBan): F[(UUID, BanEvent.Banned)] =
+    withCorrelationID(event.correlationID) {
+      val Ban.Scope.Tupled(banType, banID) = event.scope
+      sql"""INSERT INTO bans (
+           |  user_id,
+           |  ban_type,
+           |  ban_id,
+           |  reason
+           |)
+           |VALUES (
+           |  ${event.bannedUserID},
+           |  ${banType},
+           |  ${banID},
+           |  ${event.reason}
+           |)""".stripMargin.update.run.transact(transactor) >>
+        (event.bannedUserID.uuid -> event.transformInto[BanEvent.Banned]).pure[F]
+    }
 
-  def toLift(event: BanCommandEvent.LiftBan): F[(UUID, BanEvent.Unbanned)] = {
-    val Ban.Scope.Tupled(banType, _) = event.scope
-    (event.scope match {
-      case Scope.ForChannel(channelID) =>
-        sql"""DELETE FROM bans
-             |WHERE user_id  = ${event.bannedUserID}
-             |  AND ban_type = $banType
-             |  AND ban_id   = $channelID""".stripMargin
-      case Scope.Globally =>
-        sql"""DELETE FROM bans
-             |WHERE user_id  = ${event.bannedUserID}
-             |  AND ban_type = $banType""".stripMargin
-    }).update.run.transact(transactor) >>
-      (event.bannedUserID.uuid -> event.transformInto[BanEvent.Unbanned]).pure[F]
-  }
+  def toLift(event: BanCommandEvent.LiftBan): F[(UUID, BanEvent.Unbanned)] =
+    withCorrelationID(event.correlationID) {
+      val Ban.Scope.Tupled(banType, _) = event.scope
+      (event.scope match {
+        case Scope.ForChannel(channelID) =>
+          sql"""DELETE FROM bans
+               |WHERE user_id  = ${event.bannedUserID}
+               |  AND ban_type = $banType
+               |  AND ban_id   = $channelID""".stripMargin
+        case Scope.Globally =>
+          sql"""DELETE FROM bans
+               |WHERE user_id  = ${event.bannedUserID}
+               |  AND ban_type = $banType""".stripMargin
+      }).update.run.transact(transactor) >>
+        (event.bannedUserID.uuid -> event.transformInto[BanEvent.Unbanned]).pure[F]
+    }
 }

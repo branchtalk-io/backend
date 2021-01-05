@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.events.DiscussionEvent
+import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure._
 import io.branchtalk.shared.model.{ Logger, UUID, UUIDGenerator }
 import io.branchtalk.users.events.{ UsersCommandEvent, UsersEvent }
@@ -46,7 +47,7 @@ object UsersModule {
         wire[UsersReads[F]]
       }
 
-  def writes[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def writes[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     domainConfig:           DomainConfig,
     registry:               CollectorRegistry
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, UsersWrites[F]] =

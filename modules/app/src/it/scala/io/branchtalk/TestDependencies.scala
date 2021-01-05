@@ -3,6 +3,7 @@ package io.branchtalk
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
 import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites, TestDiscussionsConfig }
+import io.branchtalk.logging.MDC
 import io.branchtalk.shared.model.UUIDGenerator
 import io.branchtalk.users.{ TestUsersConfig, UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
@@ -18,7 +19,7 @@ final case class TestDependencies[F[_]](
 object TestDependencies {
 
   @nowarn("cat=unused") // macwire
-  def resources[F[_]: ConcurrentEffect: ContextShift: Timer](registry: CollectorRegistry)(implicit
+  def resources[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](registry: CollectorRegistry)(implicit
     uuidGenerator: UUIDGenerator
   ): Resource[F, TestDependencies[F]] =
     for {

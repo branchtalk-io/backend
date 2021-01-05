@@ -2,6 +2,7 @@ package io.branchtalk
 
 import cats.effect.{ ContextShift, ExitCode, IO, IOApp, Timer }
 import com.typesafe.scalalogging.Logger
+import io.branchtalk.logging.MDC
 import io.branchtalk.shared.model.CodePosition
 import org.specs2.matcher.MatchResult
 import org.specs2.specification.core.{ AsExecution, Execution }
@@ -19,8 +20,16 @@ trait IOTest {
   implicit protected val contextShift: ContextShift[IO] = IOTest.AllTheRightImplicits.contextShift
   implicit protected val timer:        Timer[IO]        = IOTest.AllTheRightImplicits.timer
 
-  private val ignoreErrorForLogging: PartialFunction[Throwable, Unit] = { case _: fs2.kafka.CommitTimeoutException =>
+  // IO doesn't have Local like Monix
+  implicit protected val noopMDC: MDC[IO] = new MDC[IO] {
+    override def enable[A](fa: IO[A]): IO[A] = fa
+
+    override def get(key: String): IO[Option[String]] = IO.pure(None)
+
+    override def set(key: String, value: String): IO[Unit] = IO.unit
   }
+
+  private val ignoreErrorForLogging: PartialFunction[Throwable, Unit] = { case _: fs2.kafka.CommitTimeoutException => }
 
   implicit class IOTestOps[T](private val io: IO[T]) {
 

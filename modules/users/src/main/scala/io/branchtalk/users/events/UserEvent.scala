@@ -4,6 +4,7 @@ import com.sksamuel.avro4s._
 import io.branchtalk.shared.model._
 import io.branchtalk.shared.model.AvroSupport._
 import io.branchtalk.ADT
+import io.branchtalk.logging.CorrelationID
 import io.branchtalk.users.model.{ Session, User }
 import io.scalaland.catnip.Semi
 
@@ -15,18 +16,21 @@ object UserEvent {
     id:               ID[User],
     sessionID:        ID[Session], // session created by registration
     sessionExpiresAt: Session.ExpirationTime,
-    createdAt:        CreationTime
+    createdAt:        CreationTime,
+    correlationID:    CorrelationID
   ) extends UserEvent
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Updated(
-    id:          ID[User],
-    moderatorID: Option[ID[User]],
-    modifiedAt:  ModificationTime
+    id:            ID[User],
+    moderatorID:   Option[ID[User]],
+    modifiedAt:    ModificationTime,
+    correlationID: CorrelationID
   ) extends UserEvent
 
   @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Deleted(
-    id:          ID[User],
-    moderatorID: Option[ID[User]],
-    deletedAt:   ModificationTime
+    id:            ID[User],
+    moderatorID:   Option[ID[User]],
+    deletedAt:     ModificationTime,
+    correlationID: CorrelationID
   ) extends UserEvent
 }

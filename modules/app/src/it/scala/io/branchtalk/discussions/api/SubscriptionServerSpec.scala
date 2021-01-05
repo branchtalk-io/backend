@@ -34,7 +34,7 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
             // given
             CreationScheduled(channelID) <- channelCreate
               .flatTap(_ => IO(uuidGenerator.stubNext(defaultChannelID.uuid))) // create Channel with default ID
-              .flatMap(discussionsWrites.channelWrites.createChannel)
+              .flatMap(discussionsWrites.channelWrites.createChannel) // NOTE: ID generation must come before CID
               .assert("Created Channel should have predefined ID")(_.id === defaultChannelID)
             _ <- discussionsReads.channelReads.requireById(channelID).eventually()
             postIDs <- (0 until 10).toList.traverse(_ =>

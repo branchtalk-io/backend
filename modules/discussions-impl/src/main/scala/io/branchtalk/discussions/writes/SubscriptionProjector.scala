@@ -9,12 +9,13 @@ import io.branchtalk.discussions.events.{
   SubscriptionCommandEvent,
   SubscriptionEvent
 }
+import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
 import io.scalaland.chimney.dsl._
 
-final class SubscriptionProjector[F[_]: Sync](transactor: Transactor[F])
+final class SubscriptionProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
@@ -35,24 +36,28 @@ final class SubscriptionProjector[F[_]: Sync](transactor: Transactor[F])
     }
 
   def toSubscribe(event: SubscriptionCommandEvent.Subscribe): F[(UUID, SubscriptionEvent.Subscribed)] =
-    sql"""INSERT INTO subscriptions (
-         |  subscriber_id,
-         |  subscriptions_ids
-         |)
-         |VALUES (
-         |  ${event.subscriberID},
-         |  ${event.subscriptions}
-         |)
-         |ON CONFLICT (subscriber_id) DO
-         |UPDATE
-         |SET subscriptions_ids = array_distinct(subscriptions.subscriptions_ids || ${event.subscriptions})""".stripMargin.update.run
-      .transact(transactor)
-      .as(event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Subscribed])
+    withCorrelationID(event.correlationID) {
+      sql"""INSERT INTO subscriptions (
+           |  subscriber_id,
+           |  subscriptions_ids
+           |)
+           |VALUES (
+           |  ${event.subscriberID},
+           |  ${event.subscriptions}
+           |)
+           |ON CONFLICT (subscriber_id) DO
+           |UPDATE
+           |SET subscriptions_ids = array_distinct(subscriptions.subscriptions_ids || ${event.subscriptions})""".stripMargin.update.run
+        .transact(transactor)
+        .as(event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Subscribed])
+    }
 
   def toUnsubscribe(event: SubscriptionCommandEvent.Unsubscribe): F[(UUID, SubscriptionEvent.Unsubscribed)] =
-    sql"""UPDATE subscriptions
-         |SET subscriptions_ids = array_diff(subscriptions.subscriptions_ids, ${event.subscriptions})
-         |WHERE subscriber_id = ${event.subscriberID}""".stripMargin.update.run
-      .transact(transactor)
-      .as(event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Unsubscribed])
+    withCorrelationID(event.correlationID) {
+      sql"""UPDATE subscriptions
+           |SET subscriptions_ids = array_diff(subscriptions.subscriptions_ids, ${event.subscriptions})
+           |WHERE subscriber_id = ${event.subscriberID}""".stripMargin.update.run
+        .transact(transactor)
+        .as(event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Unsubscribed])
+    }
 }
