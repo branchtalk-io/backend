@@ -1,7 +1,7 @@
 package io.branchtalk
 
 import cats.Applicative
-import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Timer }
+import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
 import com.typesafe.config.ConfigFactory
 import io.branchtalk.api.AppServer
@@ -38,36 +38,35 @@ object Program {
         ExitCode.Error
     }
 
+  def resolveConfigs[F[_]: Sync](implicit logger: Logger[F]): F[(APIConfig, DomainConfig, DomainConfig)] = for {
+    apiConfig <- Configuration.readConfig[F, APIConfig]("api")
+    _ <- logger.info(show"App configs resolved to: ${apiConfig}")
+    usersConfig <- Configuration.readConfig[F, DomainConfig]("users")
+    _ <- logger.info(show"Users configs resolved to: ${usersConfig}")
+    discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
+    _ <- logger.info(show"Discussions configs resolved to: ${discussionsConfig}")
+  } yield (apiConfig, usersConfig, discussionsConfig)
+
   def initializeAndRunModules[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     appArguments:    AppArguments
-  )(implicit logger: Logger[F]): F[Unit] =
+  )(implicit logger: Logger[F]): F[Unit] = {
     for {
-      apiConfig <- Configuration.readConfig[F, APIConfig]("api")
-      _ <- logger.info(show"App configs resolved to: ${apiConfig}")
-      usersConfig <- Configuration.readConfig[F, DomainConfig]("users")
-      _ <- logger.info(show"Users configs resolved to: ${usersConfig}")
-      discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
-      _ <- logger.info(show"Discussions configs resolved to: ${discussionsConfig}")
-      _ <- Prometheus
-        .collectorRegistry[F]
-        .flatMap { registry =>
-          Resource.make(logger.info("Initializing services"))(_ => logger.info("Services shut down")) >>
-            (
-              registry.pure[Resource[F, *]],
-              UsersModule.reads[F](usersConfig, registry),
-              UsersModule.writes[F](discussionsConfig, registry),
-              DiscussionsModule.reads[F](discussionsConfig, registry),
-              DiscussionsModule.writes[F](discussionsConfig, registry)
-            ).tupled
-        }
-        .use(
-          (runModules[F](appArguments,
-                         apiConfig,
-                         awaitTerminationSignal[F],
-                         UsersModule.listenToUsers[F](usersConfig)
-          ) _).tupled
-        )
-    } yield ()
+      (apiConfig, usersConfig, discussionsConfig) <- Resource.liftF(resolveConfigs[F])
+      registry <- Prometheus.collectorRegistry[F]
+      modules <- Resource.make(logger.info("Initializing services"))(_ => logger.info("Services shut down")) >>
+        (
+          registry.pure[Resource[F, *]],
+          UsersModule.reads[F](usersConfig, registry),
+          UsersModule.writes[F](discussionsConfig, registry),
+          DiscussionsModule.reads[F](discussionsConfig, registry),
+          DiscussionsModule.writes[F](discussionsConfig, registry)
+          ).tupled
+    } yield (apiConfig, usersConfig, discussionsConfig, modules)
+  }.use { case (apiConfig, usersConfig, _, modules) =>
+    val run =
+      runModules[F](appArguments, apiConfig, awaitTerminationSignal[F], UsersModule.listenToUsers[F](usersConfig)) _
+    run.tupled(modules)
+  }
 
   // scalastyle:off method.length
   // scalastyle:off parameter.number
