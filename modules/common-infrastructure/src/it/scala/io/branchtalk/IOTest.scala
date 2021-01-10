@@ -38,7 +38,7 @@ trait IOTest {
     ): IO[T] = {
       def withRetry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = { case cause: Throwable =>
         if (attemptsLeft <= 0)
-          IO.raiseError(new Exception(s"IO failed to succeed: exceeded retry $retry, from ${codePosition.show}", cause))
+          IO.raiseError(new Exception(show"IO failed to succeed: exceeded retry $retry, from $codePosition", cause))
         else io.handleErrorWith(withRetry(attemptsLeft - 1)).delayBy(delay)
       }
 

@@ -51,7 +51,7 @@ object Cache {
         override def info(msg:  => String): F[Unit] = logger.info(msg)
       }
       redis <- Redis[F].simple(
-        s"redis://${busConfig.cache.host.value}:${busConfig.cache.port.value.toString}",
+        show"redis://${busConfig.cache.host.value}:${busConfig.cache.port.value}",
         prepareCodec[F, Event](busConfig.topic.nonEmptyString.value)
       )
     } yield fromRedis(redis)

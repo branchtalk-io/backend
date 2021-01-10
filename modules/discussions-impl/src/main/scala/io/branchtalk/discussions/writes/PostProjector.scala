@@ -83,7 +83,7 @@ final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
             fr"WHERE id = ${event.id}").update.run.transact(transactor).void
         case None =>
-          Sync[F].delay(logger.warn(s"Post update ignored as it doesn't contain any modification:\n${event.show}"))
+          Sync[F].delay(logger.warn(show"Post update ignored as it doesn't contain any modification:\n$event"))
       }).as(event.id.uuid -> event.transformInto[PostEvent.Updated])
     }
 

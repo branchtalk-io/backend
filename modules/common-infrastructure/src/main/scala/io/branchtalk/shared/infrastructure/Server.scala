@@ -12,5 +12,5 @@ import io.scalaland.catnip.Semi
   port: Int Refined Positive
 )
 object Server {
-  implicit def show: Show[Server] = (s: Server) => s"${s.host.value}:${s.port.value.show}"
+  implicit def show: Show[Server] = (s: Server) => show"${s.host.value}:${s.port.value}"
 }

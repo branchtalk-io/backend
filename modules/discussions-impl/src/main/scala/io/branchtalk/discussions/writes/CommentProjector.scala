@@ -35,7 +35,7 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     }.map { case (key, value) =>
       key -> DiscussionEvent.ForComment(value)
     }.handleErrorWith { error =>
-      logger.error("Post event processing failed", error)
+      logger.error("Comment event processing failed", error)
       Stream.empty
     }
 
@@ -94,7 +94,7 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
             fr"WHERE id = ${event.id}").update.run.transact(transactor).void
         case None =>
-          Sync[F].delay(logger.warn(s"Comment update ignored as it doesn't contain any modification:\n${event.show}"))
+          Sync[F].delay(logger.warn(show"Comment update ignored as it doesn't contain any modification:\n$event"))
       }).as(event.id.uuid -> event.transformInto[CommentEvent.Updated])
     }
 

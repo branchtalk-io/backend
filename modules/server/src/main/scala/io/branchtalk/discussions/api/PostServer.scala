@@ -211,9 +211,9 @@ object PostServer {
       case CommonError.InsufficientPermissions(msg, _) =>
         PostError.NoPermission(msg)
       case CommonError.NotFound(what, id, _) =>
-        PostError.NotFound(s"$what with id=${id.show} could not be found")
+        PostError.NotFound(show"$what with id=$id could not be found")
       case CommonError.ParentNotExist(what, id, _) =>
-        PostError.NotFound(s"Parent $what with id=${id.show} could not be found")
+        PostError.NotFound(show"Parent $what with id=$id could not be found")
       case CommonError.ValidationFailed(errors, _) =>
         PostError.ValidationFailed(errors)
     }

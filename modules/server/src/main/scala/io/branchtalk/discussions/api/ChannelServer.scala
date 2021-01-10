@@ -119,9 +119,9 @@ object ChannelServer {
       case CommonError.InsufficientPermissions(msg, _) =>
         ChannelError.NoPermission(msg)
       case CommonError.NotFound(what, id, _) =>
-        ChannelError.NotFound(s"$what with id=${id.show} could not be found")
+        ChannelError.NotFound(show"$what with id=$id could not be found")
       case CommonError.ParentNotExist(what, id, _) =>
-        ChannelError.NotFound(s"Parent $what with id=${id.show} could not be found")
+        ChannelError.NotFound(show"Parent $what with id=$id could not be found")
       case CommonError.ValidationFailed(errors, _) =>
         ChannelError.ValidationFailed(errors)
     }

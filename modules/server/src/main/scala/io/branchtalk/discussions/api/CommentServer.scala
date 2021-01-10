@@ -240,9 +240,9 @@ object CommentServer {
       case CommonError.InsufficientPermissions(msg, _) =>
         CommentError.NoPermission(msg)
       case CommonError.NotFound(what, id, _) =>
-        CommentError.NotFound(s"$what with id=${id.show} could not be found")
+        CommentError.NotFound(show"$what with id=$id could not be found")
       case CommonError.ParentNotExist(what, id, _) =>
-        CommentError.NotFound(s"Parent $what with id=${id.show} could not be found")
+        CommentError.NotFound(show"Parent $what with id=$id could not be found")
       case CommonError.ValidationFailed(errors, _) =>
         CommentError.ValidationFailed(errors)
     }

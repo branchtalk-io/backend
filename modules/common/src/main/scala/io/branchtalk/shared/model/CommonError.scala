@@ -14,13 +14,13 @@ object CommonError {
     override def getMessage: String = msg
   }
   final case class NotFound(entity: String, id: ID[_], codePosition: CodePosition) extends CommonError {
-    override def getMessage: String = s"Entity $entity id=${id.show} not found at: ${codePosition.show}"
+    override def getMessage: String = show"Entity $entity id=$id not found at: $codePosition"
   }
   final case class ParentNotExist(entity: String, id: ID[_], codePosition: CodePosition) extends CommonError {
-    override def getMessage: String = s"Entity's parent $entity id=${id.show} not exist at: ${codePosition.show}"
+    override def getMessage: String = show"Entity's parent $entity id=$id not exist at: $codePosition"
   }
   final case class ValidationFailed(errors: NonEmptyList[String], codePosition: CodePosition) extends CommonError {
     override def getMessage: String =
-      s"Validation failed at: ${codePosition.show}:\n${errors.mkString_("- ", "\n", "")}"
+      show"Validation failed at: $codePosition:\n${errors.mkString_("- ", "\n", "")}"
   }
 }

@@ -20,7 +20,7 @@ object KafkaEventBus {
       .through(produce(settings.toProducerConfig[F, Event]))
       .evalTap(e =>
         ConcurrentEffect[F]
-          .delay(logger.info(s"${e.records.size.toString} events published to ${settings.topic.nonEmptyString.value}"))
+          .delay(logger.info(show"${e.records.size} events published to ${settings.topic.nonEmptyString.value}"))
       )
   }
 

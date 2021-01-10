@@ -65,7 +65,7 @@ final class ChannelProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           ).flatten
         )
         .fold(
-          Sync[F].delay(logger.warn(s"Channel update ignored as it doesn't contain any modification:\n${event.show}"))
+          Sync[F].delay(logger.warn(show"Channel update ignored as it doesn't contain any modification:\n$event"))
         )(updates =>
           (fr"UPDATE channels SET" ++
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++

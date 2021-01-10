@@ -111,9 +111,9 @@ object SubscriptionServer {
       case CommonError.InsufficientPermissions(msg, _) =>
         SubscriptionError.NoPermission(msg)
       case CommonError.NotFound(what, id, _) =>
-        SubscriptionError.NotFound(s"$what with id=${id.show} could not be found")
+        SubscriptionError.NotFound(show"$what with id=$id could not be found")
       case CommonError.ParentNotExist(what, id, _) =>
-        SubscriptionError.NotFound(s"Parent $what with id=${id.show} could not be found")
+        SubscriptionError.NotFound(show"Parent $what with id=$id could not be found")
       case CommonError.ValidationFailed(errors, _) =>
         SubscriptionError.ValidationFailed(errors)
     }

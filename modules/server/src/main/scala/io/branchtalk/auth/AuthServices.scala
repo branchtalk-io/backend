@@ -75,15 +75,15 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
       (requiredPermissions, usedChannelIDs) <- resolveRequired(required, owner)
       available <- resolveAvailable(user, sessionOpt, usedChannelIDs)
       _ = logger.trace(
-        s"""Validating permissions:
-           |required: ${required.show}
-           |available: ${available.show}
-           |owner: ${owner.show}""".stripMargin
+        show"""Validating permissions:
+              |required: $required
+              |available: $available
+              |owner: $owner""".stripMargin
       )
       _ <- ApplicativeError.liftFromOption[F](
         requiredPermissions.some.filter(available.allow),
         CommonError.InsufficientPermissions(
-          s"User has insufficient permissions: available ${available.show}, required: ${required.show}",
+          show"User has insufficient permissions: available $available, required: $required",
           CodePosition.providePosition
         )
       )

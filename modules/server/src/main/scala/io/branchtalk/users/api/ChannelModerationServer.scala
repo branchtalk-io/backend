@@ -105,9 +105,9 @@ object ChannelModerationServer {
       case CommonError.InsufficientPermissions(msg, _) =>
         UserError.NoPermission(msg)
       case CommonError.NotFound(what, id, _) =>
-        UserError.NotFound(s"$what with id=${id.show} could not be found")
+        UserError.NotFound(show"$what with id=$id could not be found")
       case CommonError.ParentNotExist(what, id, _) =>
-        UserError.NotFound(s"Parent $what with id=${id.show} could not be found")
+        UserError.NotFound(show"Parent $what with id=$id could not be found")
       case CommonError.ValidationFailed(errors, _) =>
         UserError.ValidationFailed(errors)
     }

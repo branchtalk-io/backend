@@ -111,7 +111,7 @@ final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             fr"WHERE id = ${event.id}").update.run.void
         case None =>
           Sync[ConnectionIO].delay(
-            logger.warn(s"User update ignored as it doesn't contain any modification:\n${event.show}")
+            logger.warn(show"User update ignored as it doesn't contain any modification:\n$event")
           )
       }
 
