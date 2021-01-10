@@ -8,16 +8,19 @@ lazy val root = project.root
   .setName("branchtalk")
   .setDescription("branchtalk build")
   .configureRoot
-  .aggregate(common,
-             commonInfrastructure,
-             commonApi,
-             discussions,
-             discussionsApi,
-             discussionsImpl,
-             users,
-             usersApi,
-             usersImpl,
-             application)
+  .aggregate(
+    common,
+    commonInfrastructure,
+    commonApi,
+    discussions,
+    discussionsApi,
+    discussionsImpl,
+    users,
+    usersApi,
+    usersImpl,
+    server,
+    application
+  )
 
 addCommandAlias("fmt", ";scalafmt;test:scalafmt;it:scalafmt")
 addCommandAlias("fullTest", ";test;it:test")
@@ -25,11 +28,8 @@ addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;cover
 
 // commons
 
-val commonMacros = project
-  .from("common-macros")
-  .setName("common-macros")
-  .setDescription("Common macro definitions")
-  .configureModule
+val commonMacros =
+  project.from("common-macros").setName("common-macros").setDescription("Common macro definitions").configureModule
 
 val common = project
   .from("common")
@@ -49,11 +49,14 @@ val common = project
   .settings(
     Compile / resourceGenerators += task[Seq[File]] {
       val file = (Compile / resourceManaged).value / "branchtalk-version.conf"
-      IO.write(file, s"""branchtalk-build {
-                        |  version = "${version.value}"
-                        |  commit  = "${git.gitHeadCommit.value.getOrElse("null")}"
-                        |  date    = "${git.gitHeadCommitDate.value.getOrElse("null")}"
-                        |}""".stripMargin)
+      IO.write(
+        file,
+        s"""branchtalk-build {
+           |  version = "${version.value}"
+           |  commit  = "${git.gitHeadCommit.value.getOrElse("null")}"
+           |  date    = "${git.gitHeadCommitDate.value.getOrElse("null")}"
+           |}""".stripMargin
+      )
       Seq(file)
     }
   )
@@ -199,26 +202,17 @@ val usersImpl = project
 
 // application
 
-val application = project
-  .from("app")
-  .setName("app")
-  .setDescription("Branchtalk backend application and business logic")
+val server = project
+  .from("server")
+  .setName("server")
+  .setDescription("Branchtalk backend business logic")
   .configureModule
   .configureIntegrationTests(requiresFork = true)
-  .configureRun("io.branchtalk.Main")
   .settings(
-    dockerUpdateLatest := true,
-    Docker / packageName := "branchtalk-server",
-    Docker / dockerExposedPorts := Seq(8080),
     libraryDependencies ++= Seq(
       Dependencies.decline,
-      Dependencies.logbackJackson,
-      Dependencies.logbackJsonClassic,
-      Dependencies.jsoniter,
-      Dependencies.jsoniterMacro,
       Dependencies.refinedDecline,
-      Dependencies.monixExecution,
-      Dependencies.monixEval,
+      Dependencies.jsoniterMacro,
       Dependencies.sttpCats % IntegrationTest,
       Dependencies.http4sPrometheus,
       Dependencies.tapirHttp4s,
@@ -231,3 +225,23 @@ val application = project
   )
   .compileAndTestDependsOn(discussionsImpl, usersImpl)
   .dependsOn(discussionsApi, usersApi)
+
+val application = project
+  .from("app")
+  .setName("app")
+  .setDescription("Branchtalk backend application and business logic")
+  .configureModule
+  .configureRun("io.branchtalk.Main")
+  .settings(
+    dockerUpdateLatest := true,
+    Docker / packageName := "branchtalk-server",
+    Docker / dockerExposedPorts := Seq(8080),
+    libraryDependencies ++= Seq(
+      Dependencies.logbackJackson,
+      Dependencies.logbackJsonClassic,
+      Dependencies.monixExecution,
+      Dependencies.monixEval
+    ),
+    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+  )
+  .dependsOn(server)
