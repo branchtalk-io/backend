@@ -7,12 +7,14 @@ import com.softwaremill.macwire.wire
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfig }
 import io.branchtalk.discussions.api.{ ChannelServer, CommentServer, PostServer, SubscriptionServer }
-import io.branchtalk.discussions.{ DiscussionsReads, DiscussionsWrites }
+import io.branchtalk.discussions.reads._
+import io.branchtalk.discussions.writes._
 import io.branchtalk.logging.MDC
 import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.shared.model.UUIDGenerator
 import io.branchtalk.users.api.{ ChannelModerationServer, UserModerationServer, UserServer }
-import io.branchtalk.users.{ UsersReads, UsersWrites }
+import io.branchtalk.users.reads._
+import io.branchtalk.users.writes._
 import io.prometheus.client.CollectorRegistry
 import org.http4s._
 import org.http4s.implicits._
@@ -83,27 +85,30 @@ final class AppServer[F[_]: Concurrent: Timer: MDC](
 object AppServer {
 
   // scalastyle:off method.length
+  // scalastyle:off parameter.number
   @nowarn("cat=unused") // macwire
   @SuppressWarnings(Array("org.wartremover.warts.GlobalExecutionContext")) // TODO: make configurable
   def asResource[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     appArguments:           AppArguments,
     apiConfig:              APIConfig,
     registry:               CollectorRegistry,
-    usersReads:             UsersReads[F],
-    usersWrites:            UsersWrites[F],
-    discussionsReads:       DiscussionsReads[F],
-    discussionsWrites:      DiscussionsWrites[F]
+    userReads:              UserReads[F],
+    sessionReads:           SessionReads[F],
+    userWrites:             UserWrites[F],
+    sessionWrites:          SessionWrites[F],
+    channelReads:           ChannelReads[F],
+    postReads:              PostReads[F],
+    commentReads:           CommentReads[F],
+    subscriptionReads:      SubscriptionReads[F],
+    commentWrites:          CommentWrites[F],
+    postWrites:             PostWrites[F],
+    channelWrites:          ChannelWrites[F],
+    subscriptionWrites:     SubscriptionWrites[F]
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, Server[F]] =
     Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
       val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
 
       val requestIDOps: RequestIDOps[F] = RequestIDOps[F]
-
-      // this is kind of silly...
-      import usersReads.{ sessionReads, userReads }
-      import usersWrites.{ sessionWrites, userWrites }
-      import discussionsReads.{ channelReads, commentReads, postReads, subscriptionReads }
-      import discussionsWrites.{ channelWrites, commentWrites, postWrites, subscriptionWrites }
 
       val authServices: AuthServices[F] = wire[AuthServicesImpl[F]]
 
@@ -169,5 +174,6 @@ object AppServer {
             Resource.liftF(logger.info(s"API server started at ${server.address.toString}"))
           }
     }
+  // scalastyle:on parameter.number
   // scalastyle:on method.length
 }

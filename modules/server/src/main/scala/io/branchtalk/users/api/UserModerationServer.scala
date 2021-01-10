@@ -8,16 +8,17 @@ import io.branchtalk.auth._
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.shared.model.{ CommonError, OptionUpdatable, Updatable }
 import io.branchtalk.users.api.UserModels._
-import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.model.{ Permission, User }
+import io.branchtalk.users.reads.UserReads
+import io.branchtalk.users.writes.UserWrites
 import org.http4s._
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
 final class UserModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
   authServices:     AuthServices[F],
-  usersReads:       UsersReads[F],
-  usersWrites:      UsersWrites[F],
+  userReads:        UserReads[F],
+  userWrites:       UserWrites[F],
   paginationConfig: PaginationConfig
 ) {
 
@@ -36,7 +37,7 @@ final class UserModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent: Ti
     val limit   = paginationConfig.resolveLimit(optLimit)
     val filters = List(User.Filter.HasPermission(Permission.ModerateUsers))
     for {
-      paginated <- usersReads.userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt, filters)
+      paginated <- userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt, filters)
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
@@ -51,7 +52,7 @@ final class UserModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent: Ti
         updatePermissions = List(Permission.Update.Add(Permission.ModerateUsers))
       )
       for {
-        _ <- usersWrites.userWrites.updateUser(update)
+        _ <- userWrites.updateUser(update)
       } yield GrantModerationResponse(userID)
   }
 
@@ -66,7 +67,7 @@ final class UserModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent: Ti
         updatePermissions = List(Permission.Update.Remove(Permission.ModerateUsers))
       )
       for {
-        _ <- usersWrites.userWrites.updateUser(update)
+        _ <- userWrites.updateUser(update)
       } yield RevokeModerationResponse(userID)
   }
   def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Any, F]] = NonEmptyList.of(

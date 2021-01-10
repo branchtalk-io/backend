@@ -223,13 +223,13 @@ val server = project
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
-  .compileAndTestDependsOn(discussionsImpl, usersImpl)
-  .dependsOn(discussionsApi, usersApi)
+  .dependsOn(commonInfrastructure, discussions, users, discussionsApi, usersApi)
+  .dependsOn(discussionsImpl % "it->it", usersImpl %  "it->it")
 
 val application = project
   .from("app")
   .setName("app")
-  .setDescription("Branchtalk backend application and business logic")
+  .setDescription("Branchtalk backend application")
   .configureModule
   .configureRun("io.branchtalk.Main")
   .settings(

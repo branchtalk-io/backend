@@ -69,6 +69,7 @@ object Program {
         )
     } yield ()
 
+  // scalastyle:off method.length
   // scalastyle:off parameter.number
   def runModules[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     appArguments:      AppArguments,
@@ -91,10 +92,18 @@ object Program {
           appArguments = appArguments,
           apiConfig = apiConfig,
           registry = registry,
-          usersReads = usersReads,
-          usersWrites = usersWrites,
-          discussionsReads = discussionsReads,
-          discussionsWrites = discussionsWrites
+          userReads = usersReads.userReads,
+          sessionReads = usersReads.sessionReads,
+          userWrites = usersWrites.userWrites,
+          sessionWrites = usersWrites.sessionWrites,
+          channelReads = discussionsReads.channelReads,
+          postReads = discussionsReads.postReads,
+          commentReads = discussionsReads.commentReads,
+          subscriptionReads = discussionsReads.subscriptionReads,
+          commentWrites = discussionsWrites.commentWrites,
+          postWrites = discussionsWrites.postWrites,
+          channelWrites = discussionsWrites.channelWrites,
+          subscriptionWrites = discussionsWrites.subscriptionWrites
         )
         .void
         .conditionally(appArguments.runAPI)(orElse = ()),
@@ -116,6 +125,7 @@ object Program {
         logger.info("Received exit signal")
     }
   // scalastyle:on parameter.number
+  // scalastyle:off method.length
 
   // kudos to Łukasz Byczyński
   private def awaitTerminationSignal[F[_]: Concurrent]: F[Unit] = {

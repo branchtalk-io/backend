@@ -9,8 +9,9 @@ import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.mappings._
 import io.branchtalk.shared.model.{ CommonError, ID }
 import io.branchtalk.users.api.UserModels._
-import io.branchtalk.users.{ UsersReads, UsersWrites }
 import io.branchtalk.users.model.{ Password, Session, User }
+import io.branchtalk.users.reads.{ SessionReads, UserReads }
+import io.branchtalk.users.writes.{ SessionWrites, UserWrites }
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
@@ -18,8 +19,10 @@ import sttp.tapir.server.ServerEndpoint
 
 final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
   authServices:     AuthServices[F],
-  usersReads:       UsersReads[F],
-  usersWrites:      UsersWrites[F],
+  userReads:        UserReads[F],
+  sessionReads:     SessionReads[F],
+  userWrites:       UserWrites[F],
+  sessionWrites:    SessionWrites[F],
   paginationConfig: PaginationConfig
 ) {
 
@@ -38,7 +41,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
     for {
-      paginated <- usersReads.userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
@@ -47,7 +50,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
     for {
-      paginated <- usersReads.userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
@@ -56,14 +59,14 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
     for {
-      paginated <- usersReads.sessionReads.paginate(user.id, sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- sessionReads.paginate(user.id, sortBy, offset.nonNegativeLong, limit.positiveInt)
     } yield Pagination.fromPaginated(paginated.map(APISession.fromDomain), offset, limit)
   }
 
   private val signUp = UserAPIs.signUp.serverLogic { signup =>
     errorHandler {
       for {
-        (user, session) <- usersWrites.userWrites.createUser(
+        (user, session) <- userWrites.createUser(
           signup.into[User.Create].withFieldConst(_.password, Password.create(signup.password)).transform
         )
       } yield SignUpResponse(user.id, session.id)
@@ -78,7 +81,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
         case None =>
           for {
             expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
-            session <- usersWrites.sessionWrites.createSession(
+            session <- sessionWrites.createSession(
               Session.Create(
                 userID = user.id,
                 usage = Session.Usage.UserSession,
@@ -93,7 +96,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
   private val signOut = UserAPIs.signOut.serverLogic[F].apply { case (user, sessionOpt) =>
     for {
       sessionID <- sessionOpt match {
-        case Some(s) => usersWrites.sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
+        case Some(s) => sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
         case None    => none[ID[Session]].pure[F]
       }
     } yield SignOutResponse(userID = user.id, sessionID = sessionID)
@@ -101,7 +104,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
 
   private val fetchProfile = UserAPIs.fetchProfile.serverLogic[F].apply { case ((_, _), userID) =>
     for {
-      user <- usersReads.userReads.requireById(userID)
+      user <- userReads.requireById(userID)
     } yield APIUser.fromDomain(user)
   }
 
@@ -119,7 +122,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
         .withFieldConst(_.updatePermissions, List.empty)
         .transform
       for {
-        _ <- usersWrites.userWrites.updateUser(data)
+        _ <- userWrites.updateUser(data)
       } yield UpdateUserResponse(userID)
     }
 
@@ -130,7 +133,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     } { case ((user, _), userID) =>
       val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
       for {
-        _ <- usersWrites.userWrites.deleteUser(User.Delete(userID, moderatorID))
+        _ <- userWrites.deleteUser(User.Delete(userID, moderatorID))
       } yield DeleteUserResponse(userID)
     }
 

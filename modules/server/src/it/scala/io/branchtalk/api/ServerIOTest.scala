@@ -29,10 +29,18 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
         appArguments = appArguments,
         apiConfig = apiConfig,
         registry = registry,
-        usersReads = usersReads,
-        usersWrites = usersWrites,
-        discussionsReads = discussionsReads,
-        discussionsWrites = discussionsWrites
+        userReads = usersReads.userReads,
+        sessionReads = usersReads.sessionReads,
+        userWrites = usersWrites.userWrites,
+        sessionWrites = usersWrites.sessionWrites,
+        channelReads = discussionsReads.channelReads,
+        postReads = discussionsReads.postReads,
+        commentReads = discussionsReads.commentReads,
+        subscriptionReads = discussionsReads.subscriptionReads,
+        commentWrites = discussionsWrites.commentWrites,
+        postWrites = discussionsWrites.postWrites,
+        channelWrites = discussionsWrites.channelWrites,
+        subscriptionWrites = discussionsWrites.subscriptionWrites
       )
       .map(server = _)
     _ <- AsyncHttpClientCatsBackend.resource[IO]().map(client = _)
