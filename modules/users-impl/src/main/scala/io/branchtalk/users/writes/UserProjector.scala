@@ -38,29 +38,31 @@ final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     withCorrelationID(event.correlationID) {
       {
         val Session.Usage.Tupled(sessionType, sessionPermissions) = Session.Usage.UserSession
-        sql"""INSERT INTO users (
-             |  id,
-             |  email,
-             |  username,
-             |  description,
-             |  passwd_algorithm,
-             |  passwd_hash,
-             |  passwd_salt,
-             |  permissions,
-             |  created_at
-             |)
-             |VALUES (
-             |  ${event.id},
-             |  ${event.email},
-             |  ${event.username},
-             |  ${event.description},
-             |  ${event.password.algorithm},
-             |  ${event.password.hash},
-             |  ${event.password.salt},
-             |  ${Permissions(Set.empty)},
-             |  ${event.createdAt}
-             |)
-             |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run >>
+        sql"DELETE FROM reserved_emails WHERE email = ${event.email}".update.run >>
+          sql"DELETE FROM reserved_usernames WHERE username = ${event.username}".update.run >>
+          sql"""INSERT INTO users (
+               |  id,
+               |  email,
+               |  username,
+               |  description,
+               |  passwd_algorithm,
+               |  passwd_hash,
+               |  passwd_salt,
+               |  permissions,
+               |  created_at
+               |)
+               |VALUES (
+               |  ${event.id},
+               |  ${event.email},
+               |  ${event.username},
+               |  ${event.description},
+               |  ${event.password.algorithm},
+               |  ${event.password.hash},
+               |  ${event.password.salt},
+               |  ${Permissions(Set.empty)},
+               |  ${event.createdAt}
+               |)
+               |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run >>
           sql"""INSERT INTO sessions (
                |  id,
                |  user_id,
@@ -82,6 +84,10 @@ final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     import event._
     val defaultPermissions   = Permissions.empty
     val permissionsUpdateNel = NonEmptyList.fromList(updatePermissions)
+
+    val cleanReservedIfNecessary = event.newUsername.toOption.traverse(username =>
+      sql"DELETE FROM reserved_usernames WHERE username = $username".update.run
+    )
 
     val fetchPermissionsIfNecessary = permissionsUpdateNel.fold(defaultPermissions.pure[ConnectionIO]) { _ =>
       sql"""SELECT permissions FROM users WHERE id = ${id}"""
@@ -116,8 +122,7 @@ final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       }
 
     withCorrelationID(event.correlationID) {
-      fetchPermissionsIfNecessary
-        .flatMap(updateUser)
+      (cleanReservedIfNecessary >> fetchPermissionsIfNecessary.flatMap(updateUser))
         .transact(transactor)
         .as(id.uuid -> event.transformInto[UserEvent.Updated])
     }

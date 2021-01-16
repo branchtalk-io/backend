@@ -5,6 +5,8 @@ import io.branchtalk.shared.model._
 import io.branchtalk.users.model.{ Ban, Channel, Password, Session, User }
 import io.branchtalk.shared.Fixtures._
 
+import scala.util.Random
+
 trait UsersFixtures {
 
   def channelIDCreate(implicit uuidGenerator: UUIDGenerator): IO[ID[Channel]] =
@@ -15,7 +17,7 @@ trait UsersFixtures {
 
   def userCreate: IO[User.Create] =
     (
-      company().map(_.getEmail).flatMap(User.Email.parse[IO]),
+      company().map(_.getEmail).map(e => s"${Random.nextLong()}+$e").flatMap(User.Email.parse[IO]),
       textProducer.map(_.randomString(10)).flatMap(User.Name.parse[IO]),
       textProducer.map(_.loremIpsum()).map(User.Description(_).some),
       passwordCreate()

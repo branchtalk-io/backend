@@ -71,7 +71,8 @@ object DoobieSupport
 
   implicit class FragmentOps(private val fragment: Fragment) extends AnyVal {
 
-    def exists: ConnectionIO[Boolean] = (fr"SELECT EXISTS(" ++ fragment ++ fr")").query[Boolean].unique
+    def exists(implicit logHandler: LogHandler): ConnectionIO[Boolean] =
+      (fr"SELECT EXISTS(" ++ fragment ++ fr")").query[Boolean].unique
 
     def paginate[Entity: Read](offset: Long Refined NonNegative, limit: Int Refined Positive)(implicit
       logHandler: LogHandler

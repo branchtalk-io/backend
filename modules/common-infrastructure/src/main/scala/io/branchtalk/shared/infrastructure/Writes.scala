@@ -7,6 +7,8 @@ import fs2._
 
 abstract class Writes[F[_]: Sync, Entity, Event](producer: EventBusProducer[F, Event]) {
 
+  implicit private val logHandler: LogHandler = doobieLogger(getClass)
+
   // sending event to internal bus as a part of a write model
 
   final protected def postEvent(id: ID[Entity], event: Event): F[Unit] =
