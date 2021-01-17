@@ -1,6 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync, Timer }
+import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Sync, Timer }
+import cats.effect.implicits._
 import fs2.{ io => _, _ }
 import fs2.kafka.{ ProducerResult, Serializer }
 import io.branchtalk.shared.model.{ Logger, UUID }
@@ -55,4 +56,14 @@ object ConsumerStream {
 
   def produced[F[_], A]: Pipe[F, ProducerResult[UUID, A, Unit], A] =
     _.flatMap(pr => Stream(pr.records.map(_._1.value).toList: _*))
+
+  def mergeResources[F[_]: Concurrent](a: AsResource[F], b: AsResource[F]): AsResource[F] =
+    (a, b).tupled.map { case (left, right) =>
+      for {
+        lf <- left.start
+        rf <- right.start
+        _ <- lf.join
+        _ <- rf.join
+      } yield ()
+    }
 }

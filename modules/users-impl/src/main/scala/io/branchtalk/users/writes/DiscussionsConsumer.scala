@@ -16,8 +16,8 @@ final class DiscussionsConsumer[F[_]: Sync] extends Projector[F, DiscussionEvent
       event.id.uuid -> UsersCommandEvent.ForUser(event)
     }
 
-  def toGrantedChannelModerator(created: ChannelEvent.Created): UserCommandEvent.Update =
-    UserCommandEvent.Update(
+  def toGrantedChannelModerator(created: ChannelEvent.Created): UserCommandEvent.Update.Encrypted =
+    UserCommandEvent.Update.Encrypted(
       id = ID[User](created.authorID.uuid),
       moderatorID = None,
       newUsername = Updatable.Keep,

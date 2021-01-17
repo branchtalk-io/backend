@@ -7,6 +7,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import fs2.{ Pipe, Stream }
 import fs2.kafka.{ CommittableConsumerRecord, CommittableOffset, Deserializer, ProducerResult }
 import io.branchtalk.shared.infrastructure.PureconfigSupport._
+import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
 import io.branchtalk.shared.model._
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
@@ -19,7 +20,7 @@ package object infrastructure {
   type EventBusConsumer[F[_], Event] = Stream[F, CommittableConsumerRecord[F, UUID, Event]]
   type EventBusCommitter[F[_]]       = Pipe[F, CommittableOffset[F], Unit]
 
-  type SafeDeserializer[F[_], Event] = Deserializer[F, DeserializationError Either Event]
+  type SafeDeserializer[F[_], Event] = Deserializer[F, DeserializationResult[Event]]
   object SafeDeserializer {
     def apply[F[_], Event](implicit sd: SafeDeserializer[F, Event]): SafeDeserializer[F, Event] = sd
   }

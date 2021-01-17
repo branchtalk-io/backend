@@ -244,4 +244,4 @@ val application = project
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
-  .dependsOn(server)
+  .dependsOn(server, discussionsImpl, usersImpl)

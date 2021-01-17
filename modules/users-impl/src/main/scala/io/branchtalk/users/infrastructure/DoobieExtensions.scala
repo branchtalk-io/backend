@@ -4,12 +4,13 @@ import cats.Id
 import com.github.plokhotnyuk.jsoniter_scala.core._
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.model.{ ID, UUID, branchtalkLocale }
+import io.branchtalk.shared.model.{ ID, SensitiveData, UUID, branchtalkLocale }
 import io.branchtalk.users.model.{ Ban, Password, Permission, Permissions, Session }
 import io.estatico.newtype.Coercible
 import org.postgresql.util.PGobject
 
 import scala.annotation.nowarn
+import scala.collection.compat.immutable.ArraySeq
 
 object DoobieExtensions {
 
@@ -27,6 +28,16 @@ object DoobieExtensions {
                  Session.Usage.Type.withNameInsensitive,
                  _.entryName.toLowerCase(branchtalkLocale)
     )
+
+  implicit val sensitiveDataAlgorithmTypeMeta: Meta[SensitiveData.Algorithm] =
+    pgEnumString("data_encryption_algorithm",
+                 SensitiveData.Algorithm.withNameInsensitive,
+                 _.entryName.toLowerCase(branchtalkLocale)
+    )
+
+  @SuppressWarnings(Array("org.wartremover.warts.All")) // coercible
+  implicit val sensitiveDataKey: Meta[SensitiveData.Key] =
+    Meta[Array[Byte]].timap[ArraySeq[Byte]](ArraySeq.from(_))(a => a.toArray).asInstanceOf[Meta[SensitiveData.Key]]
 
   @nowarn("cat=unused") // macros
   @SuppressWarnings(Array("org.wartremover.warts.All")) // macros

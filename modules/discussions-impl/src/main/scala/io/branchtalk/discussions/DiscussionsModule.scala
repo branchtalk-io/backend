@@ -57,11 +57,13 @@ object DiscussionsModule {
     Logger.getLogger[F].pipe { logger =>
       Resource.make(logger.info("Initialize Discussions writes"))(_ => logger.info("Shut down Discussions writes")) >>
         module.setupWrites[F](domainConfig, registry).map {
-          case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer, cache) =>
+          case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer, _, cache) =>
             val channelWrites:      ChannelWrites[F]      = wire[ChannelWritesImpl[F]]
             val postWrites:         PostWrites[F]         = wire[PostWritesImpl[F]]
             val commentWrites:      CommentWrites[F]      = wire[CommentWritesImpl[F]]
             val subscriptionWrites: SubscriptionWrites[F] = wire[SubscriptionWritesImpl[F]]
+
+            // TODO: split into command handlers and projectors
 
             val projector: Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList
               .of(

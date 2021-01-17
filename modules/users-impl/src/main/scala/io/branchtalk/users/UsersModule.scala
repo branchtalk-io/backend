@@ -24,7 +24,7 @@ final case class UsersWrites[F[_]](
   userWrites:             UserWrites[F],
   sessionWrites:          SessionWrites[F],
   banWrites:              BanWrites[F],
-  runProjector:           ConsumerStream.AsResource[F],
+  runProjections:         ConsumerStream.AsResource[F],
   runDiscussionsConsumer: ConsumerStream.Runner[F, DiscussionEvent]
 )
 @nowarn("cat=unused") // macwire
@@ -47,6 +47,7 @@ object UsersModule {
         wire[UsersReads[F]]
       }
 
+  // scalastyle:off method.length
   def writes[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     domainConfig:           DomainConfig,
     registry:               CollectorRegistry
@@ -54,21 +55,40 @@ object UsersModule {
     Logger.getLogger[F].pipe { logger =>
       Resource.make(logger.info("Initialize Users writes"))(_ => logger.info("Shut down Users writes")) >>
         module.setupWrites[F](domainConfig, registry).map {
-          case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer, cache) =>
+          case WritesInfrastructure(transactor,
+                                    internalProducer,
+                                    internalConsumerStream,
+                                    producer,
+                                    consumerStream,
+                                    cache
+              ) =>
             val userWrites:    UserWrites[F]    = wire[UserWritesImpl[F]]
             val sessionWrites: SessionWrites[F] = wire[SessionWritesImpl[F]]
             val banWrites:     BanWrites[F]     = wire[BanWritesImpl[F]]
 
-            val projector: Projector[F, UsersCommandEvent, (UUID, UsersEvent)] = NonEmptyList
+            val handler: Projector[F, UsersCommandEvent, (UUID, UsersEvent)] = NonEmptyList
+              .of(
+                wire[UserCommandHandler[F]],
+                wire[BanCommandHandler[F]]
+              )
+              .reduce
+            val projector: Projector[F, UsersEvent, (UUID, UsersEvent)] = NonEmptyList
               .of(
                 wire[UserProjector[F]],
                 wire[BanProjector[F]]
               )
               .reduce
-            val runProjector: ConsumerStream.AsResource[F] =
-              internalConsumerStream.withCachedPipeToResource(logger, cache)(
-                ConsumerStream.noID.andThen(projector).andThen(producer).andThen(ConsumerStream.produced)
-              )
+            val runProjections: Resource[F, F[Unit]] = {
+              val runCommandProjector: ConsumerStream.AsResource[F] =
+                internalConsumerStream.withCachedPipeToResource(logger, cache)(
+                  ConsumerStream.noID.andThen(handler).andThen(producer).andThen(ConsumerStream.produced)
+                )
+              val runEventProjector: ConsumerStream.AsResource[F] =
+                consumerStream.withCachedPipeToResource(logger, cache)(
+                  ConsumerStream.noID.andThen(projector).andThen(ConsumerStream.noID)
+                )
+              ConsumerStream.mergeResources(runCommandProjector, runEventProjector)
+            }
 
             val discussionsConsumer: DiscussionsConsumer[F] = wire[DiscussionsConsumer[F]]
             val runDiscussionsConsumer: ConsumerStream.Runner[F, DiscussionEvent] =
@@ -82,6 +102,7 @@ object UsersModule {
             wire[UsersWrites[F]]
         }
     }
+  // scalastyle:on method.length
 
   def listenToUsers[F[_]](domainConfig: DomainConfig)(
     discussionEventConsumer:            ConsumerStream.Builder[F, DiscussionEvent],

@@ -6,6 +6,7 @@ import fs2.kafka._
 import fs2.Pipe
 import io.branchtalk.shared.model.{ ShowPretty, UUID }
 import io.branchtalk.shared.infrastructure.PureconfigSupport._
+import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
 import io.scalaland.catnip.Semi
 
 @Semi(ConfigReader, ShowPretty) final case class KafkaEventBusConfig(
@@ -16,7 +17,7 @@ import io.scalaland.catnip.Semi
 
   def toConsumerConfig[F[_]: Sync, Event: SafeDeserializer[F, *]](
     consumerConfig: KafkaEventConsumerConfig
-  ): ConsumerSettings[F, UUID, DeserializationError Either Event] =
+  ): ConsumerSettings[F, UUID, DeserializationResult[Event]] =
     ConsumerSettings(Deserializer.uuid[F], SafeDeserializer[F, Event])
       .withAutoOffsetReset(AutoOffsetReset.Earliest)
       .withBootstrapServers(servers.map(_.show).intercalate(","))

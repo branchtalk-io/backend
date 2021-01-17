@@ -18,6 +18,7 @@ final case class WritesInfrastructure[F[_], Event, InternalEvent](
   internalProducer:       EventBusProducer[F, InternalEvent],
   internalConsumerStream: ConsumerStream[F, InternalEvent],
   producer:               EventBusProducer[F, Event],
+  consumerStream:         ConsumerStream[F, Event],
   cache:                  Cache[F, String, Event]
 )
 final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
@@ -40,12 +41,14 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
       internalProducer       = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
       internalConsumerStream = ConsumerStream.fromConfigs[F, InternalEvent](domainConfig.internalEventBus)
       producer               = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
+      consumerStream         = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus)
       cache <- Cache.fromConfigs[F, Event](domainConfig.internalEventBus)
     } yield WritesInfrastructure(
       transactor,
       internalProducer,
       internalConsumerStream(domainConfig.internalConsumer),
       producer,
+      consumerStream(domainConfig.consumers("postgres-projection")),
       cache
     )
 }

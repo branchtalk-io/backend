@@ -18,7 +18,7 @@ trait UsersIOTest extends IOTest with ResourcefulTest {
     _ <- TestUsersConfig.loadDomainConfig[IO].map(usersCfg = _)
     _ <- UsersModule.reads[IO](usersCfg, registry).map(usersReads = _)
     _ <- UsersModule.writes[IO](usersCfg, registry).map(usersWrites = _)
-    _ <- usersWrites.runProjector.flatMap { usersProjector =>
+    _ <- usersWrites.runProjections.flatMap { usersProjector =>
       Resource.liftF(usersProjector.logError("Error reported by Users projector").start)
     }
   } yield ()

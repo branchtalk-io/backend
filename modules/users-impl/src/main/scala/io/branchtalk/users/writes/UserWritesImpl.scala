@@ -7,6 +7,7 @@ import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
 import io.branchtalk.shared.model._
 import io.branchtalk.users.events.{ UserCommandEvent, UsersCommandEvent }
+import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Session, User }
 import io.scalaland.chimney.dsl._
 
@@ -60,16 +61,33 @@ final class UserWritesImpl[F[_]: Sync: Timer: MDC](
       _ <- reserveUsername(newUser.username)
       id <- ID.create[F, User]
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
+      (algorithm, key) <- {
+        val algorithm = SensitiveData.Algorithm.default
+        val key       = algorithm.generateKey()
+        sql"""INSERT INTO sensitive_data_keys (
+             |  user_id,
+             |  key_value,
+             |  enc_algorithm
+             |) VALUES (
+             |  $id,
+             |  $key,
+             |  $algorithm
+             |)""".stripMargin.update.run.transact(transactor).as(algorithm -> key)
+      }
       sessionID <- ID.create[F, Session]
       now <- CreationTime.now[F]
       command = newUser
         .into[UserCommandEvent.Create]
         .withFieldConst(_.id, id)
+        .withFieldComputed(_.email, _.email.pipe(SensitiveData(_)))
+        .withFieldComputed(_.username, _.username.pipe(SensitiveData(_)))
+        .withFieldComputed(_.password, _.password.pipe(SensitiveData(_)))
         .withFieldConst(_.createdAt, now)
         .withFieldConst(_.sessionID, sessionID)
         .withFieldConst(_.sessionExpiresAt, Session.ExpirationTime(now.offsetDateTime.plusDays(sessionExpiresInDays)))
         .withFieldConst(_.correlationID, correlationID)
         .transform
+        .encrypt(algorithm, key)
       _ <- postEvent(id, UsersCommandEvent.ForUser(command))
     } yield (CreationScheduled(id), CreationScheduled(sessionID))
 
@@ -78,13 +96,21 @@ final class UserWritesImpl[F[_]: Sync: Timer: MDC](
       _ <- updatedUser.newUsername.toOption.traverse(reserveUsername(_, updatedUser.id.some))
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = updatedUser.id
-      _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = ${id}""")
+      _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = $id""")
+      (algorithm, key) <-
+        sql"""SELECT enc_algorithm, key_value FROM sensitive_data_keys WHERE user_id = $id"""
+          .query[(SensitiveData.Algorithm, SensitiveData.Key)]
+          .unique
+          .transact(transactor)
       now <- ModificationTime.now[F]
       command = updatedUser
         .into[UserCommandEvent.Update]
+        .withFieldComputed(_.newUsername, _.newUsername.map(SensitiveData(_)))
+        .withFieldComputed(_.newPassword, _.newPassword.map(SensitiveData(_)))
         .withFieldConst(_.modifiedAt, now)
         .withFieldConst(_.correlationID, correlationID)
         .transform
+        .encrypt(algorithm, key)
       _ <- postEvent(id, UsersCommandEvent.ForUser(command))
     } yield UpdateScheduled(id)
 

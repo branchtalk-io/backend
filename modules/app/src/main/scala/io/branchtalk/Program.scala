@@ -60,7 +60,7 @@ object Program {
           UsersModule.writes[F](discussionsConfig, registry),
           DiscussionsModule.reads[F](discussionsConfig, registry),
           DiscussionsModule.writes[F](discussionsConfig, registry)
-          ).tupled
+        ).tupled
     } yield (apiConfig, usersConfig, discussionsConfig, modules)
   }.use { case (apiConfig, usersConfig, _, modules) =>
     val run =
@@ -106,7 +106,7 @@ object Program {
         )
         .void
         .conditionally(appArguments.runAPI)(orElse = ()),
-      usersWrites.runProjector.conditionally(condition = appArguments.runUsersProjections)(orElse = ().pure[F]),
+      usersWrites.runProjections.conditionally(condition = appArguments.runUsersProjections)(orElse = ().pure[F]),
       makeUsersDiscussionsConsumer(
         discussionsReads.discussionEventConsumer,
         usersWrites.runDiscussionsConsumer
