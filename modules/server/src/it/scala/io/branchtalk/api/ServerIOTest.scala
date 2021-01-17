@@ -23,6 +23,11 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   )
 
   protected lazy val serverResource: Resource[IO, Unit] = for {
+    _ <- UsersModule
+      .listenToUsers(usersCfg)(discussionsReads.discussionEventConsumer, usersWrites.runDiscussionsConsumer)
+      .flatMap { usersDiscussionsConsumer =>
+        Resource.liftF(usersDiscussionsConsumer.logError("Error reported by Users' Discussions projector").start)
+      }
     (appArguments, apiConfig) <- TestApiConfigs.asResource[IO]
     _ <- AppServer
       .asResource[IO](
@@ -47,19 +52,6 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   } yield ()
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> serverResource
-
-  protected def withAllProjections[A](fa: IO[A]): IO[A] =
-    (usersWrites.runProjector,
-     UsersModule.listenToUsers(usersCfg)(discussionsReads.discussionEventConsumer, usersWrites.runDiscussionsConsumer),
-     discussionsWrites.runProjector
-    ).tupled.use { case (usersProjector, usersDiscussionsConsumer, discussionsProjector) =>
-      for {
-        _ <- usersProjector.logError("Error reported by Users projector").start
-        _ <- usersDiscussionsConsumer.logError("Error reported by Users' Discussions projector").start
-        _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-        a <- fa
-      } yield a
-    }
 
   implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Any]) {
 

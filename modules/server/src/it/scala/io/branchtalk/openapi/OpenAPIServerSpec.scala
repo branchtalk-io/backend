@@ -13,11 +13,9 @@ final class OpenAPIServerSpec extends Specification with ServerIOTest {
   "OpenAPIServer" should {
 
     "return valid OpenAPI v3 specification" in {
-      withAllProjections {
-        for {
-          result <- basicRequest.get(sttpBaseUri.withWholePath("docs/swagger.json")).send(client)
-        } yield result.code must_=== StatusCode.Ok
-      }
+      for {
+        result <- basicRequest.get(sttpBaseUri.withWholePath("docs/swagger.json")).send(client)
+      } yield result.code must_=== StatusCode.Ok
     }
   }
 }

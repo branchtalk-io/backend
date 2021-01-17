@@ -18,15 +18,10 @@ trait DiscussionsIOTest extends IOTest with ResourcefulTest {
     _ <- TestDiscussionsConfig.loadDomainConfig[IO].map(discussionsCfg = _)
     _ <- DiscussionsModule.reads[IO](discussionsCfg, registry).map(discussionsReads = _)
     _ <- DiscussionsModule.writes[IO](discussionsCfg, registry).map(discussionsWrites = _)
+    _ <- discussionsWrites.runProjector.flatMap { discussionsProjector =>
+      Resource.liftF(discussionsProjector.logError("Error reported by Discussions projector").start)
+    }
   } yield ()
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> discussionsResource
-
-  protected def withDiscussionsProjections[A](fa: IO[A]): IO[A] =
-    discussionsWrites.runProjector.use { discussionsProjector =>
-      for {
-        _ <- discussionsProjector.logError("Error reported by Discussions projector").start
-        a <- fa
-      } yield a
-    }
 }
