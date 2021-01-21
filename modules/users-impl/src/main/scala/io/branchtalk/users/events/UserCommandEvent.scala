@@ -25,14 +25,14 @@ object UserCommandEvent {
     correlationID:    CorrelationID
   ) {
 
-    def encrypt(implicit
+    def encrypt(
       algorithm: SensitiveData.Algorithm,
       key:       SensitiveData.Key
     ): Create.Encrypted = this
       .into[Create.Encrypted]
-      .withFieldComputed(_.email, _.email.pipe(SensitiveData.encryptionTransformer[User.Email].transform))
-      .withFieldComputed(_.username, _.username.pipe(SensitiveData.encryptionTransformer[User.Name].transform))
-      .withFieldComputed(_.password, _.password.pipe(SensitiveData.encryptionTransformer[Password].transform))
+      .withFieldComputed(_.email, _.email.encrypt(algorithm, key))
+      .withFieldComputed(_.username, _.username.encrypt(algorithm, key))
+      .withFieldComputed(_.password, _.password.encrypt(algorithm, key))
       .transform
   }
   object Create {
@@ -49,14 +49,14 @@ object UserCommandEvent {
       correlationID:    CorrelationID
     ) extends UserCommandEvent {
 
-      def decrypt(implicit
+      def decrypt(
         algorithm: SensitiveData.Algorithm,
         key:       SensitiveData.Key
       ): DeserializationResult[Create] = this
         .intoF[DeserializationResult, Create]
-        .withFieldComputedF(_.email, _.email.pipe(SensitiveData.decryptionTransformer[User.Email].transform))
-        .withFieldComputedF(_.username, _.username.pipe(SensitiveData.decryptionTransformer[User.Name].transform))
-        .withFieldComputedF(_.password, _.password.pipe(SensitiveData.decryptionTransformer[Password].transform))
+        .withFieldComputedF(_.email, _.email.decrypt(algorithm, key))
+        .withFieldComputedF(_.username, _.username.decrypt(algorithm, key))
+        .withFieldComputedF(_.password, _.password.decrypt(algorithm, key))
         .transform
     }
   }
@@ -72,13 +72,13 @@ object UserCommandEvent {
     correlationID:     CorrelationID
   ) {
 
-    def encrypt(implicit
+    def encrypt(
       algorithm: SensitiveData.Algorithm,
       key:       SensitiveData.Key
     ): Update.Encrypted = this
       .into[Update.Encrypted]
-      .withFieldComputed(_.newUsername, _.newUsername.map(SensitiveData.encryptionTransformer[User.Name].transform))
-      .withFieldComputed(_.newPassword, _.newPassword.map(SensitiveData.encryptionTransformer[Password].transform))
+      .withFieldComputed(_.newUsername, _.newUsername.map(_.encrypt(algorithm, key)))
+      .withFieldComputed(_.newPassword, _.newPassword.map(_.encrypt(algorithm, key)))
       .transform
   }
   object Update {
@@ -94,17 +94,13 @@ object UserCommandEvent {
       correlationID:     CorrelationID
     ) extends UserCommandEvent {
 
-      def decrypt(implicit
+      def decrypt(
         algorithm: SensitiveData.Algorithm,
         key:       SensitiveData.Key
       ): DeserializationResult[Update] = this
         .intoF[DeserializationResult, Update]
-        .withFieldComputedF(_.newUsername,
-                            _.newUsername.traverse(SensitiveData.decryptionTransformer[User.Name].transform)
-        )
-        .withFieldComputedF(_.newPassword,
-                            _.newPassword.traverse(SensitiveData.decryptionTransformer[Password].transform)
-        )
+        .withFieldComputedF(_.newUsername, _.newUsername.traverse(_.decrypt(algorithm, key)))
+        .withFieldComputedF(_.newPassword, _.newPassword.traverse(_.decrypt(algorithm, key)))
         .transform
     }
   }

@@ -6,7 +6,6 @@ import enumeratum._
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
-import io.scalaland.chimney._
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
@@ -15,7 +14,7 @@ import scala.util.{ Random, Try }
 
 final case class SensitiveData[A](value: A) {
 
-  def encode(
+  def encrypt(
     algorithm:        SensitiveData.Algorithm,
     key:              SensitiveData.Key
   )(implicit encoder: Encoder[A]): SensitiveData.Encrypted[A] = algorithm.encrypt[A](value, key)
@@ -29,8 +28,8 @@ object SensitiveData {
     def decrypt(
       algorithm:        SensitiveData.Algorithm,
       key:              SensitiveData.Key
-    )(implicit decoder: Decoder[A], schemaFor: SchemaFor[A]): DeserializationResult[A] =
-      algorithm.decrypt[A](this, key)
+    )(implicit decoder: Decoder[A], schemaFor: SchemaFor[A]): DeserializationResult[SensitiveData[A]] =
+      algorithm.decrypt[A](this, key).map(SensitiveData(_))
   }
   object Encrypted {
 
@@ -87,20 +86,6 @@ object SensitiveData {
 
     val values = findValues
   }
-
-  implicit def encryptionTransformer[A](implicit
-    algorithm: Algorithm,
-    key:       Key,
-    encoder:   Encoder[A]
-  ): Transformer[SensitiveData[A], SensitiveData.Encrypted[A]] = _.encode(algorithm, key)
-
-  implicit def decryptionTransformer[A](implicit
-    algorithm: Algorithm,
-    key:       Key,
-    decoder:   Decoder[A],
-    schemaFor: SchemaFor[A]
-  ): TransformerF[DeserializationResult, SensitiveData.Encrypted[A], SensitiveData[A]] =
-    _.decrypt(algorithm, key).map(SensitiveData(_))
 
   implicit def show[A]: Show[A] = Show.wrap(_ => "SENSITIVE DATA")
   implicit def eq[A: Eq]: Eq[SensitiveData[A]] = Eq.by(_.value)
