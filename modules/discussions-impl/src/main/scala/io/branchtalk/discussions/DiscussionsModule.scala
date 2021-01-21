@@ -57,26 +57,45 @@ object DiscussionsModule {
     Logger.getLogger[F].pipe { logger =>
       Resource.make(logger.info("Initialize Discussions writes"))(_ => logger.info("Shut down Discussions writes")) >>
         module.setupWrites[F](domainConfig, registry).map {
-          case WritesInfrastructure(transactor, internalProducer, internalConsumerStream, producer, _, cache) =>
+          case WritesInfrastructure(transactor,
+                                    internalProducer,
+                                    internalConsumerStream,
+                                    producer,
+                                    consumerStream,
+                                    cache
+              ) =>
             val channelWrites:      ChannelWrites[F]      = wire[ChannelWritesImpl[F]]
             val postWrites:         PostWrites[F]         = wire[PostWritesImpl[F]]
             val commentWrites:      CommentWrites[F]      = wire[CommentWritesImpl[F]]
             val subscriptionWrites: SubscriptionWrites[F] = wire[SubscriptionWritesImpl[F]]
 
-            // TODO: split into command handlers and projectors
-
-            val projector: Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList
+            val commandHandler: Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList
               .of(
-                new ChannelProjector[F](transactor),
-                new CommentProjector[F](transactor),
-                new PostProjector[F](transactor),
-                new SubscriptionProjector[F](transactor)
+                wire[ChannelCommandHandler[F]],
+                wire[PostCommandHandler[F]],
+                wire[CommentCommandHandler[F]],
+                wire[SubscriptionCommandHandler[F]]
               )
               .reduce
-            val runProjector: ConsumerStream.AsResource[F] =
-              internalConsumerStream.withCachedPipeToResource(logger, cache)(
-                ConsumerStream.noID.andThen(projector).andThen(producer).andThen(ConsumerStream.produced)
+            val postgresProjector: Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] = NonEmptyList
+              .of(
+                wire[ChannelPostgresProjector[F]],
+                wire[CommentPostgresProjector[F]],
+                wire[PostPostgresProjector[F]],
+                wire[SubscriptionPostgresProjector[F]]
               )
+              .reduce
+            val runProjector: ConsumerStream.AsResource[F] = {
+              val runCommandProjector: ConsumerStream.AsResource[F] =
+                internalConsumerStream.withCachedPipeToResource(logger, cache)(
+                  ConsumerStream.noID.andThen(commandHandler).andThen(producer).andThen(ConsumerStream.produced)
+                )
+              val runPostgresProjector: ConsumerStream.AsResource[F] =
+                consumerStream(domainConfig.consumers("postgres-projection")).withCachedPipeToResource(logger, cache)(
+                  ConsumerStream.noID.andThen(postgresProjector).andThen(ConsumerStream.noID)
+                )
+              ConsumerStream.mergeResources(runCommandProjector, runPostgresProjector)
+            }
 
             wire[DiscussionsWrites[F]]
         }

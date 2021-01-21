@@ -3,13 +3,12 @@ package io.branchtalk.users.writes
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
-import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.events.{ BanCommandEvent, BanEvent, UsersCommandEvent, UsersEvent }
 import io.scalaland.chimney.dsl._
 
-final class BanCommandHandler[F[_]: Sync: MDC] extends Projector[F, UsersCommandEvent, (UUID, UsersEvent)] {
+final class BanCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEvent, (UUID, UsersEvent)] {
 
   private val logger = Logger(getClass)
 

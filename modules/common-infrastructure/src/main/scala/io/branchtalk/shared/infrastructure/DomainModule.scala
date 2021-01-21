@@ -18,7 +18,7 @@ final case class WritesInfrastructure[F[_], Event, InternalEvent](
   internalProducer:       EventBusProducer[F, InternalEvent],
   internalConsumerStream: ConsumerStream[F, InternalEvent],
   producer:               EventBusProducer[F, Event],
-  consumerStream:         ConsumerStream[F, Event],
+  consumerStream:         ConsumerStream.Builder[F, Event],
   cache:                  Cache[F, String, Event]
 )
 final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
@@ -48,7 +48,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
       internalProducer,
       internalConsumerStream(domainConfig.internalConsumer),
       producer,
-      consumerStream(domainConfig.consumers("postgres-projection")),
+      consumerStream,
       cache
     )
 }

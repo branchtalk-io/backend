@@ -3,31 +3,25 @@ package io.branchtalk.discussions.writes
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
-import io.branchtalk.discussions.events.{
-  DiscussionEvent,
-  DiscussionsCommandEvent,
-  SubscriptionCommandEvent,
-  SubscriptionEvent
-}
+import io.branchtalk.discussions.events.{ DiscussionEvent, SubscriptionEvent }
 import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
-import io.scalaland.chimney.dsl._
 
-final class SubscriptionProjector[F[_]: Sync: MDC](transactor: Transactor[F])
-    extends Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] {
+final class SubscriptionPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
+    extends Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
 
   implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
-  override def apply(in: Stream[F, DiscussionsCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect { case DiscussionsCommandEvent.ForSubscription(event) =>
+  override def apply(in: Stream[F, DiscussionEvent]): Stream[F, (UUID, DiscussionEvent)] =
+    in.collect { case DiscussionEvent.ForSubscription(event) =>
       event
     }.evalMap[F, (UUID, SubscriptionEvent)] {
-      case event: SubscriptionCommandEvent.Subscribe   => toSubscribe(event).widen
-      case event: SubscriptionCommandEvent.Unsubscribe => toUnsubscribe(event).widen
+      case event: SubscriptionEvent.Subscribed   => toSubscribe(event).widen
+      case event: SubscriptionEvent.Unsubscribed => toUnsubscribe(event).widen
     }.map { case (key, value) =>
       key -> DiscussionEvent.ForSubscription(value)
     }.handleErrorWith { error =>
@@ -35,7 +29,7 @@ final class SubscriptionProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       Stream.empty
     }
 
-  def toSubscribe(event: SubscriptionCommandEvent.Subscribe): F[(UUID, SubscriptionEvent.Subscribed)] =
+  def toSubscribe(event: SubscriptionEvent.Subscribed): F[(UUID, SubscriptionEvent.Subscribed)] =
     withCorrelationID(event.correlationID) {
       sql"""INSERT INTO subscriptions (
            |  subscriber_id,
@@ -48,16 +42,16 @@ final class SubscriptionProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |ON CONFLICT (subscriber_id) DO
            |UPDATE
            |SET subscriptions_ids = array_distinct(subscriptions.subscriptions_ids || ${event.subscriptions})""".stripMargin.update.run
+        .as(event.subscriberID.uuid -> event)
         .transact(transactor)
-        .as(event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Subscribed])
     }
 
-  def toUnsubscribe(event: SubscriptionCommandEvent.Unsubscribe): F[(UUID, SubscriptionEvent.Unsubscribed)] =
+  def toUnsubscribe(event: SubscriptionEvent.Unsubscribed): F[(UUID, SubscriptionEvent.Unsubscribed)] =
     withCorrelationID(event.correlationID) {
       sql"""UPDATE subscriptions
            |SET subscriptions_ids = array_diff(subscriptions.subscriptions_ids, ${event.subscriptions})
            |WHERE subscriber_id = ${event.subscriberID}""".stripMargin.update.run
+        .as(event.subscriberID.uuid -> event)
         .transact(transactor)
-        .as(event.subscriberID.uuid -> event.transformInto[SubscriptionEvent.Unsubscribed])
     }
 }

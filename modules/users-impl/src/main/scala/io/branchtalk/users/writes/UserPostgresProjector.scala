@@ -12,7 +12,7 @@ import io.branchtalk.users.events.{ UserEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Permission, Permissions, Session, User }
 
-final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
+final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, UsersEvent, (UUID, UsersEvent)] {
 
   private val logger = Logger(getClass)
@@ -34,6 +34,7 @@ final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       Stream.empty
     }
 
+  // scalastyle:off method.length
   def toCreate(encrypted: UserEvent.Created.Encrypted): F[Option[(UUID, UserEvent.Created.Encrypted)]] =
     withCorrelationID(encrypted.correlationID) {
       findKeys(encrypted.id)
@@ -82,11 +83,13 @@ final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                    |  ${sessionType},
                    |  ${sessionPermissions},
                    |  ${event.sessionExpiresAt}
-                   |)""".stripMargin.update.run.as(encrypted.id.uuid -> encrypted)
+                   |)""".stripMargin.update.run
           }
         )
+        .as((encrypted.id.uuid -> encrypted).some)
         .transact(transactor)
     }
+  // scalastyle:on method.length
 
   // scalastyle:off method.length
   def toUpdate(encrypted: UserEvent.Updated.Encrypted): F[Option[(UUID, UserEvent.Updated.Encrypted)]] =
@@ -154,7 +157,7 @@ final class UserProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           sql"""INSERT INTO deleted_users (id, deleted_at)
                |VALUES (${event.id}, ${event.deletedAt})
              ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
-      }.transact(transactor).as(Some(event.id.uuid -> event))
+      }.as((event.id.uuid -> event).some).transact(transactor)
     }
 
   private def findKeys(userID: ID[User]): ConnectionIO[Option[(SensitiveData.Algorithm, SensitiveData.Key)]] =

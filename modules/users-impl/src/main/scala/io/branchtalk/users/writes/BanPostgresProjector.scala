@@ -11,9 +11,8 @@ import io.branchtalk.users.events.{ BanEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.Ban
 import io.branchtalk.users.model.BanProperties.Scope
-import io.scalaland.chimney.dsl._
 
-final class BanProjector[F[_]: Sync: MDC](transactor: Transactor[F])
+final class BanPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, UsersEvent, (UUID, UsersEvent)] {
 
   private val logger = Logger(getClass)
@@ -47,9 +46,8 @@ final class BanProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |  ${banType},
            |  ${banID},
            |  ${event.reason}
-           |)""".stripMargin.update.run
-        .transact(transactor)
-        .as(event.bannedUserID.uuid -> event.transformInto[BanEvent.Banned])
+           |)""".stripMargin.update.run.as(event.bannedUserID.uuid -> event).transact(transactor)
+
     }
 
   def toLift(event: BanEvent.Unbanned): F[(UUID, BanEvent.Unbanned)] =
@@ -65,6 +63,6 @@ final class BanProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           sql"""DELETE FROM bans
                |WHERE user_id  = ${event.bannedUserID}
                |  AND ban_type = $banType""".stripMargin
-      }).update.run.transact(transactor).as(event.bannedUserID.uuid -> event.transformInto[BanEvent.Unbanned])
+      }).update.run.as(event.bannedUserID.uuid -> event).transact(transactor)
     }
 }

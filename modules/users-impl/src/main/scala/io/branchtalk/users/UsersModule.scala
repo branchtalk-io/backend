@@ -66,28 +66,28 @@ object UsersModule {
             val sessionWrites: SessionWrites[F] = wire[SessionWritesImpl[F]]
             val banWrites:     BanWrites[F]     = wire[BanWritesImpl[F]]
 
-            val handler: Projector[F, UsersCommandEvent, (UUID, UsersEvent)] = NonEmptyList
+            val commandHandler: Projector[F, UsersCommandEvent, (UUID, UsersEvent)] = NonEmptyList
               .of(
                 wire[UserCommandHandler[F]],
                 wire[BanCommandHandler[F]]
               )
               .reduce
-            val projector: Projector[F, UsersEvent, (UUID, UsersEvent)] = NonEmptyList
+            val postgresProjector: Projector[F, UsersEvent, (UUID, UsersEvent)] = NonEmptyList
               .of(
-                wire[UserProjector[F]],
-                wire[BanProjector[F]]
+                wire[UserPostgresProjector[F]],
+                wire[BanPostgresProjector[F]]
               )
               .reduce
             val runProjections: Resource[F, F[Unit]] = {
               val runCommandProjector: ConsumerStream.AsResource[F] =
                 internalConsumerStream.withCachedPipeToResource(logger, cache)(
-                  ConsumerStream.noID.andThen(handler).andThen(producer).andThen(ConsumerStream.produced)
+                  ConsumerStream.noID.andThen(commandHandler).andThen(producer).andThen(ConsumerStream.produced)
                 )
-              val runEventProjector: ConsumerStream.AsResource[F] =
-                consumerStream.withCachedPipeToResource(logger, cache)(
-                  ConsumerStream.noID.andThen(projector).andThen(ConsumerStream.noID)
+              val runPostgresProjector: ConsumerStream.AsResource[F] =
+                consumerStream(domainConfig.consumers("postgres-projection")).withCachedPipeToResource(logger, cache)(
+                  ConsumerStream.noID.andThen(postgresProjector).andThen(ConsumerStream.noID)
                 )
-              ConsumerStream.mergeResources(runCommandProjector, runEventProjector)
+              ConsumerStream.mergeResources(runCommandProjector, runPostgresProjector)
             }
 
             val discussionsConsumer: DiscussionsConsumer[F] = wire[DiscussionsConsumer[F]]

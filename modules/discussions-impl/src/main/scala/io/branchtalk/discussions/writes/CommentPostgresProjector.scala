@@ -5,33 +5,32 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
-import io.branchtalk.discussions.events.{ CommentCommandEvent, CommentEvent, DiscussionEvent, DiscussionsCommandEvent }
+import io.branchtalk.discussions.events.{ CommentEvent, DiscussionEvent }
 import io.branchtalk.discussions.infrastructure.DoobieExtensions._
 import io.branchtalk.discussions.model.{ Comment, User, Vote }
 import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.{ ID, UUID }
-import io.scalaland.chimney.dsl._
 
-final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
-    extends Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] {
+final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
+    extends Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
 
   implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
-  override def apply(in: Stream[F, DiscussionsCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect { case DiscussionsCommandEvent.ForComment(event) =>
+  override def apply(in: Stream[F, DiscussionEvent]): Stream[F, (UUID, DiscussionEvent)] =
+    in.collect { case DiscussionEvent.ForComment(event) =>
       event
     }.evalMap[F, (UUID, CommentEvent)] {
-      case event: CommentCommandEvent.Create     => toCreate(event).widen
-      case event: CommentCommandEvent.Update     => toUpdate(event).widen
-      case event: CommentCommandEvent.Delete     => toDelete(event).widen
-      case event: CommentCommandEvent.Restore    => toRestore(event).widen
-      case event: CommentCommandEvent.Upvote     => toUpvote(event).widen
-      case event: CommentCommandEvent.Downvote   => toDownvote(event).widen
-      case event: CommentCommandEvent.RevokeVote => toRevokeVote(event).widen
+      case event: CommentEvent.Created     => toCreate(event).widen
+      case event: CommentEvent.Updated     => toUpdate(event).widen
+      case event: CommentEvent.Deleted     => toDelete(event).widen
+      case event: CommentEvent.Restored    => toRestore(event).widen
+      case event: CommentEvent.Upvoted     => toUpvote(event).widen
+      case event: CommentEvent.Downvoted   => toDownvote(event).widen
+      case event: CommentEvent.VoteRevoked => toRevokeVote(event).widen
     }.map { case (key, value) =>
       key -> DiscussionEvent.ForComment(value)
     }.handleErrorWith { error =>
@@ -39,7 +38,7 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       Stream.empty
     }
 
-  def toCreate(event: CommentCommandEvent.Create): F[(UUID, CommentEvent.Created)] =
+  def toCreate(event: CommentEvent.Created): F[(UUID, CommentEvent.Created)] =
     withCorrelationID(event.correlationID) {
       event.replyTo
         .fold(0.pure[ConnectionIO]) { replyId =>
@@ -78,11 +77,11 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |WHERE id = ${event.replyTo}
                  |""".stripMargin.update.run
         }
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[CommentEvent.Created])
     }
 
-  def toUpdate(event: CommentCommandEvent.Update): F[(UUID, CommentEvent.Updated)] =
+  def toUpdate(event: CommentEvent.Updated): F[(UUID, CommentEvent.Updated)] =
     withCorrelationID(event.correlationID) {
       (NonEmptyList.fromList(
         List(
@@ -92,13 +91,15 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         case Some(updates) =>
           (fr"UPDATE comments SET" ++
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
-            fr"WHERE id = ${event.id}").update.run.transact(transactor).void
+            fr"WHERE id = ${event.id}").update.run.void
         case None =>
-          Sync[F].delay(logger.warn(show"Comment update ignored as it doesn't contain any modification:\n$event"))
-      }).as(event.id.uuid -> event.transformInto[CommentEvent.Updated])
+          Sync[ConnectionIO].delay(
+            logger.warn(show"Comment update ignored as it doesn't contain any modification:\n$event")
+          )
+      }).as(event.id.uuid -> event).transact(transactor)
     }
 
-  def toDelete(event: CommentCommandEvent.Delete): F[(UUID, CommentEvent.Deleted)] =
+  def toDelete(event: CommentEvent.Deleted): F[(UUID, CommentEvent.Deleted)] =
     withCorrelationID(event.correlationID) {
       (sql"UPDATE comments SET deleted = TRUE WHERE id = ${event.id}".update.run >>
         sql"""UPDATE posts
@@ -110,12 +111,10 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
              |SET replies_nr = replies_nr - 1
              |FROM (SELECT reply_to FROM comments WHERE id = ${event.id}) as subquery
              |WHERE id = subquery.reply_to
-             |""".stripMargin.update.run)
-        .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[CommentEvent.Deleted])
+             |""".stripMargin.update.run).as(event.id.uuid -> event).transact(transactor)
     }
 
-  def toRestore(event: CommentCommandEvent.Restore): F[(UUID, CommentEvent.Restored)] =
+  def toRestore(event: CommentEvent.Restored): F[(UUID, CommentEvent.Restored)] =
     withCorrelationID(event.correlationID) {
       (sql"UPDATE comments SET deleted = FALSE WHERE id = ${event.id}".update.run >>
         sql"""UPDATE posts
@@ -127,9 +126,7 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
              |SET replies_nr = replies_nr + 1
              |FROM (SELECT reply_to FROM comments WHERE id = ${event.id}) as subquery
              |WHERE id = subquery.reply_to
-             |""".stripMargin.update.run)
-        .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[CommentEvent.Restored])
+             |""".stripMargin.update.run).as(event.id.uuid -> event).transact(transactor)
     }
 
   private def fetchVote(commentID: ID[Comment], voterID: ID[User]) =
@@ -149,7 +146,7 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           |FROM nw
           |WHERE id = ${commentID}""".stripMargin).update.run
 
-  def toUpvote(event: CommentCommandEvent.Upvote): F[(UUID, CommentEvent.Upvoted)] =
+  def toUpvote(event: CommentEvent.Upvoted): F[(UUID, CommentEvent.Upvoted)] =
     withCorrelationID(event.correlationID) {
       fetchVote(event.id, event.voterID)
         .flatMap {
@@ -176,11 +173,11 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |)""".stripMargin.update.run >>
               updateCommentVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr").void
         }
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[CommentEvent.Upvoted])
     }
 
-  def toDownvote(event: CommentCommandEvent.Downvote): F[(UUID, CommentEvent.Downvoted)] =
+  def toDownvote(event: CommentEvent.Downvoted): F[(UUID, CommentEvent.Downvoted)] =
     withCorrelationID(event.correlationID) {
       fetchVote(event.id, event.voterID)
         .flatMap {
@@ -207,11 +204,11 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |)""".stripMargin.update.run >>
               updateCommentVotes(event.id, fr"upvotes_nr", fr"downvotes_nr + 1").void
         }
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[CommentEvent.Downvoted])
     }
 
-  def toRevokeVote(event: CommentCommandEvent.RevokeVote): F[(UUID, CommentEvent.VoteRevoked)] =
+  def toRevokeVote(event: CommentEvent.VoteRevoked): F[(UUID, CommentEvent.VoteRevoked)] =
     withCorrelationID(event.correlationID) {
       fetchVote(event.id, event.voterID)
         .flatMap {
@@ -231,7 +228,7 @@ final class CommentProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             // do nothing - vote doesn't exist
             ().pure[ConnectionIO]
         }
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[CommentEvent.VoteRevoked])
     }
 }

@@ -5,33 +5,32 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
-import io.branchtalk.discussions.events.{ DiscussionEvent, DiscussionsCommandEvent, PostCommandEvent, PostEvent }
+import io.branchtalk.discussions.events.{ DiscussionEvent, PostEvent }
 import io.branchtalk.discussions.infrastructure.DoobieExtensions._
 import io.branchtalk.discussions.model.{ Post, User, Vote }
 import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.{ ID, UUID }
-import io.scalaland.chimney.dsl._
 
-final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
-    extends Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] {
+final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
+    extends Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
 
   implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
-  override def apply(in: Stream[F, DiscussionsCommandEvent]): Stream[F, (UUID, DiscussionEvent)] =
-    in.collect { case DiscussionsCommandEvent.ForPost(event) =>
+  override def apply(in: Stream[F, DiscussionEvent]): Stream[F, (UUID, DiscussionEvent)] =
+    in.collect { case DiscussionEvent.ForPost(event) =>
       event
     }.evalMap[F, (UUID, PostEvent)] {
-      case event: PostCommandEvent.Create     => toCreate(event).widen
-      case event: PostCommandEvent.Update     => toUpdate(event).widen
-      case event: PostCommandEvent.Delete     => toDelete(event).widen
-      case event: PostCommandEvent.Restore    => toRestore(event).widen
-      case event: PostCommandEvent.Upvote     => toUpvote(event).widen
-      case event: PostCommandEvent.Downvote   => toDownvote(event).widen
-      case event: PostCommandEvent.RevokeVote => toRevokeVote(event).widen
+      case event: PostEvent.Created     => toCreate(event).widen
+      case event: PostEvent.Updated     => toUpdate(event).widen
+      case event: PostEvent.Deleted     => toDelete(event).widen
+      case event: PostEvent.Restored    => toRestore(event).widen
+      case event: PostEvent.Upvoted     => toUpvote(event).widen
+      case event: PostEvent.Downvoted   => toDownvote(event).widen
+      case event: PostEvent.VoteRevoked => toRevokeVote(event).widen
     }.map { case (key, value) =>
       key -> DiscussionEvent.ForPost(value)
     }.handleErrorWith { error =>
@@ -39,7 +38,7 @@ final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       Stream.empty
     }
 
-  def toCreate(event: PostCommandEvent.Create): F[(UUID, PostEvent.Created)] =
+  def toCreate(event: PostEvent.Created): F[(UUID, PostEvent.Created)] =
     withCorrelationID(event.correlationID) {
       val Post.Content.Tupled(contentType, contentRaw) = event.content
       sql"""INSERT INTO posts (
@@ -62,12 +61,10 @@ final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |  ${contentRaw},
            |  ${event.createdAt}
            |)
-           |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
-        .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[PostEvent.Created])
+           |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.as(event.id.uuid -> event).transact(transactor)
     }
 
-  def toUpdate(event: PostCommandEvent.Update): F[(UUID, PostEvent.Updated)] =
+  def toUpdate(event: PostEvent.Updated): F[(UUID, PostEvent.Updated)] =
     withCorrelationID(event.correlationID) {
       val contentTupled = event.newContent.map(Post.Content.Tupled.unpack)
       (NonEmptyList.fromList(
@@ -81,24 +78,26 @@ final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         case Some(updates) =>
           (fr"UPDATE posts SET" ++
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
-            fr"WHERE id = ${event.id}").update.run.transact(transactor).void
+            fr"WHERE id = ${event.id}").update.run.void
         case None =>
-          Sync[F].delay(logger.warn(show"Post update ignored as it doesn't contain any modification:\n$event"))
-      }).as(event.id.uuid -> event.transformInto[PostEvent.Updated])
+          Sync[ConnectionIO].delay(
+            logger.warn(show"Post update ignored as it doesn't contain any modification:\n$event")
+          )
+      }).as(event.id.uuid -> event).transact(transactor)
     }
 
-  def toDelete(event: PostCommandEvent.Delete): F[(UUID, PostEvent.Deleted)] =
+  def toDelete(event: PostEvent.Deleted): F[(UUID, PostEvent.Deleted)] =
     withCorrelationID(event.correlationID) {
       sql"UPDATE posts SET deleted = TRUE WHERE id = ${event.id}".update.run
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[PostEvent.Deleted])
     }
 
-  def toRestore(event: PostCommandEvent.Restore): F[(UUID, PostEvent.Restored)] =
+  def toRestore(event: PostEvent.Restored): F[(UUID, PostEvent.Restored)] =
     withCorrelationID(event.correlationID) {
       sql"UPDATE posts SET deleted = FALSE WHERE id = ${event.id}".update.run
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[PostEvent.Restored])
     }
 
   private def fetchVote(postID: ID[Post], voterID: ID[User]) =
@@ -116,7 +115,7 @@ final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           |FROM nw
           |WHERE id = ${postID}""".stripMargin).update.run
 
-  def toUpvote(event: PostCommandEvent.Upvote): F[(UUID, PostEvent.Upvoted)] =
+  def toUpvote(event: PostEvent.Upvoted): F[(UUID, PostEvent.Upvoted)] =
     withCorrelationID(event.correlationID) {
       fetchVote(event.id, event.voterID)
         .flatMap {
@@ -143,11 +142,11 @@ final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |)""".stripMargin.update.run >>
               updatePostVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr").void
         }
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[PostEvent.Upvoted])
     }
 
-  def toDownvote(event: PostCommandEvent.Downvote): F[(UUID, PostEvent.Downvoted)] =
+  def toDownvote(event: PostEvent.Downvoted): F[(UUID, PostEvent.Downvoted)] =
     withCorrelationID(event.correlationID) {
       fetchVote(event.id, event.voterID)
         .flatMap {
@@ -174,11 +173,11 @@ final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |)""".stripMargin.update.run >>
               updatePostVotes(event.id, fr"upvotes_nr", fr"downvotes_nr + 1").void
         }
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[PostEvent.Downvoted])
     }
 
-  def toRevokeVote(event: PostCommandEvent.RevokeVote): F[(UUID, PostEvent.VoteRevoked)] =
+  def toRevokeVote(event: PostEvent.VoteRevoked): F[(UUID, PostEvent.VoteRevoked)] =
     withCorrelationID(event.correlationID) {
       fetchVote(event.id, event.voterID)
         .flatMap {
@@ -198,7 +197,7 @@ final class PostProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             // do nothing - vote doesn't exist
             ().pure[ConnectionIO]
         }
+        .as(event.id.uuid -> event)
         .transact(transactor)
-        .as(event.id.uuid -> event.transformInto[PostEvent.VoteRevoked])
     }
 }
