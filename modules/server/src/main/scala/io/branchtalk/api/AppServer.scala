@@ -94,6 +94,7 @@ object AppServer {
     registry:               CollectorRegistry,
     userReads:              UserReads[F],
     sessionReads:           SessionReads[F],
+    banReads:               BanReads[F],
     userWrites:             UserWrites[F],
     sessionWrites:          SessionWrites[F],
     channelReads:           ChannelReads[F],

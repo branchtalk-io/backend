@@ -93,6 +93,7 @@ object Program {
           registry = registry,
           userReads = usersReads.userReads,
           sessionReads = usersReads.sessionReads,
+          banReads = usersReads.banReads,
           userWrites = usersWrites.userWrites,
           sessionWrites = usersWrites.sessionWrites,
           channelReads = discussionsReads.channelReads,
