@@ -138,4 +138,14 @@ object UserModels {
   @Semi(JsCodec) final case class RevokeModerationRequest(id: ID[User])
 
   @Semi(JsCodec) final case class RevokeModerationResponse(id: ID[User])
+
+  @Semi(JsCodec) final case class BansResponse(id: List[ID[User]])
+
+  @Semi(JsCodec) final case class BanOrderRequest(id: ID[User])
+
+  @Semi(JsCodec) final case class BanOrderResponse(id: ID[User])
+
+  @Semi(JsCodec) final case class BanLiftRequest(id: ID[User])
+
+  @Semi(JsCodec) final case class BanLiftResponse(id: ID[User])
 }

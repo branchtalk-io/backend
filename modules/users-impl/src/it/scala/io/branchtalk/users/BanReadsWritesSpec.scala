@@ -3,6 +3,7 @@ package io.branchtalk.users
 import cats.syntax.eq._
 import io.branchtalk.shared.model.TestUUIDGenerator
 import io.branchtalk.users.model.Ban
+import io.branchtalk.users.model.BanProperties.Scope
 import io.scalaland.chimney.dsl._
 import org.specs2.mutable.Specification
 
@@ -27,6 +28,7 @@ final class BanReadsWritesSpec extends Specification with UsersIOTest with Users
           .findForUser(userID)
           .assert("Ban orders should be eventually executed")(_.size eqv 2)
           .eventually()
+        channelBansExecuted <- usersReads.banReads.findForChannel(channelID)
         _ <- liftBanData.traverse(usersWrites.banWrites.liftBan)
         bansLifted <- usersReads.banReads
           .findForUser(userID)
@@ -35,6 +37,12 @@ final class BanReadsWritesSpec extends Specification with UsersIOTest with Users
       } yield {
         // then
         bansExecuted must_=== expectedBans.toSet
+        channelBansExecuted must_=== expectedBans
+          .filter(_.scope match {
+            case Scope.ForChannel(_) => true
+            case Scope.Globally      => false
+          })
+          .toSet
         bansLifted must beEmpty
       }
     }
