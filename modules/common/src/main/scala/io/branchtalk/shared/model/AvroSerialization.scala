@@ -2,17 +2,19 @@ package io.branchtalk.shared.model
 
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 
+import cats.{ Eq, Show }
 import cats.effect.{ IO, Resource, Sync }
 import com.sksamuel.avro4s._
 import io.branchtalk.ADT
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
+import io.scalaland.catnip.Semi
 import io.scalaland.chimney.TransformerFSupport
 
 import scala.collection.compat.Factory
+import scala.util.{ Failure, Success }
 
-sealed trait DeserializationError extends ADT
+@Semi(FastEq, ShowPretty) sealed trait DeserializationError extends ADT
 object DeserializationError {
-  case object NoAvroMessage extends DeserializationError
   final case class DecodingError(badValue: String, error: Throwable) extends DeserializationError
 
   implicit val eitherTransformerSupport: TransformerFSupport[DeserializationResult] =
@@ -31,6 +33,9 @@ object DeserializationError {
         fac:                             Factory[B, M]
       ): DeserializationResult[M] = it.toList.traverse(f).map(fac.fromSpecific)
     }
+
+  implicit private def showThrowable: Show[Throwable] = _.getMessage
+  implicit private def eqThrowable:   Eq[Throwable]   = _.getMessage === _.getMessage
 }
 
 object AvroSerialization {
@@ -50,16 +55,21 @@ object AvroSerialization {
       }
     }
 
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   def deserialize[F[_]: Sync, A: Decoder: SchemaFor](arr: Array[Byte]): F[DeserializationResult[A]] =
     Resource.fromAutoCloseable(Sync[F].delay(new ByteArrayInputStream(arr))).use { bais =>
       Sync[F]
         .delay {
-          AvroInputStream.json[A].from(bais).build(SchemaFor[A].schema).iterator.nextOption() match {
-            case Some(value) =>
+          AvroInputStream
+            .json[A]
+            .from(bais)
+            .build(SchemaFor[A].schema)
+            .asInstanceOf[AvroJsonInputStream[A]]
+            .singleEntity match {
+            case Success(value) =>
               value.asRight[DeserializationError]
-            case None =>
-              logger.error(s"No Avro message to deserialize for '${new String(arr, branchtalkCharset)}'")
-              DeserializationError.NoAvroMessage.asLeft[A]
+            case Failure(error) =>
+              DeserializationError.DecodingError("Failed to extract Avro message", error).asLeft[A]
           }
         }
         .handleError { error: Throwable =>

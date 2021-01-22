@@ -72,7 +72,7 @@ final class UserWritesImpl[F[_]: Sync: Timer: MDC](
              |  $id,
              |  $key,
              |  $algorithm
-             |)""".stripMargin.update.run.transact(transactor).as(algorithm -> key)
+             |)""".stripMargin.update.run.as(algorithm -> key).transact(transactor)
       }
       sessionID <- ID.create[F, Session]
       now <- CreationTime.now[F]

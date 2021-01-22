@@ -40,8 +40,8 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       findKeys(encrypted.id)
         .flatMap(
           _.traverse { case (algorithm, key) =>
-            @SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.ToString"))
-            val event = encrypted.decrypt(algorithm, key).fold(e => throw new Exception(e.toString), identity)
+            @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+            val event = encrypted.decrypt(algorithm, key).fold(e => throw new Exception(e.show), identity)
 
             val Session.Usage.Tupled(sessionType, sessionPermissions) = Session.Usage.UserSession
 
@@ -97,8 +97,8 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       findKeys(encrypted.id)
         .flatMap(
           _.traverse { case (algorithm, key) =>
-            @SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.ToString"))
-            val event = encrypted.decrypt(algorithm, key).fold(e => throw new Exception(e.toString), identity)
+            @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+            val event = encrypted.decrypt(algorithm, key).fold(e => throw new Exception(e.show), identity)
             import event._
 
             val defaultPermissions   = Permissions.empty

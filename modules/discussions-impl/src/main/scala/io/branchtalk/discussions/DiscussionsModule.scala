@@ -34,6 +34,9 @@ object DiscussionsModule {
 
   private val module = DomainModule[DiscussionEvent, DiscussionsCommandEvent]
 
+  // same as in discussions.conf
+  val postgresProjectionName = "postgres-projection"
+
   def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
     domainConfig: DomainConfig,
     registry:     CollectorRegistry
@@ -91,7 +94,7 @@ object DiscussionsModule {
                   ConsumerStream.noID.andThen(commandHandler).andThen(producer).andThen(ConsumerStream.produced)
                 )
               val runPostgresProjector: ConsumerStream.AsResource[F] =
-                consumerStream(domainConfig.consumers("postgres-projection")).withCachedPipeToResource(logger, cache)(
+                consumerStream(domainConfig.consumers(postgresProjectionName)).withCachedPipeToResource(logger, cache)(
                   ConsumerStream.noID.andThen(postgresProjector).andThen(ConsumerStream.noID)
                 )
               ConsumerStream.mergeResources(runCommandProjector, runPostgresProjector)
