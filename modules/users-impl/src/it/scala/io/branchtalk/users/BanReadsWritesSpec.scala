@@ -29,6 +29,7 @@ final class BanReadsWritesSpec extends Specification with UsersIOTest with Users
           .assert("Ban orders should be eventually executed")(_.size eqv 2)
           .eventually()
         channelBansExecuted <- usersReads.banReads.findForChannel(channelID)
+        globalBansExecuted <- usersReads.banReads.findGlobally
         _ <- liftBanData.traverse(usersWrites.banWrites.liftBan)
         bansLifted <- usersReads.banReads
           .findForUser(userID)
@@ -41,6 +42,12 @@ final class BanReadsWritesSpec extends Specification with UsersIOTest with Users
           .filter(_.scope match {
             case Scope.ForChannel(_) => true
             case Scope.Globally      => false
+          })
+          .toSet
+        globalBansExecuted must_=== expectedBans
+          .filter(_.scope match {
+            case Scope.ForChannel(_) => false
+            case Scope.Globally      => true
           })
           .toSet
         bansLifted must beEmpty

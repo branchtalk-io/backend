@@ -7,6 +7,7 @@ import com.github.plokhotnyuk.jsoniter_scala.macros._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
+import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.ADT
 import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.api.TapirSupport._
@@ -36,6 +37,8 @@ object UserModels {
     summonCodec[Set[Permission]](JsonCodecMaker.make).asNewtype[Permissions]
   implicit val sessionExpirationCodec: JsCodec[Session.ExpirationTime] =
     summonCodec[OffsetDateTime](JsonCodecMaker.make).asNewtype[Session.ExpirationTime]
+  implicit val banReasonCodec: JsCodec[Ban.Reason] =
+    summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Ban.Reason]
 
   // properties schemas
   implicit val userEmailSchema: Schema[User.Email] =
@@ -50,6 +53,8 @@ object UserModels {
     summonSchema[Set[Permission]].asNewtype[Permissions]
   implicit val sessionExpirationSchema: Schema[Session.ExpirationTime] =
     summonSchema[OffsetDateTime].asNewtype[Session.ExpirationTime]
+  implicit val banReasoSchema: Schema[Ban.Reason] =
+    summonSchema[NonEmptyString].asNewtype[Ban.Reason]
 
   @Semi(JsCodec) sealed trait UserError extends ADT
   object UserError {
@@ -141,7 +146,7 @@ object UserModels {
 
   @Semi(JsCodec) final case class BansResponse(id: List[ID[User]])
 
-  @Semi(JsCodec) final case class BanOrderRequest(id: ID[User])
+  @Semi(JsCodec) final case class BanOrderRequest(id: ID[User], reason: Ban.Reason)
 
   @Semi(JsCodec) final case class BanOrderResponse(id: ID[User])
 

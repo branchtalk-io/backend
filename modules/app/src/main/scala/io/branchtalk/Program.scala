@@ -96,6 +96,7 @@ object Program {
           banReads = usersReads.banReads,
           userWrites = usersWrites.userWrites,
           sessionWrites = usersWrites.sessionWrites,
+          banWrites = usersWrites.banWrites,
           channelReads = discussionsReads.channelReads,
           postReads = discussionsReads.postReads,
           commentReads = discussionsReads.commentReads,

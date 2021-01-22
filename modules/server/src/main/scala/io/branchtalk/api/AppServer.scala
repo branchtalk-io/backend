@@ -12,7 +12,13 @@ import io.branchtalk.discussions.writes._
 import io.branchtalk.logging.MDC
 import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.shared.model.UUIDGenerator
-import io.branchtalk.users.api.{ ChannelModerationServer, UserModerationServer, UserServer }
+import io.branchtalk.users.api.{
+  ChannelBanServer,
+  ChannelModerationServer,
+  UserBanServer,
+  UserModerationServer,
+  UserServer
+}
 import io.branchtalk.users.reads._
 import io.branchtalk.users.writes._
 import io.prometheus.client.CollectorRegistry
@@ -97,6 +103,7 @@ object AppServer {
     banReads:               BanReads[F],
     userWrites:             UserWrites[F],
     sessionWrites:          SessionWrites[F],
+    banWrites:              BanWrites[F],
     channelReads:           ChannelReads[F],
     postReads:              PostReads[F],
     commentReads:           CommentReads[F],
@@ -125,6 +132,8 @@ object AppServer {
         val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Users)
         wire[ChannelModerationServer[F]]
       }
+      val userBanServer:    UserBanServer[F]    = wire[UserBanServer[F]]
+      val channelBanServer: ChannelBanServer[F] = wire[ChannelBanServer[F]]
       val channelServer: ChannelServer[F] = {
         val paginationConfig: PaginationConfig = apiConfig.safePagination(APIPart.Channels)
         wire[ChannelServer[F]]
@@ -149,6 +158,8 @@ object AppServer {
               usersServer.endpoints,
               userModerationServer.endpoints,
               channelModerationServer.endpoints,
+              userBanServer.endpoints,
+              channelBanServer.endpoints,
               channelServer.endpoints,
               postServer.endpoints,
               commentServer.endpoints,

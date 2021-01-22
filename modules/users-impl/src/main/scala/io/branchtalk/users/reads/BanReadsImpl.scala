@@ -12,6 +12,7 @@ final class BanReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends BanReads
   implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val channelBan: Ban.Scope.Type = Ban.Scope.Type.ForChannel
+  private val globalBan:  Ban.Scope.Type = Ban.Scope.Type.Globally
 
   private val commonSelect: Fragment =
     fr"""SELECT user_id,
@@ -29,4 +30,7 @@ final class BanReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends BanReads
       .map(_.toDomain)
       .to[Set]
       .transact(transactor)
+
+  override def findGlobally: F[Set[Ban]] =
+    (commonSelect ++ whereAnd(fr"ban_type = $globalBan")).query[BanDao].map(_.toDomain).to[Set].transact(transactor)
 }

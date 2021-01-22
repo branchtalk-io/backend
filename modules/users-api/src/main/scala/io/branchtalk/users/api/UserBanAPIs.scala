@@ -7,6 +7,7 @@ import io.branchtalk.users.api.UserModels._
 import sttp.model.StatusCode
 import sttp.tapir._
 
+// TODO: test endpoints
 object UserBanAPIs {
 
   private val prefix = "users" / "bans"
@@ -18,6 +19,7 @@ object UserBanAPIs {
     statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
+  // consider turning it into pagination if
   val list: AuthedEndpoint[Authentication, UserError, BansResponse, Any] = endpoint
     .name("Fetch banned globally")
     .summary("Fetches list of all Users banned globally")
