@@ -9,7 +9,6 @@ import io.branchtalk.users.model.Channel
 import sttp.model.StatusCode
 import sttp.tapir._
 
-// TODO: test endpoints
 object ChannelBanAPIs {
 
   private val prefix = "discussions" / "channels" / path[ID[Channel]].name("channelID") / "bans"

@@ -144,7 +144,7 @@ object UserModels {
 
   @Semi(JsCodec) final case class RevokeModerationResponse(id: ID[User])
 
-  @Semi(JsCodec) final case class BansResponse(id: List[ID[User]])
+  @Semi(JsCodec) final case class BansResponse(bannedIDs: List[ID[User]])
 
   @Semi(JsCodec) final case class BanOrderRequest(id: ID[User], reason: Ban.Reason)
 

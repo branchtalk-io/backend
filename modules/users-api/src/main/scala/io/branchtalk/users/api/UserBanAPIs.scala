@@ -7,7 +7,6 @@ import io.branchtalk.users.api.UserModels._
 import sttp.model.StatusCode
 import sttp.tapir._
 
-// TODO: test endpoints
 object UserBanAPIs {
 
   private val prefix = "users" / "bans"

@@ -44,7 +44,6 @@ final class UserBanServerSpec extends Specification with ServerIOTest with Users
           Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
           BanOrderRequest(bannedUserID, reason)
         )
-        _ = println(response)
         bans <- usersReads.banReads
           .findForUser(bannedUserID)
           .assert("User should be eventually banned")(_.nonEmpty)
