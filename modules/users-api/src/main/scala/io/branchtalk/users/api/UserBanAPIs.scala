@@ -19,7 +19,7 @@ object UserBanAPIs {
     statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
-  // consider turning it into pagination if
+  // consider turning it into pagination
   val list: AuthedEndpoint[Authentication, UserError, BansResponse, Any] = endpoint
     .name("Fetch banned globally")
     .summary("Fetches list of all Users banned globally")

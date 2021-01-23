@@ -21,7 +21,7 @@ object ChannelBanAPIs {
     statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
-  // consider turning it into pagination if
+  // consider turning it into pagination
   val list: AuthedEndpoint[(Authentication, ID[Channel]), UserError, BansResponse, Any] = endpoint
     .name("Fetch banned from Channel")
     .summary("Fetches list of all Users banned from the Channel")
