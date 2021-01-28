@@ -25,9 +25,7 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   protected lazy val serverResource: Resource[IO, Unit] = for {
     _ <- UsersModule
       .listenToUsers(usersCfg)(discussionsReads.discussionEventConsumer, usersWrites.runDiscussionsConsumer)
-      .flatMap { usersDiscussionsConsumer =>
-        Resource.liftF(usersDiscussionsConsumer.logError("Error reported by Users' Discussions projector").start)
-      }
+      .asFiberResource
     (appArguments, apiConfig) <- TestApiConfigs.asResource[IO]
     _ <- AppServer
       .asResource[IO](

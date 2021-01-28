@@ -18,7 +18,7 @@ final case class DiscussionsReads[F[_]](
   postReads:               PostReads[F],
   commentReads:            CommentReads[F],
   subscriptionReads:       SubscriptionReads[F],
-  discussionEventConsumer: ConsumerStream.Builder[F, DiscussionEvent]
+  discussionEventConsumer: ConsumerStream.Factory[F, DiscussionEvent]
 )
 
 final case class DiscussionsWrites[F[_]](
@@ -26,7 +26,7 @@ final case class DiscussionsWrites[F[_]](
   postWrites:         PostWrites[F],
   channelWrites:      ChannelWrites[F],
   subscriptionWrites: SubscriptionWrites[F],
-  runProjector:       ConsumerStream.AsResource[F]
+  runProjecions:      StreamRunner[F]
 )
 
 @nowarn("cat=unused") // macwire
@@ -88,16 +88,16 @@ object DiscussionsModule {
                 wire[SubscriptionPostgresProjector[F]]
               )
               .reduce
-            val runProjector: ConsumerStream.AsResource[F] = {
-              val runCommandProjector: ConsumerStream.AsResource[F] =
-                internalConsumerStream.withCachedPipeToResource(logger, cache)(
+            val runProjector: StreamRunner[F] = {
+              val runCommandProjector: StreamRunner[F] =
+                internalConsumerStream.runCachedThrough(logger, cache)(
                   ConsumerStream.noID.andThen(commandHandler).andThen(producer).andThen(ConsumerStream.produced)
                 )
-              val runPostgresProjector: ConsumerStream.AsResource[F] =
-                consumerStream(domainConfig.consumers(postgresProjectionName)).withCachedPipeToResource(logger, cache)(
+              val runPostgresProjector: StreamRunner[F] =
+                consumerStream(domainConfig.consumers(postgresProjectionName)).runCachedThrough(logger, cache)(
                   ConsumerStream.noID.andThen(postgresProjector).andThen(ConsumerStream.noID)
                 )
-              ConsumerStream.mergeResources(runCommandProjector, runPostgresProjector)
+              runCommandProjector |+| runPostgresProjector
             }
 
             wire[DiscussionsWrites[F]]

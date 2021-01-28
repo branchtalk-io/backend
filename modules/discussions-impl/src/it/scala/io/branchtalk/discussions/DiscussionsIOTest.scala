@@ -18,9 +18,7 @@ trait DiscussionsIOTest extends IOTest with ResourcefulTest {
     _ <- TestDiscussionsConfig.loadDomainConfig[IO].map(discussionsCfg = _)
     _ <- DiscussionsModule.reads[IO](discussionsCfg, registry).map(discussionsReads = _)
     _ <- DiscussionsModule.writes[IO](discussionsCfg, registry).map(discussionsWrites = _)
-    _ <- discussionsWrites.runProjector.flatMap { discussionsProjector =>
-      Resource.liftF(discussionsProjector.logError("Error reported by Discussions projector").start)
-    }
+    _ <- discussionsWrites.runProjecions.asFiberResource
   } yield ()
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> discussionsResource

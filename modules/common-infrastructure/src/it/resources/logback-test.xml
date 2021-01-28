@@ -36,6 +36,7 @@
   <logger name="com.zaxxer.hikari" level="off"/>
 
   <!-- suppress Kafka logs -->
+  <logger name="fs2.kafka" level="off"/>
   <logger name="org.apache.kafka.clients" level="off"/>
   <logger name="org.apache.kafka.clients.admin" level="off"/>
   <logger name="org.apache.kafka.clients.consumer" level="off"/>

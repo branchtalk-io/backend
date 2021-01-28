@@ -1,7 +1,8 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Sync, Timer }
-import cats.effect.implicits._
+import cats.Monad
+import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Timer }
+import cats.kernel.Semigroup
 import fs2.{ io => _, _ }
 import fs2.kafka.{ ProducerResult, Serializer }
 import io.branchtalk.shared.model.{ Logger, UUID }
@@ -13,12 +14,12 @@ final class ConsumerStream[F[_], Event](
 
   // Runs pipe (projections) on events and commit them once they are processed.
   // Projections start when you run F[Unit] and stop when you exit Resource.
-  def withPipeToResource[B](
+  def runThrough[B](
     logger: Logger[F]
-  )(f:      Pipe[F, (String, Event), B])(implicit F: Sync[F]): ConsumerStream.AsResource[F] =
-    KillSwitch.asStream[F, F[Unit]] { stream =>
+  )(f:      Pipe[F, (String, Event), B])(implicit F: Concurrent[F]): StreamRunner[F] =
+    KillSwitch.asStream[F] { killSwitchedStream =>
       consumer
-        .zip(stream)
+        .zip(killSwitchedStream)
         .flatMap { case (event, _) =>
           Stream(s"${event.record.topic}:${event.record.offset.toString}" -> event.record.value)
             .evalTap(_ => logger.info(s"Processing event key = ${event.record.key.toString}"))
@@ -27,25 +28,23 @@ final class ConsumerStream[F[_], Event](
         }
         .through(committer)
         .compile
-        .drain
+        .drain >> logger.info(s"Stream ended naturally")
     }
 
   // Same as above but with cached results of each operation.
-  def withCachedPipeToResource[B](
+  def runCachedThrough[B](
     logger: Logger[F],
     cache:  Cache[F, String, B]
-  )(f:      Pipe[F, (String, Event), B])(implicit F: Sync[F]): ConsumerStream.AsResource[F] =
-    withPipeToResource(logger)(cache.piped(_._1, f))
+  )(f:      Pipe[F, (String, Event), B])(implicit F: Concurrent[F]): StreamRunner[F] =
+    runThrough(logger)(cache.piped(_._1, f))
 }
 object ConsumerStream {
 
-  type AsResource[F[_]]     = Resource[F, F[Unit]]
-  type Builder[F[_], Event] = KafkaEventConsumerConfig => ConsumerStream[F, Event]
-  type Runner[F[_], Event]  = ConsumerStream[F, Event] => AsResource[F]
+  type Factory[F[_], Event] = KafkaEventConsumerConfig => ConsumerStream[F, Event]
 
   def fromConfigs[F[_]: ConcurrentEffect: ContextShift: Timer, Event: Serializer[F, *]: SafeDeserializer[F, *]](
     busConfig: KafkaEventBusConfig
-  ): Builder[F, Event] =
+  ): Factory[F, Event] =
     consumerCfg =>
       new ConsumerStream(
         consumer = KafkaEventBus.consumer[F, Event](busConfig, consumerCfg),
@@ -56,14 +55,13 @@ object ConsumerStream {
 
   def produced[F[_], A]: Pipe[F, ProducerResult[UUID, A, Unit], A] =
     _.flatMap(pr => Stream(pr.records.map(_._1.value).toList: _*))
+}
 
-  def mergeResources[F[_]: Concurrent](a: AsResource[F], b: AsResource[F]): AsResource[F] =
-    (a, b).tupled.map { case (left, right) =>
-      for {
-        lf <- left.start
-        rf <- right.start
-        _ <- lf.join
-        _ <- rf.join
-      } yield ()
-    }
+final case class StreamRunner[F[_]](asFiberResource: Resource[F, Unit])
+object StreamRunner {
+
+  type FromConsumerStream[F[_], Event] = ConsumerStream[F, Event] => StreamRunner[F]
+
+  implicit def semigroup[F[_]: Monad]: Semigroup[StreamRunner[F]] =
+    (a, b) => StreamRunner(a.asFiberResource >> b.asFiberResource)
 }

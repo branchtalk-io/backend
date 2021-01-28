@@ -24,8 +24,8 @@ final case class UsersWrites[F[_]](
   userWrites:             UserWrites[F],
   sessionWrites:          SessionWrites[F],
   banWrites:              BanWrites[F],
-  runProjections:         ConsumerStream.AsResource[F],
-  runDiscussionsConsumer: ConsumerStream.Runner[F, DiscussionEvent]
+  runProjections:         StreamRunner[F],
+  runDiscussionsConsumer: StreamRunner.FromConsumerStream[F, DiscussionEvent]
 )
 @nowarn("cat=unused") // macwire
 object UsersModule {
@@ -82,21 +82,21 @@ object UsersModule {
                 wire[BanPostgresProjector[F]]
               )
               .reduce
-            val runProjections: Resource[F, F[Unit]] = {
-              val runCommandProjector: ConsumerStream.AsResource[F] =
-                internalConsumerStream.withCachedPipeToResource(logger, cache)(
+            val runProjections: StreamRunner[F] = {
+              val runCommandProjector: StreamRunner[F] =
+                internalConsumerStream.runCachedThrough(logger, cache)(
                   ConsumerStream.noID.andThen(commandHandler).andThen(producer).andThen(ConsumerStream.produced)
                 )
-              val runPostgresProjector: ConsumerStream.AsResource[F] =
-                consumerStream(domainConfig.consumers(postgresProjectionName)).withCachedPipeToResource(logger, cache)(
+              val runPostgresProjector: StreamRunner[F] =
+                consumerStream(domainConfig.consumers(postgresProjectionName)).runCachedThrough(logger, cache)(
                   ConsumerStream.noID.andThen(postgresProjector).andThen(ConsumerStream.noID)
                 )
-              ConsumerStream.mergeResources(runCommandProjector, runPostgresProjector)
+              runCommandProjector |+| runPostgresProjector
             }
 
             val discussionsConsumer: DiscussionsConsumer[F] = wire[DiscussionsConsumer[F]]
-            val runDiscussionsConsumer: ConsumerStream.Runner[F, DiscussionEvent] =
-              _.withPipeToResource(logger)(
+            val runDiscussionsConsumer: StreamRunner.FromConsumerStream[F, DiscussionEvent] =
+              _.runThrough(logger)(
                 ConsumerStream.noID
                   .andThen(discussionsConsumer)
                   .andThen(internalProducer)
@@ -109,8 +109,8 @@ object UsersModule {
   // scalastyle:on method.length
 
   def listenToUsers[F[_]](domainConfig: DomainConfig)(
-    discussionEventConsumer:            ConsumerStream.Builder[F, DiscussionEvent],
-    runDiscussionsConsumer:             ConsumerStream.Runner[F, DiscussionEvent]
-  ): ConsumerStream.AsResource[F] =
+    discussionEventConsumer:            ConsumerStream.Factory[F, DiscussionEvent],
+    runDiscussionsConsumer:             StreamRunner.FromConsumerStream[F, DiscussionEvent]
+  ): StreamRunner[F] =
     (discussionEventConsumer andThen runDiscussionsConsumer)(domainConfig.consumers(discussionsProjectionName))
 }

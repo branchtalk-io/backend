@@ -1,6 +1,6 @@
 package io.branchtalk
 
-import cats.Applicative
+import cats.{ Functor, Monad }
 import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
 import cats.effect.implicits._
 import com.typesafe.config.ConfigFactory
@@ -9,7 +9,7 @@ import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
 import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.{ ConsumerStream, DomainConfig }
+import io.branchtalk.shared.infrastructure.{ ConsumerStream, DomainConfig, StreamRunner }
 import io.branchtalk.shared.model.{ Logger, UUIDGenerator }
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
@@ -75,16 +75,16 @@ object Program {
     apiConfig:         APIConfig,
     terminationSignal: F[Unit],
     makeUsersDiscussionsConsumer: (
-      ConsumerStream.Builder[F, DiscussionEvent],
-      ConsumerStream.Runner[F, DiscussionEvent]
-    ) => ConsumerStream.AsResource[F]
+      ConsumerStream.Factory[F, DiscussionEvent],
+      StreamRunner.FromConsumerStream[F, DiscussionEvent]
+    ) => StreamRunner[F]
   )(
     registry:          CollectorRegistry,
     usersReads:        UsersReads[F],
     usersWrites:       UsersWrites[F],
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
-  )(implicit logger:   Logger[F]): F[Unit] =
+  )(implicit logger:   Logger[F]): F[Unit] = {
     (
       AppServer
         .asResource(
@@ -107,24 +107,20 @@ object Program {
           subscriptionWrites = discussionsWrites.subscriptionWrites
         )
         .void
-        .conditionally(appArguments.runAPI)(orElse = ()),
-      usersWrites.runProjections.conditionally(condition = appArguments.runUsersProjections)(orElse = ().pure[F]),
-      makeUsersDiscussionsConsumer(
-        discussionsReads.discussionEventConsumer,
-        usersWrites.runDiscussionsConsumer
-      ).conditionally(condition = appArguments.runUsersProjections)(orElse = ().pure[F]),
-      discussionsWrites.runProjector.conditionally(condition = appArguments.runDiscussionsProjections)(orElse =
-        ().pure[F]
+        .conditionally("API server", appArguments.runAPI),
+      // run Users projections on a separate thread
+      usersWrites.runProjections.asFiberResource.conditionally("Users' projections", appArguments.runUsersProjections),
+      // run consumer on a separate thread
+      makeUsersDiscussionsConsumer(discussionsReads.discussionEventConsumer,
+                                   usersWrites.runDiscussionsConsumer
+      ).asFiberResource.conditionally("Users' Discussions consumer", appArguments.runUsersProjections),
+      // run Users projections on a separate thread
+      discussionsWrites.runProjecions.asFiberResource.conditionally("Discussions' projections",
+                                                                    appArguments.runDiscussionsProjections
       )
-    ).tupled.use { case (_, usersProjector, usersDiscussionsConsumer, discussionsProjector) =>
-      logger.info("Start projections if needed") >>
-        usersProjector.start >> // run Users projections on a separate thread
-        usersDiscussionsConsumer.start >> // run consumer on a separate thread
-        discussionsProjector.start >> // run Users projections on a separate thread
-        logger.info("Services initialized") >>
-        terminationSignal >> // here we are blocking until e.g. user press Ctrl+C
-        logger.info("Received exit signal")
-    }
+    ).tupled >> logBeforeAfter[F]("Services initialized", "Received exit signal")
+  }.use(_ => terminationSignal) // here we are blocking until e.g. user press Ctrl+C
+
   // scalastyle:on parameter.number
   // scalastyle:off method.length
 
@@ -137,9 +133,16 @@ object Program {
     handleSignal("INT").race(handleSignal("TERM")).void
   }
 
-  implicit class ResourceOps[F[_], A](private val resource: Resource[F, A]) extends AnyVal {
+  private def logBeforeAfter[F[_]: Functor](before: String, after: String)(implicit logger: Logger[F]) =
+    Resource.make(logger.info(before))(_ => logger.info(after))
 
-    def conditionally(condition: Boolean)(orElse: => A)(implicit F: Applicative[F]): Resource[F, A] =
-      if (condition) resource else Resource.pure[F, A](orElse)
+  implicit class ResourceOps[F[_]](private val resource: Resource[F, Unit]) extends AnyVal {
+
+    def conditionally(name: String, condition: Boolean)(implicit F: Monad[F], logger: Logger[F]): Resource[F, Unit] =
+      if (condition) {
+        logBeforeAfter[F](s"Starting $name", s"$name shutdown completed") >>
+          resource >>
+          logBeforeAfter[F](s"$name start completed", s"Shutting down $name")
+      } else Resource.liftF(logger.info(s"$name disabled - omitting"))
   }
 }

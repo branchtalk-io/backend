@@ -1,7 +1,6 @@
 package io.branchtalk
 
 import cats.effect.{ ContextShift, ExitCode, IO, IOApp, Timer }
-import com.typesafe.scalalogging.Logger
 import io.branchtalk.logging.MDC
 import io.branchtalk.shared.model.CodePosition
 import org.specs2.matcher.MatchResult
@@ -12,8 +11,6 @@ import org.specs2.matcher.MustMatchers.theValue
 import scala.concurrent.duration._
 
 trait IOTest {
-
-  private val logger = Logger(getClass)
 
   val pass: MatchResult[Boolean] = true must beTrue
 
@@ -29,8 +26,6 @@ trait IOTest {
     override def set(key: String, value: String): IO[Unit] = IO.unit
   }
 
-  private val ignoreErrorForLogging: PartialFunction[Throwable, Unit] = { case _: fs2.kafka.CommitTimeoutException => }
-
   implicit class IOTestOps[T](private val io: IO[T]) {
 
     def eventually(retry: Int = 50, delay: FiniteDuration = 250.millis, timeout: FiniteDuration = 15.seconds)(implicit
@@ -43,10 +38,6 @@ trait IOTest {
       }
 
       io.handleErrorWith(withRetry(retry)).timeout(timeout)
-    }
-
-    def logError(msg: String): IO[T] = io.handleErrorWith { error =>
-      (if (ignoreErrorForLogging.isDefinedAt(error)) IO.unit else IO(logger.error(msg, error))) >> IO.raiseError(error)
     }
 
     def assert(msg: String)(condition: T => Boolean): IO[T] =
