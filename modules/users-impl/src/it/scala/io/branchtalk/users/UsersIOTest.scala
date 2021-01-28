@@ -18,7 +18,7 @@ trait UsersIOTest extends IOTest with ResourcefulTest {
     _ <- TestUsersConfig.loadDomainConfig[IO].map(usersCfg = _)
     _ <- UsersModule.reads[IO](usersCfg, registry).map(usersReads = _)
     _ <- UsersModule.writes[IO](usersCfg, registry).map(usersWrites = _)
-    _ <- usersWrites.runProjections.asFiberResource
+    _ <- usersWrites.runProjections.asResource
   } yield ()
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> usersResource

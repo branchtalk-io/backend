@@ -109,13 +109,13 @@ object Program {
         .void
         .conditionally("API server", appArguments.runAPI),
       // run Users projections on a separate thread
-      usersWrites.runProjections.asFiberResource.conditionally("Users' projections", appArguments.runUsersProjections),
+      usersWrites.runProjections.asResource.conditionally("Users' projections", appArguments.runUsersProjections),
       // run consumer on a separate thread
       makeUsersDiscussionsConsumer(discussionsReads.discussionEventConsumer,
                                    usersWrites.runDiscussionsConsumer
-      ).asFiberResource.conditionally("Users' Discussions consumer", appArguments.runUsersProjections),
+      ).asResource.conditionally("Users' Discussions consumer", appArguments.runUsersProjections),
       // run Users projections on a separate thread
-      discussionsWrites.runProjecions.asFiberResource.conditionally("Discussions' projections",
+      discussionsWrites.runProjecions.asResource.conditionally("Discussions' projections",
                                                                     appArguments.runDiscussionsProjections
       )
     ).tupled >> logBeforeAfter[F]("Services initialized", "Received exit signal")

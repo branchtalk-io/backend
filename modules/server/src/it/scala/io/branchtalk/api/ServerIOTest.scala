@@ -25,7 +25,7 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   protected lazy val serverResource: Resource[IO, Unit] = for {
     _ <- UsersModule
       .listenToUsers(usersCfg)(discussionsReads.discussionEventConsumer, usersWrites.runDiscussionsConsumer)
-      .asFiberResource
+      .asResource
     (appArguments, apiConfig) <- TestApiConfigs.asResource[IO]
     _ <- AppServer
       .asResource[IO](

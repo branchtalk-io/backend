@@ -13,17 +13,16 @@ final class ConsumerStream[F[_], Event](
   // Runs pipe (projections) on events and commit them once they are processed.
   def runThrough[B](
     logger: Logger[F]
-  )(f:      Pipe[F, (String, Event), B])(implicit F: Concurrent[F]): StreamRunner[F] =
-    KillSwitch.streamToRunner[F, Unit] {
-      consumer
-        .flatMap { event =>
-          Stream(s"${event.record.topic}:${event.record.offset.toString}" -> event.record.value)
-            .evalTap(_ => logger.info(s"Processing event key = ${event.record.key.toString}"))
-            .through(f)
-            .map(_ => event.offset)
-        }
-        .through(committer)
-    }
+  )(f:      Pipe[F, (String, Event), B])(implicit F: Concurrent[F]): StreamRunner[F] = StreamRunner[F, Unit] {
+    consumer
+      .flatMap { event =>
+        Stream(s"${event.record.topic}:${event.record.offset.toString}" -> event.record.value)
+          .evalTap(_ => logger.info(s"Processing event key = ${event.record.key.toString}"))
+          .through(f)
+          .map(_ => event.offset)
+      }
+      .through(committer)
+  }
 
   // Same as above but with cached results of each operation.
   def runCachedThrough[B](
