@@ -1,8 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.Monad
-import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Timer }
-import cats.kernel.Semigroup
+import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Timer }
 import fs2.{ io => _, _ }
 import fs2.kafka.{ ProducerResult, Serializer }
 import io.branchtalk.shared.model.{ Logger, UUID }
@@ -13,22 +11,18 @@ final class ConsumerStream[F[_], Event](
 ) {
 
   // Runs pipe (projections) on events and commit them once they are processed.
-  // Projections start when you run F[Unit] and stop when you exit Resource.
   def runThrough[B](
     logger: Logger[F]
   )(f:      Pipe[F, (String, Event), B])(implicit F: Concurrent[F]): StreamRunner[F] =
-    KillSwitch.asStream[F] { killSwitchedStream =>
+    KillSwitch.streamToRunner[F, Unit] {
       consumer
-        .zip(killSwitchedStream)
-        .flatMap { case (event, _) =>
+        .flatMap { event =>
           Stream(s"${event.record.topic}:${event.record.offset.toString}" -> event.record.value)
             .evalTap(_ => logger.info(s"Processing event key = ${event.record.key.toString}"))
             .through(f)
             .map(_ => event.offset)
         }
         .through(committer)
-        .compile
-        .drain >> logger.info(s"Stream ended naturally")
     }
 
   // Same as above but with cached results of each operation.
@@ -55,13 +49,4 @@ object ConsumerStream {
 
   def produced[F[_], A]: Pipe[F, ProducerResult[UUID, A, Unit], A] =
     _.flatMap(pr => Stream(pr.records.map(_._1.value).toList: _*))
-}
-
-final case class StreamRunner[F[_]](asFiberResource: Resource[F, Unit])
-object StreamRunner {
-
-  type FromConsumerStream[F[_], Event] = ConsumerStream[F, Event] => StreamRunner[F]
-
-  implicit def semigroup[F[_]: Monad]: Semigroup[StreamRunner[F]] =
-    (a, b) => StreamRunner(a.asFiberResource >> b.asFiberResource)
 }

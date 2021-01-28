@@ -12,25 +12,22 @@ object KillSwitch {
   def apply[F[_]: Sync]: F[KillSwitch[F]] =
     Ref.of(true).map(switch => KillSwitch(Stream.repeatEval(switch.get).takeWhile(identity).void, switch.set(false)))
 
-  // Create a stream that is emitting Units until you exit the resource.
-  // Intended usage: zip stream  with event consumer on a separate thread, and stop consuming
-  // when application terminates.
-  def asStream[F[_]: Concurrent](withKillSwitchesStreamDrain: Stream[F, Unit] => F[Unit]): StreamRunner[F] =
-    StreamRunner {
-      val logger = Logger.getLogger[F]
-      for {
-        KillSwitch(killSwitchedStream, switchOff) <- Resource.liftF(apply[F])
-        stream = withKillSwitchesStreamDrain(killSwitchedStream)
-        _ <- Resource
-          .make(stream.start >> logger.debug("Started stream in background"))(_ =>
-            switchOff.start >> logger.debug("Triggered kill-switch") // TODO: figure out why fiber.join never finishes
+  // Creates a StreamRunner which should run Stream in separate Fiber and trigger kill-switch when closing the resource.
+  def streamToRunner[F[_]: Concurrent, A](streamToDrain: Stream[F, A]): StreamRunner[F] = StreamRunner {
+    val logger = Logger.getLogger[F]
+    for {
+      KillSwitch(killSwitchedStream, switchOff) <- Resource.liftF(apply[F])
+      stream = killSwitchedStream.zipRight(streamToDrain).compile.drain
+      _ <- Resource
+        .make(stream.start <* logger.debug("Started stream in background"))(fiber =>
+          switchOff >> logger.debug("Triggered kill-switch") >> fiber.join
+        )
+        .void
+        .handleErrorWith { error: Throwable =>
+          Resource.liftF(
+            logger.error(error)("Error occurred before kill-switch was triggered") >> error.raiseError[F, Unit]
           )
-          .void
-          .handleErrorWith { error: Throwable =>
-            Resource.liftF(
-              logger.error(error)("Error occurred before kill-switch was triggered") >> error.raiseError[F, Unit]
-            )
-          }
-      } yield ()
-    }
+        }
+    } yield ()
+  }
 }
