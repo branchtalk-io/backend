@@ -1,5 +1,7 @@
 version: '2.1'
 
+# initializes Postgres databases and Kafka topics
+
 networks:
   branchtalk-monolith:
     driver: bridge

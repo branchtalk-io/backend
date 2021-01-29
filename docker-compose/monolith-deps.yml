@@ -1,5 +1,7 @@
 version: '2.1'
 
+# dependencies: Postgres, Kafka, Redis, Zookeeper
+
 networks:
   branchtalk-monolith:
     driver: bridge

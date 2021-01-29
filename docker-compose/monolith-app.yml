@@ -1,5 +1,7 @@
 version: '2.1'
 
+# runs branchtalk as monolith, requires building it before as Docker image
+
 networks:
   branchtalk-monolith:
     driver: bridge
