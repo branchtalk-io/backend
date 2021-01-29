@@ -115,7 +115,7 @@ object Program {
       ).asResource.conditionally("Users' Discussions consumer", appArguments.runUsersProjections),
       // run Users projections on a separate thread
       discussionsWrites.runProjecions.asResource.conditionally("Discussions' projections",
-                                                                    appArguments.runDiscussionsProjections
+                                                               appArguments.runDiscussionsProjections
       )
     ).tupled >> logBeforeAfter[F]("Services initialized", "Received exit signal")
   }.use(_ => terminationSignal) // here we are blocking until e.g. user press Ctrl+C

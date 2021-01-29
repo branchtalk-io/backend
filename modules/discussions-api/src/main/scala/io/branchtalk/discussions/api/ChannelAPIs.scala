@@ -7,7 +7,6 @@ import io.branchtalk.discussions.api.ChannelModels._
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
 import sttp.model.StatusCode
-import sttp.tapir._
 
 object ChannelAPIs {
 

@@ -41,21 +41,21 @@ object UserModels {
     summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Ban.Reason]
 
   // properties schemas
-  implicit val userEmailSchema: Schema[User.Email] =
+  implicit val userEmailSchema: JsSchema[User.Email] =
     summonSchema[String Refined MatchesRegex["(.+)@(.+)"]].asNewtype[User.Email]
-  implicit val usernameSchema: Schema[User.Name] =
+  implicit val usernameSchema: JsSchema[User.Name] =
     summonSchema[String Refined NonEmpty].asNewtype[User.Name]
-  implicit val userDescriptionSchema: Schema[User.Description] =
+  implicit val userDescriptionSchema: JsSchema[User.Description] =
     summonSchema[String].asNewtype[User.Description]
-  implicit val passwordRawSchema: Schema[Password.Raw] =
+  implicit val passwordRawSchema: JsSchema[Password.Raw] =
     summonSchema[String].contramap[Array[Byte] Refined NonEmpty](_.value.pipe(new String(_))).asNewtype[Password.Raw]
   implicit val permissionSchema: JsSchema[Permission] =
     Schema.derived[Permission]
-  implicit val permissionsSchema: Schema[Permissions] =
+  implicit val permissionsSchema: JsSchema[Permissions] =
     summonSchema[Set[Permission]].asNewtype[Permissions]
-  implicit val sessionExpirationSchema: Schema[Session.ExpirationTime] =
+  implicit val sessionExpirationSchema: JsSchema[Session.ExpirationTime] =
     summonSchema[OffsetDateTime].asNewtype[Session.ExpirationTime]
-  implicit val banReasonSchema: Schema[Ban.Reason] =
+  implicit val banReasonSchema: JsSchema[Ban.Reason] =
     summonSchema[NonEmptyString].asNewtype[Ban.Reason]
 
   @Semi(JsCodec, JsSchema) sealed trait UserError extends ADT

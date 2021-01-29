@@ -11,7 +11,6 @@ import io.branchtalk.discussions.model.{ Channel, Comment, Post, User }
 import io.branchtalk.shared.model.{ ID, Updatable }
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
-import sttp.tapir.Schema
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object CommentModels {
@@ -23,9 +22,9 @@ object CommentModels {
     summonCodec[Int](JsonCodecMaker.make).refine[NonNegative].asNewtype[Comment.RepliesNr]
 
   // properties schemas
-  implicit val commentContentSchema: Schema[Comment.Content] =
+  implicit val commentContentSchema: JsSchema[Comment.Content] =
     summonSchema[String].asNewtype[Comment.Content]
-  implicit val commentRepliesNrSchema: Schema[Comment.RepliesNr] =
+  implicit val commentRepliesNrSchema: JsSchema[Comment.RepliesNr] =
     summonSchema[Int Refined NonNegative].asNewtype[Comment.RepliesNr]
 
   @Semi(JsCodec, JsSchema) sealed trait CommentError extends ADT

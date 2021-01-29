@@ -103,8 +103,7 @@ object ChannelServer {
       () => ChannelError.ValidationFailed(NonEmptyList.one("Data missing")),
       () => ChannelError.ValidationFailed(NonEmptyList.one("Multiple errors")),
       (msg, _) => ChannelError.ValidationFailed(NonEmptyList.one(s"Error happened: ${msg}")),
-      (expected, actual) =>
-        ChannelError.ValidationFailed(NonEmptyList.one(s"Expected: $expected, actual: $actual")),
+      (expected, actual) => ChannelError.ValidationFailed(NonEmptyList.one(s"Expected: $expected, actual: $actual")),
       errors =>
         ChannelError.ValidationFailed(
           NonEmptyList

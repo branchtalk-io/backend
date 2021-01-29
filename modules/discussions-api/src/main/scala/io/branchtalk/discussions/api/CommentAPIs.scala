@@ -7,7 +7,6 @@ import io.branchtalk.discussions.api.CommentModels._
 import io.branchtalk.discussions.model.{ Channel, Comment, Post }
 import io.branchtalk.shared.model.{ ID, Updatable }
 import sttp.model.StatusCode
-import sttp.tapir._
 
 object CommentAPIs {
 

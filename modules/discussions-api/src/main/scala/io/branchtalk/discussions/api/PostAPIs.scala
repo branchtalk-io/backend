@@ -9,7 +9,6 @@ import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.model.{ ID, Updatable }
 import sttp.model.StatusCode
-import sttp.tapir._
 
 object PostAPIs {
 

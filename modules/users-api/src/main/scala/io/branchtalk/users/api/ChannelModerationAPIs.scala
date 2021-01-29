@@ -7,7 +7,6 @@ import io.branchtalk.shared.model.ID
 import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.model.Channel
 import sttp.model.StatusCode
-import sttp.tapir._
 
 object ChannelModerationAPIs {
 

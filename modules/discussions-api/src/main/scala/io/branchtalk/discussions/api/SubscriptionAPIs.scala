@@ -6,7 +6,6 @@ import io.branchtalk.api.TapirSupport._
 import io.branchtalk.discussions.api.PostModels._
 import io.branchtalk.discussions.api.SubscriptionModels._
 import sttp.model.StatusCode
-import sttp.tapir._
 
 object SubscriptionAPIs {
 

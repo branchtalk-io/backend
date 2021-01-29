@@ -8,7 +8,6 @@ import io.branchtalk.users.api.UserModels._
 import io.branchtalk.users.model.Password.{ Raw => RawPassword }
 import io.branchtalk.users.model.User
 import sttp.model.StatusCode
-import sttp.tapir._
 
 object UserAPIs {
 

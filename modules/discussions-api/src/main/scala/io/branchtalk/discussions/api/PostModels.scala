@@ -42,21 +42,21 @@ object PostModels {
     summonCodec[Int](JsonCodecMaker.make).refine[NonNegative].asNewtype[Post.CommentsNr]
 
   // properties schemas
-  implicit val postUrlTitleSchema: Schema[Post.UrlTitle] =
+  implicit val postUrlTitleSchema: JsSchema[Post.UrlTitle] =
     summonSchema[String Refined NonEmpty].asNewtype[Post.UrlTitle]
-  implicit val postTitleSchema: Schema[Post.Title] =
+  implicit val postTitleSchema: JsSchema[Post.Title] =
     summonSchema[String Refined NonEmpty].asNewtype[Post.Title]
-  implicit val postURLSchema: Schema[Post.URL] =
+  implicit val postURLSchema: JsSchema[Post.URL] =
     summonSchema[URI].asNewtype[Post.URL]
-  implicit val postTextSchema: Schema[Post.Text] =
+  implicit val postTextSchema: JsSchema[Post.Text] =
     summonSchema[String].asNewtype[Post.Text]
-  implicit val postContentSchema: Schema[Post.Content] = {
+  implicit val postContentSchema: JsSchema[Post.Content] = {
     // used in macros
     @unused implicit val customConfiguration: Configuration =
       Configuration.default.copy(toEncodedName = discriminatorNameMapper("."))
     Schema.derived[Post.Content]
   }
-  implicit val postCommentsNrSchema: Schema[Post.CommentsNr] =
+  implicit val postCommentsNrSchema: JsSchema[Post.CommentsNr] =
     summonSchema[Int Refined NonNegative].asNewtype[Post.CommentsNr]
 
   @Semi(JsCodec, JsSchema) sealed trait PostError extends ADT

@@ -13,7 +13,6 @@ import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
 import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl._
-import sttp.tapir.Schema
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object ChannelModels {
@@ -28,11 +27,11 @@ object ChannelModels {
     summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Channel.Description]
 
   // properties schemas
-  implicit val channelUrlNameSchema: Schema[Channel.UrlName] =
+  implicit val channelUrlNameSchema: JsSchema[Channel.UrlName] =
     summonSchema[String Refined MatchesRegex["[A-Za-z0-9_-]+"]].asNewtype[Channel.UrlName]
-  implicit val channelNameSchema: Schema[Channel.Name] =
+  implicit val channelNameSchema: JsSchema[Channel.Name] =
     summonSchema[NonEmptyString].asNewtype[Channel.Name]
-  implicit val channelDescriptionSchema: Schema[Channel.Description] =
+  implicit val channelDescriptionSchema: JsSchema[Channel.Description] =
     summonSchema[NonEmptyString].asNewtype[Channel.Description]
 
   @Semi(JsCodec, JsSchema) sealed trait ChannelError extends ADT

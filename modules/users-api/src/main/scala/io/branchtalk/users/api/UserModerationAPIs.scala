@@ -5,7 +5,6 @@ import io.branchtalk.api.AuthenticationSupport._
 import io.branchtalk.api.TapirSupport._
 import io.branchtalk.users.api.UserModels._
 import sttp.model.StatusCode
-import sttp.tapir._
 
 object UserModerationAPIs {
 

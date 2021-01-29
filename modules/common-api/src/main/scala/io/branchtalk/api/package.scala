@@ -12,7 +12,6 @@ import io.branchtalk.api.JsoniterSupport._
 import io.branchtalk.api.TapirSupport._
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
-import sttp.tapir._
 
 // scalastyle:off number.of.methods
 package object api {
@@ -28,8 +27,8 @@ package object api {
     implicit val eq:   Eq[SessionID]   = Eq[UUID].coerce
     implicit val show: Show[SessionID] = Show[UUID].coerce
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
-    implicit val codec:  JsCodec[SessionID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[SessionID]
-    implicit val schema: Schema[SessionID]  = summonSchema[UUID].asNewtype[SessionID]
+    implicit val codec:  JsCodec[SessionID]  = summonCodec[UUID](JsonCodecMaker.make).asNewtype[SessionID]
+    implicit val schema: JsSchema[SessionID] = summonSchema[UUID].asNewtype[SessionID]
   }
 
   @newtype final case class UserID(uuid: UUID)
@@ -43,8 +42,8 @@ package object api {
     implicit val eq:   Eq[UserID]   = Eq[UUID].coerce
     implicit val show: Show[UserID] = Show[UUID].coerce
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
-    implicit val codec:  JsCodec[UserID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[UserID]
-    implicit val schema: Schema[UserID]  = summonSchema[UUID].asNewtype[UserID]
+    implicit val codec:  JsCodec[UserID]  = summonCodec[UUID](JsonCodecMaker.make).asNewtype[UserID]
+    implicit val schema: JsSchema[UserID] = summonSchema[UUID].asNewtype[UserID]
   }
 
   @newtype final case class ChannelID(uuid: UUID)
@@ -56,8 +55,8 @@ package object api {
     implicit val eq:   Eq[ChannelID]   = Eq[UUID].coerce
     implicit val show: Show[ChannelID] = Show[UUID].coerce
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
-    implicit val codec:  JsCodec[ChannelID] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[ChannelID]
-    implicit val schema: Schema[ChannelID]  = summonSchema[UUID].asNewtype[ChannelID]
+    implicit val codec:  JsCodec[ChannelID]  = summonCodec[UUID](JsonCodecMaker.make).asNewtype[ChannelID]
+    implicit val schema: JsSchema[ChannelID] = summonSchema[UUID].asNewtype[ChannelID]
   }
 
   @newtype final case class Username(nonEmptyString: NonEmptyString)
@@ -69,7 +68,7 @@ package object api {
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
     implicit val codec: JsCodec[Username] =
       summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Username]
-    implicit val schema: Schema[Username] =
+    implicit val schema: JsSchema[Username] =
       summonSchema[String Refined NonEmpty].asNewtype[Username]
   }
 
@@ -82,7 +81,7 @@ package object api {
     @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
     implicit val codec: JsCodec[Password] =
       summonCodec[String](JsonCodecMaker.make).map(_.getBytes)(new String(_)).refine[NonEmpty].asNewtype[Password]
-    implicit val schema: Schema[Password] =
+    implicit val schema: JsSchema[Password] =
       summonSchema[Array[Byte] Refined NonEmpty].asNewtype[Password]
   }
 
@@ -96,7 +95,7 @@ package object api {
       summonCodec[Long](JsonCodecMaker.make).refine[NonNegative].asNewtype[PaginationOffset]
     implicit val param: Param[PaginationOffset] =
       summonParam[Long Refined NonNegative].map(PaginationOffset(_))(_.nonNegativeLong)
-    implicit val schema: Schema[PaginationOffset] =
+    implicit val schema: JsSchema[PaginationOffset] =
       summonSchema[Long Refined NonNegative].asNewtype[PaginationOffset]
   }
 
@@ -110,7 +109,7 @@ package object api {
       summonCodec[Int](JsonCodecMaker.make).refine[Positive].asNewtype[PaginationLimit]
     implicit val param: Param[PaginationLimit] =
       summonParam[Int Refined Positive].map(PaginationLimit(_))(_.positiveInt)
-    implicit val schema: Schema[PaginationLimit] =
+    implicit val schema: JsSchema[PaginationLimit] =
       summonSchema[Int Refined Positive].asNewtype[PaginationLimit]
   }
 
@@ -120,7 +119,7 @@ package object api {
 
     implicit val codec: JsCodec[PaginationHasNext] =
       summonCodec[Boolean](JsonCodecMaker.make).asNewtype[PaginationHasNext]
-    implicit val schema: Schema[PaginationHasNext] =
+    implicit val schema: JsSchema[PaginationHasNext] =
       summonSchema[Boolean].asNewtype[PaginationHasNext]
   }
 }
