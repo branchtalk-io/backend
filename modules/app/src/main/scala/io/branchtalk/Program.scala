@@ -14,7 +14,7 @@ import io.branchtalk.shared.model.{ Logger, UUIDGenerator }
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 import org.http4s.metrics.prometheus.Prometheus
-import sun.misc.Signal
+import sun.misc.Signal // scalastyle:ignore illegal.imports
 
 object Program {
 

@@ -43,7 +43,8 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val create = ChannelAPIs.create.serverLogic[F].apply { case ((user, _), createData) =>
     val userID = user.id
-    val data   = createData.into[Channel.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
+    val data =
+      createData.into[Channel.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
     for {
       CreationScheduled(channelID) <- channelWrites.createChannel(data)
     } yield CreateChannelResponse(channelID)
@@ -102,7 +103,8 @@ object ChannelServer {
       () => ChannelError.ValidationFailed(NonEmptyList.one("Data missing")),
       () => ChannelError.ValidationFailed(NonEmptyList.one("Multiple errors")),
       (msg, _) => ChannelError.ValidationFailed(NonEmptyList.one(s"Error happened: ${msg}")),
-      (expected, actual) => ChannelError.ValidationFailed(NonEmptyList.one(s"Expected: $expected, actual: $actual")),
+      (expected, actual) =>
+        ChannelError.ValidationFailed(NonEmptyList.one(s"Expected: $expected, actual: $actual")),
       errors =>
         ChannelError.ValidationFailed(
           NonEmptyList

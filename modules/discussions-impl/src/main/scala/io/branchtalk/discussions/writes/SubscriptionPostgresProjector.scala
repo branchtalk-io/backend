@@ -41,9 +41,8 @@ final class SubscriptionPostgresProjector[F[_]: Sync: MDC](transactor: Transacto
            |)
            |ON CONFLICT (subscriber_id) DO
            |UPDATE
-           |SET subscriptions_ids = array_distinct(subscriptions.subscriptions_ids || ${event.subscriptions})""".stripMargin.update.run
-        .as(event.subscriberID.uuid -> event)
-        .transact(transactor)
+           |SET subscriptions_ids = array_distinct(subscriptions.subscriptions_ids || ${event.subscriptions})""" //
+        .stripMargin.update.run.as(event.subscriberID.uuid -> event).transact(transactor)
     }
 
   def toUnsubscribe(event: SubscriptionEvent.Unsubscribed): F[(UUID, SubscriptionEvent.Unsubscribed)] =

@@ -1,5 +1,5 @@
 <scalastyle>
- <name>subfibers test style</name>
+ <name>branchtalk test style</name>
  <check level="error" class="org.scalastyle.file.FileLengthChecker" enabled="false">
   <parameters>
    <parameter name="maxFileLength"><![CDATA[800]]></parameter>
@@ -69,7 +69,7 @@
    <parameter name="maxMethods"><![CDATA[30]]></parameter>
   </parameters>
  </check>
- <check level="error" class="org.scalastyle.scalariform.NumberOfTypesChecker" enabled="true">
+ <check level="error" class="org.scalastyle.scalariform.NumberOfTypesChecker" enabled="false">
   <parameters>
    <parameter name="maxTypes"><![CDATA[30]]></parameter>
   </parameters>

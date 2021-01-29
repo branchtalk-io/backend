@@ -14,6 +14,8 @@ import scala.util.Random
 
 final class PostgresDatabase(config: PostgresConfig) {
 
+  private val randomPrefixLength = 6
+
   private def flyway[F[_]: Sync] = Sync[F].delay(
     Flyway
       .configure()
@@ -39,7 +41,7 @@ final class PostgresDatabase(config: PostgresConfig) {
               new PrefixedMetricsTrackerFactory(config.domain.nonEmptyString.value + "_" + LazyList
                                                   .continually(Random.nextPrintableChar())
                                                   .filter(_.isLetter)
-                                                  .take(6)
+                                                  .take(randomPrefixLength)
                                                   .mkString,
                                                 registry
               )
