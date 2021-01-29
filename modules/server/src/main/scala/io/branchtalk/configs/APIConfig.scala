@@ -51,7 +51,7 @@ object APILicense {
   title:          String Refined NonEmpty,
   version:        String Refined NonEmpty,
   description:    String Refined NonEmpty,
-  termsOfService: String Refined Url, // URI
+  termsOfService: String Refined Url,
   contact:        APIContact,
   license:        APILicense
 ) {

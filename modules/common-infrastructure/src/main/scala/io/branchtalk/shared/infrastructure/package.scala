@@ -22,7 +22,7 @@ package object infrastructure {
 
   type SafeDeserializer[F[_], Event] = Deserializer[F, DeserializationResult[Event]]
   object SafeDeserializer {
-    def apply[F[_], Event](implicit sd: SafeDeserializer[F, Event]): SafeDeserializer[F, Event] = sd
+    @inline def apply[F[_], Event](implicit sd: SafeDeserializer[F, Event]): SafeDeserializer[F, Event] = sd
   }
 
   @newtype final case class DomainName(nonEmptyString: NonEmptyString)

@@ -14,6 +14,7 @@ import sttp.tapir.json.jsoniter.TapirJsonJsoniter
 
 import scala.annotation.nowarn
 
+// Allows `import TapirSupport._` instead of `import sttp.tapir._, sttp.tapir.codec.refined._, ...`.
 @nowarn("cat=unused")
 object TapirSupport extends TapirCodecRefined with TapirJsonJsoniter {
 
@@ -25,8 +26,6 @@ object TapirSupport extends TapirCodecRefined with TapirJsonJsoniter {
 
   def summonParam[T](implicit param:   Param[T]):  Param[T]  = param
   def summonSchema[T](implicit schema: Schema[T]): Schema[T] = schema
-
-  sttp.tapir.Schema
 
   // utilities
 

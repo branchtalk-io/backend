@@ -2,6 +2,7 @@ package io.branchtalk.logging
 
 import monix.eval.Task
 
+// Requires {{MonixMDCAdapter.configure}}
 object MonixMDC extends MDC[Task] {
 
   override def enable[A](fa: Task[A]): Task[A] = fa.executeWithOptions(_.enableLocalContextPropagation)

@@ -11,7 +11,8 @@ import scala.collection.immutable.SortedSet
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.WeakTypeTag
 
-// pureconfig modules are objects, there are no traits so if we want to have everything in one place we have to...
+// Allows `import PureconfigSupport._` instead of `import pureconfig._, pureconfig.module.cats._, ...`.
+// `pureconfig` modules are objects, there are no traits so if we want to have everything in one place we have to...
 object PureconfigSupport extends LowPriorityPureconfigImplicit {
 
   type ConfigReader[A] = pureconfig.ConfigReader[A]

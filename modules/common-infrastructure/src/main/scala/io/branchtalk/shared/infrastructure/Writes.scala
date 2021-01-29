@@ -5,6 +5,7 @@ import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.model.{ CodePosition, CommonError, ID, UUID }
 import fs2._
 
+// Utilities for writes services.
 abstract class Writes[F[_]: Sync, Entity, Event](producer: EventBusProducer[F, Event]) {
 
   implicit private val logHandler: LogHandler = doobieLogger(getClass)

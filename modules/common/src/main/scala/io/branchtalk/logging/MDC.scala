@@ -1,5 +1,6 @@
 package io.branchtalk.logging
 
+// Abstracts away how we perform MCD from what effect F we use.
 trait MDC[F[_]] {
 
   def enable[A](fa: F[A]): F[A]
@@ -10,5 +11,5 @@ trait MDC[F[_]] {
 }
 object MDC {
 
-  def apply[F[_]](implicit mdc: MDC[F]): MDC[F] = mdc
+  @inline def apply[F[_]](implicit mdc: MDC[F]): MDC[F] = mdc
 }

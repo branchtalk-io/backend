@@ -5,7 +5,7 @@ import java.{ util => ju }
 import monix.execution.misc.Local
 import ch.qos.logback.classic.util.LogbackMDCAdapter
 
-// solution described by OlegPy in https://olegpy.com/better-logging-monix-1/
+// Solution described by OlegPy in https://olegpy.com/better-logging-monix-1/
 final class MonixMDCAdapter extends LogbackMDCAdapter {
   private[this] val map = Local[ju.Map[String, String]](ju.Collections.emptyMap())
 
@@ -35,7 +35,7 @@ final class MonixMDCAdapter extends LogbackMDCAdapter {
 }
 object MonixMDCAdapter {
 
-  // initialize MDC.mdcAdapter (with default scope) to our implementation
+  // Initialize MDC.mdcAdapter (with default scope) to our implementation.
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
   def configure(): Unit = {
     val field = classOf[org.slf4j.MDC].getDeclaredField("mdcAdapter")

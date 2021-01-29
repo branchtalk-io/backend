@@ -5,6 +5,7 @@ import doobie._
 import doobie.implicits._
 import fs2.Stream
 
+// Utilities for reads services.
 abstract class Reads[F[_]: Sync, Entity](transactor: Transactor[F]) {
 
   // reading from DB Postgres as part of the read model

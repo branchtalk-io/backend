@@ -9,8 +9,9 @@ import eu.timepit.refined.refineV
 import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, discriminatorNameMapper }
 import io.estatico.newtype.Coercible
 
+// Provides (missing :/) support for .map, .mapDecode, .refine, .asNewtype for Jsoniter Scala codecs.
 // TODO: consider moving to some external library
-@SuppressWarnings(Array("org.wartremover.warts.All")) // handling valid null values
+@SuppressWarnings(Array("org.wartremover.warts.All")) // handling valid null values, macros
 object JsoniterSupport {
 
   // shortcuts
@@ -89,7 +90,6 @@ object JsoniterSupport {
   implicit def chainCodec[A: JsCodec]: JsCodec[Chain[A]] =
     summonCodec[List[A]](JsonCodecMaker.make).map(Chain.fromSeq)(_.toList)
 
-  @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
   implicit def necCodec[A: JsCodec]: JsCodec[NonEmptyChain[A]] = summonCodec[List[A]](JsonCodecMaker.make).mapDecode {
     case head :: tail => NonEmptyChain(head, tail: _*).asRight[String]
     case _            => "Expected non-empty list".asLeft[NonEmptyChain[A]]

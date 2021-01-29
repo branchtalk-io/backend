@@ -12,6 +12,7 @@ import sttp.tapir._
 
 import scala.util.Try
 
+// Authentication-related definitions for Tapir.
 object AuthenticationSupport {
 
   private object base64 { // scalastyle:ignore object.name

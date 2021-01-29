@@ -8,6 +8,8 @@ import io.branchtalk.shared.model._
 import io.estatico.newtype.Coercible
 import org.tpolecat.typename.TypeName
 
+// Allows `import DoobieSupport._` instead of... a lot of imports.
+// Additionally provides support for a few useful but missing features.
 object DoobieSupport
     extends doobie.Aliases // basic functionalities
     with doobie.hi.Modules

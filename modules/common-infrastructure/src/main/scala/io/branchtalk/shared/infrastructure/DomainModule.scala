@@ -6,7 +6,7 @@ import doobie.util.transactor.Transactor
 import io.branchtalk.shared.infrastructure.KafkaSerialization._
 import io.prometheus.client.CollectorRegistry
 
-// Utilities for connecting to database and events buses through Resources
+// Utilities for connecting to database and events buses through Resources.
 
 final case class ReadsInfrastructure[F[_], Event](
   transactor: Transactor[F],

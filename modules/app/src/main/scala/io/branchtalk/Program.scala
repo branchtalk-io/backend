@@ -68,8 +68,7 @@ object Program {
     run.tupled(modules)
   }
 
-  // scalastyle:off method.length
-  // scalastyle:off parameter.number
+  // scalastyle:off method.length parameter.number
   def runModules[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
@@ -120,9 +119,7 @@ object Program {
       )
     ).tupled >> logBeforeAfter[F]("Services initialized", "Received exit signal")
   }.use(_ => terminationSignal) // here we are blocking until e.g. user press Ctrl+C
-
-  // scalastyle:on parameter.number
-  // scalastyle:off method.length
+  // scalastyle:on parameter.number method.length
 
   // kudos to Łukasz Byczyński
   private def awaitTerminationSignal[F[_]: Concurrent]: F[Unit] = {

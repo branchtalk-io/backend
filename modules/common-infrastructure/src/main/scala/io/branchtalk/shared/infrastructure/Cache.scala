@@ -14,6 +14,7 @@ import io.lettuce.core.codec.{ RedisCodec => JRedisCodec }
 
 import scala.util.control.NoStackTrace
 
+// Wrapper around Redis Cache to cache operations in certain fs2.Streams for idempotency.
 abstract class Cache[F[_]: Sync, K, V] {
 
   def apply(key: K)(value: F[V]): F[(K, V)]

@@ -5,13 +5,15 @@ import io.branchtalk.shared.model.{ CodePosition, CommonError }
 import sttp.tapir._
 import sttp.tapir.server.ServerEndpoint
 
+// Goal: take a tuple of inputs, extract Authentication data of it, authenticate and return a tuple with Authentication
+// replaced with authorized entity.
 // scalastyle:off structural.type
 trait AuthMapping[F[_], In] {
   type Out
   def authorize(in: In, requiredPermissions: RequiredPermissions): F[Out]
 }
 object AuthMapping {
-  def apply[F[_], In](implicit authMapping: AuthMapping[F, In]): AuthMapping[F, In] {
+  @inline def apply[F[_], In](implicit authMapping: AuthMapping[F, In]): AuthMapping[F, In] {
     type Out = authMapping.Out
   } = authMapping
 
@@ -26,7 +28,7 @@ trait AuthMappingWithOwnership[F[_], In] {
   def authorize(in: In, requiredPermissions: RequiredPermissions, owner: Owner): F[Out]
 }
 object AuthMappingWithOwnership {
-  def apply[F[_], In](implicit authMapping: AuthMappingWithOwnership[F, In]): AuthMappingWithOwnership[F, In] {
+  @inline def apply[F[_], In](implicit authMapping: AuthMappingWithOwnership[F, In]): AuthMappingWithOwnership[F, In] {
     type Out   = authMapping.Out
     type Owner = authMapping.Owner
   } = authMapping

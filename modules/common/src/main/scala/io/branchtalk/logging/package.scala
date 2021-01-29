@@ -8,6 +8,8 @@ import io.estatico.newtype.ops._
 
 package object logging {
 
+  // utilities for generating CorrelationID and RequestID
+
   @newtype final case class CorrelationID(show: String) {
 
     def updateMDC[F[_]: MDC]: F[Unit] = MDC[F].set(CorrelationID.key, show)

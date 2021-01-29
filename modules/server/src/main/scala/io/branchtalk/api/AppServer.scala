@@ -87,17 +87,16 @@ final class AppServer[F[_]: Concurrent: Timer: MDC](
       .pipe(CORS(_, corsConfig))
       .pipe(Metrics[F](metricsOps))
       .pipe(correlationIDOps.httpRoutes)
-      .pipe(requestIDOps.httpRoutes) // TODO: cache requests with the same X-Request-ID AND auth header
+      .pipe(requestIDOps.httpRoutes)
       .orNotFound
       .pipe(logRoutes)
       .pipe(enableMDCPropagation)
 }
 object AppServer {
 
-  // scalastyle:off method.length
-  // scalastyle:off parameter.number
+  // scalastyle:off method.length parameter.number
   @nowarn("cat=unused") // macwire
-  @SuppressWarnings(Array("org.wartremover.warts.GlobalExecutionContext")) // TODO: make configurable
+  @SuppressWarnings(Array("org.wartremover.warts.GlobalExecutionContext")) // for BlazeServer
   def asResource[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
     appArguments:           AppArguments,
     apiConfig:              APIConfig,
@@ -190,6 +189,5 @@ object AppServer {
             Resource.liftF(logger.info(s"API server started at ${server.address.toString}"))
           }
     }
-  // scalastyle:on parameter.number
-  // scalastyle:on method.length
+  // scalastyle:on parameter.number method.length
 }
