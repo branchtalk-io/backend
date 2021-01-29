@@ -56,9 +56,11 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
   implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Any]) {
 
     val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = (input: I) =>
-      endpoint
-        .toSttpRequest(sttpBaseUri)(SttpClientOptions.default, WebSocketToPipe.webSocketsNotSupportedForAny)
-        .apply(input)
+      SttpClientInterpreter
+        .toRequest(
+          endpoint,
+          sttpBaseUri.some
+        )(SttpClientOptions.default, WebSocketToPipe.webSocketsNotSupportedForAny)(input)
         .acceptEncoding("deflate") // helps debugging request in logs
         .send(client)
   }

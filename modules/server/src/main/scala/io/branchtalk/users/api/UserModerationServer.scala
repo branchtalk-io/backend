@@ -76,7 +76,7 @@ final class UserModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent: Ti
     revokeUserModeration
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
 }
 
 object UserModerationServer {

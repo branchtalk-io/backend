@@ -184,7 +184,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     revokeVote
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
 }
 object PostServer {
 

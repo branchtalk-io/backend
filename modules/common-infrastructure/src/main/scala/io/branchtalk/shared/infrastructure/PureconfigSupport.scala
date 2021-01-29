@@ -7,7 +7,6 @@ import enumeratum._
 import enumeratum.values._
 import eu.timepit.refined.api._
 
-import scala.annotation.nowarn
 import scala.collection.immutable.SortedSet
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.WeakTypeTag
@@ -119,11 +118,4 @@ object PureconfigSupport extends LowPriorityPureconfigImplicit {
 }
 
 // for some reason original traversableReader is not seen, maybe because author forgot to annotate it?
-trait LowPriorityPureconfigImplicit {
-
-  @nowarn("cat=deprecation")
-  implicit def traversableReader[A, F[A] <: TraversableOnce[A]](implicit
-    configConvert: pureconfig.Derivation[pureconfig.ConfigReader[A]],
-    cbf:           pureconfig.FactoryCompat[A, F[A]]
-  ): pureconfig.ConfigReader[F[A]] = pureconfig.ConfigReader.traversableReader[A, F]
-}
+trait LowPriorityPureconfigImplicit extends pureconfig.CollectionReaders

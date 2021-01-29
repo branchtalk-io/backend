@@ -54,21 +54,21 @@ object PostModels {
     // used in macros
     @unused implicit val customConfiguration: Configuration =
       Configuration.default.copy(toEncodedName = discriminatorNameMapper("."))
-    Schema.derivedSchema[Post.Content]
+    Schema.derived[Post.Content]
   }
   implicit val postCommentsNrSchema: Schema[Post.CommentsNr] =
     summonSchema[Int Refined NonNegative].asNewtype[Post.CommentsNr]
 
-  @Semi(JsCodec) sealed trait PostError extends ADT
+  @Semi(JsCodec, JsSchema) sealed trait PostError extends ADT
   object PostError {
 
-    @Semi(JsCodec) final case class BadCredentials(msg: String) extends PostError
-    @Semi(JsCodec) final case class NoPermission(msg: String) extends PostError
-    @Semi(JsCodec) final case class NotFound(msg: String) extends PostError
-    @Semi(JsCodec) final case class ValidationFailed(error: NonEmptyList[String]) extends PostError
+    @Semi(JsCodec, JsSchema) final case class BadCredentials(msg: String) extends PostError
+    @Semi(JsCodec, JsSchema) final case class NoPermission(msg: String) extends PostError
+    @Semi(JsCodec, JsSchema) final case class NotFound(msg: String) extends PostError
+    @Semi(JsCodec, JsSchema) final case class ValidationFailed(error: NonEmptyList[String]) extends PostError
   }
 
-  @Semi(JsCodec) final case class APIPost(
+  @Semi(JsCodec, JsSchema) final case class APIPost(
     id:         ID[Post],
     channelID:  ID[Channel],
     urlTitle:   Post.UrlTitle,
@@ -81,21 +81,21 @@ object PostModels {
     def fromDomain(post: Post): APIPost = post.data.into[APIPost].withFieldConst(_.id, post.id).transform
   }
 
-  @Semi(JsCodec) final case class CreatePostRequest(
+  @Semi(JsCodec, JsSchema) final case class CreatePostRequest(
     title:   Post.Title,
     content: Post.Content
   )
 
-  @Semi(JsCodec) final case class CreatePostResponse(id: ID[Post])
+  @Semi(JsCodec, JsSchema) final case class CreatePostResponse(id: ID[Post])
 
-  @Semi(JsCodec) final case class UpdatePostRequest(
+  @Semi(JsCodec, JsSchema) final case class UpdatePostRequest(
     newTitle:   Updatable[Post.Title],
     newContent: Updatable[Post.Content]
   )
 
-  @Semi(JsCodec) final case class UpdatePostResponse(id: ID[Post])
+  @Semi(JsCodec, JsSchema) final case class UpdatePostResponse(id: ID[Post])
 
-  @Semi(JsCodec) final case class DeletePostResponse(id: ID[Post])
+  @Semi(JsCodec, JsSchema) final case class DeletePostResponse(id: ID[Post])
 
-  @Semi(JsCodec) final case class RestorePostResponse(id: ID[Post])
+  @Semi(JsCodec, JsSchema) final case class RestorePostResponse(id: ID[Post])
 }

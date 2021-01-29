@@ -57,7 +57,7 @@ final class ChannelBanServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer]
     liftBan
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
 }
 object ChannelBanServer {
 

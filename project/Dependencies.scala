@@ -11,22 +11,22 @@ object Dependencies {
 
   // libraries versions
   val avro4sVersion     = "4.0.0" // https://github.com/sksamuel/avro4s/releases
-  val catsVersion       = "2.2.0" // https://github.com/typelevel/cats/releases
-  val catsEffectVersion = "2.2.0" // https://github.com/typelevel/cats-effect/releases
+  val catsVersion       = "2.3.1" // https://github.com/typelevel/cats/releases
+  val catsEffectVersion = "2.3.1" // https://github.com/typelevel/cats-effect/releases
   val declineVersion    = "1.3.0" // https://github.com/tpolecat/doobie/releases
-  val doobieVersion     = "0.9.2" // https://github.com/tpolecat/doobie/releases
+  val doobieVersion     = "0.10.0" // https://github.com/tpolecat/doobie/releases
   val drosteVersion     = "0.8.0" // https://github.com/higherkindness/droste/releases
   val enumeratumVersion = "1.6.1" // https://github.com/lloydmeta/enumeratum/releases
   val fs2Version        = "2.4.5" // https://github.com/typelevel/fs2/releases
   val log4catsVersion   = "1.1.1" // https://github.com/ChristopherDavenport/log4cats/releases
-  val http4sVersion     = "0.21.9" // https://github.com/http4s/http4s/releases
+  val http4sVersion     = "0.21.16" // https://github.com/http4s/http4s/releases
   val jsoniterVersion   = "2.6.2" // https://github.com/plokhotnyuk/jsoniter-scala/releases
   val monixVersion      = "3.3.0" // https://github.com/monix/monix/releases
   val monocleVersion    = "2.1.0" // https://github.com/optics-dev/Monocle/releases
   val pureConfigVersion = "0.14.0" // https://github.com/pureconfig/pureconfig/releases
-  val refinedVersion    = "0.9.17" // https://github.com/fthomas/refined/releases
-  val specs2Version     = "4.10.5" // https://github.com/etorreborre/specs2/releases
-  val tapirVersion      = "0.17.0-M8" // https://github.com/softwaremill/tapir/releases
+  val refinedVersion    = "0.9.20" // https://github.com/fthomas/refined/releases
+  val specs2Version     = "4.10.6" // https://github.com/etorreborre/specs2/releases
+  val tapirVersion      = "0.17.7" // https://github.com/softwaremill/tapir/releases
 
   // resolvers
   val resolvers = Seq(
@@ -38,22 +38,22 @@ object Dependencies {
   // compiler plugins
   val betterMonadicFor =
     "com.olegpy" %% "better-monadic-for" % "0.3.1" // https://github.com/oleg-py/better-monadic-for/releases
-  val kindProjector = "org.typelevel" %% "kind-projector" % "0.11.2" cross CrossVersion.full
-  // https://github.com/typelevel/kind-projector/releases
+  val kindProjector =
+    "org.typelevel" %% "kind-projector" % "0.11.3" cross CrossVersion.full // https://github.com/typelevel/kind-projector/releases
   // functional libraries
-  val catnip            = "io.scalaland" %% "catnip" % "1.1.2" // https://github.com/scalalandio/catnip/releases
-  val cats              = "org.typelevel" %% "cats-core" % catsVersion
-  val catsFree          = "org.typelevel" %% "cats-free" % catsVersion
-  val catsEffect        = "org.typelevel" %% "cats-effect" % catsEffectVersion
-  val alleycats         = "org.typelevel" %% "alleycats-core" % catsVersion
-  val kittens           = "org.typelevel" %% "kittens" % "2.2.0" // https://github.com/typelevel/kittens/releases
-  val catsLaws          = "org.typelevel" %% "cats-laws" % catsVersion
-  val chimney           = "io.scalaland" %% "chimney" % "0.6.1" // https://github.com/scalalandio/chimney/releases
-  val droste            = "io.higherkindness" %% "droste-core" % drosteVersion
-  val enumeratum        = "com.beachape" %% "enumeratum" % enumeratumVersion
-  val fastuuid          = "com.eatthepath" % "fast-uuid" % "0.1" // https://github.com/jchambers/fast-uuid/releases
-  val uuidGenerator     = "com.fasterxml.uuid" % "java-uuid-generator" % "4.0.1" // https://github.com/cowtowncoder/java-uuid-generator/releases
-  //Thanks for using https://jar-download.com
+  val catnip     = "io.scalaland" %% "catnip" % "1.1.2" // https://github.com/scalalandio/catnip/releases
+  val cats       = "org.typelevel" %% "cats-core" % catsVersion
+  val catsFree   = "org.typelevel" %% "cats-free" % catsVersion
+  val catsEffect = "org.typelevel" %% "cats-effect" % catsEffectVersion
+  val alleycats  = "org.typelevel" %% "alleycats-core" % catsVersion
+  val kittens    = "org.typelevel" %% "kittens" % "2.2.1" // https://github.com/typelevel/kittens/releases
+  val catsLaws   = "org.typelevel" %% "cats-laws" % catsVersion
+  val chimney    = "io.scalaland" %% "chimney" % "0.6.1" // https://github.com/scalalandio/chimney/releases
+  val droste     = "io.higherkindness" %% "droste-core" % drosteVersion
+  val enumeratum = "com.beachape" %% "enumeratum" % enumeratumVersion
+  val fastuuid   = "com.eatthepath" % "fast-uuid" % "0.1" // https://github.com/jchambers/fast-uuid/releases
+  val uuidGenerator =
+    "com.fasterxml.uuid" % "java-uuid-generator" % "4.0.1" // https://github.com/cowtowncoder/java-uuid-generator/releases
   val fs2               = "co.fs2" %% "fs2-core" % fs2Version
   val fs2IO             = "co.fs2" %% "fs2-io" % fs2Version
   val magnolia          = "com.propensive" %% "magnolia" % "0.17.0" // https://github.com/propensive/magnolia/releases
@@ -83,7 +83,8 @@ object Dependencies {
   val redis4cats =
     "dev.profunktor" %% "redis4cats-effects" % "0.10.3" // https://github.com/profunktor/redis4cats/releases
   // API
-  val sttpCats = "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats" % "3.0.0-RC9"
+  val sttpCats =
+    "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats" % "3.0.0" // https://github.com/softwaremill/sttp/releases
   // same as the one used by tapir
   val http4sPrometheus = "org.http4s" %% "http4s-prometheus-metrics" % http4sVersion
   val tapir            = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion

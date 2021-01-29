@@ -92,7 +92,7 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     restore
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(_.toRoutes).reduceK
+  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
 }
 object ChannelServer {
 

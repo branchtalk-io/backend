@@ -29,8 +29,10 @@ final class OpenAPIServer[F[_]: Sync: ContextShift](
   private def fixPathItem(pathItem: PathItem) =
     pathItem.lens(_.parameters).modify(_.filterNot(_.fold(_.$ref.contains(removedName), _.name.contains(removedName))))
 
-  def openAPI: OpenAPI =
-    endpoints.toList.toOpenAPI(apiInfo.toOpenAPI).lens(_.paths).modify(_.view.mapValues(fixPathItem).to(ListMap))
+  def openAPI: OpenAPI = OpenAPIDocsInterpreter
+    .toOpenAPI(endpoints.map(_.endpoint).toList, apiInfo.toOpenAPI)
+    .lens(_.paths)
+    .modify(_.view.mapValues(fixPathItem).to(ListMap))
 
   val openAPIJson: String = writeToString(openAPI)
 

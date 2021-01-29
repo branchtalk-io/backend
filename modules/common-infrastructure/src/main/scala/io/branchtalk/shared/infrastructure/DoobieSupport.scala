@@ -4,19 +4,9 @@ import cats.effect.{ IO, Sync }
 import com.typesafe.scalalogging.Logger
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
-import io.branchtalk.shared.model.{
-  CodePosition,
-  CommonError,
-  ID,
-  OptionUpdatable,
-  Paginated,
-  ParseRefined,
-  UUID,
-  Updatable
-}
+import io.branchtalk.shared.model._
 import io.estatico.newtype.Coercible
-
-import scala.reflect.runtime.universe.TypeTag
+import org.tpolecat.typename.TypeName
 
 object DoobieSupport
     extends doobie.Aliases // basic functionalities
@@ -41,7 +31,7 @@ object DoobieSupport
 
   implicit def enumeratumMeta[A <: enumeratum.EnumEntry](implicit
     enum:    enumeratum.Enum[A],
-    typeTag: TypeTag[A]
+    typeTag: TypeName[A]
   ): Meta[A] =
     Meta[String].timap(enum.withNameInsensitive)(_.entryName)
 

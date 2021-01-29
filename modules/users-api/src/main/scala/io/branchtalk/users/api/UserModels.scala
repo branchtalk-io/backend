@@ -48,24 +48,26 @@ object UserModels {
   implicit val userDescriptionSchema: Schema[User.Description] =
     summonSchema[String].asNewtype[User.Description]
   implicit val passwordRawSchema: Schema[Password.Raw] =
-    summonSchema[Array[Byte] Refined NonEmpty].asNewtype[Password.Raw]
+    summonSchema[String].contramap[Array[Byte] Refined NonEmpty](_.value.pipe(new String(_))).asNewtype[Password.Raw]
+  implicit val permissionSchema: JsSchema[Permission] =
+    Schema.derived[Permission]
   implicit val permissionsSchema: Schema[Permissions] =
     summonSchema[Set[Permission]].asNewtype[Permissions]
   implicit val sessionExpirationSchema: Schema[Session.ExpirationTime] =
     summonSchema[OffsetDateTime].asNewtype[Session.ExpirationTime]
-  implicit val banReasoSchema: Schema[Ban.Reason] =
+  implicit val banReasonSchema: Schema[Ban.Reason] =
     summonSchema[NonEmptyString].asNewtype[Ban.Reason]
 
-  @Semi(JsCodec) sealed trait UserError extends ADT
+  @Semi(JsCodec, JsSchema) sealed trait UserError extends ADT
   object UserError {
 
-    @Semi(JsCodec) final case class BadCredentials(msg: String) extends UserError
-    @Semi(JsCodec) final case class NoPermission(msg: String) extends UserError
-    @Semi(JsCodec) final case class NotFound(msg: String) extends UserError
-    @Semi(JsCodec) final case class ValidationFailed(error: NonEmptyList[String]) extends UserError
+    @Semi(JsCodec, JsSchema) final case class BadCredentials(msg: String) extends UserError
+    @Semi(JsCodec, JsSchema) final case class NoPermission(msg: String) extends UserError
+    @Semi(JsCodec, JsSchema) final case class NotFound(msg: String) extends UserError
+    @Semi(JsCodec, JsSchema) final case class ValidationFailed(error: NonEmptyList[String]) extends UserError
   }
 
-  @Semi(JsCodec) final case class APISession(
+  @Semi(JsCodec, JsSchema) final case class APISession(
     id:          ID[Session],
     userID:      ID[User],
     sessionType: APISession.SessionType,
@@ -73,7 +75,7 @@ object UserModels {
   )
   object APISession {
 
-    @Semi(JsCodec) sealed trait SessionType extends ADT
+    @Semi(JsCodec, JsSchema) sealed trait SessionType extends ADT
     object SessionType {
       case object UserSession extends SessionType
       case object OAuth extends SessionType
@@ -93,29 +95,29 @@ object UserModels {
     }
   }
 
-  @Semi(JsCodec) final case class SignUpRequest(
+  @Semi(JsCodec, JsSchema) final case class SignUpRequest(
     email:       User.Email,
     username:    User.Name,
     description: Option[User.Description],
     password:    Password.Raw
   )
-  @Semi(JsCodec) final case class SignUpResponse(
+  @Semi(JsCodec, JsSchema) final case class SignUpResponse(
     userID:    ID[User],
     sessionID: ID[Session]
   )
 
-  @Semi(JsCodec) final case class SignInResponse(
+  @Semi(JsCodec, JsSchema) final case class SignInResponse(
     userID:    ID[User],
     sessionID: ID[Session],
     expiresAt: Session.ExpirationTime
   )
 
-  @Semi(JsCodec) final case class SignOutResponse(
+  @Semi(JsCodec, JsSchema) final case class SignOutResponse(
     userID:    ID[User],
     sessionID: Option[ID[Session]] // in case user wasn't using sessionID
   )
 
-  @Semi(JsCodec) final case class APIUser(
+  @Semi(JsCodec, JsSchema) final case class APIUser(
     id:          ID[User],
     email:       User.Email,
     username:    User.Name,
@@ -127,30 +129,30 @@ object UserModels {
     def fromDomain(user: User): APIUser = user.data.into[APIUser].withFieldConst(_.id, user.id).transform
   }
 
-  @Semi(JsCodec) final case class UpdateUserRequest(
+  @Semi(JsCodec, JsSchema) final case class UpdateUserRequest(
     newUsername:    Updatable[User.Name],
     newDescription: OptionUpdatable[User.Description],
     newPassword:    Updatable[Password.Raw]
   )
-  @Semi(JsCodec) final case class UpdateUserResponse(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class UpdateUserResponse(id: ID[User])
 
-  @Semi(JsCodec) final case class DeleteUserResponse(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class DeleteUserResponse(id: ID[User])
 
-  @Semi(JsCodec) final case class GrantModerationRequest(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class GrantModerationRequest(id: ID[User])
 
-  @Semi(JsCodec) final case class GrantModerationResponse(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class GrantModerationResponse(id: ID[User])
 
-  @Semi(JsCodec) final case class RevokeModerationRequest(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class RevokeModerationRequest(id: ID[User])
 
-  @Semi(JsCodec) final case class RevokeModerationResponse(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class RevokeModerationResponse(id: ID[User])
 
-  @Semi(JsCodec) final case class BansResponse(bannedIDs: List[ID[User]])
+  @Semi(JsCodec, JsSchema) final case class BansResponse(bannedIDs: List[ID[User]])
 
-  @Semi(JsCodec) final case class BanOrderRequest(id: ID[User], reason: Ban.Reason)
+  @Semi(JsCodec, JsSchema) final case class BanOrderRequest(id: ID[User], reason: Ban.Reason)
 
-  @Semi(JsCodec) final case class BanOrderResponse(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class BanOrderResponse(id: ID[User])
 
-  @Semi(JsCodec) final case class BanLiftRequest(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class BanLiftRequest(id: ID[User])
 
-  @Semi(JsCodec) final case class BanLiftResponse(id: ID[User])
+  @Semi(JsCodec, JsSchema) final case class BanLiftResponse(id: ID[User])
 }

@@ -28,16 +28,16 @@ object CommentModels {
   implicit val commentRepliesNrSchema: Schema[Comment.RepliesNr] =
     summonSchema[Int Refined NonNegative].asNewtype[Comment.RepliesNr]
 
-  @Semi(JsCodec) sealed trait CommentError extends ADT
+  @Semi(JsCodec, JsSchema) sealed trait CommentError extends ADT
   object CommentError {
 
-    @Semi(JsCodec) final case class BadCredentials(msg: String) extends CommentError
-    @Semi(JsCodec) final case class NoPermission(msg: String) extends CommentError
-    @Semi(JsCodec) final case class NotFound(msg: String) extends CommentError
-    @Semi(JsCodec) final case class ValidationFailed(error: NonEmptyList[String]) extends CommentError
+    @Semi(JsCodec, JsSchema) final case class BadCredentials(msg: String) extends CommentError
+    @Semi(JsCodec, JsSchema) final case class NoPermission(msg: String) extends CommentError
+    @Semi(JsCodec, JsSchema) final case class NotFound(msg: String) extends CommentError
+    @Semi(JsCodec, JsSchema) final case class ValidationFailed(error: NonEmptyList[String]) extends CommentError
   }
 
-  @Semi(JsCodec) final case class APIComment(
+  @Semi(JsCodec, JsSchema) final case class APIComment(
     id:        ID[Comment],
     authorID:  ID[User],
     channelID: ID[Channel],
@@ -52,20 +52,20 @@ object CommentModels {
       comment.data.into[APIComment].withFieldConst(_.id, comment.id).transform
   }
 
-  @Semi(JsCodec) final case class CreateCommentRequest(
+  @Semi(JsCodec, JsSchema) final case class CreateCommentRequest(
     content: Comment.Content,
     replyTo: Option[ID[Comment]]
   )
 
-  @Semi(JsCodec) final case class CreateCommentResponse(id: ID[Comment])
+  @Semi(JsCodec, JsSchema) final case class CreateCommentResponse(id: ID[Comment])
 
-  @Semi(JsCodec) final case class UpdateCommentRequest(
+  @Semi(JsCodec, JsSchema) final case class UpdateCommentRequest(
     newContent: Updatable[Comment.Content]
   )
 
-  @Semi(JsCodec) final case class UpdateCommentResponse(id: ID[Comment])
+  @Semi(JsCodec, JsSchema) final case class UpdateCommentResponse(id: ID[Comment])
 
-  @Semi(JsCodec) final case class DeleteCommentResponse(id: ID[Comment])
+  @Semi(JsCodec, JsSchema) final case class DeleteCommentResponse(id: ID[Comment])
 
-  @Semi(JsCodec) final case class RestoreCommentResponse(id: ID[Comment])
+  @Semi(JsCodec, JsSchema) final case class RestoreCommentResponse(id: ID[Comment])
 }

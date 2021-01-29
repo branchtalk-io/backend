@@ -35,16 +35,16 @@ object ChannelModels {
   implicit val channelDescriptionSchema: Schema[Channel.Description] =
     summonSchema[NonEmptyString].asNewtype[Channel.Description]
 
-  @Semi(JsCodec) sealed trait ChannelError extends ADT
+  @Semi(JsCodec, JsSchema) sealed trait ChannelError extends ADT
   object ChannelError {
 
-    @Semi(JsCodec) final case class BadCredentials(msg: String) extends ChannelError
-    @Semi(JsCodec) final case class NoPermission(msg: String) extends ChannelError
-    @Semi(JsCodec) final case class NotFound(msg: String) extends ChannelError
-    @Semi(JsCodec) final case class ValidationFailed(error: NonEmptyList[String]) extends ChannelError
+    @Semi(JsCodec, JsSchema) final case class BadCredentials(msg: String) extends ChannelError
+    @Semi(JsCodec, JsSchema) final case class NoPermission(msg: String) extends ChannelError
+    @Semi(JsCodec, JsSchema) final case class NotFound(msg: String) extends ChannelError
+    @Semi(JsCodec, JsSchema) final case class ValidationFailed(error: NonEmptyList[String]) extends ChannelError
   }
 
-  @Semi(JsCodec) final case class APIChannel(
+  @Semi(JsCodec, JsSchema) final case class APIChannel(
     id:          ID[Channel],
     urlName:     Channel.UrlName,
     name:        Channel.Name,
@@ -56,24 +56,24 @@ object ChannelModels {
       channel.data.into[APIChannel].withFieldConst(_.id, channel.id).transform
   }
 
-  @Semi(JsCodec) final case class CreateChannelRequest(
+  @Semi(JsCodec, JsSchema) final case class CreateChannelRequest(
     urlName:     Channel.UrlName,
     name:        Channel.Name,
     description: Option[Channel.Description]
   )
 
-  @Semi(JsCodec) final case class CreateChannelResponse(id: ID[Channel])
+  @Semi(JsCodec, JsSchema) final case class CreateChannelResponse(id: ID[Channel])
 
   // TODO: unify behavior (Channel sets UrlName while Post generates it)
-  @Semi(JsCodec) final case class UpdateChannelRequest(
+  @Semi(JsCodec, JsSchema) final case class UpdateChannelRequest(
     newUrlName:     Updatable[Channel.UrlName],
     newName:        Updatable[Channel.Name],
     newDescription: OptionUpdatable[Channel.Description]
   )
 
-  @Semi(JsCodec) final case class UpdateChannelResponse(id: ID[Channel])
+  @Semi(JsCodec, JsSchema) final case class UpdateChannelResponse(id: ID[Channel])
 
-  @Semi(JsCodec) final case class DeleteChannelResponse(id: ID[Channel])
+  @Semi(JsCodec, JsSchema) final case class DeleteChannelResponse(id: ID[Channel])
 
-  @Semi(JsCodec) final case class RestoreChannelResponse(id: ID[Channel])
+  @Semi(JsCodec, JsSchema) final case class RestoreChannelResponse(id: ID[Channel])
 }

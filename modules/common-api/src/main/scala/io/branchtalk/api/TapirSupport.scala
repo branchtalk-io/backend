@@ -20,8 +20,13 @@ object TapirSupport extends TapirCodecRefined with TapirJsonJsoniter {
   // shortcuts
   type Param[A] = Codec[String, A, TextPlain]
 
+  type JsSchema[A] = Schema[A]
+  object JsSchema
+
   def summonParam[T](implicit param:   Param[T]):  Param[T]  = param
   def summonSchema[T](implicit schema: Schema[T]): Schema[T] = schema
+
+  sttp.tapir.Schema
 
   // utilities
 
@@ -57,13 +62,13 @@ object TapirSupport extends TapirCodecRefined with TapirJsonJsoniter {
   implicit def updatableSchema[A: Schema]: Schema[Updatable[A]] = {
     implicit val customConfiguration: Configuration =
       Configuration.default.copy(toEncodedName = discriminatorNameMapper(".")).withDiscriminator("action")
-    Schema.derivedSchema[Updatable[A]]
+    Schema.derived[Updatable[A]]
   }
 
   implicit def optionUpdatableSchema[A: Schema]: Schema[OptionUpdatable[A]] = {
     implicit val customConfiguration: Configuration =
       Configuration.default.copy(toEncodedName = discriminatorNameMapper(".")).withDiscriminator("action")
-    Schema.derivedSchema[OptionUpdatable[A]]
+    Schema.derived[OptionUpdatable[A]]
   }
 
   /// Cats codecs

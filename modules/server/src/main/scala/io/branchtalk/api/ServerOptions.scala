@@ -5,11 +5,15 @@ import cats.effect.{ ContextShift, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.JsoniterSupport.JsCodec
 import io.branchtalk.api.TapirSupport.jsonBody
-import sttp.model.StatusCode
 import sttp.tapir.server.ServerDefaults.FailureHandling
 import sttp.tapir.server.http4s.Http4sServerOptions
-import sttp.tapir.{ DecodeResult, Schema, ValidationError, Validator }
-import sttp.tapir.server.{ DecodeFailureContext, DecodeFailureHandling, LogRequestHandling }
+import sttp.tapir.{ DecodeResult, Schema, ValidationError }
+import sttp.tapir.server.{
+  DecodeFailureContext,
+  DecodeFailureHandling,
+  DefaultDecodeFailureResponse,
+  LogRequestHandling
+}
 
 object ServerOptions {
 
@@ -21,29 +25,29 @@ object ServerOptions {
     onValidationError: List[ValidationError[_]] => E
   )
 
-  private val originalHandler: DecodeFailureContext => Option[StatusCode] = FailureHandling.respondWithStatusCode(
+  private val originalHandler: DecodeFailureContext => Option[DefaultDecodeFailureResponse] = FailureHandling.respond(
     _,
     badRequestOnPathErrorIfPathShapeMatches = false,
     badRequestOnPathInvalidIfPathShapeMatches = true
   )
-  def buildErrorHandler[E: JsCodec: Schema: Validator](
+  def buildErrorHandler[E: JsCodec: Schema](
     errorHandler: ErrorHandler[E]
   ): DecodeFailureContext => DecodeFailureHandling = {
     case handled if originalHandler(handled).isEmpty =>
       DecodeFailureHandling.noMatch
-    case DecodeFailureContext(_, DecodeResult.Missing) =>
+    case DecodeFailureContext(_, DecodeResult.Missing, _) =>
       DecodeFailureHandling.response(jsonBody[E])(errorHandler.onMissing())
-    case DecodeFailureContext(_, DecodeResult.Multiple(_)) =>
+    case DecodeFailureContext(_, DecodeResult.Multiple(_), _) =>
       DecodeFailureHandling.response(jsonBody[E])(errorHandler.onMultiple())
-    case DecodeFailureContext(_, DecodeResult.Error(original, error)) =>
+    case DecodeFailureContext(_, DecodeResult.Error(original, error), _) =>
       DecodeFailureHandling.response(jsonBody[E])(errorHandler.onError(original, error))
-    case DecodeFailureContext(_, DecodeResult.Mismatch(expected, actual)) =>
+    case DecodeFailureContext(_, DecodeResult.Mismatch(expected, actual), _) =>
       DecodeFailureHandling.response(jsonBody[E])(errorHandler.onMismatch(expected, actual))
-    case DecodeFailureContext(_, DecodeResult.InvalidValue(errors)) =>
+    case DecodeFailureContext(_, DecodeResult.InvalidValue(errors), _) =>
       DecodeFailureHandling.response(jsonBody[E])(errorHandler.onValidationError(errors))
   }
 
-  def create[F[_]: Sync: ContextShift, E: JsCodec: Schema: Validator](
+  def create[F[_]: Sync: ContextShift, E: JsCodec: Schema](
     logger:       Logger,
     errorHandler: ErrorHandler[E]
   ): Http4sServerOptions[F] = {
