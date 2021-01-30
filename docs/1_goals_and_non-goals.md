@@ -21,10 +21,13 @@ instance, would be much better off with one of many projects
 [available on GitHub](https://github.com/search?q=Reddit+clone).
 
 Therefore, I started implementing my own Reddit-clone which would use many
-techniques allowing scalability, that I learned over time. While I cannot claim
-that I implemented them in the best way possible (I certainly didn't) it could
-at least serve as some point of reference for people who are truly clueless
-about where to even start.
+techniques allowing scalability, that I learned over time. We are assuming
+that they would be justified, even though in a real life project you _should_
+have some numbers and proofs justifying their usage.
+
+While I cannot claim that I implemented them in the best way possible
+(I certainly didn't) it could at least serve as some point of reference
+for people who are truly clueless about where to even start.
 
 ## Goals
 
@@ -94,5 +97,5 @@ services, so they are harder to justify in a demo app:
    what not. If you don't remove/ban them, you will be liable for all
    the damage they've done, so you would need an army of mods and/or some
    tools which could direct their attention where such activities happen,
-   perhaps event banning things automatically. This is huge task, vastly
+   perhaps event banning things automatically. This is a huge task, vastly
    exceeding creating _just a non-linear discussion site_.

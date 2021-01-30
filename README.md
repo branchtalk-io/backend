@@ -1,4 +1,4 @@
-# BranchTalk
+# Branchtalk
 
 Demo of how scalable implementation of Reddit-like service could be made
 in Scala to demonstrate some patterns and principles.

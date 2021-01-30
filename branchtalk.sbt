@@ -51,7 +51,8 @@ val common = project
       val file = (Compile / resourceManaged).value / "branchtalk-version.conf"
       IO.write(
         file,
-        s"""branchtalk-build {
+        s"""# Populated by the build tool, used by e.g. OpenAPI to display version.
+           |branchtalk-build {
            |  version = "${version.value}"
            |  commit  = "${git.gitHeadCommit.value.getOrElse("null")}"
            |  date    = "${git.gitHeadCommitDate.value.getOrElse("null")}"
