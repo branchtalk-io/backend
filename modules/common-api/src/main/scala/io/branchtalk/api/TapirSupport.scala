@@ -26,8 +26,8 @@ object TapirSupport
   type JsSchema[A] = sttp.tapir.Schema[A]
   val JsSchema = sttp.tapir.Schema
 
-  def summonParam[T](implicit param:   Param[T]):    Param[T]    = param
-  def summonSchema[T](implicit schema: JsSchema[T]): JsSchema[T] = schema
+  @inline def summonParam[T](implicit param:   Param[T]):    Param[T]    = param
+  @inline def summonSchema[T](implicit schema: JsSchema[T]): JsSchema[T] = schema
 
   // utilities
 

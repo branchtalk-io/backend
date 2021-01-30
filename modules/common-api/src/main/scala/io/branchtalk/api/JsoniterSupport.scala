@@ -14,12 +14,11 @@ import io.estatico.newtype.Coercible
 @SuppressWarnings(Array("org.wartremover.warts.All")) // handling valid null values, macros
 object JsoniterSupport {
 
-  // shortcuts
-
+  // shortcut with object allowing consistent usage of @Semi(JsCodec)
   type JsCodec[A] = JsonValueCodec[A]
   object JsCodec
 
-  def summonCodec[T](implicit codec: JsCodec[T]): JsCodec[T] = codec
+  @inline def summonCodec[T](implicit codec: JsCodec[T]): JsCodec[T] = codec
 
   // utilities
 
