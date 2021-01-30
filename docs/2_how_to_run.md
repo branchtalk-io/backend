@@ -129,6 +129,20 @@ or
 and then accessing
 [OpenAPI](http://localhost:8080/docs/index.html?url=/docs/swagger.json).
 
+### Local development
+
+Start dependencies in Docker and then run sbt shell
+```bash
+> make dev-bg
+> ./sbt
+```
+Then will be able to run IT tests locally (`it:test`) or start application
+from build tool (`run [arguments]`, e.g. `run --help` or `run --monolith`).
+
 ## More options
 
 More options are available. Please consult `--help` to learn about them.
+
+```bash
+> ./sbt application/run --help
+```
