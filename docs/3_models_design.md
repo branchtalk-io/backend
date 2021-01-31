@@ -144,8 +144,9 @@ If some derivation would require having the same imports in each file,
 then - if possible - definitions brough by these imports should be placed
 into one `object` which could be imported instead. Examples are:
 
- * `DoobieSupports` - provided support for core Doobie concepts, Postgres
+ * `DoobieSupports` - provides support for core Doobie concepts, Postgres
    extensions, Refined Types, `@newtype`s own types' support
+ * `AvroSupport` - provides support for Refined and Newtypes to Avro4s
  * `TapirSupport` - provides support for Tapir and derivation of Circe codecs,
    Refined Types and `@newtype`s
  * `JsoniterSupport` - adds `.map` and `.mapDecode`, support for Refined

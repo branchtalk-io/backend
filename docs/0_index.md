@@ -4,4 +4,4 @@
  2. [How to run Branchtalk](2_how_to_run.md)
  3. [Models design](3_models_design.md)
  4. Event sourcing (TODO)
- 5. Lessons learned (TODO)
+ 5. [Lessons learned](5_lessons_learned.md)
