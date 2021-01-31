@@ -2,6 +2,7 @@ package io.branchtalk.shared.model
 
 import io.scalaland.catnip.Semi
 
+// Useful for generating the position in source code for debugging.
 @Semi(FastEq, ShowPretty) final case class CodePosition(
   file:    String,
   line:    Int,

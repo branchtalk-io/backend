@@ -5,6 +5,7 @@ import magnolia.{ Magnolia, ReadOnlyCaseClass, SealedTrait }
 
 import scala.language.experimental.macros
 
+// Custom implementation of Eq which relies on Magnolia for derivation as opposed to Kittens' version.
 trait FastEq[T] extends Eq[T]
 object FastEq extends FastEqLowLevel {
   type Typeclass[T] = FastEq[T]

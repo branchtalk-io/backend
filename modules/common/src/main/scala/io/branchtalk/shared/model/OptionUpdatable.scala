@@ -3,6 +3,7 @@ package io.branchtalk.shared.model
 import cats.{ Applicative, Traverse }
 import io.scalaland.catnip.Semi
 
+// Express the intent that something should be updated, erased or kept better than Option[Either[Unit, *]].
 @Semi(ShowPretty, FastEq) sealed trait OptionUpdatable[+A] {
 
   def fold[B](set: A => B, keep: => B, erase: => B): B = this match {

@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import io.branchtalk.ADT
 import io.scalaland.catnip.Semi
 
+// Defines errors as ADT but also Throwable, so that we can extract during handling it and pattern-match all cases.
 @Semi(FastEq, ShowPretty) sealed trait CommonError extends Exception with ADT {
   val codePosition: CodePosition
   override def toString: String = this.show

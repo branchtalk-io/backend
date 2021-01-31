@@ -13,6 +13,7 @@ import javax.crypto.spec.SecretKeySpec
 import scala.collection.compat.immutable.ArraySeq
 import scala.util.{ Random, Try }
 
+// Express intent that some data should not be stored as unencrypted format.
 @Semi(Decoder, Encoder, SchemaFor) final case class SensitiveData[A](value: A) {
 
   def encrypt(

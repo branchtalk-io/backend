@@ -4,6 +4,7 @@ import cats.{ Applicative, Traverse }
 import io.branchtalk.ADT
 import io.scalaland.catnip.Semi
 
+// Express the intent that something should be updated or not better than Option.
 @Semi(ShowPretty, FastEq) sealed trait Updatable[+A] extends ADT {
 
   def fold[B](set: A => B, keep: => B): B = this match {

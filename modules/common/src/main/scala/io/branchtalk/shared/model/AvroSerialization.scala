@@ -13,6 +13,7 @@ import io.scalaland.chimney.TransformerFSupport
 import scala.collection.compat.Factory
 import scala.util.{ Failure, Success }
 
+// Missing helpers for serializations and deserialization with some API saner than byte array streams.
 @Semi(FastEq, ShowPretty) sealed trait DeserializationError extends ADT
 object DeserializationError {
   final case class DecodingError(badValue: String, error: Throwable) extends DeserializationError

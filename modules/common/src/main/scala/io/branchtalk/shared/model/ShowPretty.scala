@@ -5,6 +5,7 @@ import magnolia._
 
 import scala.language.experimental.macros
 
+// Custom implementation of ShowPretty which relies on Magnolia for derivation as opposed to Kittens' version.
 trait ShowPretty[T] extends Show[T] {
 
   def show(t: T): String = showPretty(t).toString()
