@@ -7,6 +7,11 @@ Goals and documentations are in [docs](docs/0_index.md) directory. You can also
 start by looking at [main](modules/app/src/main/scala/io/branchtalk/Main.scala)
 and browsing code from there in your IDE.
 
+## License
+
+AGPL - if I cannot make money out of it, nobody else will.
+(You know where to find me).
+
 ## Status
 
 Achieved virtually all intended functionality:
