@@ -1,11 +1,10 @@
 package io.branchtalk.shared
 
-import java.nio.charset.Charset
+import java.nio.charset.{ Charset, StandardCharsets }
 import java.time.{ Instant, OffsetDateTime, ZoneId }
 import java.time.format.DateTimeFormatter
 import java.util.regex.Pattern
 import java.util.{ Locale, UUID => jUUID }
-
 import cats.effect.{ Clock, Sync }
 import cats.{ Eq, Functor, Order, Show }
 import eu.timepit.refined.api.Refined
@@ -134,8 +133,8 @@ package object model {
     def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5, i6: I6, i7: I7): Out = f.apply((i1, i2, i3, i4, i5, i6, i7))
   }
 
-  val branchtalkCharset: Charset = Charset.defaultCharset()
-  val branchtalkLocale:  Locale  = Locale.getDefault
+  val branchtalkCharset: Charset = StandardCharsets.UTF_8 // used in getBytes and new String
+  val branchtalkLocale:  Locale  = Locale.ROOT // used in toLowerCase(branchtalkLocale) in Meta definitions
 
   private val basePattern: Pattern = Pattern.compile("([A-Z]+)([A-Z][a-z])")
   private val swapPattern: Pattern = Pattern.compile("([a-z\\d])([A-Z])")
