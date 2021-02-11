@@ -28,7 +28,7 @@ object SessionProperties {
   }
 
   object ExpirationTime {
-    def unapply(expirationTime: ExpirationTime): Option[OffsetDateTime] = expirationTime.offsetDateTime.some
+    def unapply(expirationTime: ExpirationTime): Some[OffsetDateTime] = Some(expirationTime.offsetDateTime)
 
     def now[F[_]: Functor: Clock]: F[ExpirationTime] =
       Clock[F]
@@ -67,7 +67,7 @@ object SessionProperties {
         case OAuth(permissions) => (Type.OAuth, permissions)
       }
 
-      def unapply(usage: Usage): Option[(Type, Permissions)] = unpack(usage).some
+      def unapply(usage: Usage): Some[(Type, Permissions)] = Some(unpack(usage))
     }
   }
 

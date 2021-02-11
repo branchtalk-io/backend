@@ -30,7 +30,7 @@ object UserProperties {
   object Email {
     type Pattern = "(.+)@(.+)"
 
-    def unapply(email: Email): Option[String Refined MatchesRegex[Email.Pattern]] = email.emailString.some
+    def unapply(email: Email): Some[String Refined MatchesRegex[Email.Pattern]] = Some(email.emailString)
     def parse[F[_]: Sync](string: String): F[Email] =
       ParseRefined[F].parse[MatchesRegex[Email.Pattern]](string).map(Email.apply)
 
@@ -40,7 +40,7 @@ object UserProperties {
 
   @newtype final case class Name(nonEmptyString: NonEmptyString)
   object Name {
-    def unapply(name: Name): Option[NonEmptyString] = name.nonEmptyString.some
+    def unapply(name: Name): Some[NonEmptyString] = Some(name.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Name] =
       ParseRefined[F].parse[NonEmpty](string).map(Name.apply)
 
@@ -50,7 +50,7 @@ object UserProperties {
 
   @newtype final case class Description(string: String)
   object Description {
-    def unapply(description: Description): Option[String] = description.string.some
+    def unapply(description: Description): Some[String] = Some(description.string)
 
     implicit val show: Show[Description]  = Show.wrap(_.string)
     implicit val eq:   Order[Description] = Order[String].coerce

@@ -44,7 +44,7 @@ package object model {
 
   @newtype final case class ID[+Entity](uuid: UUID)
   object ID {
-    def unapply[Entity](entity: ID[Entity]): Option[UUID] = entity.uuid.some
+    def unapply[Entity](entity: ID[Entity]): Some[UUID] = Some(entity.uuid)
     def create[F[_]: Sync, Entity](implicit uuidGenerator: UUIDGenerator): F[ID[Entity]] =
       UUID.create[F].map(ID[Entity])
     def parse[F[_]: Sync, Entity](string: String)(implicit uuidGenerator: UUIDGenerator): F[ID[Entity]] =
@@ -56,7 +56,7 @@ package object model {
 
   @newtype final case class CreationTime(offsetDateTime: OffsetDateTime)
   object CreationTime {
-    def unapply(creationTime: CreationTime): Option[OffsetDateTime] = creationTime.offsetDateTime.some
+    def unapply(creationTime: CreationTime): Some[OffsetDateTime] = Some(creationTime.offsetDateTime)
     def now[F[_]: Functor: Clock]: F[CreationTime] =
       Clock[F]
         .realTime(scala.concurrent.duration.MILLISECONDS)
@@ -70,7 +70,7 @@ package object model {
   }
   @newtype final case class ModificationTime(offsetDateTime: OffsetDateTime)
   object ModificationTime {
-    def unapply(modificationTime: ModificationTime): Option[OffsetDateTime] = modificationTime.offsetDateTime.some
+    def unapply(modificationTime: ModificationTime): Some[OffsetDateTime] = Some(modificationTime.offsetDateTime)
     def now[F[_]: Functor: Clock]: F[ModificationTime] =
       Clock[F]
         .realTime(scala.concurrent.duration.MILLISECONDS)
@@ -85,28 +85,28 @@ package object model {
 
   @newtype final case class CreationScheduled[Entity](id: ID[Entity])
   object CreationScheduled {
-    def unapply[Entity](creationScheduled: CreationScheduled[Entity]): Option[ID[Entity]] = creationScheduled.id.some
+    def unapply[Entity](creationScheduled: CreationScheduled[Entity]): Some[ID[Entity]] = Some(creationScheduled.id)
 
     implicit def show[Entity]: Show[CreationScheduled[Entity]] = Show.wrap(_.id)
     implicit def eq[Entity]:   Eq[CreationScheduled[Entity]]   = Eq[ID[Entity]].coerce
   }
   @newtype final case class UpdateScheduled[Entity](id: ID[Entity])
   object UpdateScheduled {
-    def unapply[Entity](updateScheduled: UpdateScheduled[Entity]): Option[ID[Entity]] = updateScheduled.id.some
+    def unapply[Entity](updateScheduled: UpdateScheduled[Entity]): Some[ID[Entity]] = Some(updateScheduled.id)
 
     implicit def show[Entity]: Show[UpdateScheduled[Entity]] = Show.wrap(_.id)
     implicit def eq[Entity]:   Eq[UpdateScheduled[Entity]]   = Eq[ID[Entity]].coerce
   }
   @newtype final case class DeletionScheduled[Entity](id: ID[Entity])
   object DeletionScheduled {
-    def unapply[Entity](deletionScheduled: DeletionScheduled[Entity]): Option[ID[Entity]] = deletionScheduled.id.some
+    def unapply[Entity](deletionScheduled: DeletionScheduled[Entity]): Some[ID[Entity]] = Some(deletionScheduled.id)
 
     implicit def show[Entity]: Show[DeletionScheduled[Entity]] = Show.wrap(_.id)
     implicit def eq[Entity]:   Eq[DeletionScheduled[Entity]]   = Eq[ID[Entity]].coerce
   }
   @newtype final case class RestoreScheduled[Entity](id: ID[Entity])
   object RestoreScheduled {
-    def unapply[Entity](restoreScheduled: RestoreScheduled[Entity]): Option[ID[Entity]] = restoreScheduled.id.some
+    def unapply[Entity](restoreScheduled: RestoreScheduled[Entity]): Some[ID[Entity]] = Some(restoreScheduled.id)
 
     implicit def show[Entity]: Show[RestoreScheduled[Entity]] = Show.wrap(_.id)
     implicit def eq[Entity]:   Eq[RestoreScheduled[Entity]]   = Eq[ID[Entity]].coerce

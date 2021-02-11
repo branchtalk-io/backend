@@ -71,7 +71,7 @@ object Password {
 
   @newtype final case class Hash(bytes: Array[Byte])
   object Hash {
-    def unapply(hash: Hash): Option[Array[Byte]] = hash.bytes.some
+    def unapply(hash: Hash): Some[Array[Byte]] = Some(hash.bytes)
 
     implicit val show: Show[Hash] = Show.wrap(_ => "EDITED OUT")
     implicit val eq:   Eq[Hash]   = _.bytes sameElements _.bytes
@@ -79,7 +79,7 @@ object Password {
 
   @newtype final case class Salt(bytes: Array[Byte])
   object Salt {
-    def unapply(salt: Salt): Option[Array[Byte]] = salt.bytes.some
+    def unapply(salt: Salt): Some[Array[Byte]] = Some(salt.bytes)
 
     implicit val show: Show[Salt] = Show.wrap(_ => "EDITED OUT")
     implicit val eq:   Eq[Salt]   = _.bytes sameElements _.bytes
@@ -87,7 +87,7 @@ object Password {
 
   @newtype final case class Raw(nonEmptyBytes: Array[Byte] Refined NonEmpty)
   object Raw {
-    def unapply(raw: Raw): Option[Array[Byte] Refined NonEmpty] = raw.nonEmptyBytes.some
+    def unapply(raw: Raw): Some[Array[Byte] Refined NonEmpty] = Some(raw.nonEmptyBytes)
     def parse[F[_]: Sync](bytes: Array[Byte]): F[Raw] =
       ParseRefined[F].parse[NonEmpty](bytes).map(Raw.apply)
 

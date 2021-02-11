@@ -26,7 +26,7 @@ object ChannelProperties {
   object UrlName {
     type Pattern = "[A-Za-z0-9_-]+"
 
-    def unapply(urlName: UrlName): Option[String Refined MatchesRegex[Pattern]] = urlName.urlString.some
+    def unapply(urlName: UrlName): Some[String Refined MatchesRegex[Pattern]] = Some(urlName.urlString)
     def parse[F[_]: Sync](string: String): F[UrlName] =
       ParseRefined[F].parse[MatchesRegex[Pattern]](string).map(UrlName.apply)
 
@@ -36,7 +36,7 @@ object ChannelProperties {
 
   @newtype final case class Name(nonEmptyString: NonEmptyString)
   object Name {
-    def unapply(name: Name): Option[NonEmptyString] = name.nonEmptyString.some
+    def unapply(name: Name): Some[NonEmptyString] = Some(name.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Name] =
       ParseRefined[F].parse[NonEmpty](string).map(Name.apply)
 
@@ -46,7 +46,7 @@ object ChannelProperties {
 
   @newtype final case class Description(nonEmptyString: NonEmptyString)
   object Description {
-    def unapply(description: Description): Option[NonEmptyString] = description.nonEmptyString.some
+    def unapply(description: Description): Some[NonEmptyString] = Some(description.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Description] =
       ParseRefined[F].parse[NonEmpty](string).map(Description.apply)
 

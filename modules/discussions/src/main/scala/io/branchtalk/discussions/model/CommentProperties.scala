@@ -31,7 +31,7 @@ object CommentProperties {
 
   @newtype final case class Content(string: String)
   object Content {
-    def unapply(content: Content): Option[String] = content.string.some
+    def unapply(content: Content): Some[String] = Some(content.string)
 
     implicit val show:  Show[Content]  = Show.wrap(_.string)
     implicit val order: Order[Content] = Order[String].coerce
@@ -39,7 +39,7 @@ object CommentProperties {
 
   @newtype final case class NestingLevel(nonNegativeInt: Int Refined NonNegative)
   object NestingLevel {
-    def unapply(nestingLevel: NestingLevel): Option[Int Refined NonNegative] = nestingLevel.nonNegativeInt.some
+    def unapply(nestingLevel: NestingLevel): Some[Int Refined NonNegative] = Some(nestingLevel.nonNegativeInt)
     def parse[F[_]: Sync](int: Int): F[NestingLevel] =
       ParseRefined[F].parse[NonNegative](int).map(NestingLevel.apply)
 
@@ -49,7 +49,7 @@ object CommentProperties {
 
   @newtype final case class RepliesNr(toNonNegativeInt: Int Refined NonNegative)
   object RepliesNr {
-    def unapply(repliesNr: RepliesNr): Option[Int Refined NonNegative] = repliesNr.toNonNegativeInt.some
+    def unapply(repliesNr: RepliesNr): Some[Int Refined NonNegative] = Some(repliesNr.toNonNegativeInt)
 
     implicit val show:  Show[RepliesNr]  = Show.wrap(_.toNonNegativeInt.value)
     implicit val order: Order[RepliesNr] = Order.by(_.toNonNegativeInt.value)
@@ -57,7 +57,7 @@ object CommentProperties {
 
   @newtype final case class Upvotes(toNonNegativeInt: Int Refined NonNegative)
   object Upvotes {
-    def unapply(upvotes: Upvotes): Option[Int Refined NonNegative] = upvotes.toNonNegativeInt.some
+    def unapply(upvotes: Upvotes): Some[Int Refined NonNegative] = Some(upvotes.toNonNegativeInt)
 
     implicit val show:  Show[Upvotes]  = Show.wrap(_.toNonNegativeInt.value)
     implicit val order: Order[Upvotes] = Order.by(_.toNonNegativeInt.value)
@@ -65,7 +65,7 @@ object CommentProperties {
 
   @newtype final case class Downvotes(toNonNegativeInt: Int Refined NonNegative)
   object Downvotes {
-    def unapply(downvotes: Downvotes): Option[Int Refined NonNegative] = downvotes.toNonNegativeInt.some
+    def unapply(downvotes: Downvotes): Some[Int Refined NonNegative] = Some(downvotes.toNonNegativeInt)
 
     implicit val show:  Show[Downvotes]  = Show.wrap(_.toNonNegativeInt.value)
     implicit val order: Order[Downvotes] = Order.by(_.toNonNegativeInt.value)
@@ -73,7 +73,7 @@ object CommentProperties {
 
   @newtype final case class TotalScore(toInt: Int)
   object TotalScore {
-    def unapply(totalScore: TotalScore): Option[Int] = totalScore.toInt.some
+    def unapply(totalScore: TotalScore): Some[Int] = Some(totalScore.toInt)
 
     implicit val show:  Show[TotalScore]  = Show.wrap(_.toInt)
     implicit val order: Order[TotalScore] = Order[Int].coerce
@@ -81,8 +81,8 @@ object CommentProperties {
 
   @newtype final case class ControversialScore(toNonNegativeInt: Int Refined NonNegative)
   object ControversialScore {
-    def unapply(controversialScore: ControversialScore): Option[Int Refined NonNegative] =
-      controversialScore.toNonNegativeInt.some
+    def unapply(controversialScore: ControversialScore): Some[Int Refined NonNegative] =
+      Some(controversialScore.toNonNegativeInt)
 
     implicit val show:  Show[ControversialScore]  = Show.wrap(_.toNonNegativeInt.value)
     implicit val order: Order[ControversialScore] = Order.by(_.toNonNegativeInt.value)

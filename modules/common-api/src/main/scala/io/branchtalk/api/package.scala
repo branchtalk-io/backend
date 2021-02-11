@@ -20,7 +20,7 @@ package object api {
 
   @newtype final case class SessionID(uuid: UUID)
   object SessionID {
-    def unapply(sessionID: SessionID): Option[UUID] = sessionID.uuid.some
+    def unapply(sessionID: SessionID): Some[UUID] = Some(sessionID.uuid)
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[SessionID] =
       UUID.parse[F](string).map(SessionID(_))
 
@@ -33,7 +33,7 @@ package object api {
 
   @newtype final case class UserID(uuid: UUID)
   object UserID {
-    def unapply(userID: UserID): Option[UUID] = userID.uuid.some
+    def unapply(userID: UserID): Some[UUID] = Some(userID.uuid)
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[UserID] =
       UUID.parse[F](string).map(UserID(_))
 
@@ -48,7 +48,7 @@ package object api {
 
   @newtype final case class ChannelID(uuid: UUID)
   object ChannelID {
-    def unapply(channelID: ChannelID): Option[UUID] = channelID.uuid.some
+    def unapply(channelID: ChannelID): Some[UUID] = Some(channelID.uuid)
     def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[ChannelID] =
       UUID.parse[F](string).map(ChannelID(_))
 
@@ -61,7 +61,7 @@ package object api {
 
   @newtype final case class Username(nonEmptyString: NonEmptyString)
   object Username {
-    def unapply(username: Username): Option[NonEmptyString] = username.nonEmptyString.some
+    def unapply(username: Username): Some[NonEmptyString] = Some(username.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Username] =
       ParseRefined[F].parse[NonEmpty](string).map(Username(_))
 
@@ -74,7 +74,7 @@ package object api {
 
   @newtype final case class Password(nonEmptyBytes: Array[Byte] Refined NonEmpty)
   object Password {
-    def unapply(password: Password): Option[Array[Byte] Refined NonEmpty] = password.nonEmptyBytes.some
+    def unapply(password: Password): Some[Array[Byte] Refined NonEmpty] = Some(password.nonEmptyBytes)
     def parse[F[_]: Sync](bytes: Array[Byte]): F[Password] =
       ParseRefined[F].parse[NonEmpty](bytes).map(Password(_))
 
@@ -87,7 +87,7 @@ package object api {
 
   @newtype final case class PaginationOffset(nonNegativeLong: Long Refined NonNegative)
   object PaginationOffset {
-    def unapply(offset: PaginationOffset): Option[Long Refined NonNegative] = offset.nonNegativeLong.some
+    def unapply(offset: PaginationOffset): Some[Long Refined NonNegative] = Some(offset.nonNegativeLong)
     def parse[F[_]: Sync](long: Long): F[PaginationOffset] =
       ParseRefined[F].parse[NonNegative](long).map(PaginationOffset(_))
 
@@ -101,7 +101,7 @@ package object api {
 
   @newtype final case class PaginationLimit(positiveInt: Int Refined Positive)
   object PaginationLimit {
-    def unapply(limit: PaginationLimit): Option[Int Refined Positive] = limit.positiveInt.some
+    def unapply(limit: PaginationLimit): Some[Int Refined Positive] = Some(limit.positiveInt)
     def parse[F[_]: Sync](int: Int): F[PaginationLimit] =
       ParseRefined[F].parse[Positive](int).map(PaginationLimit(_))
 
@@ -115,7 +115,7 @@ package object api {
 
   @newtype final case class PaginationHasNext(bool: Boolean)
   object PaginationHasNext {
-    def unapply(hasNext: PaginationHasNext): Option[Boolean] = hasNext.bool.some
+    def unapply(hasNext: PaginationHasNext): Some[Boolean] = Some(hasNext.bool)
 
     implicit val codec: JsCodec[PaginationHasNext] =
       summonCodec[Boolean](JsonCodecMaker.make).asNewtype[PaginationHasNext]

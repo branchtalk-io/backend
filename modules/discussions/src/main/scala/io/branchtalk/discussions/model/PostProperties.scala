@@ -43,7 +43,7 @@ object PostProperties {
 
   @newtype final case class UrlTitle(nonEmptyString: NonEmptyString)
   object UrlTitle {
-    def unapply(urlTitle: UrlTitle): Option[NonEmptyString] = urlTitle.nonEmptyString.some
+    def unapply(urlTitle: UrlTitle): Some[NonEmptyString] = Some(urlTitle.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[UrlTitle] =
       ParseRefined[F].parse[NonEmpty](string).map(UrlTitle.apply)
 
@@ -53,7 +53,7 @@ object PostProperties {
 
   @newtype final case class Title(nonEmptyString: NonEmptyString)
   object Title {
-    def unapply(title: Title): Option[NonEmptyString] = title.nonEmptyString.some
+    def unapply(title: Title): Some[NonEmptyString] = Some(title.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Title] =
       ParseRefined[F].parse[NonEmpty](string).map(Title.apply)
 
@@ -63,7 +63,7 @@ object PostProperties {
 
   @newtype final case class URL(uri: URI)
   object URL {
-    def unapply(url: URL): Option[URI] = url.uri.some
+    def unapply(url: URL): Some[URI] = Some(url.uri)
 
     implicit val show:  Show[URL]  = _.uri.toString // without wrapper because it lives only within Context.Url
     implicit val order: Order[URL] = Order.by[URL, URI](_.uri)(Order.fromComparable)
@@ -71,7 +71,7 @@ object PostProperties {
 
   @newtype final case class Text(string: String)
   object Text {
-    def unapply(text: Text): Option[String] = text.string.some
+    def unapply(text: Text): Some[String] = Some(text.string)
 
     implicit val show:  Show[Text]  = _.string // without wrapper because it lives only within Context.Text
     implicit val order: Order[Text] = Order.by(_.string)
@@ -91,7 +91,7 @@ object PostProperties {
     }
     @newtype final case class Raw(string: String)
     object Raw {
-      def unapply(raw: Raw): Option[String] = raw.string.some
+      def unapply(raw: Raw): Some[String] = Some(raw.string)
 
       implicit val show:  Show[Raw]  = Show.wrap(_.string)
       implicit val order: Order[Raw] = Order.by(_.string)
@@ -108,13 +108,13 @@ object PostProperties {
         case Content.Text(text) => Type.Text -> Raw(text.string)
       }
 
-      def unapply(content: Content): Option[(Type, Raw)] = unpack(content).some
+      def unapply(content: Content): Some[(Type, Raw)] = Some(unpack(content))
     }
   }
 
   @newtype final case class CommentsNr(toNonNegativeInt: Int Refined NonNegative)
   object CommentsNr {
-    def unapply(commentsNr: CommentsNr): Option[Int Refined NonNegative] = commentsNr.toNonNegativeInt.some
+    def unapply(commentsNr: CommentsNr): Some[Int Refined NonNegative] = Some(commentsNr.toNonNegativeInt)
 
     implicit val show:  Show[CommentsNr]  = Show.wrap(_.toNonNegativeInt.value)
     implicit val order: Order[CommentsNr] = Order.by(_.toNonNegativeInt.value)
@@ -122,7 +122,7 @@ object PostProperties {
 
   @newtype final case class Upvotes(toNonNegativeInt: Int Refined NonNegative)
   object Upvotes {
-    def unapply(upvotes: Upvotes): Option[Int Refined NonNegative] = upvotes.toNonNegativeInt.some
+    def unapply(upvotes: Upvotes): Some[Int Refined NonNegative] = Some(upvotes.toNonNegativeInt)
 
     implicit val show:  Show[Upvotes]  = Show.wrap(_.toNonNegativeInt.value)
     implicit val order: Order[Upvotes] = Order.by(_.toNonNegativeInt.value)
@@ -130,7 +130,7 @@ object PostProperties {
 
   @newtype final case class Downvotes(toNonNegativeInt: Int Refined NonNegative)
   object Downvotes {
-    def unapply(downvotes: Downvotes): Option[Int Refined NonNegative] = downvotes.toNonNegativeInt.some
+    def unapply(downvotes: Downvotes): Some[Int Refined NonNegative] = Some(downvotes.toNonNegativeInt)
 
     implicit val show:  Show[Downvotes]  = Show.wrap(_.toNonNegativeInt.value)
     implicit val order: Order[Downvotes] = Order.by(_.toNonNegativeInt.value)
@@ -138,7 +138,7 @@ object PostProperties {
 
   @newtype final case class TotalScore(toInt: Int)
   object TotalScore {
-    def unapply(totalScore: TotalScore): Option[Int] = totalScore.toInt.some
+    def unapply(totalScore: TotalScore): Some[Int] = Some(totalScore.toInt)
 
     implicit val show:  Show[TotalScore]  = Show.wrap(_.toInt)
     implicit val order: Order[TotalScore] = Order.by(_.toInt)
@@ -146,8 +146,8 @@ object PostProperties {
 
   @newtype final case class ControversialScore(toNonNegativeInt: Int Refined NonNegative)
   object ControversialScore {
-    def unapply(controversialScore: ControversialScore): Option[Int Refined NonNegative] =
-      controversialScore.toNonNegativeInt.some
+    def unapply(controversialScore: ControversialScore): Some[Int Refined NonNegative] =
+      Some(controversialScore.toNonNegativeInt)
 
     implicit val show:  Show[ControversialScore]  = Show.wrap(_.toNonNegativeInt.value)
     implicit val order: Order[ControversialScore] = Order.by(_.toNonNegativeInt.value)

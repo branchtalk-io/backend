@@ -15,7 +15,7 @@ package object model {
     def intersect(permissions: Permissions):         Permissions = Permissions(set intersect permissions.set)
   }
   object Permissions {
-    def unapply(permissions: Permissions): Option[Set[Permission]] = permissions.set.some
+    def unapply(permissions: Permissions): Some[Set[Permission]] = Some(permissions.set)
 
     def empty: Permissions = Permissions(Set.empty)
 
