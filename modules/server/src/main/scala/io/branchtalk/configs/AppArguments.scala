@@ -112,6 +112,7 @@ object AppArguments {
        |$logVariables
        |
        |
-       |HOCON configurations (overridable with -Dpath.to.config=value JVM parameter if there is no env var):
+       |HOCON configurations (overridable with -Dpath.to.config=value JVM parameter if there is no env var,
+       |or through comma-separated list of files -Dconfig.overrides=config1.conf,config2.json):
        |${config.root.render(configRenderOptions)}""".stripMargin
 }
