@@ -25,7 +25,7 @@ object AvroSupport {
 
   // refined (redirections)
 
-  implicit def refinedSchemaFor[T: SchemaFor, P, F[_, _]]: SchemaFor[F[T, P]] =
+  implicit def refinedSchemaFor[T: SchemaFor, P, F[_, _]: RefType]: SchemaFor[F[T, P]] =
     refined.refinedSchemaFor[T, P, F]
 
   implicit def refinedEncoder[T: Encoder, P, F[_, _]: RefType]: Encoder[F[T, P]] =

@@ -11,7 +11,6 @@ import fs2.{ Pipe, Stream }
 import io.branchtalk.shared.model.{ Logger, branchtalkCharset }
 import io.lettuce.core.codec.{ RedisCodec => JRedisCodec }
 
-import scala.annotation.nowarn
 import scala.util.control.NoStackTrace
 
 // Wrapper around Redis Cache to cache operations in certain fs2.Streams for idempotency.

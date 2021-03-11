@@ -1,11 +1,11 @@
 package io.branchtalk.users.api
 
 import java.time.OffsetDateTime
-
 import cats.data.NonEmptyList
 import com.github.plokhotnyuk.jsoniter_scala.macros._
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.refineV
 import eu.timepit.refined.string.MatchesRegex
 import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.ADT
@@ -48,7 +48,9 @@ object UserModels {
   implicit val userDescriptionSchema: JsSchema[User.Description] =
     summonSchema[String].asNewtype[User.Description]
   implicit val passwordRawSchema: JsSchema[Password.Raw] =
-    summonSchema[String].contramap[Array[Byte] Refined NonEmpty](_.value.pipe(new String(_))).asNewtype[Password.Raw]
+    summonSchema[String]
+      .map[Array[Byte] Refined NonEmpty](_.getBytes.pipe(refineV[NonEmpty](_).toOption))(_.value.pipe(new String(_)))
+      .asNewtype[Password.Raw]
   implicit val permissionSchema: JsSchema[Permission] =
     Schema.derived[Permission]
   implicit val permissionsSchema: JsSchema[Permissions] =

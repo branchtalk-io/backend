@@ -19,23 +19,23 @@ object Dependencies {
   val crossScalaVersions = Seq("2.13.5")
 
   // libraries versions
-  val avro4sVersion     = "4.0.0" // https://github.com/sksamuel/avro4s/releases
-  val catsVersion       = "2.3.1" // https://github.com/typelevel/cats/releases
-  val catsEffectVersion = "2.3.1" // https://github.com/typelevel/cats-effect/releases
-  val declineVersion    = "1.3.0" // https://github.com/tpolecat/doobie/releases
-  val doobieVersion     = "0.10.0" // https://github.com/tpolecat/doobie/releases
+  val avro4sVersion     = "4.0.4" // https://github.com/sksamuel/avro4s/releases
+  val catsVersion       = "2.4.2" // https://github.com/typelevel/cats/releases
+  val catsEffectVersion = "2.3.3" // https://github.com/typelevel/cats-effect/releases
+  val declineVersion    = "1.4.0" // https://github.com/tpolecat/doobie/releases
+  val doobieVersion     = "0.12.1" // https://github.com/tpolecat/doobie/releases
   val drosteVersion     = "0.8.0" // https://github.com/higherkindness/droste/releases
   val enumeratumVersion = "1.6.1" // https://github.com/lloydmeta/enumeratum/releases
-  val fs2Version        = "2.4.5" // https://github.com/typelevel/fs2/releases
+  val fs2Version        = "2.5.3" // https://github.com/typelevel/fs2/releases
   val log4catsVersion   = "1.1.1" // https://github.com/ChristopherDavenport/log4cats/releases
   val http4sVersion     = "0.21.16" // https://github.com/http4s/http4s/releases
-  val jsoniterVersion   = "2.6.2" // https://github.com/plokhotnyuk/jsoniter-scala/releases
+  val jsoniterVersion   = "2.6.4" // https://github.com/plokhotnyuk/jsoniter-scala/releases
   val monixVersion      = "3.3.0" // https://github.com/monix/monix/releases
   val monocleVersion    = "2.1.0" // https://github.com/optics-dev/Monocle/releases
-  val pureConfigVersion = "0.14.0" // https://github.com/pureconfig/pureconfig/releases
-  val refinedVersion    = "0.9.20" // https://github.com/fthomas/refined/releases
+  val pureConfigVersion = "0.14.1" // https://github.com/pureconfig/pureconfig/releases
+  val refinedVersion    = "0.9.21" // https://github.com/fthomas/refined/releases
   val specs2Version     = "4.10.6" // https://github.com/etorreborre/specs2/releases
-  val tapirVersion      = "0.17.7" // https://github.com/softwaremill/tapir/releases
+  val tapirVersion      = "0.17.15" // https://github.com/softwaremill/tapir/releases
 
   // resolvers
   val resolvers = Seq(
@@ -86,14 +86,14 @@ object Dependencies {
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
   val doobieRefined  = "org.tpolecat" %% "doobie-refined" % doobieVersion
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
-  val flyway         = "org.flywaydb" % "flyway-core" % "7.2.0" // https://github.com/flyway/flyway/releases
-  val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.1.0" // https://github.com/fd4s/fs2-kafka/releases
+  val flyway         = "org.flywaydb" % "flyway-core" % "7.7.0" // https://github.com/flyway/flyway/releases
+  val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "1.4.1" // https://github.com/fd4s/fs2-kafka/releases
   val macwire        = "com.softwaremill.macwire" %% "macros" % "2.3.7" % "provided" // GH releases are out of date
   val redis4cats =
-    "dev.profunktor" %% "redis4cats-effects" % "0.10.3" // https://github.com/profunktor/redis4cats/releases
+    "dev.profunktor" %% "redis4cats-effects" % "0.12.0" // https://github.com/profunktor/redis4cats/releases
   // API
   val sttpCats =
-    "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats" % "3.0.0" // https://github.com/softwaremill/sttp/releases
+    "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats" % "3.1.7" // https://github.com/softwaremill/sttp/releases
   // same as the one used by tapir
   val http4sPrometheus = "org.http4s" %% "http4s-prometheus-metrics" % http4sVersion
   val tapir            = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
@@ -121,8 +121,8 @@ object Dependencies {
   val logback            = "ch.qos.logback" % "logback-classic" % "1.2.3" // https://github.com/qos-ch/logback/releases
   val logbackJackson     = "ch.qos.logback.contrib" % "logback-jackson" % "0.1.5" // see MVN
   val logbackJsonClassic = "ch.qos.logback.contrib" % "logback-json-classic" % "0.1.5" // see MVN
-  val sourcecode         = "com.lihaoyi" %% "sourcecode" % "0.2.1" // https://github.com/lihaoyi/sourcecode/releases
-  val prometheus         = "io.prometheus" % "simpleclient" % "0.9.0" // https://github.com/prometheus/client_java/releases
+  val sourcecode         = "com.lihaoyi" %% "sourcecode" % "0.2.4" // https://github.com/lihaoyi/sourcecode/releases
+  val prometheus         = "io.prometheus" % "simpleclient" % "0.10.0" // https://github.com/prometheus/client_java/releases
   // testing
   val jfairy          = "com.devskiller" % "jfairy" % "0.6.4" // https://github.com/Devskiller/jfairy/releases
   val spec2Core       = "org.specs2" %% "specs2-core" % specs2Version
