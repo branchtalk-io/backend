@@ -101,3 +101,16 @@ make local-up
 You can use Ctrl+D to gracefully shutdown service. Server will be available at
 http://localhost:8080 and Swagger at
 http://localhost:8080/docs/index.html?url=/docs/swagger.json .
+
+### Reusing domain and API definitions
+
+Commons, each domain's published language and API are cross-compiled JVM+JS.
+This allows publishing the definitions for reuse with e.g. front-end Scala
+application which interprets Tapir endpoints into e.g. sttp calls to backend.
+
+Definitions are aggregated as `scalaJsArtifacts` so you could publish them all
+locally with:
+
+```bash
+sbt:branchtalk> scalaJsArtifacts:publishLocal
+```
