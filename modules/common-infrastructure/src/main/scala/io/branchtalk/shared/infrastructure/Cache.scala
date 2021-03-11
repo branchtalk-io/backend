@@ -1,7 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
 import java.nio.ByteBuffer
-
 import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync }
 import cats.effect.syntax.all._
 import dev.profunktor.redis4cats.data.RedisCodec
@@ -12,6 +11,7 @@ import fs2.{ Pipe, Stream }
 import io.branchtalk.shared.model.{ Logger, branchtalkCharset }
 import io.lettuce.core.codec.{ RedisCodec => JRedisCodec }
 
+import scala.annotation.nowarn
 import scala.util.control.NoStackTrace
 
 // Wrapper around Redis Cache to cache operations in certain fs2.Streams for idempotency.

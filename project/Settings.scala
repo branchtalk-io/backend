@@ -9,6 +9,8 @@ import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
 import org.scalastyle.sbt.ScalastylePlugin.autoImport._
 import sbtassembly.AssemblyPlugin.autoImport._
+import sbtcrossproject.CrossPlugin.autoImport.JVMPlatform
+import sbtcrossproject.CrossProject
 import scoverage._
 import wartremover.WartRemover.autoImport._
 
@@ -53,7 +55,7 @@ object Settings extends Dependencies {
       "-Ywarn-extra-implicit",
       "-Ywarn-macros:before",
       "-Ywarn-numeric-widen",
-      "-Ywarn-unused",
+      //"-Ywarn-unused", // TODO: a lot of new false-positive errors after bumping from 2.13.4 to 2.13.5
       "-Ywarn-unused:implicits",
       "-Ywarn-unused:imports",
       "-Ywarn-unused:imports",
@@ -195,6 +197,16 @@ object Settings extends Dependencies {
       project.settings(initialCommands := s"import ${("io.branchtalk._" +: newInitialCommand).mkString(", ")}")
   }
 
+  implicit final class CrossDataConfigurator(project: CrossProject) {
+
+    def setName(newName: String): CrossProject = project.configure(_.setName(newName))
+
+    def setDescription(newDescription: String): CrossProject = project.configure(_.setDescription(newDescription))
+
+    def setInitialImport(newInitialCommand: String*): CrossProject =
+      project.configure(_.setInitialImport(newInitialCommand: _*))
+  }
+
   implicit final class RootConfigurator(project: Project) {
 
     def configureRoot: Project = project.settings(rootSettings: _*)
@@ -225,5 +237,56 @@ object Settings extends Dependencies {
     def configureIntegrationTests(requiresFork: Boolean = false): Project = configure(requiresFork)
 
     def configureIntegrationTestsSequential(requiresFork: Boolean = false): Project = configureSequential(requiresFork)
+  }
+
+  implicit final class CrossModuleConfigurator(project: CrossProject) {
+
+    private val testConfigurations = Set("test", "fun", "it")
+    private def findCompileAndTestConfigs(p: CrossProject) = {
+      val names = p.projects(JVMPlatform).configurations.map(_.name).toSet intersect testConfigurations
+      (p.projects(JVMPlatform).configurations.filter(cfg => names(cfg.name)).toSet) + Compile
+    }
+
+    def configureModule: CrossProject = project
+      .configure(_.configureModule)
+      .settings(
+        // workaround for https://github.com/portable-scala/sbt-crossproject/issues/74
+        findCompileAndTestConfigs(project).toList.flatMap(
+          inConfig(_) {
+            unmanagedResourceDirectories ++= {
+              unmanagedSourceDirectories.value
+                .map(src => (src / ".." / "resources").getCanonicalFile)
+                .filterNot(unmanagedResourceDirectories.value.contains)
+                .distinct
+            }
+          }
+        )
+      )
+  }
+
+  implicit final class CrossUnitTestConfigurator(project: CrossProject) {
+
+    def configureTests(requiresFork: Boolean = false): CrossProject = project.configure(_.configureTests(requiresFork))
+
+    def configureTestsSequential(requiresFork: Boolean = false): CrossProject =
+      project.configure(_.configureTestsSequential(requiresFork))
+  }
+
+  implicit final class CrossFunctionalTestConfigurator(project: CrossProject) {
+
+    def configureFunctionalTests(requiresFork: Boolean = false): CrossProject =
+      project.configure(_.configureFunctionalTests(requiresFork))
+
+    def configureFunctionalTestsSequential(requiresFork: Boolean = false): CrossProject =
+      project.configure(_.configureFunctionalTestsSequential(requiresFork))
+  }
+
+  implicit final class CrossIntegrationTestConfigurator(project: CrossProject) {
+
+    def configureIntegrationTests(requiresFork: Boolean = false): CrossProject =
+      project.configure(_.configureIntegrationTests(requiresFork))
+
+    def configureIntegrationTestsSequential(requiresFork: Boolean = false): CrossProject =
+      project.configure(_.configureIntegrationTestsSequential(requiresFork))
   }
 }

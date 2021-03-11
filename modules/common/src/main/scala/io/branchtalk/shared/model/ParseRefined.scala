@@ -6,7 +6,7 @@ import eu.timepit.refined.api.{ Refined, Validate }
 
 object ParseRefined {
 
-  def apply[F[_]: Sync]: ApplyF[F] = new ApplyF[F]
+  def apply[F[_]]: ApplyF[F] = new ApplyF[F]
 
   class ApplyF[F[_]] {
     def parse[P]: ApplyFP[F, P] = new ApplyFP[F, P]

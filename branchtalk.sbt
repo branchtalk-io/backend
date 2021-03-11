@@ -1,5 +1,6 @@
 import sbt._
 import Settings._
+import sbtcrossproject.CrossPlugin.autoImport.{ CrossType, crossProject }
 import com.typesafe.sbt.SbtNativePackager.Docker
 
 Global / excludeLintKeys ++= Set(scalacOptions, trapExit)
@@ -9,17 +10,32 @@ lazy val root = project.root
   .setDescription("branchtalk build")
   .configureRoot
   .aggregate(
-    common,
+    commonJVM,
     commonInfrastructure,
-    commonApi,
-    discussions,
-    discussionsApi,
+    commonApiJVM,
+    discussionsJVM,
+    discussionsApiJVM,
     discussionsImpl,
-    users,
-    usersApi,
+    usersJVM,
+    usersApiJVM,
     usersImpl,
     server,
     application
+  )
+
+lazy val scalaJsArtifacts = project.in(file("scala-js"))
+  .setName("scala-js-artifacts")
+  .setDescription("aggregates all Scala.js modules to publish")
+  .configureRoot
+  .aggregate(
+    commonMacrosJS,
+    commonJS,
+    commonApiMacrosJS,
+    commonApiJS,
+    discussionsJS,
+    discussionsApiJS,
+    usersJS,
+    usersApiJS
   )
 
 addCommandAlias("fmt", ";scalafmt;test:scalafmt;it:scalafmt")
@@ -29,9 +45,19 @@ addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;cover
 // commons
 
 val commonMacros =
-  project.from("common-macros").setName("common-macros").setDescription("Common macro definitions").configureModule
+  crossProject(JVMPlatform, JSPlatform)
+    .crossType(CrossType.Pure)
+    .build
+    .from("common-macros")
+    .setName("common-macros")
+    .setDescription("Common macro definitions")
+    .configureModule
+val commonMacrosJVM = commonMacros.jvm
+val commonMacrosJS  = commonMacros.js
 
-val common = project
+val common = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .build
   .from("common")
   .setName("common")
   .setDescription("Common utilities")
@@ -62,6 +88,8 @@ val common = project
     }
   )
   .dependsOn(commonMacros)
+val commonJVM = common.jvm
+val commonJS  = common.js
 
 val commonInfrastructure = project
   .from("common-infrastructure")
@@ -88,15 +116,21 @@ val commonInfrastructure = project
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
-  .dependsOn(common)
+  .dependsOn(commonJVM)
 
-val commonApiMacros = project
+val commonApiMacros = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .build
   .from("common-api-macros")
   .setName("common-api-macros")
   .setDescription("Common API macro definitions")
   .configureModule
+val commonApiMacrosJVM = commonApiMacros.jvm
+val commonApiMacrosJS  = commonApiMacros.js
 
-val commonApi = project
+val commonApi = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .build
   .from("common-api")
   .setName("common-api")
   .setDescription("Infrastructure-dependent implementations")
@@ -113,10 +147,14 @@ val commonApi = project
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(common, commonApiMacros)
+val commonApiJVM = commonApi.jvm
+val commonApiJS  = commonApi.js
 
 // discussions
 
-val discussions = project
+val discussions = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .build
   .from("discussions")
   .setName("discussions")
   .setDescription("Discussions' published language")
@@ -126,8 +164,12 @@ val discussions = project
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(common)
+val discussionsJVM = discussions.jvm
+val discussionsJS  = discussions.js
 
-val discussionsApi = project
+val discussionsApi = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .build
   .from("discussions-api")
   .setName("discussions-api")
   .setDescription("Discussions' HTTP API")
@@ -140,6 +182,8 @@ val discussionsApi = project
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(commonApi, discussions)
+val discussionsApiJVM = discussionsApi.jvm
+val discussionsApiJS  = discussionsApi.js
 
 val discussionsImpl = project
   .from("discussions-impl")
@@ -152,11 +196,13 @@ val discussionsImpl = project
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .compileAndTestDependsOn(commonInfrastructure)
-  .dependsOn(discussions, common % "compile->compile;it->test")
+  .dependsOn(discussionsJVM, commonJVM % "compile->compile;it->test")
 
 // users
 
-val users = project
+val users = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .build
   .from("users")
   .setName("users")
   .setDescription("Users' published language")
@@ -169,8 +215,12 @@ val users = project
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(common)
+val usersJVM = users.jvm
+val usersJS  = users.js
 
-val usersApi = project
+val usersApi = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .build
   .from("users-api")
   .setName("users-api")
   .setDescription("Users' HTTP API")
@@ -183,6 +233,8 @@ val usersApi = project
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .dependsOn(commonApi, users)
+val usersApiJVM = usersApi.jvm
+val usersApiJS  = usersApi.js
 
 val usersImpl = project
   .from("users-impl")
@@ -199,7 +251,7 @@ val usersImpl = project
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
   .compileAndTestDependsOn(commonInfrastructure)
-  .dependsOn(users, discussions, common % "compile->compile;it->test")
+  .dependsOn(usersJVM, discussionsJVM, commonJVM % "compile->compile;it->test")
 
 // application
 
@@ -224,8 +276,8 @@ val server = project
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
-  .dependsOn(commonInfrastructure, discussions, users, discussionsApi, usersApi)
-  .dependsOn(discussionsImpl % "it->it", usersImpl %  "it->it")
+  .dependsOn(commonInfrastructure, discussionsJVM, usersJVM, discussionsApiJVM, usersApiJVM)
+  .dependsOn(discussionsImpl % "it->it", usersImpl % "it->it")
 
 val application = project
   .from("app")

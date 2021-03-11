@@ -1,4 +1,13 @@
 import sbt._
+import sbt.Keys.{
+  scalaBinaryVersion,
+  libraryDependencies
+}
+import Dependencies._
+import sbtcrossproject.CrossProject
+import sbtcrossproject.CrossPlugin.autoImport._
+import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
+import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSVersion
 
 import Dependencies._
 
@@ -6,8 +15,8 @@ object Dependencies {
 
   // scala version
   val scalaOrganization  = "org.scala-lang"
-  val scalaVersion       = "2.13.4"
-  val crossScalaVersions = Seq("2.13.4")
+  val scalaVersion       = "2.13.5"
+  val crossScalaVersions = Seq("2.13.5")
 
   // libraries versions
   val avro4sVersion     = "4.0.0" // https://github.com/sksamuel/avro4s/releases
@@ -176,6 +185,27 @@ trait Dependencies {
       p % (thisProjectsConfigs intersect findCompileAndTestConfigs(p) map (c => s"$c->$c") mkString ";")
 
     def compileAndTestDependsOn(projects: Project*): Project =
+      project dependsOn (projects.map(generateDepsForProject): _*)
+  }
+
+  implicit final class CrossProjectFrom(project: CrossProject) {
+
+    private val commonDir = "modules"
+
+    def from(dir: String): CrossProject = project in file(s"$commonDir/$dir")
+  }
+
+  implicit final class DependsOnCrossProject(project: CrossProject) {
+
+    private val testConfigurations = Set("test", "fun", "it")
+    private def findCompileAndTestConfigs(p: CrossProject) =
+      (p.projects(JVMPlatform).configurations.map(_.name).toSet intersect testConfigurations) + "compile"
+
+    private val thisProjectsConfigs = findCompileAndTestConfigs(project)
+    private def generateDepsForProject(p: CrossProject) =
+      p % (thisProjectsConfigs intersect findCompileAndTestConfigs(p) map (c => s"$c->$c") mkString ";")
+
+    def compileAndTestDependsOn(projects: CrossProject*): CrossProject =
       project dependsOn (projects.map(generateDepsForProject): _*)
   }
 }
