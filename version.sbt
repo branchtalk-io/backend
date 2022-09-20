@@ -1,3 +1,3 @@
-import com.typesafe.sbt.SbtGit.git.baseVersion
+import com.github.sbt.git.SbtGit.GitKeys.baseVersion
 
-baseVersion := "0.1"
+Global / baseVersion := "0.2"

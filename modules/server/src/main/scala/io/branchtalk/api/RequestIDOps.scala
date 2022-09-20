@@ -5,7 +5,6 @@ import cats.effect.Sync
 import io.branchtalk.logging.{ MDC, RequestID }
 import org.http4s.server.middleware.RequestId
 import org.http4s._
-import org.http4s.util.{ CaseInsensitiveString => CIString }
 
 final class RequestIDOps[F[_]: Sync: MDC] {
 
@@ -15,7 +14,7 @@ final class RequestIDOps[F[_]: Sync: MDC] {
       for {
         _ <- req.headers
           .get(RequestIDOps.requestIdHeader)
-          .map(_.value.pipe(RequestID(_)))
+          .map(_.head.value.pipe(RequestID(_)))
           .traverse(_.updateMDC[F].pipe(OptionT.liftF(_)))
         response <- service(req)
       } yield response
@@ -24,7 +23,7 @@ final class RequestIDOps[F[_]: Sync: MDC] {
 }
 object RequestIDOps {
 
-  private val requestIdHeader = CIString("X-Request-ID")
+  private val requestIdHeader = org.typelevel.ci.CIString("X-Request-ID")
 
   def apply[F[_]: Sync: MDC]: RequestIDOps[F] = new RequestIDOps[F]
 }

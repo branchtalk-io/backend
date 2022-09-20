@@ -1,8 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.concurrent.Deferred
 import cats.{ Monad, Semigroup }
-import cats.effect.{ Concurrent, Resource }
+import cats.effect.{ Async, Deferred, Resource }
 import cats.effect.implicits._
 import fs2.Stream
 import io.branchtalk.shared.model.Logger
@@ -14,11 +13,11 @@ object StreamRunner {
   type FromConsumerStream[F[_], Event] = ConsumerStream[F, Event] => StreamRunner[F]
 
   // Creates a StreamRunner which should run a Stream in separate Fiber and interrupt it when closing the resource.
-  def apply[F[_]: Concurrent, A](streamToDrain: Stream[F, A]): StreamRunner[F] = StreamRunner {
+  def apply[F[_]: Async, A](streamToDrain: Stream[F, A]): StreamRunner[F] = StreamRunner {
     val logger = Logger.getLogger[F]
 
     Resource
-      .liftF(Deferred[F, Either[Throwable, Unit]])
+      .eval(Deferred[F, Either[Throwable, Unit]])
       .flatMap { signal =>
         Resource.make(
           streamToDrain.interruptWhen(signal).compile.drain.uncancelable.start <* logger.debug(
@@ -32,7 +31,7 @@ object StreamRunner {
       }
       .void
       .handleErrorWith { error: Throwable =>
-        Resource.liftF(
+        Resource.eval(
           logger.error(error)("Error occurred before kill-switch was triggered") >> error.raiseError[F, Unit]
         )
       }

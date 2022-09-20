@@ -1,6 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.{ ConcurrentEffect, ContextShift, Timer }
+import cats.effect.Async
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import fs2.kafka._
@@ -10,7 +10,7 @@ object KafkaEventBus {
 
   private val logger = Logger(getClass)
 
-  def producer[F[_]: ConcurrentEffect: ContextShift, Event: Serializer[F, *]](
+  def producer[F[_]: Async, Event: Serializer[F, *]](
     settings: KafkaEventBusConfig
   ): EventBusProducer[F, Event] = (events: Stream[F, (UUID, Event)]) => {
     events
@@ -19,12 +19,11 @@ object KafkaEventBus {
       }
       .through(KafkaProducer.pipe(settings.toProducerConfig[F, Event]))
       .evalTap(e =>
-        ConcurrentEffect[F]
-          .delay(logger.info(show"${e.records.size} events published to ${settings.topic.nonEmptyString.value}"))
+        Async[F].delay(logger.info(show"${e.records.size} events published to ${settings.topic.nonEmptyString.value}"))
       )
   }
 
-  def consumer[F[_]: ConcurrentEffect: ContextShift: Timer, Event: SafeDeserializer[F, *]](
+  def consumer[F[_]: Async, Event: SafeDeserializer[F, *]](
     busConfig:      KafkaEventBusConfig,
     consumerConfig: KafkaEventConsumerConfig
   ): EventBusConsumer[F, Event] =

@@ -3,8 +3,8 @@ package io.branchtalk.users.events
 import com.sksamuel.avro4s._
 import io.branchtalk.ADT
 import io.branchtalk.logging.CorrelationID
+import io.branchtalk.shared.model._
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
-import io.branchtalk.shared.model.{ SensitiveData, _ }
 import io.branchtalk.shared.model.AvroSupport._
 import io.branchtalk.users.model.{ Password, Permission, Session, User }
 import io.scalaland.catnip.Semi

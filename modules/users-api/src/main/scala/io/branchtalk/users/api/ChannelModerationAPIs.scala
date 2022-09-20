@@ -13,14 +13,15 @@ object ChannelModerationAPIs {
   private val prefix = "discussions" / "channels" / path[ID[Channel]].name("channelID") / "moderation"
 
   private val errorMapping = oneOf[UserError](
-    statusMapping[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
-    statusMapping[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
-    statusMapping[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
-    statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
+    oneOfVariant[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
+    oneOfVariant[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
+    oneOfVariant[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
+    oneOfVariant[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
   val paginate: AuthedEndpoint[
-    (Authentication, ID[Channel], Option[PaginationOffset], Option[PaginationLimit]),
+    Authentication,
+    (ID[Channel], Option[PaginationOffset], Option[PaginationLimit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -30,18 +31,19 @@ object ChannelModerationAPIs {
     .description("Returns paginated Channel Moderators")
     .tags(List(UsersTags.domain, UsersTags.channelModerators))
     .get
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix)
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
     .out(jsonBody[Pagination[APIUser]])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _, _) =>
+    .requiringPermissions { case (channelID, _, _) =>
       RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.uuid)), Permission.Administrate)
     }
 
   val grantChannelModeration: AuthedEndpoint[
-    (Authentication, ID[Channel], GrantModerationRequest),
+    Authentication,
+    (ID[Channel], GrantModerationRequest),
     UserError,
     GrantModerationResponse,
     Any
@@ -51,17 +53,18 @@ object ChannelModerationAPIs {
     .description("Adds Channel Moderation permission to Users")
     .tags(List(UsersTags.domain, UsersTags.channelModerators))
     .post
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix)
     .in(jsonBody[GrantModerationRequest])
     .out(jsonBody[GrantModerationResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _) =>
+    .requiringPermissions { case (channelID, _) =>
       RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.uuid)), Permission.Administrate)
     }
 
   val revokeChannelModeration: AuthedEndpoint[
-    (Authentication, ID[Channel], RevokeModerationRequest),
+    Authentication,
+    (ID[Channel], RevokeModerationRequest),
     UserError,
     RevokeModerationResponse,
     Any
@@ -71,12 +74,12 @@ object ChannelModerationAPIs {
     .description("Removes Channel Moderation permission from Users")
     .tags(List(UsersTags.domain, UsersTags.channelModerators))
     .delete
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix)
     .in(jsonBody[RevokeModerationRequest])
     .out(jsonBody[RevokeModerationResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _) =>
+    .requiringPermissions { case (channelID, _) =>
       RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.uuid)), Permission.Administrate)
     }
 }

@@ -25,9 +25,10 @@
   <logger name="io.branchtalk.users.writes" level="off"/>
 
   <!-- suppress HTTP4s logs -->
-  <logger name="org.http4s.blaze.BlazeServerBuilder" level="off"/>
+  <logger name="org.http4s.blaze.server.BlazeServerBuilder" level="off"/>
   <logger name="org.http4s.blaze.channel" level="off"/>
   <logger name="org.http4s.server.blaze" level="off"/>
+  <logger name="org.http4s.server.middleware" level="off"/>
 
   <!-- suppress Flyway logs -->
   <logger name="org.flywaydb" level="off"/>

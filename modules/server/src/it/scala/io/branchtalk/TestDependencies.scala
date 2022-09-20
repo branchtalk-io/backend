@@ -1,6 +1,7 @@
 package io.branchtalk
 
-import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
+import cats.effect.std.Dispatcher
+import cats.effect.{ Async, Resource }
 import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites, TestDiscussionsConfig }
 import io.branchtalk.logging.MDC
@@ -19,10 +20,11 @@ final case class TestDependencies[F[_]](
 object TestDependencies {
 
   @nowarn("cat=unused") // macwire
-  def resources[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](registry: CollectorRegistry)(implicit
+  def resources[F[_]: Async: MDC](registry: CollectorRegistry)(implicit
     uuidGenerator: UUIDGenerator
   ): Resource[F, TestDependencies[F]] =
     for {
+      implicit0(dispatcher: Dispatcher[F]) <- Dispatcher[F]
       usersConfig <- TestUsersConfig.loadDomainConfig[F]
       usersReads <- UsersModule.reads[F](usersConfig, registry)
       usersWrites <- UsersModule.writes[F](usersConfig, registry)

@@ -32,7 +32,7 @@ final class ChannelPaginationSpec extends Specification with DiscussionsIOTest w
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10)
+        pagination.nextOffset.map(_.value) must beSome(10L)
         pagination2.entities must haveSize(10)
         pagination2.nextOffset.map(_.value) must beNone
       }
@@ -60,7 +60,7 @@ final class ChannelPaginationSpec extends Specification with DiscussionsIOTest w
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10)
+        pagination.nextOffset.map(_.value) must beSome(10L)
         pagination2.entities must haveSize(10)
         pagination2.nextOffset.map(_.value) must beNone
       }

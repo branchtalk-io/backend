@@ -1,20 +1,20 @@
 package io.branchtalk.users.api
 
 import cats.data.NonEmptyList
-import cats.effect.{ Clock, Concurrent, ContextShift, Sync, Timer }
+import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.{ Permission => _, _ }
 import io.branchtalk.auth._
 import io.branchtalk.shared.model.CommonError
 import io.branchtalk.users.api.UserModels._
-import io.branchtalk.users.model.Ban
+import io.branchtalk.users.model.{ Ban, User }
 import io.branchtalk.users.reads.BanReads
 import io.branchtalk.users.writes.BanWrites
 import org.http4s._
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
-final class ChannelBanServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
+final class ChannelBanServer[F[_]: Async](
   authServices: AuthServices[F],
   banReads:     BanReads[F],
   banWrites:    BanWrites[F]
@@ -24,44 +24,45 @@ final class ChannelBanServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer]
 
   private val logger = Logger(getClass)
 
-  implicit private val serverOptions: Http4sServerOptions[F] = ChannelBanServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = ChannelBanServer.serverOptions[F].apply(logger)
 
   implicit private val errorHandler: ServerErrorHandler[F, UserError] =
     ChannelBanServer.errorHandler[F].apply(logger)
 
-  private val list = ChannelBanAPIs.list.serverLogic[F].apply { case ((_, _), channelID) =>
+  private val list = ChannelBanAPIs.list.serverLogic[F, User] { channelID =>
     for {
       set <- banReads.findForChannel(channelID)
     } yield BansResponse(set.view.map(_.bannedUserID).toList)
   }
 
   private val orderBan =
-    ChannelBanAPIs.orderBan.serverLogic[F].apply { case ((moderator, _), channelID, BanOrderRequest(userID, reason)) =>
-      val order = Ban.Order(userID, reason, Ban.Scope.ForChannel(channelID), moderator.id.some)
-      for {
-        _ <- banWrites.orderBan(order)
-      } yield BanOrderResponse(userID)
+    ChannelBanAPIs.orderBan.serverLogic[F, User].withUser {
+      case (moderator, (channelID, BanOrderRequest(userID, reason))) =>
+        val order = Ban.Order(userID, reason, Ban.Scope.ForChannel(channelID), moderator.id.some)
+        for {
+          _ <- banWrites.orderBan(order)
+        } yield BanOrderResponse(userID)
     }
 
   private val liftBan =
-    ChannelBanAPIs.liftBan.serverLogic[F].apply { case ((moderator, _), channelID, BanLiftRequest(userID)) =>
+    ChannelBanAPIs.liftBan.serverLogic[F, User].withUser { case (moderator, (channelID, BanLiftRequest(userID))) =>
       val lift = Ban.Lift(userID, Ban.Scope.ForChannel(channelID), moderator.id.some)
       for {
         _ <- banWrites.liftBan(lift)
       } yield BanLiftResponse(userID)
     }
 
-  def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Any, F]] = NonEmptyList.of(
+  def endpoints: NonEmptyList[ServerEndpoint[Any, F]] = NonEmptyList.of[ServerEndpoint[Any, F]](
     list,
     orderBan,
     liftBan
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
+  val routes: HttpRoutes[F] = Http4sServerInterpreter(serverOptions).toRoutes(endpoints.toList)
 }
 object ChannelBanServer {
 
-  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
+  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
     _,
     ServerOptions.ErrorHandler[UserError](
       () => UserError.ValidationFailed(NonEmptyList.one("Data missing")),

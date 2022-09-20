@@ -11,14 +11,15 @@ object UserModerationAPIs {
   private val prefix = "users" / "moderation"
 
   private val errorMapping = oneOf[UserError](
-    statusMapping[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
-    statusMapping[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
-    statusMapping[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
-    statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
+    oneOfVariant[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
+    oneOfVariant[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
+    oneOfVariant[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
+    oneOfVariant[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
   val paginate: AuthedEndpoint[
-    (Authentication, Option[PaginationOffset], Option[PaginationLimit]),
+    Authentication,
+    (Option[PaginationOffset], Option[PaginationLimit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -28,7 +29,7 @@ object UserModerationAPIs {
     .description("Returns paginated User Moderators")
     .tags(List(UsersTags.domain, UsersTags.userModerators))
     .get
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix)
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
@@ -37,7 +38,8 @@ object UserModerationAPIs {
     .requiringPermissions(_ => RequiredPermissions.anyOf(Permission.ModerateUsers, Permission.Administrate))
 
   val grantUserModeration: AuthedEndpoint[
-    (Authentication, GrantModerationRequest),
+    Authentication,
+    GrantModerationRequest,
     UserError,
     GrantModerationResponse,
     Any
@@ -47,7 +49,7 @@ object UserModerationAPIs {
     .description("Adds User Moderation permission to Users")
     .tags(List(UsersTags.domain, UsersTags.userModerators))
     .post
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix)
     .in(jsonBody[GrantModerationRequest])
     .out(jsonBody[GrantModerationResponse])
@@ -55,7 +57,8 @@ object UserModerationAPIs {
     .requiringPermissions(_ => RequiredPermissions.one(Permission.Administrate))
 
   val revokeUserModeration: AuthedEndpoint[
-    (Authentication, RevokeModerationRequest),
+    Authentication,
+    RevokeModerationRequest,
     UserError,
     RevokeModerationResponse,
     Any
@@ -65,7 +68,7 @@ object UserModerationAPIs {
     .description("Removes User Moderation permission from Users")
     .tags(List(UsersTags.domain, UsersTags.userModerators))
     .delete
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix)
     .in(jsonBody[RevokeModerationRequest])
     .out(jsonBody[RevokeModerationResponse])

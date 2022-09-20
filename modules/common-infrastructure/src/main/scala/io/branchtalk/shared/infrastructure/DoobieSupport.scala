@@ -1,6 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.{ IO, Sync }
+import cats.effect.{ Sync, SyncIO }
 import com.typesafe.scalalogging.Logger
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
@@ -32,10 +32,10 @@ object DoobieSupport
   // enumeratum automatic support
 
   implicit def enumeratumMeta[A <: enumeratum.EnumEntry](implicit
-    enum:    enumeratum.Enum[A],
+    `enum`:  enumeratum.Enum[A],
     typeTag: TypeName[A]
   ): Meta[A] =
-    Meta[String].timap(enum.withNameInsensitive)(_.entryName)
+    Meta[String].timap(`enum`.withNameInsensitive)(_.entryName)
 
   // newtype automatic support
 
@@ -75,8 +75,8 @@ object DoobieSupport
       (fragment ++ fr"LIMIT ${l + 1} OFFSET ${o}").query[Entity].to[List].map { entities =>
         val result = entities.take(l)
         val nextOffset =
-          if (entities.sizeCompare(l) > 0) ParseRefined[IO].parse[NonNegative](o + l).attempt.unsafeRunSync().toOption
-          else None
+          if (entities.sizeCompare(l) <= 0) None
+          else ParseRefined[SyncIO].parse[NonNegative](o + l).attempt.unsafeRunSync().toOption
         Paginated(result, nextOffset)
       }
     }

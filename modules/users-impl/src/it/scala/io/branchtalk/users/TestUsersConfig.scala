@@ -1,6 +1,6 @@
 package io.branchtalk.users
 
-import cats.effect.{ Async, ContextShift, Resource, Sync }
+import cats.effect.{ Async, Resource, Sync }
 import io.branchtalk.shared.infrastructure.{
   DomainConfig,
   DomainName,
@@ -21,13 +21,13 @@ import pureconfig.{ ConfigReader, ConfigSource }
 object TestUsersConfig {
 
   def load[F[_]: Sync]: Resource[F, TestUsersConfig] =
-    Resource.liftF(
+    Resource.eval(
       Sync[F].delay(
         ConfigSource.resources("users-test.conf").at("users-test").loadOrThrow[TestUsersConfig]
       )
     )
 
-  def loadDomainConfig[F[_]: Async: ContextShift]: Resource[F, DomainConfig] =
+  def loadDomainConfig[F[_]: Async]: Resource[F, DomainConfig] =
     for {
       TestUsersConfig(dbTest, publishedESTest, internalESTest, consumers) <- TestUsersConfig.load[F]
       db <- TestResources.postgresConfigResource[F](dbTest)

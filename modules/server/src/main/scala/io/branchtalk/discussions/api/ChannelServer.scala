@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.api
 
 import cats.data.NonEmptyList
-import cats.effect.{ Concurrent, ContextShift, Sync, Timer }
+import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api._
 import io.branchtalk.auth._
@@ -12,12 +12,13 @@ import io.branchtalk.discussions.reads.ChannelReads
 import io.branchtalk.discussions.writes.ChannelWrites
 import io.branchtalk.mappings.userIDUsers2Discussions
 import io.branchtalk.shared.model.{ CommonError, CreationScheduled }
+import io.branchtalk.users.model.User
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
-final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
+final class ChannelServer[F[_]: Async](
   authServices:     AuthServices[F],
   channelReads:     ChannelReads[F],
   channelWrites:    ChannelWrites[F],
@@ -28,11 +29,11 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val logger = Logger(getClass)
 
-  implicit private val serverOptions: Http4sServerOptions[F] = ChannelServer.serverOptions[F].apply(logger)
+  implicit val serverOptions: Http4sServerOptions[F] = ChannelServer.serverOptions[F].apply(logger)
 
   implicit private val errorHandler: ServerErrorHandler[F, ChannelError] = ChannelServer.errorHandler[F].apply(logger)
 
-  private val paginate = ChannelAPIs.paginate.serverLogic[F].apply { case ((_, _), optOffset, optLimit) =>
+  private val paginate = ChannelAPIs.paginate.serverLogic[F, Option[User]] { case (optOffset, optLimit) =>
     val sortBy = Channel.Sorting.Newest
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
@@ -41,7 +42,7 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield Pagination.fromPaginated(paginated.map(APIChannel.fromDomain), offset, limit)
   }
 
-  private val create = ChannelAPIs.create.serverLogic[F].apply { case ((user, _), createData) =>
+  private val create = ChannelAPIs.create.serverLogic[F, User].withUser { (user, createData) =>
     val userID = user.id
     val data =
       createData.into[Channel.Create].withFieldConst(_.authorID, userIDUsers2Discussions.get(userID)).transform
@@ -50,13 +51,13 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield CreateChannelResponse(channelID)
   }
 
-  private val read = ChannelAPIs.read.serverLogic[F].apply { case ((_, _), channelID) =>
+  private val read = ChannelAPIs.read.serverLogic[F, Option[User]] { channelID =>
     for {
       channel <- channelReads.requireById(channelID)
     } yield APIChannel.fromDomain(channel)
   }
 
-  private val update = ChannelAPIs.update.serverLogic[F].apply { case ((user, _), channelID, updateData) =>
+  private val update = ChannelAPIs.update.serverLogic[F, User].withUser { case (user, (channelID, updateData)) =>
     val userID = user.id
     val data = updateData
       .into[Channel.Update]
@@ -68,7 +69,7 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield UpdateChannelResponse(channelID)
   }
 
-  private val delete = ChannelAPIs.delete.serverLogic[F].apply { case ((user, _), channelID) =>
+  private val delete = ChannelAPIs.delete.serverLogic[F, User].withUser { (user, channelID) =>
     val userID = user.id
     val data   = Channel.Delete(channelID, userIDUsers2Discussions.get(userID))
     for {
@@ -76,7 +77,7 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield DeleteChannelResponse(channelID)
   }
 
-  private val restore = ChannelAPIs.restore.serverLogic[F].apply { case ((user, _), channelID) =>
+  private val restore = ChannelAPIs.restore.serverLogic[F, User].withUser { (user, channelID) =>
     val userID = user.id
     val data   = Channel.Restore(channelID, userIDUsers2Discussions.get(userID))
     for {
@@ -84,7 +85,7 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield RestoreChannelResponse(channelID)
   }
 
-  def endpoints: NonEmptyList[ServerEndpoint[_, ChannelError, _, Any, F]] = NonEmptyList.of(
+  def endpoints: NonEmptyList[ServerEndpoint[Any, F]] = NonEmptyList.of[ServerEndpoint[Any, F]](
     paginate,
     create,
     read,
@@ -93,11 +94,11 @@ final class ChannelServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     restore
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
+  val routes: HttpRoutes[F] = Http4sServerInterpreter(serverOptions).toRoutes(endpoints.toList)
 }
 object ChannelServer {
 
-  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, ChannelError](
+  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, ChannelError](
     _,
     ServerOptions.ErrorHandler[ChannelError](
       () => ChannelError.ValidationFailed(NonEmptyList.one("Data missing")),

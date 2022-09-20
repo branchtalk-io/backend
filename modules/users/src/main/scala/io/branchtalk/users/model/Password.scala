@@ -3,7 +3,7 @@ package io.branchtalk.users.model
 import java.security.SecureRandom
 
 import cats.{ Eq, Show }
-import cats.effect.{ IO, Sync }
+import cats.effect.{ Sync, SyncIO }
 import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
 import eu.timepit.refined.api.Refined
@@ -92,7 +92,7 @@ object Password {
       ParseRefined[F].parse[NonEmpty](bytes).map(Raw.apply)
 
     def fromString(string: String Refined NonEmpty): Raw =
-      Raw(ParseRefined[IO].parse[NonEmpty](string.getBytes(branchtalkCharset)).unsafeRunSync())
+      Raw(ParseRefined[SyncIO].parse[NonEmpty](string.getBytes(branchtalkCharset)).unsafeRunSync())
 
     implicit val show: Show[Raw] = Show.wrap(_ => "EDITED OUT")
     implicit val eq:   Eq[Raw]   = _.nonEmptyBytes.value sameElements _.nonEmptyBytes.value

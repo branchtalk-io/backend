@@ -171,7 +171,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           CreationScheduled(postID) <- postCreate(channelID)
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Post
             .flatMap(discussionsWrites.postWrites.createPost)
           post <- discussionsReads.postReads.requireById(postID).eventually()
           newTitle <- Post.Title.parse[IO]("new title")
@@ -195,14 +195,14 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
           response.code must_=== StatusCode.Ok
           response.body must beValid(beRight(be_===(UpdatePostResponse(postID))))
           updatedPost must_=== post
-            .lens(_.data.title)
-            .set(newTitle)
-            .lens(_.data.content)
-            .set(newContent)
-            .lens(_.data.urlTitle)
-            .set(Post.UrlTitle("new-title"))
-            .lens(_.data.lastModifiedAt)
-            .set(updatedPost.data.lastModifiedAt)
+            .focus(_.data.title)
+            .replace(newTitle)
+            .focus(_.data.content)
+            .replace(newContent)
+            .focus(_.data.urlTitle)
+            .replace(Post.UrlTitle("new-title"))
+            .focus(_.data.lastModifiedAt)
+            .replace(updatedPost.data.lastModifiedAt)
         }
       }
     }
@@ -220,7 +220,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           CreationScheduled(postID) <- postCreate(channelID)
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Post
             .flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           // when
@@ -254,7 +254,7 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           CreationScheduled(postID) <- postCreate(channelID)
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Post
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Post
             .flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           _ <- discussionsWrites.postWrites.deletePost(Post.Delete(postID, userIDUsers2Discussions.get(userID)))

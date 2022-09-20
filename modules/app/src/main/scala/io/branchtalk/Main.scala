@@ -1,17 +1,14 @@
 package io.branchtalk
 
-import cats.effect.ExitCode
-import io.branchtalk.logging.{ MDC, MonixMDC, MonixMDCAdapter }
-import monix.eval.{ Task, TaskApp }
+import cats.effect.{ ExitCode, IO, IOApp }
+import io.branchtalk.logging.{ IOGlobal, IOMDCAdapter }
 
-object Main extends TaskApp {
+object Main extends IOApp {
 
-  // Initializes local context propagation in Monix, so that we would be able to use Mapped Diagnostic Context in logs.
-  MonixMDCAdapter.configure()
-
-  // Defines MDC handing for Task.
-  implicit private val mdc: MDC[Task] = MonixMDC
-
-  // Runs Program using Task as the IO implementation.
-  override def run(args: List[String]): Task[ExitCode] = Program.runApplication[Task](args)
+  // Runs Program using CE IO as the IO implementation.
+  override def run(args: List[String]): IO[ExitCode] =
+    IOMDCAdapter.configure.flatMap { mdc =>
+      // Initializes local context propagation in IO, so that we would be able to use Mapped Diagnostic Context in logs.
+      Program.runApplication[IO](args)(IOGlobal.configuredStatePropagation, mdc)
+    }
 }

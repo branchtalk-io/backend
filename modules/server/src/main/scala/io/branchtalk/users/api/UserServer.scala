@@ -1,7 +1,7 @@
 package io.branchtalk.users.api
 
 import cats.data.NonEmptyList
-import cats.effect.{ Clock, Concurrent, ContextShift, Sync, Timer }
+import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api._
 import io.branchtalk.auth._
@@ -17,7 +17,7 @@ import org.http4s._
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
-final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
+final class UserServer[F[_]: Async](
   authServices:     AuthServices[F],
   userReads:        UserReads[F],
   sessionReads:     SessionReads[F],
@@ -32,11 +32,11 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
 
   private val sessionExpiresInDays = 7L // make it configurable
 
-  implicit private val serverOptions: Http4sServerOptions[F] = UserServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = UserServer.serverOptions[F].apply(logger)
 
   implicit private val errorHandler: ServerErrorHandler[F, UserError] = UserServer.errorHandler[F].apply(logger)
 
-  private val paginate = UserAPIs.paginate.serverLogic[F].apply { case ((_, _), optOffset, optLimit) =>
+  private val paginate = UserAPIs.paginate.serverLogic[F, User] { case (optOffset, optLimit) =>
     val sortBy = User.Sorting.NameAlphabetically
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
@@ -45,7 +45,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
-  private val newest = UserAPIs.newest.serverLogic[F].apply { case ((_, _), optOffset, optLimit) =>
+  private val newest = UserAPIs.newest.serverLogic[F, User] { case (optOffset, optLimit) =>
     val sortBy = User.Sorting.Newest
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
@@ -54,7 +54,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
-  private val sessions = UserAPIs.sessions.serverLogic[F].apply { case ((user, _), optOffset, optLimit) =>
+  private val sessions = UserAPIs.sessions.serverLogic[F, User].withUser { case (user, (optOffset, optLimit)) =>
     val sortBy = Session.Sorting.ClosestToExpiry
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
@@ -73,7 +73,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     }
   }
 
-  private val signIn = UserAPIs.signIn.serverLogic[F].apply { case (user, sessionOpt) =>
+  private val signIn = UserAPIs.signIn.serverLogic[F, (User, Option[Session])].justUser { case (user, sessionOpt) =>
     for {
       session <- sessionOpt match {
         case Some(session) =>
@@ -93,7 +93,7 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
   }
 
-  private val signOut = UserAPIs.signOut.serverLogic[F].apply { case (user, sessionOpt) =>
+  private val signOut = UserAPIs.signOut.serverLogic[F, (User, Option[Session])].justUser { case (user, sessionOpt) =>
     for {
       sessionID <- sessionOpt match {
         case Some(s) => sessionWrites.deleteSession(Session.Delete(s.id)) >> s.id.some.pure[F]
@@ -102,17 +102,17 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     } yield SignOutResponse(userID = user.id, sessionID = sessionID)
   }
 
-  private val fetchProfile = UserAPIs.fetchProfile.serverLogic[F].apply { case ((_, _), userID) =>
+  private val fetchProfile = UserAPIs.fetchProfile.serverLogic[F, Option[User]] { userID =>
     for {
       user <- userReads.requireById(userID)
     } yield APIUser.fromDomain(user)
   }
 
   private val updateProfile = UserAPIs.updateProfile
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, userID, _) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (userID, _) =>
       userIDApi2Users.reverseGet(userID).pure[F]
-    } { case ((user, _), userID, update) =>
+    }
+    .withUser { case (user, (userID, update)) =>
       val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
       val data = update
         .into[User.Update]
@@ -127,17 +127,17 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     }
 
   private val deleteProfile = UserAPIs.deleteProfile
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, userID) =>
+    .serverLogicWithOwnership[F, User, UserID] { userID =>
       userIDApi2Users.reverseGet(userID).pure[F]
-    } { case ((user, _), userID) =>
+    }
+    .withUser { (user, userID) =>
       val moderatorID = if (user.id === userID) none[ID[User]] else user.id.some
       for {
         _ <- userWrites.deleteUser(User.Delete(userID, moderatorID))
       } yield DeleteUserResponse(userID)
     }
 
-  def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Any, F]] = NonEmptyList.of(
+  def endpoints: NonEmptyList[ServerEndpoint[Any, F]] = NonEmptyList.of[ServerEndpoint[Any, F]](
     paginate,
     newest,
     sessions,
@@ -149,11 +149,11 @@ final class UserServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
     deleteProfile
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
+  val routes: HttpRoutes[F] = Http4sServerInterpreter(serverOptions).toRoutes(endpoints.toList)
 }
 object UserServer {
 
-  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
+  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
     _,
     ServerOptions.ErrorHandler[UserError](
       () => UserError.ValidationFailed(NonEmptyList.one("Data missing")),

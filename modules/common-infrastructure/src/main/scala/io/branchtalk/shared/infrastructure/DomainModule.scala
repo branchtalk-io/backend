@@ -1,6 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
+import cats.effect.std.Dispatcher
+import cats.effect.{ Async, Resource }
 import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import doobie.util.transactor.Transactor
 import io.branchtalk.shared.infrastructure.KafkaSerialization._
@@ -23,7 +24,7 @@ final case class WritesInfrastructure[F[_], Event, InternalEvent](
 )
 final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
 
-  def setupReads[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def setupReads[F[_]: Async](
     domainConfig: DomainConfig,
     registry:     CollectorRegistry
   ): Resource[F, ReadsInfrastructure[F, Event]] =
@@ -32,7 +33,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
       consumerStreamBuilder = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus)
     } yield ReadsInfrastructure(transactor, consumerStreamBuilder)
 
-  def setupWrites[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def setupWrites[F[_]: Async: Dispatcher](
     domainConfig: DomainConfig,
     registry:     CollectorRegistry
   ): Resource[F, WritesInfrastructure[F, Event, InternalEvent]] =

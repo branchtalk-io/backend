@@ -1,7 +1,7 @@
 package io.branchtalk.users.api
 
 import cats.data.NonEmptyList
-import cats.effect.{ Clock, Concurrent, ContextShift, Sync, Timer }
+import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.{ Permission => _, _ }
 import io.branchtalk.auth._
@@ -15,7 +15,7 @@ import org.http4s._
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
-final class ChannelModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent: Timer](
+final class ChannelModerationServer[F[_]: Async](
   authServices:     AuthServices[F],
   userReads:        UserReads[F],
   userWrites:       UserWrites[F],
@@ -26,13 +26,13 @@ final class ChannelModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent:
 
   private val logger = Logger(getClass)
 
-  implicit private val serverOptions: Http4sServerOptions[F] = ChannelModerationServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = ChannelModerationServer.serverOptions[F].apply(logger)
 
   implicit private val errorHandler: ServerErrorHandler[F, UserError] =
     ChannelModerationServer.errorHandler[F].apply(logger)
 
   private val paginate =
-    ChannelModerationAPIs.paginate.serverLogic[F].apply { case ((_, _), channelID, optOffset, optLimit) =>
+    ChannelModerationAPIs.paginate.serverLogic[F, User] { case (channelID, optOffset, optLimit) =>
       val sortBy  = User.Sorting.NameAlphabetically
       val offset  = paginationConfig.resolveOffset(optOffset)
       val limit   = paginationConfig.resolveLimit(optLimit)
@@ -42,8 +42,8 @@ final class ChannelModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent:
       } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
     }
 
-  private val grantChannelModeration = ChannelModerationAPIs.grantChannelModeration.serverLogic[F].apply {
-    case ((moderator, _), channelID, GrantModerationRequest(userID)) =>
+  private val grantChannelModeration = ChannelModerationAPIs.grantChannelModeration.serverLogic[F, User].withUser {
+    case (moderator, (channelID, GrantModerationRequest(userID))) =>
       val update = User.Update(
         id = userID,
         moderatorID = moderator.id.some,
@@ -57,8 +57,8 @@ final class ChannelModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent:
       } yield GrantModerationResponse(userID)
   }
 
-  private val revokeChannelModeration = ChannelModerationAPIs.revokeChannelModeration.serverLogic[F].apply {
-    case ((moderator, _), channelID, RevokeModerationRequest(userID)) =>
+  private val revokeChannelModeration = ChannelModerationAPIs.revokeChannelModeration.serverLogic[F, User].withUser {
+    case (moderator, (channelID, RevokeModerationRequest(userID))) =>
       val update = User.Update(
         id = userID,
         moderatorID = moderator.id.some,
@@ -71,18 +71,19 @@ final class ChannelModerationServer[F[_]: Sync: ContextShift: Clock: Concurrent:
         _ <- userWrites.updateUser(update)
       } yield RevokeModerationResponse(userID)
   }
-  def endpoints: NonEmptyList[ServerEndpoint[_, UserError, _, Any, F]] = NonEmptyList.of(
+
+  def endpoints: NonEmptyList[ServerEndpoint[Any, F]] = NonEmptyList.of[ServerEndpoint[Any, F]](
     paginate,
     grantChannelModeration,
     revokeChannelModeration
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
+  val routes: HttpRoutes[F] = Http4sServerInterpreter(serverOptions).toRoutes(endpoints.toList)
 }
 
 object ChannelModerationServer {
 
-  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
+  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
     _,
     ServerOptions.ErrorHandler[UserError](
       () => UserError.ValidationFailed(NonEmptyList.one("Data missing")),

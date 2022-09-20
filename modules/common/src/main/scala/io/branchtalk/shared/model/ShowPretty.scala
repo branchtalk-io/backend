@@ -1,7 +1,7 @@
 package io.branchtalk.shared.model
 
 import cats.Show
-import magnolia._
+import magnolia1._
 
 import scala.language.experimental.macros
 
@@ -21,7 +21,7 @@ trait ShowPretty[T] extends Show[T] {
 object ShowPretty extends ShowPrettyLowLevel {
   type Typeclass[T] = ShowPretty[T]
 
-  def combine[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] =
+  def join[T](caseClass: ReadOnlyCaseClass[Typeclass, T]): Typeclass[T] =
     (t: T, sb: StringBuilder, indentWith: String, indentLevel: Int) => {
       val nextIndent = indentLevel + 1
       val lastIndex  = caseClass.parameters.size - 1
@@ -37,9 +37,9 @@ object ShowPretty extends ShowPrettyLowLevel {
       sb.append(indentWith * indentLevel).append(")")
     }
 
-  def dispatch[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
+  def split[T](sealedTrait: SealedTrait[Typeclass, T]): Typeclass[T] =
     (t: T, sb: StringBuilder, indentWith: String, indentLevel: Int) =>
-      sealedTrait.dispatch(t)(sub => sub.typeclass.showPretty(sub.cast(t), sb, indentWith, indentLevel))
+      sealedTrait.split(t)(sub => sub.typeclass.showPretty(sub.cast(t), sb, indentWith, indentLevel))
 
   def semi[T]: Typeclass[T] = macro Magnolia.gen[T]
 }

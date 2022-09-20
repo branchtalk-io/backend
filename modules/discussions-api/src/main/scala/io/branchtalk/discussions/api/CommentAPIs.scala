@@ -15,21 +15,15 @@ object CommentAPIs {
       .name("postID") / "comments"
 
   private val errorMapping = oneOf[CommentError](
-    statusMapping[CommentError.BadCredentials](StatusCode.Unauthorized, jsonBody[CommentError.BadCredentials]),
-    statusMapping[CommentError.NoPermission](StatusCode.Unauthorized, jsonBody[CommentError.NoPermission]),
-    statusMapping[CommentError.NotFound](StatusCode.NotFound, jsonBody[CommentError.NotFound]),
-    statusMapping[CommentError.ValidationFailed](StatusCode.BadRequest, jsonBody[CommentError.ValidationFailed])
+    oneOfVariant[CommentError.BadCredentials](StatusCode.Unauthorized, jsonBody[CommentError.BadCredentials]),
+    oneOfVariant[CommentError.NoPermission](StatusCode.Unauthorized, jsonBody[CommentError.NoPermission]),
+    oneOfVariant[CommentError.NotFound](StatusCode.NotFound, jsonBody[CommentError.NotFound]),
+    oneOfVariant[CommentError.ValidationFailed](StatusCode.BadRequest, jsonBody[CommentError.ValidationFailed])
   )
 
   val newest: AuthedEndpoint[
-    (
-      Option[Authentication],
-      ID[Channel],
-      ID[Post],
-      Option[PaginationOffset],
-      Option[PaginationLimit],
-      Option[ID[Comment]]
-    ),
+    Option[Authentication],
+    (ID[Channel], ID[Post], Option[PaginationOffset], Option[PaginationLimit], Option[ID[Comment]]),
     CommentError,
     Pagination[APIComment],
     Any
@@ -39,7 +33,7 @@ object CommentAPIs {
     .description("Returns paginated Comments for a specific Post (and maybe even replies to a specific Comment")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / "newest")
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
@@ -49,12 +43,8 @@ object CommentAPIs {
     .notRequiringPermissions
 
   val hottest: AuthedEndpoint[
-    (
-      Option[Authentication],
-      ID[Channel],
-      ID[Post],
-      Option[ID[Comment]]
-    ),
+    Option[Authentication],
+    (ID[Channel], ID[Post], Option[ID[Comment]]),
     CommentError,
     Pagination[APIComment],
     Any
@@ -64,7 +54,7 @@ object CommentAPIs {
     .description("Returns paginated Comments for a specific Post (and maybe even replies to a specific Comment")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / "hottest")
     .in(query[Option[ID[Comment]]]("reply-to"))
     .out(jsonBody[Pagination[APIComment]])
@@ -72,12 +62,8 @@ object CommentAPIs {
     .notRequiringPermissions
 
   val controversial: AuthedEndpoint[
-    (
-      Option[Authentication],
-      ID[Channel],
-      ID[Post],
-      Option[ID[Comment]]
-    ),
+    Option[Authentication],
+    (ID[Channel], ID[Post], Option[ID[Comment]]),
     CommentError,
     Pagination[APIComment],
     Any
@@ -87,7 +73,7 @@ object CommentAPIs {
     .description("Returns paginated Comments for a specific Post (and maybe even replies to a specific Comment")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / "controversial")
     .in(query[Option[ID[Comment]]]("reply-to"))
     .out(jsonBody[Pagination[APIComment]])
@@ -95,7 +81,8 @@ object CommentAPIs {
     .notRequiringPermissions
 
   val create: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post], CreateCommentRequest),
+    Authentication,
+    (ID[Channel], ID[Post], CreateCommentRequest),
     CommentError,
     CreateCommentResponse,
     Any
@@ -106,7 +93,7 @@ object CommentAPIs {
       .description("Schedules Comment creation for a specified Post")
       .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
       .post
-      .in(authHeader)
+      .securityIn(authHeader)
       .in(prefix)
       .in(jsonBody[CreateCommentRequest])
       .out(jsonBody[CreateCommentResponse])
@@ -114,7 +101,8 @@ object CommentAPIs {
       .notRequiringPermissions
 
   val read: AuthedEndpoint[
-    (Option[Authentication], ID[Channel], ID[Post], ID[Comment]),
+    Option[Authentication],
+    (ID[Channel], ID[Post], ID[Comment]),
     CommentError,
     APIComment,
     Any
@@ -124,14 +112,15 @@ object CommentAPIs {
     .description("Returns specific Comment's data")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / path[ID[Comment]].name("commentID"))
     .out(jsonBody[APIComment])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
   val update: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post], ID[Comment], UpdateCommentRequest),
+    Authentication,
+    (ID[Channel], ID[Post], ID[Comment], UpdateCommentRequest),
     CommentError,
     UpdateCommentResponse,
     Any
@@ -141,7 +130,7 @@ object CommentAPIs {
     .description("Schedule specific Comment's update, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID"))
     .in(
       jsonBody[UpdateCommentRequest].examples(
@@ -165,12 +154,13 @@ object CommentAPIs {
     )
     .out(jsonBody[UpdateCommentResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _, _, _) =>
+    .requiringPermissions { case (channelID, _, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
   val delete: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post], ID[Comment]),
+    Authentication,
+    (ID[Channel], ID[Post], ID[Comment]),
     CommentError,
     DeleteCommentResponse,
     Any
@@ -180,16 +170,17 @@ object CommentAPIs {
     .description("Schedule specific Comment's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .delete
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID"))
     .out(jsonBody[DeleteCommentResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _, _) =>
+    .requiringPermissions { case (channelID, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
   val restore: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post], ID[Comment]),
+    Authentication,
+    (ID[Channel], ID[Post], ID[Comment]),
     CommentError,
     RestoreCommentResponse,
     Any
@@ -199,16 +190,17 @@ object CommentAPIs {
     .description("Schedule specific Comment's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .post
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID") / "restore")
     .out(jsonBody[RestoreCommentResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _, _) =>
+    .requiringPermissions { case (channelID, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
   val upvote: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post], ID[Comment]),
+    Authentication,
+    (ID[Channel], ID[Post], ID[Comment]),
     CommentError,
     Unit,
     Any
@@ -218,13 +210,14 @@ object CommentAPIs {
     .description("Schedule specific Comment's upvote")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID") / "upvote")
     .errorOut(errorMapping)
     .notRequiringPermissions
 
   val downvote: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post], ID[Comment]),
+    Authentication,
+    (ID[Channel], ID[Post], ID[Comment]),
     CommentError,
     Unit,
     Any
@@ -234,13 +227,14 @@ object CommentAPIs {
     .description("Schedule specific Comment's downvote")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID") / "downvote")
     .errorOut(errorMapping)
     .notRequiringPermissions
 
   val revokeVote: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post], ID[Comment]),
+    Authentication,
+    (ID[Channel], ID[Post], ID[Comment]),
     CommentError,
     Unit,
     Any
@@ -250,7 +244,7 @@ object CommentAPIs {
     .description("Schedule specific Comment's vote's revoke")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.comments))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Comment]].name("commentID") / "vote-revoke")
     .errorOut(errorMapping)
     .notRequiringPermissions

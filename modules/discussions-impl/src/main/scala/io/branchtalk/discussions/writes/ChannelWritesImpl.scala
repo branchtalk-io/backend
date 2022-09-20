@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.writes
 
-import cats.effect.{ Sync, Timer }
+import cats.effect.Sync
 import io.branchtalk.discussions.events.{ ChannelCommandEvent, DiscussionsCommandEvent }
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.logging.{ CorrelationID, MDC }
@@ -9,7 +9,7 @@ import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
-final class ChannelWritesImpl[F[_]: Sync: Timer: MDC](
+final class ChannelWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit

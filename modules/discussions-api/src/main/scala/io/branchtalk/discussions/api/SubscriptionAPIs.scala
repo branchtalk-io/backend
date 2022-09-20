@@ -12,18 +12,17 @@ object SubscriptionAPIs {
   private val prefix = "discussions" / "subscriptions"
 
   private val errorMapping = oneOf[SubscriptionError](
-    statusMapping[SubscriptionError.BadCredentials](StatusCode.Unauthorized,
-                                                    jsonBody[SubscriptionError.BadCredentials]
-    ),
-    statusMapping[SubscriptionError.NoPermission](StatusCode.Unauthorized, jsonBody[SubscriptionError.NoPermission]),
-    statusMapping[SubscriptionError.NotFound](StatusCode.NotFound, jsonBody[SubscriptionError.NotFound]),
-    statusMapping[SubscriptionError.ValidationFailed](StatusCode.BadRequest,
-                                                      jsonBody[SubscriptionError.ValidationFailed]
+    oneOfVariant[SubscriptionError.BadCredentials](StatusCode.Unauthorized, jsonBody[SubscriptionError.BadCredentials]),
+    oneOfVariant[SubscriptionError.NoPermission](StatusCode.Unauthorized, jsonBody[SubscriptionError.NoPermission]),
+    oneOfVariant[SubscriptionError.NotFound](StatusCode.NotFound, jsonBody[SubscriptionError.NotFound]),
+    oneOfVariant[SubscriptionError.ValidationFailed](StatusCode.BadRequest,
+                                                     jsonBody[SubscriptionError.ValidationFailed]
     )
   )
 
   val newest: AuthedEndpoint[
-    (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
+    Option[Authentication],
+    (Option[PaginationOffset], Option[PaginationLimit]),
     PostError,
     Pagination[APIPost],
     Any
@@ -33,7 +32,7 @@ object SubscriptionAPIs {
     .description("Returns Posts for User's subscriptions if logged in or default subscriptions otherwise")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts, DiscussionsTags.subscriptions))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / "newest")
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
@@ -41,40 +40,40 @@ object SubscriptionAPIs {
     .errorOut(PostAPIs.errorMapping) // an exception in our API
     .notRequiringPermissions
 
-  val list: AuthedEndpoint[Authentication, SubscriptionError, APISubscriptions, Any] = endpoint
+  val list: AuthedEndpoint[Authentication, Unit, SubscriptionError, APISubscriptions, Any] = endpoint
     .name("List Subscriptions")
     .summary("List Subscriptions for User")
     .description("Returns list of all ChannelID that current User subscribed to")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.subscriptions))
     .get
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix)
     .out(jsonBody[APISubscriptions])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val subscribe: AuthedEndpoint[(Authentication, SubscribeRequest), SubscriptionError, SubscribeResponse, Any] =
+  val subscribe: AuthedEndpoint[Authentication, SubscribeRequest, SubscriptionError, SubscribeResponse, Any] =
     endpoint
       .name("Subscribe")
       .summary("Subscribe to Channels")
       .description("Schedule subscribing to Channels")
       .tags(List(DiscussionsTags.domain, DiscussionsTags.subscriptions))
       .put
-      .in(authHeader)
+      .securityIn(authHeader)
       .in(prefix)
       .in(jsonBody[SubscribeRequest])
       .out(jsonBody[SubscribeResponse])
       .errorOut(errorMapping)
       .notRequiringPermissions
 
-  val unsubscribe: AuthedEndpoint[(Authentication, UnsubscribeRequest), SubscriptionError, UnsubscribeResponse, Any] =
+  val unsubscribe: AuthedEndpoint[Authentication, UnsubscribeRequest, SubscriptionError, UnsubscribeResponse, Any] =
     endpoint
       .name("Unsubscribe")
       .summary("Unsubscribe from Channels")
       .description("Schedule unsubscribing from Channels")
       .tags(List(DiscussionsTags.domain, DiscussionsTags.subscriptions))
       .delete
-      .in(authHeader)
+      .securityIn(authHeader)
       .in(prefix)
       .in(jsonBody[UnsubscribeRequest])
       .out(jsonBody[UnsubscribeResponse])

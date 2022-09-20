@@ -12,7 +12,7 @@ import io.branchtalk.shared.infrastructure.PureconfigSupport._
 import io.branchtalk.shared.model.{ ID, ShowPretty, UUID }
 import io.scalaland.catnip.Semi
 import pureconfig.error.CannotConvert
-import sttp.tapir.openapi.{ Contact, Info, License }
+import sttp.apispec.openapi._
 
 import scala.concurrent.duration.FiniteDuration
 

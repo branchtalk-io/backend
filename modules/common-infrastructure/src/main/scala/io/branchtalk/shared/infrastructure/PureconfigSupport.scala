@@ -66,46 +66,25 @@ object PureconfigSupport extends LowPriorityPureconfigImplicit {
 
   // enumeratum
 
-  implicit def enumeratumConfigConvert[A <: EnumEntry](implicit
-    enum: Enum[A],
-    ct:   ClassTag[A]
-  ): pureconfig.ConfigConvert[A] =
+  implicit def enumeratumConfigConvert[A <: EnumEntry: Enum: ClassTag]: pureconfig.ConfigConvert[A] =
     pureconfig.module.enumeratum.enumeratumConfigConvert[A]
 
-  implicit def enumeratumIntConfigConvert[A <: IntEnumEntry](implicit
-    enum: IntEnum[A],
-    ct:   ClassTag[A]
-  ): pureconfig.ConfigConvert[A] =
+  implicit def enumeratumIntConfigConvert[A <: IntEnumEntry: IntEnum: ClassTag]: pureconfig.ConfigConvert[A] =
     pureconfig.module.enumeratum.enumeratumIntConfigConvert[A]
 
-  implicit def enumeratumLongConfigConvert[A <: LongEnumEntry](implicit
-    enum: LongEnum[A],
-    ct:   ClassTag[A]
-  ): pureconfig.ConfigConvert[A] =
+  implicit def enumeratumLongConfigConvert[A <: LongEnumEntry: LongEnum: ClassTag]: pureconfig.ConfigConvert[A] =
     pureconfig.module.enumeratum.enumeratumLongConfigConvert[A]
 
-  implicit def enumeratumShortConfigConvert[A <: ShortEnumEntry](implicit
-    enum: ShortEnum[A],
-    ct:   ClassTag[A]
-  ): pureconfig.ConfigConvert[A] =
+  implicit def enumeratumShortConfigConvert[A <: ShortEnumEntry: ShortEnum: ClassTag]: pureconfig.ConfigConvert[A] =
     pureconfig.module.enumeratum.enumeratumShortConfigConvert[A]
 
-  implicit def enumeratumStringConfigConvert[A <: StringEnumEntry](implicit
-    enum: StringEnum[A],
-    ct:   ClassTag[A]
-  ): pureconfig.ConfigConvert[A] =
+  implicit def enumeratumStringConfigConvert[A <: StringEnumEntry: StringEnum: ClassTag]: pureconfig.ConfigConvert[A] =
     pureconfig.module.enumeratum.enumeratumStringConfigConvert[A]
 
-  implicit def enumeratumByteConfigConvert[A <: ByteEnumEntry](implicit
-    enum: ByteEnum[A],
-    ct:   ClassTag[A]
-  ): pureconfig.ConfigConvert[A] =
+  implicit def enumeratumByteConfigConvert[A <: ByteEnumEntry: ByteEnum: ClassTag]: pureconfig.ConfigConvert[A] =
     pureconfig.module.enumeratum.enumeratumByteConfigConvert[A]
 
-  implicit def enumeratumCharConfigConvert[A <: CharEnumEntry](implicit
-    enum: CharEnum[A],
-    ct:   ClassTag[A]
-  ): pureconfig.ConfigConvert[A] =
+  implicit def enumeratumCharConfigConvert[A <: CharEnumEntry: CharEnum: ClassTag]: pureconfig.ConfigConvert[A] =
     pureconfig.module.enumeratum.enumeratumCharConfigConvert[A]
 
   // refined

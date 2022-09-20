@@ -15,7 +15,7 @@ trait Projector[F[_], -I, +O] extends Pipe[F, I, O] {
   def mapStream[O2](f: O => Stream[F, O2]): Projector[F, I, O2] = (_: Stream[F, I]).through(apply).flatMap(f)
 
   def withCorrelationID[A](correlationID: CorrelationID)(fa: F[A])(implicit F: Sync[F], mdc: MDC[F]): F[A] =
-    correlationID.updateMDC[F] >> mdc.enable(fa)
+    correlationID.updateMDC[F] >> fa
 }
 object Projector {
 

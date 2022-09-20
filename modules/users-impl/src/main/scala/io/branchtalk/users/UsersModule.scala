@@ -1,7 +1,8 @@
 package io.branchtalk.users
 
 import cats.data.NonEmptyList
-import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Timer }
+import cats.effect.{ Async, Resource }
+import cats.effect.std.Dispatcher
 import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.logging.MDC
@@ -36,7 +37,7 @@ object UsersModule {
   val postgresProjectionName    = "postgres-projection"
   val discussionsProjectionName = "discussions"
 
-  def reads[F[_]: ConcurrentEffect: ContextShift: Timer](
+  def reads[F[_]: Async](
     domainConfig: DomainConfig,
     registry:     CollectorRegistry
   ): Resource[F, UsersReads[F]] =
@@ -52,7 +53,7 @@ object UsersModule {
       }
 
   // scalastyle:off method.length
-  def writes[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
+  def writes[F[_]: Async: Dispatcher: MDC](
     domainConfig:           DomainConfig,
     registry:               CollectorRegistry
   )(implicit uuidGenerator: UUIDGenerator): Resource[F, UsersWrites[F]] =

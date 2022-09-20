@@ -1,6 +1,6 @@
 package io.branchtalk.discussions
 
-import cats.effect.{ Async, ContextShift, Resource, Sync }
+import cats.effect.{ Async, Resource, Sync }
 import io.branchtalk.shared.infrastructure.{
   DomainConfig,
   DomainName,
@@ -21,13 +21,13 @@ import io.scalaland.catnip.Semi
 object TestDiscussionsConfig {
 
   def load[F[_]: Sync]: Resource[F, TestDiscussionsConfig] =
-    Resource.liftF(
+    Resource.eval(
       Sync[F].delay(
         ConfigSource.resources("discussions-test.conf").at("discussions-test").loadOrThrow[TestDiscussionsConfig]
       )
     )
 
-  def loadDomainConfig[F[_]: Async: ContextShift]: Resource[F, DomainConfig] =
+  def loadDomainConfig[F[_]: Async]: Resource[F, DomainConfig] =
     for {
       TestDiscussionsConfig(dbTest, publishedESTest, internalESTest, consumers) <- TestDiscussionsConfig.load[F]
       db <- TestResources.postgresConfigResource[F](dbTest)

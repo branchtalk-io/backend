@@ -13,14 +13,15 @@ object ChannelAPIs {
   private val prefix = "discussions" / "channels"
 
   private val errorMapping = oneOf[ChannelError](
-    statusMapping[ChannelError.BadCredentials](StatusCode.Unauthorized, jsonBody[ChannelError.BadCredentials]),
-    statusMapping[ChannelError.NoPermission](StatusCode.Unauthorized, jsonBody[ChannelError.NoPermission]),
-    statusMapping[ChannelError.NotFound](StatusCode.NotFound, jsonBody[ChannelError.NotFound]),
-    statusMapping[ChannelError.ValidationFailed](StatusCode.BadRequest, jsonBody[ChannelError.ValidationFailed])
+    oneOfVariant[ChannelError.BadCredentials](StatusCode.Unauthorized, jsonBody[ChannelError.BadCredentials]),
+    oneOfVariant[ChannelError.NoPermission](StatusCode.Unauthorized, jsonBody[ChannelError.NoPermission]),
+    oneOfVariant[ChannelError.NotFound](StatusCode.NotFound, jsonBody[ChannelError.NotFound]),
+    oneOfVariant[ChannelError.ValidationFailed](StatusCode.BadRequest, jsonBody[ChannelError.ValidationFailed])
   )
 
   val paginate: AuthedEndpoint[
-    (Option[Authentication], Option[PaginationOffset], Option[PaginationLimit]),
+    Option[Authentication],
+    (Option[PaginationOffset], Option[PaginationLimit]),
     ChannelError,
     Pagination[APIChannel],
     Any
@@ -30,7 +31,7 @@ object ChannelAPIs {
     .description("Returns paginated Channels")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.channels))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix)
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
@@ -38,34 +39,35 @@ object ChannelAPIs {
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val create: AuthedEndpoint[(Authentication, CreateChannelRequest), ChannelError, CreateChannelResponse, Any] =
+  val create: AuthedEndpoint[Authentication, CreateChannelRequest, ChannelError, CreateChannelResponse, Any] =
     endpoint
       .name("Create Channel")
       .summary("Creates Channel")
       .description("Schedules Channel creation")
       .tags(List(DiscussionsTags.domain, DiscussionsTags.channels))
       .post
-      .in(authHeader)
+      .securityIn(authHeader)
       .in(prefix)
       .in(jsonBody[CreateChannelRequest])
       .out(jsonBody[CreateChannelResponse])
       .errorOut(errorMapping)
       .notRequiringPermissions
 
-  val read: AuthedEndpoint[(Option[Authentication], ID[Channel]), ChannelError, APIChannel, Any] = endpoint
+  val read: AuthedEndpoint[Option[Authentication], ID[Channel], ChannelError, APIChannel, Any] = endpoint
     .name("Fetch Channel")
     .summary("Fetches specific Channel")
     .description("Returns specific Channel's data")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.channels))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / path[ID[Channel]].name("channelID"))
     .out(jsonBody[APIChannel])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
   val update: AuthedEndpoint[
-    (Authentication, ID[Channel], UpdateChannelRequest),
+    Authentication,
+    (ID[Channel], UpdateChannelRequest),
     ChannelError,
     UpdateChannelResponse,
     Any
@@ -75,7 +77,7 @@ object ChannelAPIs {
     .description("Schedule specific Channel's update, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.channels))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Channel]].name("channelID"))
     .in(
       jsonBody[UpdateChannelRequest].examples(
@@ -112,35 +114,35 @@ object ChannelAPIs {
     )
     .out(jsonBody[UpdateChannelResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _) =>
+    .requiringPermissions { case (channelID, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
-  val delete: AuthedEndpoint[(Authentication, ID[Channel]), ChannelError, DeleteChannelResponse, Any] = endpoint
+  val delete: AuthedEndpoint[Authentication, ID[Channel], ChannelError, DeleteChannelResponse, Any] = endpoint
     .name("Delete Channel")
     .summary("Deletes specific Channel")
     .description("Schedule specific Channel's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.channels))
     .delete
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Channel]].name("channelID"))
     .out(jsonBody[DeleteChannelResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID) =>
+    .requiringPermissions(channelID =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
-    }
+    )
 
-  val restore: AuthedEndpoint[(Authentication, ID[Channel]), ChannelError, RestoreChannelResponse, Any] = endpoint
+  val restore: AuthedEndpoint[Authentication, ID[Channel], ChannelError, RestoreChannelResponse, Any] = endpoint
     .name("Restores Channel")
     .summary("Restores specific Channel")
     .description("Schedule specific Channel's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.channels))
     .post
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Channel]].name("channelID") / "restore")
     .out(jsonBody[RestoreChannelResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID) =>
+    .requiringPermissions(channelID =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
-    }
+    )
 }

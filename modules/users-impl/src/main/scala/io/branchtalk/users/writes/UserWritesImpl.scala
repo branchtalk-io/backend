@@ -1,7 +1,7 @@
 package io.branchtalk.users.writes
 
 import cats.data.NonEmptyList
-import cats.effect.{ Sync, Timer }
+import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
@@ -11,7 +11,7 @@ import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Session, User }
 import io.scalaland.chimney.dsl._
 
-final class UserWritesImpl[F[_]: Sync: Timer: MDC](
+final class UserWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, UsersCommandEvent],
   transactor: Transactor[F]
 )(implicit
