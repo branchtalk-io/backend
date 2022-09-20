@@ -2,6 +2,7 @@ import sbt._
 import sbt.Keys._
 import sbt.TestFrameworks.Specs2
 import sbt.Tests.Argument
+import com.github.sbt.git.GitVersioning
 import com.typesafe.sbt._
 import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
 import com.typesafe.sbt.packager.docker.DockerPlugin
@@ -33,7 +34,6 @@ object Settings extends Dependencies {
   private val modulesSettings = commonSettings ++ Seq(
     scalacOptions ++= Seq(
       // standard settings
-      "-target:jvm-1.8",
       "-encoding",
       "UTF-8",
       "-unchecked",

@@ -1,7 +1,9 @@
 package io.branchtalk
 
-import cats.effect.{ ContextShift, ExitCode, IO, IOApp, Timer }
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import io.branchtalk.logging.MDC
+import io.branchtalk.logging.MDC.Ctx
 import io.branchtalk.shared.model.CodePosition
 import org.specs2.matcher.MatchResult
 import org.specs2.specification.core.{ AsExecution, Execution }
@@ -14,12 +16,9 @@ trait IOTest {
 
   val pass: MatchResult[Boolean] = true must beTrue
 
-  implicit protected val contextShift: ContextShift[IO] = IOTest.AllTheRightImplicits.contextShift
-  implicit protected val timer:        Timer[IO]        = IOTest.AllTheRightImplicits.timer
-
-  // IO doesn't have Local like Monix
+  // we don't rely on MDC in tests
   implicit protected val noopMDC: MDC[IO] = new MDC[IO] {
-    override def enable[A](fa: IO[A]): IO[A] = fa
+    override def ctx: IO[Ctx] = IO.pure(Map.empty)
 
     override def get(key: String): IO[Option[String]] = IO.pure(None)
 
@@ -46,13 +45,5 @@ trait IOTest {
 
   implicit protected def ioAsTest[T: AsExecution]: AsExecution[IO[T]] = new AsExecution[IO[T]] {
     override def execute(t: => IO[T]): Execution = AsExecution[T].execute(t.unsafeRunSync())
-  }
-}
-object IOTest {
-
-  object AllTheRightImplicits extends IOApp {
-    override def run(args: List[String]): IO[ExitCode] = ???
-    override def contextShift: ContextShift[IO] = super.contextShift
-    override def timer:        Timer[IO]        = super.timer
   }
 }

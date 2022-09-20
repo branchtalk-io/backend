@@ -37,7 +37,7 @@ object RequiredPermissions {
     summonCodec[RequiredPermissions](JsonCodecMaker.make(CodecMakerConfig.withAllowRecursiveTypes(true)))
 
   implicit val nesEq: Eq[NonEmptySet[Permission]] = (x: NonEmptySet[Permission], y: NonEmptySet[Permission]) =>
-    x.toSortedSet.toSet === y.toSortedSet.toSet
+    x.toSortedSet === y.toSortedSet
   implicit val nesShow: ShowPretty[NonEmptySet[Permission]] =
     (t: NonEmptySet[Permission], sb: StringBuilder, indentWith: String, indentLevel: Int) => {
       val nextIndent = indentLevel + 1

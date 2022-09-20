@@ -14,7 +14,7 @@ import sttp.tapir.client.sttp._
 trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   // populated by resources
-  protected var server: Server[IO]           = _
+  protected var server: Server               = _
   protected var client: SttpBackend[IO, Any] = _
   protected lazy val sttpBaseUri: Uri = Uri.unsafeApply(
     scheme = server.baseUri.scheme.fold(???)(_.value),
@@ -53,21 +53,45 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> serverResource
 
-  implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[I, E, O, Any]) {
+  implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[Unit, I, E, O, Any]) {
 
     val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = (input: I) =>
-      SttpClientInterpreter
+      SttpClientInterpreter(SttpClientOptions.default)
         .toRequest(
           endpoint,
           sttpBaseUri.some
-        )(SttpClientOptions.default, WebSocketToPipe.webSocketsNotSupportedForAny)(input)
-        .acceptEncoding("deflate") // helps debugging request in logs
+        )
+        .apply(input)
+        .acceptEncoding("deflate")
         .send(client)
   }
 
-  implicit class AuthServerTestOps[I, E, O](private val authEndpoint: AuthedEndpoint[I, E, O, Any]) {
+  implicit class AuthServerTestOps[A, I, E, O](private val authEndpoint: AuthedEndpoint[A, I, E, O, Any]) {
 
-    val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = authEndpoint.endpoint.toTestCall
+    val toTestCall: (A, I) => IO[Response[DecodeResult[Either[E, O]]]] = (auth: A, input: I) =>
+      SttpClientInterpreter(SttpClientOptions.default)
+        .toSecureRequest(
+          authEndpoint.endpoint,
+          sttpBaseUri.some
+        )
+        .apply(auth)
+        .apply(input)
+        .acceptEncoding("deflate")
+        .send(client)
+  }
+
+  implicit class AuthOnlyServerTestOps[A, E, O](private val authEndpoint: AuthedEndpoint[A, Unit, E, O, Any]) {
+
+    val toTestCall: A => IO[Response[DecodeResult[Either[E, O]]]] = (auth: A) =>
+      SttpClientInterpreter(SttpClientOptions.default)
+        .toSecureRequest(
+          authEndpoint.endpoint,
+          sttpBaseUri.some
+        )
+        .apply(auth)
+        .apply(())
+        .acceptEncoding("deflate")
+        .send(client)
   }
 
   import ServerIOTest._

@@ -15,14 +15,15 @@ object PostAPIs {
   private val prefix = "discussions" / "channels" / path[ID[Channel]].name("channelID") / "posts"
 
   private[api] val errorMapping = oneOf[PostError](
-    statusMapping[PostError.BadCredentials](StatusCode.Unauthorized, jsonBody[PostError.BadCredentials]),
-    statusMapping[PostError.NoPermission](StatusCode.Unauthorized, jsonBody[PostError.NoPermission]),
-    statusMapping[PostError.NotFound](StatusCode.NotFound, jsonBody[PostError.NotFound]),
-    statusMapping[PostError.ValidationFailed](StatusCode.BadRequest, jsonBody[PostError.ValidationFailed])
+    oneOfVariant[PostError.BadCredentials](StatusCode.Unauthorized, jsonBody[PostError.BadCredentials]),
+    oneOfVariant[PostError.NoPermission](StatusCode.Unauthorized, jsonBody[PostError.NoPermission]),
+    oneOfVariant[PostError.NotFound](StatusCode.NotFound, jsonBody[PostError.NotFound]),
+    oneOfVariant[PostError.ValidationFailed](StatusCode.BadRequest, jsonBody[PostError.ValidationFailed])
   )
 
   val newest: AuthedEndpoint[
-    (Option[Authentication], ID[Channel], Option[PaginationOffset], Option[PaginationLimit]),
+    Option[Authentication],
+    (ID[Channel], Option[PaginationOffset], Option[PaginationLimit]),
     PostError,
     Pagination[APIPost],
     Any
@@ -32,7 +33,7 @@ object PostAPIs {
     .description("Returns paginated Posts for a specific Channel")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / "newest")
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
@@ -40,59 +41,60 @@ object PostAPIs {
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val hottest: AuthedEndpoint[(Option[Authentication], ID[Channel]), PostError, Pagination[APIPost], Any] = endpoint
+  val hottest: AuthedEndpoint[Option[Authentication], ID[Channel], PostError, Pagination[APIPost], Any] = endpoint
     .name("Fetch hottest Posts")
     .summary("Paginate hottest Posts for a Channel")
     .description("Returns paginated Posts for a specific Channel")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / "hottest")
     .out(jsonBody[Pagination[APIPost]])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val controversial: AuthedEndpoint[(Option[Authentication], ID[Channel]), PostError, Pagination[APIPost], Any] =
+  val controversial: AuthedEndpoint[Option[Authentication], ID[Channel], PostError, Pagination[APIPost], Any] =
     endpoint
       .name("Fetch controversial Posts")
       .summary("Paginate controversial Posts for a Channel")
       .description("Returns paginated Posts for a specific Channel")
       .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
       .get
-      .in(optAuthHeader)
+      .securityIn(optAuthHeader)
       .in(prefix / "controversial")
       .out(jsonBody[Pagination[APIPost]])
       .errorOut(errorMapping)
       .notRequiringPermissions
 
-  val create: AuthedEndpoint[(Authentication, ID[Channel], CreatePostRequest), PostError, CreatePostResponse, Any] =
+  val create: AuthedEndpoint[Authentication, (ID[Channel], CreatePostRequest), PostError, CreatePostResponse, Any] =
     endpoint
       .name("Create Post")
       .summary("Creates Post")
       .description("Schedules Post creation on a specified Channel")
       .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
       .post
-      .in(authHeader)
+      .securityIn(authHeader)
       .in(prefix)
       .in(jsonBody[CreatePostRequest])
       .out(jsonBody[CreatePostResponse])
       .errorOut(errorMapping)
       .notRequiringPermissions
 
-  val read: AuthedEndpoint[(Option[Authentication], ID[Channel], ID[Post]), PostError, APIPost, Any] = endpoint
+  val read: AuthedEndpoint[Option[Authentication], (ID[Channel], ID[Post]), PostError, APIPost, Any] = endpoint
     .name("Fetch Post")
     .summary("Fetches specific Post")
     .description("Returns specific Post's data")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / path[ID[Post]].name("postID"))
     .out(jsonBody[APIPost])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
   val update: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post], UpdatePostRequest),
+    Authentication,
+    (ID[Channel], ID[Post], UpdatePostRequest),
     PostError,
     UpdatePostResponse,
     Any
@@ -102,7 +104,7 @@ object PostAPIs {
     .description("Schedule specific Post's update, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Post]].name("postID"))
     .in(
       jsonBody[UpdatePostRequest].examples(
@@ -136,12 +138,13 @@ object PostAPIs {
     )
     .out(jsonBody[UpdatePostResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _, _) =>
+    .requiringPermissions { case (channelID, _, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
   val delete: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post]),
+    Authentication,
+    (ID[Channel], ID[Post]),
     PostError,
     DeletePostResponse,
     Any
@@ -151,16 +154,17 @@ object PostAPIs {
     .description("Schedule specific Post's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .delete
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Post]].name("postID"))
     .out(jsonBody[DeletePostResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _) =>
+    .requiringPermissions { case (channelID, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
   val restore: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post]),
+    Authentication,
+    (ID[Channel], ID[Post]),
     PostError,
     RestorePostResponse,
     Any
@@ -170,16 +174,17 @@ object PostAPIs {
     .description("Schedule specific Post's deletion, requires ownership or moderator status")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .post
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Post]].name("postID") / "restore")
     .out(jsonBody[RestorePostResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, channelID, _) =>
+    .requiringPermissions { case (channelID, _) =>
       RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
     }
 
   val upvote: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post]),
+    Authentication,
+    (ID[Channel], ID[Post]),
     PostError,
     Unit,
     Any
@@ -189,13 +194,14 @@ object PostAPIs {
     .description("Schedule specific Post's upvote")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Post]].name("postID") / "upvote")
     .errorOut(errorMapping)
     .notRequiringPermissions
 
   val downvote: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post]),
+    Authentication,
+    (ID[Channel], ID[Post]),
     PostError,
     Unit,
     Any
@@ -205,13 +211,14 @@ object PostAPIs {
     .description("Schedule specific Post's downvote")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Post]].name("postID") / "upvote")
     .errorOut(errorMapping)
     .notRequiringPermissions
 
   val revokeVote: AuthedEndpoint[
-    (Authentication, ID[Channel], ID[Post]),
+    Authentication,
+    (ID[Channel], ID[Post]),
     PostError,
     Unit,
     Any
@@ -221,7 +228,7 @@ object PostAPIs {
     .description("Schedule specific Post's vote's revoke")
     .tags(List(DiscussionsTags.domain, DiscussionsTags.posts))
     .put
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[Post]].name("postID") / "revoke-vote")
     .errorOut(errorMapping)
     .notRequiringPermissions

@@ -1,8 +1,8 @@
 package io.branchtalk.shared.infrastructure
 
 import java.nio.ByteBuffer
-import cats.effect.{ ConcurrentEffect, ContextShift, Resource, Sync }
-import cats.effect.syntax.all._
+import cats.effect.{ Async, Resource, Sync }
+import cats.effect.std.Dispatcher
 import dev.profunktor.redis4cats.data.RedisCodec
 import dev.profunktor.redis4cats.effect.Log
 import dev.profunktor.redis4cats.{ Redis, RedisCommands }
@@ -40,11 +40,11 @@ object Cache {
     }
   }
 
-  def fromConfigs[F[_]: ConcurrentEffect: ContextShift, Event: Serializer[F, *]: SafeDeserializer[F, *]](
+  def fromConfigs[F[_]: Async: Dispatcher, Event: Serializer[F, *]: SafeDeserializer[F, *]](
     busConfig: KafkaEventBusConfig
   ): Resource[F, Cache[F, String, Event]] =
     for {
-      logger <- Resource.liftF(Logger.fromClass[F](classOf[Cache[F, String, Event]]))
+      logger <- Resource.eval(Logger.fromClass[F](classOf[Cache[F, String, Event]]))
       implicit0(log: Log[F]) = new Log[F] {
         override def debug(msg: => String): F[Unit] = logger.debug(msg)
         override def error(msg: => String): F[Unit] = logger.error(msg)
@@ -56,7 +56,7 @@ object Cache {
       )
     } yield fromRedis(redis)
 
-  private def prepareCodec[F[_]: ConcurrentEffect, Event: Serializer[F, *]: SafeDeserializer[F, *]](
+  private def prepareCodec[F[_]: Sync: Dispatcher, Event: Serializer[F, *]: SafeDeserializer[F, *]](
     topic: String
   ): RedisCodec[String, Event] = RedisCodec(
     new JRedisCodec[String, Event] {
@@ -73,14 +73,16 @@ object Cache {
               case Left(error)  => new Exception(error.toString).raiseError[F, Event]
               case Right(value) => value.pure[F]
             }
-            .toIO
-            .unsafeRunSync()
+            .pipe(implicitly[Dispatcher[F]].unsafeRunSync(_))
         } else null.asInstanceOf[Event] // scalastyle:ignore null
 
       override def encodeKey(key: String): ByteBuffer = ByteBuffer.wrap(key.getBytes(branchtalkCharset))
 
       override def encodeValue(value: Event): ByteBuffer =
-        Serializer[F, Event].serialize(topic, Headers.empty, value).map(ByteBuffer.wrap).toIO.unsafeRunSync()
+        Serializer[F, Event]
+          .serialize(topic, Headers.empty, value)
+          .map(ByteBuffer.wrap)
+          .pipe(implicitly[Dispatcher[F]].unsafeRunSync(_))
     }
   )
 }

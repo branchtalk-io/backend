@@ -10,6 +10,9 @@ trait ServerErrorHandler[F[_], E] {
 }
 object ServerErrorHandler {
 
+  @inline def apply[F[_], E](implicit serverErrorHandler: ServerErrorHandler[F, E]): ServerErrorHandler[F, E] =
+    serverErrorHandler
+
   def handleCommonErrors[F[_]: Sync, E](mapping: CommonError => E)(logger: Logger): ServerErrorHandler[F, E] =
     new ServerErrorHandler[F, E] {
 

@@ -14,14 +14,15 @@ object UserAPIs {
   private val prefix = "users"
 
   private val errorMapping = oneOf[UserError](
-    statusMapping[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
-    statusMapping[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
-    statusMapping[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
-    statusMapping[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
+    oneOfVariant[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
+    oneOfVariant[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
+    oneOfVariant[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
+    oneOfVariant[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )
 
   val paginate: AuthedEndpoint[
-    (Authentication, Option[PaginationOffset], Option[PaginationLimit]),
+    Authentication,
+    (Option[PaginationOffset], Option[PaginationLimit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -31,7 +32,7 @@ object UserAPIs {
     .description("Returns paginated Users")
     .tags(List(UsersTags.domain, UsersTags.users))
     .get
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix)
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
@@ -40,7 +41,8 @@ object UserAPIs {
     .requiringPermissions(_ => RequiredPermissions.one(Permission.ModerateUsers))
 
   val newest: AuthedEndpoint[
-    (Authentication, Option[PaginationOffset], Option[PaginationLimit]),
+    Authentication,
+    (Option[PaginationOffset], Option[PaginationLimit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -50,7 +52,7 @@ object UserAPIs {
     .description("Returns paginated newest Users")
     .tags(List(UsersTags.domain, UsersTags.users))
     .get
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / "newest")
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
@@ -59,7 +61,8 @@ object UserAPIs {
     .requiringPermissions(_ => RequiredPermissions.one(Permission.ModerateUsers))
 
   val sessions: AuthedEndpoint[
-    (Authentication, Option[PaginationOffset], Option[PaginationLimit]),
+    Authentication,
+    (Option[PaginationOffset], Option[PaginationLimit]),
     UserError,
     Pagination[APISession],
     Any
@@ -69,7 +72,7 @@ object UserAPIs {
     .description("Returns paginated Sessions by closest expiration date")
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .get
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / "sessions")
     .in(query[Option[PaginationOffset]]("offset"))
     .in(query[Option[PaginationLimit]]("limit"))
@@ -77,7 +80,7 @@ object UserAPIs {
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val signUp: Endpoint[SignUpRequest, UserError, SignUpResponse, Any] = endpoint
+  val signUp: Endpoint[Unit, SignUpRequest, UserError, SignUpResponse, Any] = endpoint
     .name("Sign up")
     .summary("Allows creation of User's account")
     .description("Schedules User creation and returns future User's ID as well as future Session's handler")
@@ -88,50 +91,50 @@ object UserAPIs {
     .out(jsonBody[SignUpResponse])
     .errorOut(errorMapping)
 
-  val signIn: AuthedEndpoint[Authentication, UserError, SignInResponse, Any] = endpoint
+  val signIn: AuthedEndpoint[Authentication, Unit, UserError, SignInResponse, Any] = endpoint
     .name("Sign in")
     .summary("Allows logging into existing User's account")
     .description("Returns Session's handler")
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .post
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / "session")
     .out(jsonBody[SignInResponse])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val signOut: AuthedEndpoint[Authentication, UserError, SignOutResponse, Any] = endpoint
+  val signOut: AuthedEndpoint[Authentication, Unit, UserError, SignOutResponse, Any] = endpoint
     .name("Sign out")
     .summary("Destroys specific User's session")
     .description("Make the Session ID immediately invalid")
     .tags(List(UsersTags.domain, UsersTags.sessions))
     .delete
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / "session")
     .out(jsonBody[SignOutResponse])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val fetchProfile: AuthedEndpoint[(Option[Authentication], ID[User]), UserError, APIUser, Any] = endpoint
+  val fetchProfile: AuthedEndpoint[Option[Authentication], ID[User], UserError, APIUser, Any] = endpoint
     .name("Fetch profile")
     .summary("Fetches specific User's profile")
     .description("Returns User's profile")
     .tags(List(UsersTags.domain, UsersTags.users))
     .get
-    .in(optAuthHeader)
+    .securityIn(optAuthHeader)
     .in(prefix / path[ID[User]].name("userID"))
     .out(jsonBody[APIUser])
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val updateProfile: AuthedEndpoint[(Authentication, ID[User], UpdateUserRequest), UserError, UpdateUserResponse, Any] =
+  val updateProfile: AuthedEndpoint[Authentication, (ID[User], UpdateUserRequest), UserError, UpdateUserResponse, Any] =
     endpoint
       .name("Update profile")
       .summary("Updates specific User's profile")
       .description("Schedules specific User's profile update, requires ownership or moderator status")
       .tags(List(UsersTags.domain, UsersTags.users))
       .put
-      .in(authHeader)
+      .securityIn(authHeader)
       .in(prefix / path[ID[User]].name("userID"))
       .in(
         jsonBody[UpdateUserRequest].examples(
@@ -168,19 +171,17 @@ object UserAPIs {
       )
       .out(jsonBody[UpdateUserResponse])
       .errorOut(errorMapping)
-      .requiringPermissions { case (_, _, _) =>
-        RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers)
-      }
+      .requiringPermissions(_ => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers))
 
-  val deleteProfile: AuthedEndpoint[(Authentication, ID[User]), UserError, DeleteUserResponse, Any] = endpoint
+  val deleteProfile: AuthedEndpoint[Authentication, ID[User], UserError, DeleteUserResponse, Any] = endpoint
     .name("Delete profile")
     .summary("Deletes specific User's profile")
     .description("Schedules specific User's profile deletion, requires ownership or moderator status, cannot be undone")
     .tags(List(UsersTags.domain, UsersTags.users))
     .delete
-    .in(authHeader)
+    .securityIn(authHeader)
     .in(prefix / path[ID[User]].name("userID"))
     .out(jsonBody[DeleteUserResponse])
     .errorOut(errorMapping)
-    .requiringPermissions { case (_, _) => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers) }
+    .requiringPermissions(_ => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers))
 }

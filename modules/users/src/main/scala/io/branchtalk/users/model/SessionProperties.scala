@@ -31,8 +31,8 @@ object SessionProperties {
     def unapply(expirationTime: ExpirationTime): Some[OffsetDateTime] = Some(expirationTime.offsetDateTime)
 
     def now[F[_]: Functor: Clock]: F[ExpirationTime] =
-      Clock[F]
-        .realTime(scala.concurrent.duration.MILLISECONDS)
+      Clock[F].realTime
+        .map(_.toMillis)
         .map(Instant.ofEpochMilli)
         .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
         .map(ExpirationTime(_))

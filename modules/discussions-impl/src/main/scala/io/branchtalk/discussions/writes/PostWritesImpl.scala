@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.writes
 
-import cats.effect.{ Sync, Timer }
+import cats.effect.Sync
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.discussions.events.{ DiscussionsCommandEvent, PostCommandEvent }
@@ -11,7 +11,7 @@ import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
-final class PostWritesImpl[F[_]: Sync: Timer: MDC](
+final class PostWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit

@@ -212,14 +212,14 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
           response.code must_=== StatusCode.Ok
           response.body must beValid(beRight(be_===(UpdateUserResponse(userID))))
           updatedUser must_=== user
-            .lens(_.data.username)
-            .set(newUsername)
-            .lens(_.data.description)
-            .set(newDescription.some)
-            .lens(_.data.password)
-            .set(updatedUser.data.password) // updated Password might have a different salt...
-            .lens(_.data.lastModifiedAt)
-            .set(updatedUser.data.lastModifiedAt)
+            .focus(_.data.username)
+            .replace(newUsername)
+            .focus(_.data.description)
+            .replace(newDescription.some)
+            .focus(_.data.password)
+            .replace(updatedUser.data.password) // updated Password might have a different salt...
+            .focus(_.data.lastModifiedAt)
+            .replace(updatedUser.data.lastModifiedAt)
           updatedUser.data.password.verify(newPassword) must beTrue // ...which is why we test it separately
         }
       }

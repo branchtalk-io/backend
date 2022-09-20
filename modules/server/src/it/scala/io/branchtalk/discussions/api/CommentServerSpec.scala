@@ -198,7 +198,7 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           CreationScheduled(commentID) <- commentCreate(postID)
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Comment
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Comment
             .flatMap(discussionsWrites.commentWrites.createComment)
           comment <- discussionsReads.commentReads.requireById(commentID).eventually()
           newContent = Comment.Content("lorem ipsum")
@@ -221,10 +221,10 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
           response.code must_=== StatusCode.Ok
           response.body must beValid(beRight(be_===(UpdateCommentResponse(commentID))))
           updatedComment must_=== comment
-            .lens(_.data.content)
-            .set(newContent)
-            .lens(_.data.lastModifiedAt)
-            .set(updatedComment.data.lastModifiedAt)
+            .focus(_.data.content)
+            .replace(newContent)
+            .focus(_.data.lastModifiedAt)
+            .replace(updatedComment.data.lastModifiedAt)
         }
       }
     }
@@ -244,7 +244,7 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           CreationScheduled(commentID) <- commentCreate(postID)
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Comment
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Comment
             .flatMap(discussionsWrites.commentWrites.createComment)
           _ <- discussionsReads.commentReads.requireById(commentID).eventually()
           // when
@@ -281,7 +281,7 @@ final class CommentServerSpec extends Specification with ServerIOTest with Users
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           CreationScheduled(commentID) <- commentCreate(postID)
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // to own the Comment
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Comment
             .flatMap(discussionsWrites.commentWrites.createComment)
           _ <- discussionsReads.commentReads.requireById(commentID).eventually()
           _ <- discussionsWrites.commentWrites.deleteComment(

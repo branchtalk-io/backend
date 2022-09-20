@@ -1,8 +1,7 @@
 package io.branchtalk.api
 
 import java.util.Base64
-
-import cats.effect.IO
+import cats.effect.SyncIO
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import io.branchtalk.api.Authentication.{ Credentials, Session }
@@ -28,7 +27,12 @@ object AuthenticationSupport {
       s"""Basic ${base64(s"${username}:${new String(password.value, branchtalkCharset)}")}"""
     def unapply(string: String): Option[(String, Array[Byte] Refined NonEmpty)] = string match {
       case basicR(base64(upR(username, password))) =>
-        ParseRefined[IO].parse[NonEmpty](password.getBytes(branchtalkCharset)).option.unsafeRunSync().map(username -> _)
+        ParseRefined[SyncIO]
+          .parse[NonEmpty](password.getBytes(branchtalkCharset))
+          .attempt
+          .unsafeRunSync()
+          .toOption
+          .map(username -> _)
       case _ => None
     }
   }
@@ -42,7 +46,7 @@ object AuthenticationSupport {
     }
   }
 
-  implicit private class ResultOps[A](private val io: IO[A]) extends AnyVal {
+  implicit private class ResultOps[A](private val io: SyncIO[A]) extends AnyVal {
 
     def asResult(original: String): DecodeResult[A] = io.attempt.unsafeRunSync() match {
       case Left(value)  => DecodeResult.Error(original, value)
@@ -52,12 +56,12 @@ object AuthenticationSupport {
 
   val authHeaderMapping: Mapping[String, Authentication] = Mapping.fromDecode[String, Authentication] {
     case original @ basic(user, pass) =>
-      (Username.parse[IO](user), Password.parse[IO](pass)).mapN(Credentials.apply).asResult(original)
+      (Username.parse[SyncIO](user), Password.parse[SyncIO](pass)).mapN(Credentials.apply).asResult(original)
     case original if original.startsWith("Basic") =>
       DecodeResult.Error(original, new Exception("Expected base64-encoded username:password"))
     case original @ bearer(sessionID) =>
       implicit val uuidGenerator: UUIDGenerator.FastUUIDGenerator.type = FastUUIDGenerator // passing it down it PITA
-      SessionID.parse[IO](sessionID).map(Session.apply).asResult(original)
+      SessionID.parse[SyncIO](sessionID).map(Session.apply).asResult(original)
     case original if original.startsWith("Bearer") =>
       DecodeResult.Error(original, new Exception("Expected session ID"))
     case original =>

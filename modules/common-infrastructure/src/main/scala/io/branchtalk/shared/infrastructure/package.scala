@@ -16,7 +16,7 @@ import scala.concurrent.duration.FiniteDuration
 
 package object infrastructure {
 
-  type EventBusProducer[F[_], Event] = Pipe[F, (UUID, Event), ProducerResult[UUID, Event, Unit]]
+  type EventBusProducer[F[_], Event] = Pipe[F, (UUID, Event), ProducerResult[Unit, UUID, Event]]
   type EventBusConsumer[F[_], Event] = Stream[F, CommittableConsumerRecord[F, UUID, Event]]
   type EventBusCommitter[F[_]]       = Pipe[F, CommittableOffset[F], Unit]
 

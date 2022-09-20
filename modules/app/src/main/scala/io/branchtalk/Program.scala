@@ -1,8 +1,9 @@
 package io.branchtalk
 
 import cats.{ Functor, Monad }
-import cats.effect.{ Async, Concurrent, ConcurrentEffect, ContextShift, ExitCode, Resource, Sync, Timer }
+import cats.effect.{ Async, ExitCode, Resource, Sync }
 import cats.effect.implicits._
+import cats.effect.std.Dispatcher
 import com.typesafe.config.ConfigFactory
 import io.branchtalk.api.AppServer
 import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
@@ -20,12 +21,12 @@ object Program {
 
   implicit protected val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
 
-  def runApplication[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](args: List[String]): F[ExitCode] =
+  def runApplication[F[_]: Async: MDC](args: List[String]): F[ExitCode] =
     (for {
       implicit0(logger: Logger[F]) <- Logger.create[F]
       env <- Configuration.getEnv[F]
       appArguments <- AppArguments.parse[F](args, env)
-      _ <- logger.info(show"Arguments passed: ${appArguments}")
+      _ <- logger.info(show"Arguments passed: $appArguments")
       _ <-
         if (appArguments.isAnythingRun) initializeAndRunModules[F](appArguments)
         else logger.warn("Nothing to run, see --help for information how to turn on API server and projections")
@@ -47,11 +48,12 @@ object Program {
     _ <- logger.info(show"Discussions configs resolved to: ${discussionsConfig}")
   } yield (apiConfig, usersConfig, discussionsConfig)
 
-  def initializeAndRunModules[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
+  def initializeAndRunModules[F[_]: Async: MDC](
     appArguments:    AppArguments
   )(implicit logger: Logger[F]): F[Unit] = {
     for {
-      (apiConfig, usersConfig, discussionsConfig) <- Resource.liftF(resolveConfigs[F])
+      implicit0(dispacher: Dispatcher[F]) <- Dispatcher[F]
+      (apiConfig, usersConfig, discussionsConfig) <- Resource.eval(resolveConfigs[F])
       registry <- Prometheus.collectorRegistry[F]
       modules <- Resource.make(logger.info("Initializing services"))(_ => logger.info("Services shut down")) >>
         (
@@ -69,7 +71,7 @@ object Program {
   }
 
   // scalastyle:off method.length parameter.number
-  def runModules[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
+  def runModules[F[_]: Async: MDC](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
     terminationSignal: F[Unit],
@@ -122,8 +124,8 @@ object Program {
   // scalastyle:on parameter.number method.length
 
   // kudos to Łukasz Byczyński
-  private def awaitTerminationSignal[F[_]: Concurrent]: F[Unit] = {
-    def handleSignal(signalName: String): F[Unit] = Async[F].async[Unit] { cb =>
+  private def awaitTerminationSignal[F[_]: Async]: F[Unit] = {
+    def handleSignal(signalName: String): F[Unit] = Async[F].async_[Unit] { cb =>
       Signal.handle(new Signal(signalName), _ => cb(().asRight[Throwable]))
       ()
     }
@@ -140,6 +142,6 @@ object Program {
         logBeforeAfter[F](s"Starting $name", s"$name shutdown completed") >>
           resource >>
           logBeforeAfter[F](s"$name start completed", s"Shutting down $name")
-      } else Resource.liftF(logger.info(s"$name disabled - omitting"))
+      } else Resource.eval(logger.info(s"$name disabled - omitting"))
   }
 }

@@ -38,9 +38,9 @@ lazy val scalaJsArtifacts = project.in(file("scala-js"))
     usersApiJS
   )
 
-addCommandAlias("fmt", ";scalafmt;test:scalafmt;it:scalafmt")
-addCommandAlias("fullTest", ";test;it:test")
-addCommandAlias("fullCoverageTest", ";coverage;test;it:test;coverageReport;coverageAggregate")
+addCommandAlias("fmt", ";scalafmt;Test/scalafmt;It/scalafmt")
+addCommandAlias("fullTest", ";test;It/test")
+addCommandAlias("fullCoverageTest", ";coverage;test;It/test;coverageReport;coverageAggregate")
 
 // commons
 
@@ -68,7 +68,9 @@ val common = crossProject(JVMPlatform, JSPlatform)
       Dependencies.avro4sRefined,
       Dependencies.catnip,
       Dependencies.sourcecode,
-      Dependencies.jfairy % Test
+      Dependencies.jfairy % Test,
+      Dependencies.guice % Test, // required by jfairy on JDK 15+
+      Dependencies.guiceAssisted % Test // required by jfairy on JDK 15+
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
@@ -267,6 +269,7 @@ val server = project
       Dependencies.refinedDecline,
       Dependencies.jsoniterMacro,
       Dependencies.sttpCats % IntegrationTest,
+      Dependencies.http4sBlaze,
       Dependencies.http4sPrometheus,
       Dependencies.tapirHttp4s,
       Dependencies.tapirOpenAPI,
@@ -292,8 +295,6 @@ val application = project
     libraryDependencies ++= Seq(
       Dependencies.logbackJackson,
       Dependencies.logbackJsonClassic,
-      Dependencies.monixExecution,
-      Dependencies.monixEval
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )

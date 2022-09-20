@@ -1,76 +1,158 @@
 package io.branchtalk.api
 
-import cats.{ Monad, MonadError }
+import cats.{ Functor, Monad, MonadError }
 import io.branchtalk.shared.model.{ CodePosition, CommonError }
 import sttp.tapir._
 import sttp.tapir.server.ServerEndpoint
 
-// Goal: take a tuple of inputs, extract Authentication data of it, authenticate and return a tuple with Authentication
-// replaced with authorized entity.
-// scalastyle:off structural.type
-trait AuthMapping[F[_], In] {
-  type Out
-  def authorize(in: In, requiredPermissions: RequiredPermissions): F[Out]
-}
-object AuthMapping {
-  @inline def apply[F[_], In](implicit authMapping: AuthMapping[F, In]): AuthMapping[F, In] {
-    type Out = authMapping.Out
-  } = authMapping
+trait Authorize[F[_], Auth, Out] {
 
-  type Aux[F[_], In, OOut] = AuthMapping[F, In] {
-    type Out = OOut
+  def authorize(auth: Auth, requiredPermissions: RequiredPermissions): F[Out]
+}
+object Authorize {
+
+  implicit def functor[F[_]: Functor, Auth]: Functor[Authorize[F, Auth, *]] = new Functor[Authorize[F, Auth, *]] {
+    override def map[A, B](fa: Authorize[F, Auth, A])(f: A => B): Authorize[F, Auth, B] =
+      (auth: Auth, requiredPermissions: RequiredPermissions) => fa.authorize(auth, requiredPermissions).map(f)
   }
 }
 
-trait AuthMappingWithOwnership[F[_], In] {
-  type Out
-  type Owner
-  def authorize(in: In, requiredPermissions: RequiredPermissions, owner: Owner): F[Out]
-}
-object AuthMappingWithOwnership {
-  @inline def apply[F[_], In](implicit authMapping: AuthMappingWithOwnership[F, In]): AuthMappingWithOwnership[F, In] {
-    type Out   = authMapping.Out
-    type Owner = authMapping.Owner
-  } = authMapping
+trait AuthorizeWithOwnership[F[_], Auth, Owner, Out] {
 
-  type Aux[F[_], In, OOut, OOwner] = AuthMappingWithOwnership[F, In] {
-    type Out   = OOut
-    type Owner = OOwner
-  }
+  def authorize(auth: Auth, requiredPermissions: RequiredPermissions, owner: Owner): F[Out]
+}
+object AuthorizeWithOwnership {
+
+  implicit def functor[F[_]: Functor, Auth, Owner]: Functor[AuthorizeWithOwnership[F, Auth, Owner, *]] =
+    new Functor[AuthorizeWithOwnership[F, Auth, Owner, *]] {
+      override def map[A, B](
+        fa: AuthorizeWithOwnership[F, Auth, Owner, A]
+      )(f:  A => B): AuthorizeWithOwnership[F, Auth, Owner, B] =
+        (auth: Auth, requiredPermissions: RequiredPermissions, owner: Owner) =>
+          fa.authorize(auth, requiredPermissions, owner).map(f)
+    }
 }
 
-final case class AuthedEndpoint[I, E, O, -R](
-  endpoint:        Endpoint[I, E, O, R],
+// in practice we just unpack value of the header and pass it to services
+final case class AuthedEndpoint[A, I, E, O, R](
+  endpoint:        Endpoint[A, I, E, O, R],
   makePermissions: I => RequiredPermissions
 ) {
 
-  def serverLogic[F[_]: Monad: ServerErrorHandler[*[_], E]](implicit
-    auth: AuthMapping[F, I]
-  ): (auth.Out => F[O]) => ServerEndpoint[I, E, O, R, F] =
-    logic =>
-      endpoint.serverLogic { i =>
-        implicitly[ServerErrorHandler[F, E]].apply {
-          auth.authorize(i, makePermissions(i)).flatMap(logic)
-        }
-      }
+  def serverLogic[F[_], U]: AuthedEndpoint.PartialServerLogic[F, U, A, I, E, O, R] =
+    new AuthedEndpoint.PartialServerLogic(endpoint, makePermissions)
 
-  def serverLogicWithOwnership[F[_]: MonadError[*[_], Throwable]: ServerErrorHandler[*[_], E], OOwner](implicit
-    auth:         AuthMappingWithOwnership[F, I] { type Owner = OOwner },
-    codePosition: CodePosition
-  ): (I => F[auth.Owner]) => (auth.Out => F[O]) => ServerEndpoint[I, E, O, R, F] =
-    ownership =>
-      logic =>
-        endpoint.serverLogic { i =>
-          implicitly[ServerErrorHandler[F, E]].apply {
-            ownership(i)
-              .handleErrorWith { _ =>
-                (CommonError.InsufficientPermissions("Ownership was not confirmed", codePosition): Throwable)
-                  .raiseError[F, auth.Owner]
-              }
-              .flatMap { owner =>
-                auth.authorize(i, makePermissions(i), owner).flatMap(logic)
-              }
-          }
-        }
+  def serverLogicWithOwnership[F[_], U, Owner](
+    ownership: I => F[Owner]
+  ): AuthedEndpoint.PartialServerLogicWithOwnership[F, U, A, I, E, O, R, Owner] =
+    new AuthedEndpoint.PartialServerLogicWithOwnership(endpoint, makePermissions, ownership)
 }
-// scalastyle:on structural.type
+object AuthedEndpoint {
+
+  final class PartialServerLogic[F[_], U, A, I, E, O, R](
+    endpoint:        Endpoint[A, I, E, O, R],
+    makePermissions: I => RequiredPermissions
+  ) {
+    def apply(
+      logic: I => F[O]
+    )(implicit
+      F:            Monad[F],
+      errorHandler: ServerErrorHandler[F, E],
+      authorize:    Authorize[F, A, U]
+    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+      buildServerEndpoint((i, _, _) => i, logic)
+
+    def withUser(
+      logic: (U, I) => F[O]
+    )(implicit
+      F:            Monad[F],
+      errorHandler: ServerErrorHandler[F, E],
+      authorize:    Authorize[F, A, U]
+    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+      buildServerEndpoint((i, _, u) => (u, i), logic.tupled)
+
+    def justUser(
+      logic: U => F[O]
+    )(implicit
+      F:            Monad[F],
+      errorHandler: ServerErrorHandler[F, E],
+      authorize:    Authorize[F, A, U],
+      ev:           I =:= Unit
+    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+      buildServerEndpoint((_, _, u) => u, logic)
+
+    private def buildServerEndpoint[In](
+      input: (I, A, U) => In,
+      logic: In => F[O]
+    )(implicit
+      F:            Monad[F],
+      errorHandler: ServerErrorHandler[F, E],
+      authorize:    Authorize[F, A, U]
+    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+      endpoint.serverSecurityLogicPure(_.asRight[E]).serverLogic { auth: A => i: I =>
+        for {
+          u <- authorize.authorize(auth, makePermissions(i))
+          in = input(i, auth, u)
+          out <- errorHandler(logic(in))
+        } yield out
+      }
+  }
+
+  final class PartialServerLogicWithOwnership[F[_], U, A, I, E, O, R, Owner](
+    endpoint:        Endpoint[A, I, E, O, R],
+    makePermissions: I => RequiredPermissions,
+    ownership:       I => F[Owner]
+  ) {
+    def apply(
+      logic: I => F[O]
+    )(implicit
+      F:            MonadError[F, Throwable],
+      errorHandler: ServerErrorHandler[F, E],
+      authorize:    AuthorizeWithOwnership[F, A, Owner, U],
+      codePosition: CodePosition
+    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+      buildServerEndpoint((i, _, _) => i, logic)
+
+    def withUser(
+      logic: (U, I) => F[O]
+    )(implicit
+      F:            MonadError[F, Throwable],
+      errorHandler: ServerErrorHandler[F, E],
+      authorize:    AuthorizeWithOwnership[F, A, Owner, U],
+      codePosition: CodePosition
+    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+      buildServerEndpoint((i, _, u) => (u, i), logic.tupled)
+
+    def justUser(
+      logic: U => F[O]
+    )(implicit
+      F:            MonadError[F, Throwable],
+      errorHandler: ServerErrorHandler[F, E],
+      authorize:    AuthorizeWithOwnership[F, A, Owner, U],
+      codePosition: CodePosition,
+      ev:           I =:= Unit
+    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+      buildServerEndpoint((_, _, u) => u, logic)
+
+    private def buildServerEndpoint[In](
+      input: (I, A, U) => In,
+      logic: In => F[O]
+    )(implicit
+      F:            MonadError[F, Throwable],
+      errorHandler: ServerErrorHandler[F, E],
+      authorize:    AuthorizeWithOwnership[F, A, Owner, U],
+      codePosition: CodePosition
+    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+      endpoint.serverSecurityLogicPure(_.asRight[E]).serverLogic { auth: A => i: I =>
+        for {
+          owner <- ownership(i).handleErrorWith { _ =>
+            (CommonError.InsufficientPermissions("Ownership was not confirmed", codePosition): Throwable)
+              .raiseError[F, Owner]
+          }
+          u <- authorize.authorize(auth, makePermissions(i), owner)
+          in = input(i, auth, u)
+          out <- errorHandler(logic(in))
+        } yield out
+      }
+  }
+}

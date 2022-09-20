@@ -111,19 +111,19 @@ final class UserReadsWritesSpec extends Specification with UsersIOTest with User
         .collect {
           case ((User(id, older), User(_, newer)), 0) =>
             // set case
-            older
-              .lens(_.permissions)
-              .set(Permissions.empty.append(Permission.IsUser(id))) must_=== newer.lens(_.lastModifiedAt).set(None)
+            older.focus(_.permissions).replace(Permissions.empty.append(Permission.IsUser(id))) must_=== newer
+              .focus(_.lastModifiedAt)
+              .replace(None)
           case ((User(_, older), User(_, newer)), 1) =>
             // keep case
             older must_=== newer
           case ((User(_, older), User(_, newer)), 2) =>
             // erase case
             older
-              .lens(_.permissions)
-              .set(Permissions.empty.append(Permission.ModerateUsers))
-              .lens(_.description)
-              .set(None) must_=== newer.lens(_.lastModifiedAt).set(None)
+              .focus(_.permissions)
+              .replace(Permissions.empty.append(Permission.ModerateUsers))
+              .focus(_.description)
+              .replace(None) must_=== newer.focus(_.lastModifiedAt).replace(None)
         }
         .lastOption
         .getOrElse(true must beFalse)

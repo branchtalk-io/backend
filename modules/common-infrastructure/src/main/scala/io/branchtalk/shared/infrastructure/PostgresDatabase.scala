@@ -1,6 +1,6 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.{ Async, Blocker, ContextShift, Resource, Sync }
+import cats.effect.{ Async, Resource, Sync }
 import com.zaxxer.hikari.metrics.{ IMetricsTracker, MetricsTrackerFactory, PoolStats }
 import com.zaxxer.hikari.metrics.prometheus.PrometheusHistogramMetricsTrackerFactory
 import doobie._
@@ -29,12 +29,11 @@ final class PostgresDatabase(config: PostgresConfig) {
       .load()
   )
 
-  def transactor[F[_]: Async: ContextShift](registry: CollectorRegistry): Resource[F, HikariTransactor[F]] =
+  def transactor[F[_]: Async](registry: CollectorRegistry): Resource[F, HikariTransactor[F]] =
     for {
       connectEC <- doobie.util.ExecutionContexts.fixedThreadPool[F](config.connectionPool.positiveInt.value)
-      transactEC <- doobie.util.ExecutionContexts.cachedThreadPool[F]
-      xa <- HikariTransactor.initial[F](connectEC, Blocker.liftExecutionContext(transactEC))
-      _ <- Resource.liftF {
+      xa <- HikariTransactor.initial[F](connectEC)
+      _ <- Resource.eval {
         xa.configure { ds =>
           Async[F].delay {
             ds.setMetricsTrackerFactory(
@@ -54,7 +53,7 @@ final class PostgresDatabase(config: PostgresConfig) {
           }
         }
       }
-      _ <- Resource.liftF(migrate[F] >> healthCheck[F](xa))
+      _ <- Resource.eval(migrate[F] >> healthCheck[F](xa))
     } yield xa
 
   def migrate[F[_]: Sync]: F[Unit] = flyway[F].map(_.migrate()).void

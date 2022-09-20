@@ -83,7 +83,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
           _ <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
           CreationScheduled(channelID) <- channelCreate
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // make User Channels' owner
             .flatMap(discussionsWrites.channelWrites.createChannel)
           channel <- discussionsReads.channelReads.requireById(channelID).eventually()
           _ <- usersReads.userReads
@@ -116,14 +116,14 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
           response.code must_=== StatusCode.Ok
           response.body must beValid(beRight(be_===(UpdateChannelResponse(channelID))))
           updatedChannel must_=== channel
-            .lens(_.data.urlName)
-            .set(newUrlName)
-            .lens(_.data.name)
-            .set(newName)
-            .lens(_.data.description)
-            .set(newDescription.some)
-            .lens(_.data.lastModifiedAt)
-            .set(updatedChannel.data.lastModifiedAt)
+            .focus(_.data.urlName)
+            .replace(newUrlName)
+            .focus(_.data.name)
+            .replace(newName)
+            .focus(_.data.description)
+            .replace(newDescription.some)
+            .focus(_.data.lastModifiedAt)
+            .replace(updatedChannel.data.lastModifiedAt)
         }
       }
     }
@@ -139,7 +139,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
           _ <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
           CreationScheduled(channelID) <- channelCreate
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // make User Channels' owner
             .flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           _ <- usersReads.userReads
@@ -178,7 +178,7 @@ final class ChannelServerSpec extends Specification with ServerIOTest with Users
           _ <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
           CreationScheduled(channelID) <- channelCreate
-            .map(_.lens(_.authorID).set(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // make User Channels' owner
             .flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           _ <- usersReads.userReads

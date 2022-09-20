@@ -31,12 +31,12 @@ object TapirSupport
 
   // utilities
 
-  implicit class EndpointOps[I, E, O, R](private val endpoint: Endpoint[I, E, O, R]) extends AnyVal {
+  implicit class EndpointOps[A, I, E, O, R](private val endpoint: Endpoint[A, I, E, O, R]) extends AnyVal {
 
-    def notRequiringPermissions: AuthedEndpoint[I, E, O, R] =
+    def notRequiringPermissions: AuthedEndpoint[A, I, E, O, R] =
       AuthedEndpoint(endpoint, _ => RequiredPermissions.empty)
 
-    def requiringPermissions(permissions: I => RequiredPermissions): AuthedEndpoint[I, E, O, R] =
+    def requiringPermissions(permissions: I => RequiredPermissions): AuthedEndpoint[A, I, E, O, R] =
       AuthedEndpoint(endpoint, permissions)
   }
 

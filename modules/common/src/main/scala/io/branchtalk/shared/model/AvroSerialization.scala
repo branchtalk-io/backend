@@ -1,9 +1,8 @@
 package io.branchtalk.shared.model
 
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
-
 import cats.{ Eq, Show }
-import cats.effect.{ IO, Resource, Sync }
+import cats.effect.{ Resource, Sync, SyncIO }
 import com.sksamuel.avro4s._
 import io.branchtalk.ADT
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
@@ -79,8 +78,9 @@ object AvroSerialization {
         }
     }
 
-  def serializeUnsafe[A: Encoder](value: A): Array[Byte] = serialize[IO, A](value).unsafeRunSync()
+  def serializeUnsafe[A: Encoder](value: A): Array[Byte] =
+    serialize[SyncIO, A](value).unsafeRunSync()
 
   def deserializeUnsafe[A: Decoder: SchemaFor](arr: Array[Byte]): DeserializationResult[A] =
-    deserialize[IO, A](arr).unsafeRunSync()
+    deserialize[SyncIO, A](arr).unsafeRunSync()
 }

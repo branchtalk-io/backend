@@ -1,7 +1,7 @@
 package io.branchtalk.shared
 
 import java.nio.charset.{ Charset, StandardCharsets }
-import java.time.{ Instant, OffsetDateTime, ZoneId }
+import java.time.{ OffsetDateTime, ZoneId }
 import java.time.format.DateTimeFormatter
 import java.util.regex.Pattern
 import java.util.{ Locale, UUID => jUUID }
@@ -9,10 +9,10 @@ import cats.effect.{ Clock, Sync }
 import cats.{ Eq, Functor, Order, Show }
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.string.Uuid
-import io.chrisdavenport.log4cats.SelfAwareStructuredLogger
-import io.chrisdavenport.log4cats.slf4j.Slf4jLogger
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.annotation.unused
 import scala.reflect.runtime.universe.{ WeakTypeTag, weakTypeOf }
@@ -58,11 +58,7 @@ package object model {
   object CreationTime {
     def unapply(creationTime: CreationTime): Some[OffsetDateTime] = Some(creationTime.offsetDateTime)
     def now[F[_]: Functor: Clock]: F[CreationTime] =
-      Clock[F]
-        .realTime(scala.concurrent.duration.MILLISECONDS)
-        .map(Instant.ofEpochMilli)
-        .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
-        .map(CreationTime(_))
+      Clock[F].realTimeInstant.map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault())).map(CreationTime(_))
 
     implicit val show: Show[CreationTime] = Show.wrap(_.offsetDateTime.pipe(DateTimeFormatter.ISO_INSTANT.format))
     implicit val order: Order[CreationTime] =
@@ -72,11 +68,7 @@ package object model {
   object ModificationTime {
     def unapply(modificationTime: ModificationTime): Some[OffsetDateTime] = Some(modificationTime.offsetDateTime)
     def now[F[_]: Functor: Clock]: F[ModificationTime] =
-      Clock[F]
-        .realTime(scala.concurrent.duration.MILLISECONDS)
-        .map(Instant.ofEpochMilli)
-        .map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault()))
-        .map(ModificationTime(_))
+      Clock[F].realTimeInstant.map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault())).map(ModificationTime(_))
 
     implicit val show: Show[ModificationTime] = Show.wrap(_.offsetDateTime.pipe(DateTimeFormatter.ISO_INSTANT.format))
     implicit val order: Order[ModificationTime] =
@@ -115,22 +107,42 @@ package object model {
   implicit class Untupled2[I1, I2, Out](private val f: ((I1, I2)) => Out) extends AnyVal {
     def untupled(i1: I1, i2: I2): Out = f.apply((i1, i2))
   }
+  implicit class Untupled2A[I1, I2, Out](private val f: (I1, I2) => Out) extends AnyVal {
+    def untupled(i1: I1, i2: I2): Out = f.apply(i1, i2)
+  }
   implicit class Untupled3[I1, I2, I3, Out](private val f: ((I1, I2, I3)) => Out) extends AnyVal {
     def untupled(i1: I1, i2: I2, i3: I3): Out = f.apply((i1, i2, i3))
+  }
+  implicit class Untupled3A[I1, I2, I3, Out](private val f: (I1, (I2, I3)) => Out) extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3): Out = f.apply(i1, (i2, i3))
   }
   implicit class Untupled4[I1, I2, I3, I4, Out](private val f: ((I1, I2, I3, I4)) => Out) extends AnyVal {
     def untupled(i1: I1, i2: I2, i3: I3, i4: I4): Out = f.apply((i1, i2, i3, i4))
   }
+  implicit class Untupled4A[I1, I2, I3, I4, Out](private val f: (I1, (I2, I3, I4)) => Out) extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3, i4: I4): Out = f.apply(i1, (i2, i3, i4))
+  }
   implicit class Untupled5[I1, I2, I3, I4, I5, Out](private val f: ((I1, I2, I3, I4, I5)) => Out) extends AnyVal {
     def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5): Out = f.apply((i1, i2, i3, i4, i5))
+  }
+  implicit class Untupled5A[I1, I2, I3, I4, I5, Out](private val f: (I1, (I2, I3, I4, I5)) => Out) extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5): Out = f.apply(i1, (i2, i3, i4, i5))
   }
   implicit class Untupled6[I1, I2, I3, I4, I5, I6, Out](private val f: ((I1, I2, I3, I4, I5, I6)) => Out)
       extends AnyVal {
     def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5, i6: I6): Out = f.apply((i1, i2, i3, i4, i5, i6))
   }
+  implicit class Untupled6A[I1, I2, I3, I4, I5, I6, Out](private val f: (I1, (I2, I3, I4, I5, I6)) => Out)
+      extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5, i6: I6): Out = f.apply(i1, (i2, i3, i4, i5, i6))
+  }
   implicit class Untupled7[I1, I2, I3, I4, I5, I6, I7, Out](private val f: ((I1, I2, I3, I4, I5, I6, I7)) => Out)
       extends AnyVal {
     def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5, i6: I6, i7: I7): Out = f.apply((i1, i2, i3, i4, i5, i6, i7))
+  }
+  implicit class Untupled7A[I1, I2, I3, I4, I5, I6, I7, Out](private val f: (I1, (I2, I3, I4, I5, I6, I7)) => Out)
+      extends AnyVal {
+    def untupled(i1: I1, i2: I2, i3: I3, i4: I4, i5: I5, i6: I6, i7: I7): Out = f.apply(i1, (i2, i3, i4, i5, i6, i7))
   }
 
   val branchtalkCharset: Charset = StandardCharsets.UTF_8 // used in getBytes and new String

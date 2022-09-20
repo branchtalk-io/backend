@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.api
 
 import cats.data.{ NonEmptyList, NonEmptySet }
-import cats.effect.{ Concurrent, ContextShift, Sync, Timer }
+import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api._
 import io.branchtalk.auth._
@@ -12,6 +12,7 @@ import io.branchtalk.discussions.reads.PostReads
 import io.branchtalk.discussions.writes.PostWrites
 import io.branchtalk.mappings._
 import io.branchtalk.shared.model.{ CommonError, CreationScheduled, ID, Paginated }
+import io.branchtalk.users.model.User
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
@@ -19,7 +20,7 @@ import sttp.tapir.server.ServerEndpoint
 
 import scala.collection.immutable.SortedSet
 
-final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
+final class PostServer[F[_]: Async](
   authServices:     AuthServices[F],
   postReads:        PostReads[F],
   postWrites:       PostWrites[F],
@@ -30,7 +31,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val logger = Logger(getClass)
 
-  implicit private val serverOptions: Http4sServerOptions[F] = PostServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = PostServer.serverOptions[F].apply(logger)
 
   implicit private val errorHandler: ServerErrorHandler[F, PostError] = PostServer.errorHandler[F].apply(logger)
 
@@ -45,7 +46,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     .map(_.data.authorID)
     .map(userIDApi2Discussions.reverseGet)
 
-  private val newest = PostAPIs.newest.serverLogic[F].apply { case ((_, _), channelID, optOffset, optLimit) =>
+  private val newest = PostAPIs.newest.serverLogic[F, Option[User]] { case (channelID, optOffset, optLimit) =>
     val sortBy     = Post.Sorting.Newest
     val offset     = paginationConfig.resolveOffset(optOffset)
     val limit      = paginationConfig.resolveLimit(optLimit)
@@ -58,7 +59,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
   }
 
-  private val hottest = PostAPIs.hottest.serverLogic[F].apply { case ((_, _), channelID) =>
+  private val hottest = PostAPIs.hottest.serverLogic[F, Option[User]] { channelID =>
     val sortBy     = Post.Sorting.Hottest
     val offset     = paginationConfig.resolveOffset(None)
     val limit      = paginationConfig.resolveLimit(None)
@@ -71,7 +72,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
   }
 
-  private val controversial = PostAPIs.controversial.serverLogic[F].apply { case ((_, _), channelID) =>
+  private val controversial = PostAPIs.controversial.serverLogic[F, Option[User]] { channelID =>
     val sortBy     = Post.Sorting.Controversial
     val offset     = paginationConfig.resolveOffset(None)
     val limit      = paginationConfig.resolveLimit(None)
@@ -84,7 +85,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
   }
 
-  private val create = PostAPIs.create.serverLogic[F].apply { case ((user, _), channelID, createData) =>
+  private val create = PostAPIs.create.serverLogic[F, User].withUser { case (user, (channelID, createData)) =>
     val userID = user.id
     val data = createData
       .into[Post.Create]
@@ -96,32 +97,35 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     } yield CreatePostResponse(postID)
   }
 
-  private val read = PostAPIs.read
-    .serverLogicWithOwnership[F, Unit]
-    .apply { case (_, channelID, postID) => testOwnership(channelID, postID) } { case ((_, _), _, postID) =>
-      for {
-        post <- postReads.requireById(postID)
-      } yield APIPost.fromDomain(post)
-    }
+  private val read = PostAPIs.read.serverLogicWithOwnership[F, Option[User], Unit] { case (channelID, postID) =>
+    testOwnership(channelID, postID)
+  } { case (_, postID) =>
+    for {
+      post <- postReads.requireById(postID)
+    } yield APIPost.fromDomain(post)
+  }
 
   private val update = PostAPIs.update
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, _) => resolveOwnership(channelID, postID) } {
-      case ((user, _), _, postID, updateData) =>
-        val userID = user.id
-        val data = updateData
-          .into[Post.Update]
-          .withFieldConst(_.id, postID)
-          .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-          .transform
-        for {
-          _ <- postWrites.updatePost(data)
-        } yield UpdatePostResponse(postID)
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID, _) =>
+      resolveOwnership(channelID, postID)
+    }
+    .withUser { case (user, (_, postID, updateData)) =>
+      val userID = user.id
+      val data = updateData
+        .into[Post.Update]
+        .withFieldConst(_.id, postID)
+        .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
+        .transform
+      for {
+        _ <- postWrites.updatePost(data)
+      } yield UpdatePostResponse(postID)
     }
 
   private val delete = PostAPIs.delete
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID) =>
+      resolveOwnership(channelID, postID)
+    }
+    .withUser { case (user, (_, postID)) =>
       val userID = user.id
       val data   = Post.Delete(postID, userIDUsers2Discussions.get(userID))
       for {
@@ -130,19 +134,22 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     }
 
   private val restore = PostAPIs.restore
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID, isDeleted = true) } {
-      case ((user, _), _, postID) =>
-        val userID = user.id
-        val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))
-        for {
-          _ <- postWrites.restorePost(data)
-        } yield RestorePostResponse(postID)
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID) =>
+      resolveOwnership(channelID, postID, isDeleted = true)
+    }
+    .withUser { case (user, (_, postID)) =>
+      val userID = user.id
+      val data   = Post.Restore(postID, userIDUsers2Discussions.get(userID))
+      for {
+        _ <- postWrites.restorePost(data)
+      } yield RestorePostResponse(postID)
     }
 
   private val upvote = PostAPIs.upvote
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID) =>
+      resolveOwnership(channelID, postID)
+    }
+    .withUser { case (user, (_, postID)) =>
       val userID = user.id
       val data   = Post.Upvote(postID, userIDUsers2Discussions.get(userID))
       for {
@@ -151,8 +158,10 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     }
 
   private val downvote = PostAPIs.downvote
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID) =>
+      resolveOwnership(channelID, postID)
+    }
+    .withUser { case (user, (_, postID)) =>
       val userID = user.id
       val data   = Post.Downvote(postID, userIDUsers2Discussions.get(userID))
       for {
@@ -161,8 +170,10 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     }
 
   private val revokeVote = PostAPIs.revokeVote
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID) => resolveOwnership(channelID, postID) } { case ((user, _), _, postID) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID) =>
+      resolveOwnership(channelID, postID)
+    }
+    .withUser { case (user, (_, postID)) =>
       val userID = user.id
       val data   = Post.RevokeVote(postID, userIDUsers2Discussions.get(userID))
       for {
@@ -170,7 +181,7 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
       } yield ()
     }
 
-  def endpoints: NonEmptyList[ServerEndpoint[_, PostError, _, Any, F]] = NonEmptyList.of(
+  def endpoints: NonEmptyList[ServerEndpoint[Any, F]] = NonEmptyList.of[ServerEndpoint[Any, F]](
     newest,
     hottest,
     controversial,
@@ -184,11 +195,11 @@ final class PostServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     revokeVote
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
+  val routes: HttpRoutes[F] = Http4sServerInterpreter(serverOptions).toRoutes(endpoints.toList)
 }
 object PostServer {
 
-  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, PostError](
+  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, PostError](
     _,
     ServerOptions.ErrorHandler[PostError](
       () => PostError.ValidationFailed(NonEmptyList.one("Data missing")),

@@ -7,9 +7,11 @@ import scala.jdk.CollectionConverters._
 
 trait TestKafkaResources extends TestResourcesHelpers {
 
-  def kafkaEventBusConfigResource[F[_]: Sync](testKafkaEventBusConfig: TestKafkaEventBusConfig) =
+  def kafkaEventBusConfigResource[F[_]: Sync](
+    testKafkaEventBusConfig: TestKafkaEventBusConfig
+  ): Resource[F, KafkaEventBusConfig] =
     Resource
-      .liftF(generateRandomSuffix[F])
+      .eval(generateRandomSuffix[F])
       .flatMap(randomSuffix =>
         Resource.pure[F, KafkaEventBusConfig](testKafkaEventBusConfig.toKafkaEventBusConfig(randomSuffix))
       )

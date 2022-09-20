@@ -1,7 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.data.NonEmptyList
-import cats.effect.{ Concurrent, Sync, Timer }
+import cats.effect.{ Concurrent, Sync, Temporal }
 import fs2.kafka._
 import fs2.Pipe
 import io.branchtalk.shared.model.{ ShowPretty, UUID }
@@ -27,7 +27,7 @@ import io.scalaland.catnip.Semi
     ProducerSettings(Serializer.uuid[F], Serializer[F, Event])
       .withBootstrapServers(servers.map(_.show).intercalate(","))
 
-  def toCommitBatch[F[_]: Concurrent: Timer](
+  def toCommitBatch[F[_]: Concurrent: Temporal](
     consumerConfig: KafkaEventConsumerConfig
   ): Pipe[F, CommittableOffset[F], Unit] =
     commitBatchWithin[F](consumerConfig.maxCommitSize.positiveInt.value, consumerConfig.maxCommitTime.finiteDuration)

@@ -1,22 +1,21 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.{ Async, Blocker, ContextShift, Resource }
+import cats.effect.{ Async, Resource }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 
 trait TestPostgresResources extends TestResourcesHelpers {
 
   implicit val logger: DoobieSupport.LogHandler = doobieLogger(getClass)
 
-  def postgresConfigResource[F[_]: Async: ContextShift](
+  def postgresConfigResource[F[_]: Async](
     testPostgresConfig: TestPostgresConfig
   ): Resource[F, PostgresConfig] =
-    Resource.liftF(generateRandomSuffix[F]).flatMap { randomSuffix =>
+    Resource.eval(generateRandomSuffix[F]).flatMap { randomSuffix =>
       val schemaCreator = Transactor.fromDriverManager[F](
         driver = classOf[org.postgresql.Driver].getName, // driver classname
         url = testPostgresConfig.url.nonEmptyString.value, // connect URL (driver-specific)
         user = "postgres", // user
-        pass = testPostgresConfig.rootPassword.nonEmptyString.value, // password
-        blocker = Blocker.liftExecutionContext(ExecutionContexts.synchronous) // just for testing
+        pass = testPostgresConfig.rootPassword.nonEmptyString.value // password
       )
 
       val cfg      = testPostgresConfig.toPostgresConfig(randomSuffix.toLowerCase)
@@ -35,7 +34,7 @@ trait TestPostgresResources extends TestResourcesHelpers {
       }(_ => (dropSchema >> dropUser).transact(schemaCreator).void)
     }
 
-  def postgresDatabaseResource[F[_]: Async: ContextShift](
+  def postgresDatabaseResource[F[_]: Async](
     testPostgresConfig: TestPostgresConfig
   ): Resource[F, PostgresDatabase] =
     postgresConfigResource[F](testPostgresConfig).map(new PostgresDatabase(_))

@@ -2,7 +2,7 @@ package io.branchtalk.api
 
 import cats.arrow.FunctionK
 import cats.data.NonEmptyList
-import cats.effect.{ Concurrent, ConcurrentEffect, ContextShift, Resource, Timer }
+import cats.effect.{ Async, Resource }
 import com.softwaremill.macwire.wire
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfig }
@@ -23,18 +23,17 @@ import io.branchtalk.users.reads._
 import io.branchtalk.users.writes._
 import io.prometheus.client.CollectorRegistry
 import org.http4s._
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits._
 import org.http4s.metrics.MetricsOps
 import org.http4s.metrics.prometheus.Prometheus
 import org.http4s.server.Server
-import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.middleware._
 import sttp.tapir.server.ServerEndpoint
 
 import scala.annotation.nowarn
-import scala.concurrent.ExecutionContext
 
-final class AppServer[F[_]: Concurrent: Timer: MDC](
+final class AppServer[F[_]: Async: MDC](
   usesServer:              UserServer[F],
   userModerationServer:    UserModerationServer[F],
   channelModerationServer: ChannelModerationServer[F],
@@ -51,11 +50,10 @@ final class AppServer[F[_]: Concurrent: Timer: MDC](
   apiConfig:               APIConfig
 ) {
 
-  private val corsConfig = CORSConfig(
-    anyOrigin = apiConfig.http.corsAnyOrigin,
-    allowCredentials = apiConfig.http.corsAllowCredentials,
-    maxAge = apiConfig.http.corsMaxAge.toSeconds
-  )
+  private val corsConfig = CORS.policy
+    .pipe(if (apiConfig.http.corsAnyOrigin) _.withAllowOriginAll else identity)
+    .withAllowCredentials(apiConfig.http.corsAllowCredentials)
+    .withMaxAge(apiConfig.http.corsMaxAge)
 
   private val logger = io.branchtalk.shared.model.Logger.getLogger[F]
 
@@ -65,8 +63,6 @@ final class AppServer[F[_]: Concurrent: Timer: MDC](
     fk = FunctionK.id,
     logAction = ((s: String) => logger.info(s)).some
   )(_)
-
-  private val enableMDCPropagation: Http[F, F] => Http[F, F] = _.mapF(MDC[F].enable(_))
 
   val routes: HttpApp[F] =
     NonEmptyList
@@ -84,20 +80,19 @@ final class AppServer[F[_]: Concurrent: Timer: MDC](
       )
       .reduceK
       .pipe(GZip(_))
-      .pipe(CORS(_, corsConfig))
+      .pipe(corsConfig(_))
       .pipe(Metrics[F](metricsOps))
       .pipe(correlationIDOps.httpRoutes)
       .pipe(requestIDOps.httpRoutes)
       .orNotFound
       .pipe(logRoutes)
-      .pipe(enableMDCPropagation)
 }
 object AppServer {
 
   // scalastyle:off method.length parameter.number
   @nowarn("cat=unused") // macwire
   @SuppressWarnings(Array("org.wartremover.warts.GlobalExecutionContext")) // for BlazeServer
-  def asResource[F[_]: ConcurrentEffect: ContextShift: Timer: MDC](
+  def asResource[F[_]: Async: MDC](
     appArguments:           AppArguments,
     apiConfig:              APIConfig,
     registry:               CollectorRegistry,
@@ -115,7 +110,7 @@ object AppServer {
     postWrites:             PostWrites[F],
     channelWrites:          ChannelWrites[F],
     subscriptionWrites:     SubscriptionWrites[F]
-  )(implicit uuidGenerator: UUIDGenerator): Resource[F, Server[F]] =
+  )(implicit uuidGenerator: UUIDGenerator): Resource[F, Server] =
     Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
       val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
 
@@ -155,7 +150,7 @@ object AppServer {
       }
       val openAPIServer: OpenAPIServer[F] = {
         import apiConfig.info
-        val endpoints: NonEmptyList[ServerEndpoint[_, _, _, Nothing, F]] =
+        val endpoints: NonEmptyList[ServerEndpoint[Any, F]] =
           NonEmptyList
             .of(
               usersServer.endpoints,
@@ -177,7 +172,7 @@ object AppServer {
       val logger = io.branchtalk.shared.model.Logger.getLogger[F]
 
       Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
-        BlazeServerBuilder[F](ExecutionContext.global)
+        BlazeServerBuilder[F]
           .enableHttp2(apiConfig.http.http2Enabled)
           .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength.value,
                             maxHeadersLen = apiConfig.http.maxHeaderLineLength.value
@@ -186,7 +181,7 @@ object AppServer {
           .withHttpApp(appServer.routes)
           .resource
           .flatTap { server =>
-            Resource.liftF(logger.info(s"API server started at ${server.address.toString}"))
+            Resource.eval(logger.info(s"API server started at ${server.address.toString}"))
           }
     }
   // scalastyle:on parameter.number method.length

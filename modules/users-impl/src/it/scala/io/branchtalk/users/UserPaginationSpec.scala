@@ -30,7 +30,7 @@ final class UserPaginationSpec extends Specification with UsersIOTest with Users
       } yield {
         // then
         pagination.entities must haveSize(5)
-        pagination.nextOffset.map(_.value) must beSome(5)
+        pagination.nextOffset.map(_.value) must beSome(5L)
         pagination2.entities must haveSize(5)
       }
     }
@@ -49,7 +49,7 @@ final class UserPaginationSpec extends Specification with UsersIOTest with Users
       } yield {
         // then
         pagination.entities must haveSize(5)
-        pagination.nextOffset.map(_.value) must beSome(5)
+        pagination.nextOffset.map(_.value) must beSome(5L)
         pagination2.entities must haveSize(5)
       }
     }
@@ -68,7 +68,7 @@ final class UserPaginationSpec extends Specification with UsersIOTest with Users
       } yield {
         // then
         pagination.entities must haveSize(5)
-        pagination.nextOffset.map(_.value) must beSome(5)
+        pagination.nextOffset.map(_.value) must beSome(5L)
         pagination2.entities must haveSize(5)
       }
     }

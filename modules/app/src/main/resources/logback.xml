@@ -45,7 +45,7 @@
 
   <!-- control HTTP4s logs -->
   <property name="HTTP4S_LOG_LEVEL" value="${HTTP4S_LOG_LEVEL:-ERROR}"/>
-  <logger name="org.http4s.blaze.BlazeServerBuilder" level="off"/>
+  <logger name="org.http4s.blaze.server.BlazeServerBuilder" level="off"/>
   <logger name="org.http4s.blaze.channel" level="${HTTP4S_LOG_LEVEL}"/>
   <logger name="org.http4s.server.blaze" level="${HTTP4S_LOG_LEVEL}"/>
 

@@ -1,0 +1,30 @@
+name: CI build
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        jvm: [openjdk@1.17.0]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: coursier/cache-action@v6
+      - uses: olafurpg/setup-scala@v11
+        with:
+          java-version: ${{ matrix.jvm }}
+      - name: Start Docker images used in IT tests
+        run: make dev-bg
+      - name: Clean, Check code formatting, compile, test
+        run: sbt clean scalafmtCheck fullTest
+      - name: Stop Docker images used in IT tests
+        run: make dev-stop

@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.api
 
 import cats.data.NonEmptyList
-import cats.effect.{ Concurrent, ContextShift, Sync, Timer }
+import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api._
 import io.branchtalk.auth._
@@ -12,12 +12,13 @@ import io.branchtalk.discussions.reads.{ CommentReads, PostReads }
 import io.branchtalk.discussions.writes.CommentWrites
 import io.branchtalk.mappings._
 import io.branchtalk.shared.model.{ CommonError, CreationScheduled, ID }
+import io.branchtalk.users.model.User
 import io.scalaland.chimney.dsl._
 import org.http4s._
 import sttp.tapir.server.http4s._
 import sttp.tapir.server.ServerEndpoint
 
-final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
+final class CommentServer[F[_]: Async](
   authServices:     AuthServices[F],
   postReads:        PostReads[F],
   commentReads:     CommentReads[F],
@@ -29,7 +30,7 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
 
   private val logger = Logger(getClass)
 
-  implicit private val serverOptions: Http4sServerOptions[F] = CommentServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = CommentServer.serverOptions[F].apply(logger)
 
   implicit private val errorHandler: ServerErrorHandler[F, CommentError] = CommentServer.errorHandler[F].apply(logger)
 
@@ -65,97 +66,96 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     .map(_.data.authorID)
     .map(userIDApi2Discussions.reverseGet)
 
-  private val newest = CommentAPIs.newest
-    .serverLogicWithOwnership[F, Unit]
-    .apply { case (_, channelID, postID, _, _, _) => testOwnership(channelID, postID) } {
-      case ((_, _), _, postID, optOffset, optLimit, optReply) =>
-        val sortBy = Comment.Sorting.Newest
-        val offset = paginationConfig.resolveOffset(optOffset)
-        val limit  = paginationConfig.resolveLimit(optLimit)
-        for {
-          paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
-        } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
-    }
+  private val newest = CommentAPIs.newest.serverLogicWithOwnership[F, Option[User], Unit] {
+    case (channelID, postID, _, _, _) => testOwnership(channelID, postID)
+  } { case (_, postID, optOffset, optLimit, optReply) =>
+    val sortBy = Comment.Sorting.Newest
+    val offset = paginationConfig.resolveOffset(optOffset)
+    val limit  = paginationConfig.resolveLimit(optLimit)
+    for {
+      paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
+    } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
+  }
 
-  private val hottest = CommentAPIs.hottest
-    .serverLogicWithOwnership[F, Unit]
-    .apply { case (_, channelID, postID, _) => testOwnership(channelID, postID) } {
-      case ((_, _), _, postID, optReply) =>
-        val sortBy = Comment.Sorting.Hottest
-        val offset = paginationConfig.resolveOffset(None)
-        val limit  = paginationConfig.resolveLimit(None)
-        for {
-          paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
-        } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
-    }
+  private val hottest = CommentAPIs.hottest.serverLogicWithOwnership[F, Option[User], Unit] {
+    case (channelID, postID, _) => testOwnership(channelID, postID)
+  } { case (_, postID, optReply) =>
+    val sortBy = Comment.Sorting.Hottest
+    val offset = paginationConfig.resolveOffset(None)
+    val limit  = paginationConfig.resolveLimit(None)
+    for {
+      paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
+    } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
+  }
 
-  private val controversial = CommentAPIs.controversial
-    .serverLogicWithOwnership[F, Unit]
-    .apply { case (_, channelID, postID, _) => testOwnership(channelID, postID) } {
-      case ((_, _), _, postID, optReply) =>
-        val sortBy = Comment.Sorting.Controversial
-        val offset = paginationConfig.resolveOffset(None)
-        val limit  = paginationConfig.resolveLimit(None)
-        for {
-          paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
-        } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
-    }
+  private val controversial = CommentAPIs.controversial.serverLogicWithOwnership[F, Option[User], Unit] {
+    case (channelID, postID, _) => testOwnership(channelID, postID)
+  } { case (_, postID, optReply) =>
+    val sortBy = Comment.Sorting.Controversial
+    val offset = paginationConfig.resolveOffset(None)
+    val limit  = paginationConfig.resolveLimit(None)
+    for {
+      paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
+    } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
+  }
 
   private val create = CommentAPIs.create
-    .serverLogicWithOwnership[F, Unit]
-    .apply { case (_, channelID, postID, _) => testOwnership(channelID, postID) } {
-      case ((user, _), _, postID, createData) =>
-        val userID = user.id
-        val data = createData
-          .into[Comment.Create]
-          .withFieldConst(_.authorID, userIDUsers2Discussions.get(userID))
-          .withFieldConst(_.postID, postID)
-          .transform
-        for {
-          CreationScheduled(commentID) <- commentWrites.createComment(data)
-        } yield CreateCommentResponse(commentID)
+    .serverLogicWithOwnership[F, User, Unit] { case (channelID, postID, _) =>
+      testOwnership(channelID, postID)
+    }
+    .withUser { case (user, (_, postID, createData)) =>
+      val userID = user.id
+      val data = createData
+        .into[Comment.Create]
+        .withFieldConst(_.authorID, userIDUsers2Discussions.get(userID))
+        .withFieldConst(_.postID, postID)
+        .transform
+      for {
+        CreationScheduled(commentID) <- commentWrites.createComment(data)
+      } yield CreateCommentResponse(commentID)
     }
 
-  private val read = CommentAPIs.read
-    .serverLogicWithOwnership[F, Unit]
-    .apply { case (_, channelID, postID, commentID) => testOwnership(channelID, postID, commentID) } {
-      case ((_, _), _, _, commentID) =>
-        for {
-          comment <- commentReads.requireById(commentID)
-        } yield APIComment.fromDomain(comment)
-    }
+  private val read = CommentAPIs.read.serverLogicWithOwnership[F, Option[User], Unit] {
+    case (channelID, postID, commentID) => testOwnership(channelID, postID, commentID)
+  } { case (_, _, commentID) =>
+    for {
+      comment <- commentReads.requireById(commentID)
+    } yield APIComment.fromDomain(comment)
+  }
 
   private val update = CommentAPIs.update
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, commentID, _) => resolveOwnership(channelID, postID, commentID) } {
-      case ((user, _), _, _, commentID, updateData) =>
-        val userID = user.id
-        val data = updateData
-          .into[Comment.Update]
-          .withFieldConst(_.id, commentID)
-          .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
-          .transform
-        for {
-          _ <- commentWrites.updateComment(data)
-        } yield UpdateCommentResponse(commentID)
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID, commentID, _) =>
+      resolveOwnership(channelID, postID, commentID)
+    }
+    .withUser { case (user, (_, _, commentID, updateData)) =>
+      val userID = user.id
+      val data = updateData
+        .into[Comment.Update]
+        .withFieldConst(_.id, commentID)
+        .withFieldConst(_.editorID, userIDUsers2Discussions.get(userID))
+        .transform
+      for {
+        _ <- commentWrites.updateComment(data)
+      } yield UpdateCommentResponse(commentID)
     }
 
   private val delete = CommentAPIs.delete
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, commentID) => resolveOwnership(channelID, postID, commentID) } {
-      case ((user, _), _, _, commentID) =>
-        val userID = user.id
-        val data   = Comment.Delete(commentID, userIDUsers2Discussions.get(userID))
-        for {
-          _ <- commentWrites.deleteComment(data)
-        } yield DeleteCommentResponse(commentID)
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID, commentID) =>
+      resolveOwnership(channelID, postID, commentID)
+    }
+    .withUser { case (user, (_, _, commentID)) =>
+      val userID = user.id
+      val data   = Comment.Delete(commentID, userIDUsers2Discussions.get(userID))
+      for {
+        _ <- commentWrites.deleteComment(data)
+      } yield DeleteCommentResponse(commentID)
     }
 
   private val restore = CommentAPIs.restore
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, commentID) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID, commentID) =>
       resolveOwnership(channelID, postID, commentID, isDeleted = true)
-    } { case ((user, _), _, _, commentID) =>
+    }
+    .withUser { case (user, (_, _, commentID)) =>
       val userID = user.id
       val data   = Comment.Restore(commentID, userIDUsers2Discussions.get(userID))
       for {
@@ -164,10 +164,10 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     }
 
   private val upvote = CommentAPIs.upvote
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, commentID) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID, commentID) =>
       resolveOwnership(channelID, postID, commentID)
-    } { case ((user, _), _, _, commentID) =>
+    }
+    .withUser { case (user, (_, _, commentID)) =>
       val userID = user.id
       val data   = Comment.Upvote(commentID, userIDUsers2Discussions.get(userID))
       for {
@@ -176,10 +176,10 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     }
 
   private val downvote = CommentAPIs.downvote
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, commentID) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID, commentID) =>
       resolveOwnership(channelID, postID, commentID)
-    } { case ((user, _), _, _, commentID) =>
+    }
+    .withUser { case (user, (_, _, commentID)) =>
       val userID = user.id
       val data   = Comment.Downvote(commentID, userIDUsers2Discussions.get(userID))
       for {
@@ -188,10 +188,10 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     }
 
   private val revokeVote = CommentAPIs.revokeVote
-    .serverLogicWithOwnership[F, UserID]
-    .apply { case (_, channelID, postID, commentID) =>
+    .serverLogicWithOwnership[F, User, UserID] { case (channelID, postID, commentID) =>
       resolveOwnership(channelID, postID, commentID)
-    } { case ((user, _), _, _, commentID) =>
+    }
+    .withUser { case (user, (_, _, commentID)) =>
       val userID = user.id
       val data   = Comment.RevokeVote(commentID, userIDUsers2Discussions.get(userID))
       for {
@@ -199,7 +199,7 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
       } yield ()
     }
 
-  def endpoints: NonEmptyList[ServerEndpoint[_, CommentError, _, Any, F]] = NonEmptyList.of(
+  def endpoints: NonEmptyList[ServerEndpoint[Any, F]] = NonEmptyList.of[ServerEndpoint[Any, F]](
     newest,
     hottest,
     controversial,
@@ -213,11 +213,11 @@ final class CommentServer[F[_]: Sync: ContextShift: Concurrent: Timer](
     revokeVote
   )
 
-  val routes: HttpRoutes[F] = endpoints.map(Http4sServerInterpreter.toRoutes(_)).reduceK
+  val routes: HttpRoutes[F] = Http4sServerInterpreter(serverOptions).toRoutes(endpoints.toList)
 }
 object CommentServer {
 
-  def serverOptions[F[_]: Sync: ContextShift]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, CommentError](
+  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, CommentError](
     _,
     ServerOptions.ErrorHandler[CommentError](
       () => CommentError.ValidationFailed(NonEmptyList.one("Data missing")),
