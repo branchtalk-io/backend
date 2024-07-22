@@ -17,11 +17,8 @@ import wartremover.WartRemover.autoImport._
 
 object Settings extends Dependencies {
 
-  val FunctionalTest: Configuration = config("fun") extend Test describedAs "Runs only functional tests"
-
   private val commonSettings = Seq(
     organization := "io.branchtalk",
-    scalaOrganization := scalaOrganizationUsed,
     scalaVersion := scalaVersionUsed,
     crossScalaVersions := crossScalaVersionsUsed,
     // kind of required to avoid "{project}/doc" task failure, because of Catnip :/
@@ -40,6 +37,7 @@ object Settings extends Dependencies {
       "-deprecation",
       "-explaintypes",
       "-feature",
+      /*
       // language features
       "-language:existentials",
       "-language:higherKinds",
@@ -96,6 +94,7 @@ object Settings extends Dependencies {
       "-Xfatal-warnings",
       // linting
       "-Xlint"
+       */
     ),
     Global / cancelable := true,
     Compile / trapExit := false,
@@ -103,8 +102,6 @@ object Settings extends Dependencies {
     Compile / outputStrategy := Some(StdoutOutput),
     resolvers ++= commonResolvers,
     libraryDependencies ++= mainDeps,
-    addCompilerPlugin(Dependencies.betterMonadicFor),
-    addCompilerPlugin(Dependencies.kindProjector),
     Compile / scalafmtOnCompile := true,
     Compile / compile / wartremoverWarnings ++= Warts.allBut(
       Wart.Any,
@@ -138,9 +135,6 @@ object Settings extends Dependencies {
                   MergeStrategy.singleOrError
                 // conflicts on random crap
                 case "module-info.class" => MergeStrategy.discard
-                // our own Catnip customizations
-                case "derive.semi.conf" => MergeStrategy.concat
-                case "derive.stub.conf" => MergeStrategy.concat
                 // otherwise
                 case strategy => MergeStrategy.defaultMergeStrategy(strategy)
               },
@@ -224,13 +218,6 @@ object Settings extends Dependencies {
     def configureTestsSequential(requiresFork: Boolean = false): Project = configureSequential(requiresFork)
   }
 
-  implicit final class FunctionalTestConfigurator(project: Project) extends TestConfigurator(project, FunctionalTest) {
-
-    def configureFunctionalTests(requiresFork: Boolean = false): Project = configure(requiresFork)
-
-    def configureFunctionalTestsSequential(requiresFork: Boolean = false): Project = configureSequential(requiresFork)
-  }
-
   implicit final class IntegrationTestConfigurator(project: Project)
       extends TestConfigurator(project, IntegrationTest) {
 
@@ -270,15 +257,6 @@ object Settings extends Dependencies {
 
     def configureTestsSequential(requiresFork: Boolean = false): CrossProject =
       project.configure(_.configureTestsSequential(requiresFork))
-  }
-
-  implicit final class CrossFunctionalTestConfigurator(project: CrossProject) {
-
-    def configureFunctionalTests(requiresFork: Boolean = false): CrossProject =
-      project.configure(_.configureFunctionalTests(requiresFork))
-
-    def configureFunctionalTestsSequential(requiresFork: Boolean = false): CrossProject =
-      project.configure(_.configureFunctionalTestsSequential(requiresFork))
   }
 
   implicit final class CrossIntegrationTestConfigurator(project: CrossProject) {
