@@ -65,8 +65,6 @@ val common = crossProject(JVMPlatform, JSPlatform)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.avro4s,
-      Dependencies.avro4sRefined,
-      Dependencies.catnip,
       Dependencies.sourcecode,
       Dependencies.jfairy % Test,
       Dependencies.guice % Test, // required by jfairy on JDK 15+
@@ -109,12 +107,12 @@ val commonInfrastructure = project
       Dependencies.fs2,
       Dependencies.fs2IO,
       Dependencies.fs2Kafka,
+      Dependencies.neotypeDoobie,
       Dependencies.prometheus,
       Dependencies.pureConfig,
       Dependencies.pureConfigCats,
       Dependencies.pureConfigEnumeratum,
-      Dependencies.redis4cats,
-      Dependencies.refinedPureConfig
+      Dependencies.redis4cats
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
@@ -142,9 +140,11 @@ val commonApi = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       Dependencies.jsoniter,
       Dependencies.jsoniterMacro,
+      Dependencies.neotypeTapir,
+      Dependencies.neotypeJsoniter,
       Dependencies.tapir,
       Dependencies.tapirJsoniter,
-      Dependencies.tapirRefined
+      Dependencies.tapirRefined,
     ),
     customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
   )
@@ -266,7 +266,6 @@ val server = project
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.decline,
-      Dependencies.refinedDecline,
       Dependencies.jsoniterMacro,
       Dependencies.sttpCats % IntegrationTest,
       Dependencies.http4sBlaze,

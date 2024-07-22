@@ -12,26 +12,26 @@ object Dependencies {
 
   // scala version
   val scalaOrganization  = "org.scala-lang"
-  val scalaVersion       = "2.13.9"
-  val crossScalaVersions = Seq("2.13.9")
+  val scalaVersion       = "3.3.3"
+  val crossScalaVersions = Seq("3.3.3")
 
   // libraries versions
-  val avro4sVersion     = "4.1.0" // https://github.com/sksamuel/avro4s/releases
-  val catsVersion       = "2.8.0" // https://github.com/typelevel/cats/releases
-  val catsEffectVersion = "3.3.14" // https://github.com/typelevel/cats-effect/releases
-  val declineVersion    = "2.3.0" // https://github.com/tpolecat/doobie/releases
-  val doobieVersion     = "1.0.0-RC2" // https://github.com/tpolecat/doobie/releases
+  val avro4sVersion     = "5.0.13" // https://github.com/sksamuel/avro4s/releases
+  val catsVersion       = "2.12.0" // https://github.com/typelevel/cats/releases
+  val catsEffectVersion = "3.5.0" // https://github.com/typelevel/cats-effect/releases
+  val declineVersion    = "2.4.1" // https://github.com/bkirwi/decline/releases
+  val doobieVersion     = "1.0.0-RC5" // https://github.com/tpolecat/doobie/releases
   val drosteVersion     = "0.9.0" // https://github.com/higherkindness/droste/releases
-  val enumeratumVersion = "1.7.0" // https://github.com/lloydmeta/enumeratum/releases
-  val fs2Version        = "3.2.14" // https://github.com/typelevel/fs2/releases
-  val log4catsVersion   = "2.5.0" // https://github.com/ChristopherDavenport/log4cats/releases
-  val http4sVersion     = "0.24.1" // https://github.com/http4s/http4s/releases
-  val jsoniterVersion   = "2.17.4" // https://github.com/plokhotnyuk/jsoniter-scala/releases
-  val monocleVersion    = "3.1.0" // https://github.com/optics-dev/Monocle/releases
-  val pureConfigVersion = "0.17.1" // https://github.com/pureconfig/pureconfig/releases
-  val refinedVersion    = "0.10.1" // https://github.com/fthomas/refined/releases
-  val specs2Version     = "4.16.1" // https://github.com/etorreborre/specs2/releases
-  val tapirVersion      = "1.1.0" // https://github.com/softwaremill/tapir/releases
+  val enumeratumVersion = "1.7.4" // https://github.com/lloydmeta/enumeratum/releases
+  val fs2Version        = "3.10.2" // https://github.com/typelevel/fs2/releases
+  val log4catsVersion   = "2.7.0" // https://github.com/ChristopherDavenport/log4cats/releases
+  val http4sVersion     = "0.24.7" // https://github.com/http4s/http4s/releases
+  val jsoniterVersion   = "2.30.7" // https://github.com/plokhotnyuk/jsoniter-scala/releases
+  val monocleVersion    = "3.2.0" // https://github.com/optics-dev/Monocle/releases
+  val neotypeVersion    = "0.3.0" // https://github.com/kitlangton/neotype/releases
+  val pureConfigVersion = "0.17.7" // https://github.com/pureconfig/pureconfig/releases
+  val specs2Version     = "5.5.3" // https://github.com/etorreborre/specs2/releases
+  val tapirVersion      = "1.10.14" // https://github.com/softwaremill/tapir/releases
 
   // resolvers
   val resolvers = Seq(
@@ -40,57 +40,49 @@ object Dependencies {
     Seq(Resolver.typesafeRepo("releases"))
   ).flatten
 
-  // compiler plugins
-  val betterMonadicFor =
-    "com.olegpy" %% "better-monadic-for" % "0.3.1" // https://github.com/oleg-py/better-monadic-for/releases
-  val kindProjector =
-    "org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full // https://github.com/typelevel/kind-projector/releases
   // functional libraries
-  val catnip =
-    "io.scalaland" %% "catnip" % "1.1.2" exclude ("org.typelevel", "kittens_2.13") // https://github.com/scalalandio/catnip/releases
   val cats       = "org.typelevel" %% "cats-core" % catsVersion
   val catsFree   = "org.typelevel" %% "cats-free" % catsVersion
   val catsEffect = "org.typelevel" %% "cats-effect" % catsEffectVersion
   val alleycats  = "org.typelevel" %% "alleycats-core" % catsVersion
-  val kittens    = "org.typelevel" %% "kittens" % "3.0.0" // https://github.com/typelevel/kittens/releases
+  val kittens    = "org.typelevel" %% "kittens" % "3.3.0" // https://github.com/typelevel/kittens/releases
   val catsLaws   = "org.typelevel" %% "cats-laws" % catsVersion
-  val chimney    = "io.scalaland" %% "chimney" % "0.6.2" // https://github.com/scalalandio/chimney/releases
+  val chimney    = "io.scalaland" %% "chimney" % "1.3.0" // https://github.com/scalalandio/chimney/releases
   val droste     = "io.higherkindness" %% "droste-core" % drosteVersion
   val enumeratum = "com.beachape" %% "enumeratum" % enumeratumVersion
   val fastuuid   = "com.eatthepath" % "fast-uuid" % "0.2.0" // https://github.com/jchambers/fast-uuid/releases
   val uuidGenerator =
-    "com.fasterxml.uuid" % "java-uuid-generator" % "4.0.1" // https://github.com/cowtowncoder/java-uuid-generator/releases
+    "com.fasterxml.uuid" % "java-uuid-generator" % "5.1.0" // https://github.com/cowtowncoder/java-uuid-generator/releases
   val fs2   = "co.fs2" %% "fs2-core" % fs2Version
   val fs2IO = "co.fs2" %% "fs2-io" % fs2Version
   val magnolia =
-    "com.softwaremill.magnolia1_2" %% "magnolia" % "1.1.2" // https://github.com/softwaremill/magnolia/releases
-  val monocle           = "dev.optics" %% "monocle-core" % monocleVersion
-  val monocleMacro      = "dev.optics" %% "monocle-macro" % monocleVersion
-  val newtype           = "io.estatico" %% "newtype" % "0.4.4" // https://github.com/estatico/scala-newtype/releases
-  val refined           = "eu.timepit" %% "refined" % refinedVersion
-  val refinedCats       = "eu.timepit" %% "refined-cats" % refinedVersion
-  val refinedDecline    = "com.monovore" %% "decline-refined" % declineVersion
-  val refinedPureConfig = "eu.timepit" %% "refined-pureconfig" % refinedVersion
+    "com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.7" // https://github.com/softwaremill/magnolia/releases
+  val monocle         = "dev.optics" %% "monocle-core" % monocleVersion
+  val monocleMacro    = "dev.optics" %% "monocle-macro" % monocleVersion
+  val neotype         = "io.github.kitlangton" %% "neotype" % neotypeVersion
+  val neotypeChimney  = "io.github.kitlangton" %% "neotype-chimney" % neotypeVersion
+  val neotypeDoobie   = "io.github.kitlangton" %% "neotype-doobie" % neotypeVersion
+  val neotypeJsoniter = "io.github.kitlangton" %% "neotype-jsoniter" % neotypeVersion
+  val neotypeTapir    = "io.github.kitlangton" %% "neotype-tapir" % neotypeVersion
   // infrastructure
   val avro4s         = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
   val avro4sCats     = "com.sksamuel.avro4s" %% "avro4s-cats" % avro4sVersion
-  val avro4sRefined  = "com.sksamuel.avro4s" %% "avro4s-refined" % avro4sVersion
   val doobie         = "org.tpolecat" %% "doobie-core" % doobieVersion
   val doobieHikari   = "org.tpolecat" %% "doobie-hikari" % doobieVersion
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
   val doobieRefined  = "org.tpolecat" %% "doobie-refined" % doobieVersion
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
-  val flyway         = "org.flywaydb" % "flyway-core" % "9.3.0" // https://github.com/flyway/flyway/releases
-  val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "2.5.0" // https://github.com/fd4s/fs2-kafka/releases
+  val flyway         = "org.flywaydb" % "flyway-core" % "10.16.0" // https://github.com/flyway/flyway/releases
+  val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "3.5.1" // https://github.com/fd4s/fs2-kafka/releases
   val macwire =
-    "com.softwaremill.macwire" %% "macros" % "2.5.8" % "provided" // https://github.com/softwaremill/macwire/releases
+    "com.softwaremill.macwire" %% "macros" % "2.5.9" % "provided" // https://github.com/softwaremill/macwire/releases
   val redis4cats =
-    "dev.profunktor" %% "redis4cats-effects" % "1.2.0" // https://github.com/profunktor/redis4cats/releases
+    "dev.profunktor" %% "redis4cats-effects" % "1.7.1" // https://github.com/profunktor/redis4cats/releases
   // API
   val sttpCats =
-    "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats" % "3.8.0" // https://github.com/softwaremill/sttp/releases
+    "com.softwaremill.sttp.client3" %% "async-http-client-backend-cats" % "3.9.7" // https://github.com/softwaremill/sttp/releases
   // same as the one used by tapir
-  val http4sBlaze      = "org.http4s" %% "http4s-blaze-server" % "0.23.12" // https://github.com/http4s/blaze/releases
+  val http4sBlaze      = "org.http4s" %% "http4s-blaze-server" % "0.23.16" // https://github.com/http4s/blaze/releases
   val http4sPrometheus = "org.http4s" %% "http4s-prometheus-metrics" % http4sVersion
   val tapir            = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
   val tapirHttp4s      = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
@@ -105,7 +97,7 @@ object Dependencies {
   // config
   val decline              = "com.monovore" %% "decline" % declineVersion
   val scalaConfig          = "com.typesafe" % "config" % "1.4.2" // https://github.com/lightbend/config/releases
-  val pureConfig           = "com.github.pureconfig" %% "pureconfig" % pureConfigVersion
+  val pureConfig           = "com.github.pureconfig" %% "pureconfig-core" % pureConfigVersion
   val pureConfigCats       = "com.github.pureconfig" %% "pureconfig-cats" % pureConfigVersion
   val pureConfigEnumeratum = "com.github.pureconfig" %% "pureconfig-enumeratum" % pureConfigVersion
   // security
@@ -114,23 +106,22 @@ object Dependencies {
   val log4cats           = "org.typelevel" %% "log4cats-core" % log4catsVersion
   val log4catsSlf4j      = "org.typelevel" %% "log4cats-slf4j" % log4catsVersion
   val scalaLogging       = "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5" // GH releases are out of date
-  val logback            = "ch.qos.logback" % "logback-classic" % "1.4.1" // https://github.com/qos-ch/logback/releases
+  val logback            = "ch.qos.logback" % "logback-classic" % "1.5.6" // https://github.com/qos-ch/logback/releases
   val logbackJackson     = "ch.qos.logback.contrib" % "logback-jackson" % "0.1.5" // see MVN
   val logbackJsonClassic = "ch.qos.logback.contrib" % "logback-json-classic" % "0.1.5" // see MVN
-  val sourcecode         = "com.lihaoyi" %% "sourcecode" % "0.3.0" // https://github.com/lihaoyi/sourcecode/releases
+  val sourcecode         = "com.lihaoyi" %% "sourcecode" % "0.4.2" // https://github.com/lihaoyi/sourcecode/releases
   val prometheus         = "io.prometheus" % "simpleclient" % "0.16.0" // https://github.com/prometheus/client_java/releases
   // testing
-  val jfairy = "com.devskiller" % "jfairy" % "0.6.4" // https://github.com/Devskiller/jfairy/releases
-  val guice  = "com.google.inject" % "guice" % "5.0.1" // required by jfairy on JDK 15+
+  val jfairy = "com.devskiller" % "jfairy" % "0.6.5" // https://github.com/Devskiller/jfairy/releases
+  val guice  = "com.google.inject" % "guice" % "7.0.0" // required by jfairy on JDK 15+
   val guiceAssisted =
-    "com.google.inject.extensions" % "guice-assistedinject" % "5.0.1" // required by jfairy on JDK 15+
+    "com.google.inject.extensions" % "guice-assistedinject" % "7.0.0" // required by jfairy on JDK 15+
   val spec2Core       = "org.specs2" %% "specs2-core" % specs2Version
   val spec2Scalacheck = "org.specs2" %% "specs2-scalacheck" % specs2Version
 }
 
 trait Dependencies {
 
-  val scalaOrganizationUsed  = scalaOrganization
   val scalaVersionUsed       = scalaVersion
   val crossScalaVersionsUsed = crossScalaVersions
 
@@ -152,9 +143,7 @@ trait Dependencies {
     magnolia,
     monocle,
     monocleMacro,
-    newtype,
-    refined,
-    refinedCats,
+    neotype,
     scalaLogging,
     logback
   )
