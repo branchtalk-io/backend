@@ -2,21 +2,20 @@ package io.branchtalk.api
 
 import cats.Order
 import io.branchtalk.ADT
-import io.branchtalk.api.JsoniterSupport._
+import io.branchtalk.api.JsoniterSupport.*
 import io.branchtalk.shared.model.{ ShowPretty, UUID }
-import io.scalaland.catnip.Semi
 
-@Semi(ShowPretty, JsCodec) sealed trait Permission extends ADT
+enum Permission derives ShowPretty, JsCodec {
+  case Administrate
+  case IsOwner
+  case ModerateUsers
+  case ModerateChannel(channelID: ChannelID)
+  case CanPublish(channelID: ChannelID)
+}
 @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
 object Permission {
 
-  case object Administrate extends Permission
-  case object IsOwner extends Permission
-  case object ModerateUsers extends Permission
-  final case class ModerateChannel(channelID: ChannelID) extends Permission
-  final case class CanPublish(channelID: ChannelID) extends Permission
-
-  implicit val order: Order[Permission] = {
+  given Order[Permission] = {
     case (Administrate, Administrate)               => 0
     case (Administrate, _)                          => 1
     case (IsOwner, IsOwner)                         => 0

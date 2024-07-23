@@ -63,7 +63,7 @@ package object api {
   object Username {
     def unapply(username: Username): Some[NonEmptyString] = Some(username.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Username] =
-      ParseRefined[F].parse[NonEmpty](string).map(Username(_))
+      ParseNewtype[F].parse[NonEmpty](string).map(Username(_))
 
     @SuppressWarnings(Array("org.wartremover.warts.Null"))
     implicit val codec: JsCodec[Username] =
@@ -76,7 +76,7 @@ package object api {
   object Password {
     def unapply(password: Password): Some[Array[Byte] Refined NonEmpty] = Some(password.nonEmptyBytes)
     def parse[F[_]: Sync](bytes: Array[Byte]): F[Password] =
-      ParseRefined[F].parse[NonEmpty](bytes).map(Password(_))
+      ParseNewtype[F].parse[NonEmpty](bytes).map(Password(_))
 
     @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
     implicit val codec: JsCodec[Password] =
@@ -89,7 +89,7 @@ package object api {
   object PaginationOffset {
     def unapply(offset: PaginationOffset): Some[Long Refined NonNegative] = Some(offset.nonNegativeLong)
     def parse[F[_]: Sync](long: Long): F[PaginationOffset] =
-      ParseRefined[F].parse[NonNegative](long).map(PaginationOffset(_))
+      ParseNewtype[F].parse[NonNegative](long).map(PaginationOffset(_))
 
     implicit val codec: JsCodec[PaginationOffset] =
       summonCodec[Long](JsonCodecMaker.make).refine[NonNegative].asNewtype[PaginationOffset]
@@ -103,7 +103,7 @@ package object api {
   object PaginationLimit {
     def unapply(limit: PaginationLimit): Some[Int Refined Positive] = Some(limit.positiveInt)
     def parse[F[_]: Sync](int: Int): F[PaginationLimit] =
-      ParseRefined[F].parse[Positive](int).map(PaginationLimit(_))
+      ParseNewtype[F].parse[Positive](int).map(PaginationLimit(_))
 
     implicit val codec: JsCodec[PaginationLimit] =
       summonCodec[Int](JsonCodecMaker.make).refine[Positive].asNewtype[PaginationLimit]

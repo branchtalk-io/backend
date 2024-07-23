@@ -5,7 +5,7 @@ import cats.effect.SyncIO
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import io.branchtalk.api.Authentication.{ Credentials, Session }
-import io.branchtalk.shared.model.{ ParseRefined, UUIDGenerator, branchtalkCharset }
+import io.branchtalk.shared.model.{ ParseNewtype, UUIDGenerator, branchtalkCharset }
 import io.branchtalk.shared.model.UUIDGenerator.FastUUIDGenerator
 import sttp.tapir._
 
@@ -27,7 +27,7 @@ object AuthenticationSupport {
       s"""Basic ${base64(s"${username}:${new String(password.value, branchtalkCharset)}")}"""
     def unapply(string: String): Option[(String, Array[Byte] Refined NonEmpty)] = string match {
       case basicR(base64(upR(username, password))) =>
-        ParseRefined[SyncIO]
+        ParseNewtype[SyncIO]
           .parse[NonEmpty](password.getBytes(branchtalkCharset))
           .attempt
           .unsafeRunSync()

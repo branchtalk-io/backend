@@ -32,7 +32,7 @@ object UserProperties {
 
     def unapply(email: Email): Some[String Refined MatchesRegex[Email.Pattern]] = Some(email.emailString)
     def parse[F[_]: Sync](string: String): F[Email] =
-      ParseRefined[F].parse[MatchesRegex[Email.Pattern]](string).map(Email.apply)
+      ParseNewtype[F].parse[MatchesRegex[Email.Pattern]](string).map(Email.apply)
 
     implicit val show:  Show[Email]  = Show.wrap(_.emailString.value)
     implicit val order: Order[Email] = Order.by(_.emailString.value)
@@ -42,7 +42,7 @@ object UserProperties {
   object Name {
     def unapply(name: Name): Some[NonEmptyString] = Some(name.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Name] =
-      ParseRefined[F].parse[NonEmpty](string).map(Name.apply)
+      ParseNewtype[F].parse[NonEmpty](string).map(Name.apply)
 
     implicit val show:  Show[Name]  = Show.wrap(_.nonEmptyString.value)
     implicit val order: Order[Name] = Order.by(_.nonEmptyString.value)

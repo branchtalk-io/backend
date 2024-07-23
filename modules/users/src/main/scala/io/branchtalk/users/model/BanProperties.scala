@@ -22,7 +22,7 @@ object BanProperties {
   @newtype final case class Reason(nonEmptyString: NonEmptyString)
   object Reason {
     def unapply(reason: Reason): Some[NonEmptyString] = Some(reason.nonEmptyString)
-    def parse[F[_]: Sync](string: String): F[Reason] = ParseRefined[F].parse[NonEmpty](string).map(Reason.apply)
+    def parse[F[_]: Sync](string: String): F[Reason] = ParseNewtype[F].parse[NonEmpty](string).map(Reason.apply)
 
     implicit val show:  Show[Reason]  = Show.wrap(_.nonEmptyString.value)
     implicit val order: Order[Reason] = Order.by(_.nonEmptyString.value)
