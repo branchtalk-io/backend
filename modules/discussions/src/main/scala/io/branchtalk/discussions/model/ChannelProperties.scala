@@ -28,7 +28,7 @@ object ChannelProperties {
 
     def unapply(urlName: UrlName): Some[String Refined MatchesRegex[Pattern]] = Some(urlName.urlString)
     def parse[F[_]: Sync](string: String): F[UrlName] =
-      ParseRefined[F].parse[MatchesRegex[Pattern]](string).map(UrlName.apply)
+      ParseNewtype[F].parse[MatchesRegex[Pattern]](string).map(UrlName.apply)
 
     implicit val show:  Show[UrlName]  = Show.wrap(_.urlString.value)
     implicit val order: Order[UrlName] = Order.by(_.urlString.value)
@@ -38,7 +38,7 @@ object ChannelProperties {
   object Name {
     def unapply(name: Name): Some[NonEmptyString] = Some(name.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Name] =
-      ParseRefined[F].parse[NonEmpty](string).map(Name.apply)
+      ParseNewtype[F].parse[NonEmpty](string).map(Name.apply)
 
     implicit val show:  Show[Name]  = Show.wrap(_.nonEmptyString.value)
     implicit val order: Order[Name] = Order.by(_.nonEmptyString.value)
@@ -48,7 +48,7 @@ object ChannelProperties {
   object Description {
     def unapply(description: Description): Some[NonEmptyString] = Some(description.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Description] =
-      ParseRefined[F].parse[NonEmpty](string).map(Description.apply)
+      ParseNewtype[F].parse[NonEmpty](string).map(Description.apply)
 
     implicit val show: Show[Description]  = Show.wrap(_.nonEmptyString.value)
     implicit val eq:   Order[Description] = Order.by(_.nonEmptyString.value)

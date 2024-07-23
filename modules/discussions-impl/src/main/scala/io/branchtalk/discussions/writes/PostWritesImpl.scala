@@ -23,7 +23,7 @@ final class PostWritesImpl[F[_]: Sync: MDC](
   private val postCheck    = new EntityCheck("Post", transactor)
 
   private def titleToUrlTitle(title: Post.Title): F[Post.UrlTitle] =
-    ParseRefined[F]
+    ParseNewtype[F]
       .parse[NonEmpty](NormalizeForUrl(title.nonEmptyString.value))
       .handleError(_ => "post": NonEmptyString)
       .map(Post.UrlTitle(_))

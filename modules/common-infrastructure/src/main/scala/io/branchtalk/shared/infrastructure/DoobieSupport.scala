@@ -76,7 +76,7 @@ object DoobieSupport
         val result = entities.take(l)
         val nextOffset =
           if (entities.sizeCompare(l) <= 0) None
-          else ParseRefined[SyncIO].parse[NonNegative](o + l).attempt.unsafeRunSync().toOption
+          else ParseNewtype[SyncIO].parse[NonNegative](o + l).attempt.unsafeRunSync().toOption
         Paginated(result, nextOffset)
       }
     }

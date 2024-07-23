@@ -41,7 +41,7 @@ object CommentProperties {
   object NestingLevel {
     def unapply(nestingLevel: NestingLevel): Some[Int Refined NonNegative] = Some(nestingLevel.nonNegativeInt)
     def parse[F[_]: Sync](int: Int): F[NestingLevel] =
-      ParseRefined[F].parse[NonNegative](int).map(NestingLevel.apply)
+      ParseNewtype[F].parse[NonNegative](int).map(NestingLevel.apply)
 
     implicit val show:  Show[NestingLevel]  = Show.wrap(_.nonNegativeInt.value)
     implicit val order: Order[NestingLevel] = Order.by(_.nonNegativeInt.value)

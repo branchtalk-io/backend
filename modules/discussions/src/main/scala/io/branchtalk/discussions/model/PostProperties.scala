@@ -45,7 +45,7 @@ object PostProperties {
   object UrlTitle {
     def unapply(urlTitle: UrlTitle): Some[NonEmptyString] = Some(urlTitle.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[UrlTitle] =
-      ParseRefined[F].parse[NonEmpty](string).map(UrlTitle.apply)
+      ParseNewtype[F].parse[NonEmpty](string).map(UrlTitle.apply)
 
     implicit val show:  Show[UrlTitle]  = Show.wrap(_.nonEmptyString.value)
     implicit val order: Order[UrlTitle] = Order.by(_.nonEmptyString.value)
@@ -55,7 +55,7 @@ object PostProperties {
   object Title {
     def unapply(title: Title): Some[NonEmptyString] = Some(title.nonEmptyString)
     def parse[F[_]: Sync](string: String): F[Title] =
-      ParseRefined[F].parse[NonEmpty](string).map(Title.apply)
+      ParseNewtype[F].parse[NonEmpty](string).map(Title.apply)
 
     implicit val show:  Show[Title]  = Show.wrap(_.nonEmptyString.value)
     implicit val order: Order[Title] = Order.by(_.nonEmptyString.value)

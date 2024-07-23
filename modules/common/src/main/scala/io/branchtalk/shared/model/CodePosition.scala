@@ -1,16 +1,15 @@
 package io.branchtalk.shared.model
 
-import io.scalaland.catnip.Semi
-
 // Useful for generating the position in source code for debugging.
-@Semi(FastEq, ShowPretty) final case class CodePosition(
+final case class CodePosition(
   file:    String,
   line:    Int,
   context: String
-)
+) derives FastEq,
+      ShowPretty
 object CodePosition {
 
-  implicit def providePosition(implicit
+  given providePosition(using
     file:      sourcecode.File,
     line:      sourcecode.Line,
     enclosing: sourcecode.Enclosing.Machine

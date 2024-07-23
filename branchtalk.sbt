@@ -28,9 +28,7 @@ lazy val scalaJsArtifacts = project.in(file("scala-js"))
   .setDescription("aggregates all Scala.js modules to publish")
   .configureRoot
   .aggregate(
-    commonMacrosJS,
     commonJS,
-    commonApiMacrosJS,
     commonApiJS,
     discussionsJS,
     discussionsApiJS,
@@ -38,22 +36,11 @@ lazy val scalaJsArtifacts = project.in(file("scala-js"))
     usersApiJS
   )
 
-addCommandAlias("fmt", ";scalafmt;Test/scalafmt;It/scalafmt")
-addCommandAlias("fullTest", ";test;It/test")
-addCommandAlias("fullCoverageTest", ";coverage;test;It/test;coverageReport;coverageAggregate")
+addCommandAlias("fmt", "scalafmt ; Test/scalafmt ; It/scalafmt")
+addCommandAlias("fullTest", "test ; It/test")
+addCommandAlias("fullCoverageTest", "coverage ; test ; It/test ; coverageReport ; coverageAggregate")
 
 // commons
-
-val commonMacros =
-  crossProject(JVMPlatform, JSPlatform)
-    .crossType(CrossType.Pure)
-    .build
-    .from("common-macros")
-    .setName("common-macros")
-    .setDescription("Common macro definitions")
-    .configureModule
-val commonMacrosJVM = commonMacros.jvm
-val commonMacrosJS  = commonMacros.js
 
 val common = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
@@ -65,12 +52,13 @@ val common = crossProject(JVMPlatform, JSPlatform)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.avro4s,
+      Dependencies.avro4sCats,
       Dependencies.sourcecode,
       Dependencies.jfairy % Test,
       Dependencies.guice % Test, // required by jfairy on JDK 15+
       Dependencies.guiceAssisted % Test // required by jfairy on JDK 15+
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .settings(
     Compile / resourceGenerators += task[Seq[File]] {
@@ -87,7 +75,6 @@ val common = crossProject(JVMPlatform, JSPlatform)
       Seq(file)
     }
   )
-  .dependsOn(commonMacros)
 val commonJVM = common.jvm
 val commonJS  = common.js
 
@@ -114,19 +101,9 @@ val commonInfrastructure = project
       Dependencies.pureConfigEnumeratum,
       Dependencies.redis4cats
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(commonJVM)
-
-val commonApiMacros = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .build
-  .from("common-api-macros")
-  .setName("common-api-macros")
-  .setDescription("Common API macro definitions")
-  .configureModule
-val commonApiMacrosJVM = commonApiMacros.jvm
-val commonApiMacrosJS  = commonApiMacros.js
 
 val commonApi = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
@@ -146,9 +123,9 @@ val commonApi = crossProject(JVMPlatform, JSPlatform)
       Dependencies.tapirJsoniter,
       Dependencies.tapirRefined,
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
-  .dependsOn(common, commonApiMacros)
+  .dependsOn(common)
 val commonApiJVM = commonApi.jvm
 val commonApiJS  = commonApi.js
 
@@ -163,7 +140,7 @@ val discussions = crossProject(JVMPlatform, JSPlatform)
   .configureModule
   .configureTests()
   .settings(
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(common)
 val discussionsJVM = discussions.jvm
@@ -181,7 +158,7 @@ val discussionsApi = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       Dependencies.jsoniterMacro
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(commonApi, discussions)
 val discussionsApiJVM = discussionsApi.jvm
@@ -195,7 +172,7 @@ val discussionsImpl = project
   .configureIntegrationTests(requiresFork = true)
   .settings(
     libraryDependencies += Dependencies.macwire,
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .compileAndTestDependsOn(commonInfrastructure)
   .dependsOn(discussionsJVM, commonJVM % "compile->compile;it->test")
@@ -214,7 +191,7 @@ val users = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       Dependencies.bcrypt
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(common)
 val usersJVM = users.jvm
@@ -232,7 +209,7 @@ val usersApi = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       Dependencies.jsoniterMacro
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(commonApi, users)
 val usersApiJVM = usersApi.jvm
@@ -250,7 +227,7 @@ val usersImpl = project
       Dependencies.jsoniterMacro,
       Dependencies.macwire
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .compileAndTestDependsOn(commonInfrastructure)
   .dependsOn(usersJVM, discussionsJVM, commonJVM % "compile->compile;it->test")
@@ -276,7 +253,7 @@ val server = project
       Dependencies.tapirSTTP % IntegrationTest,
       Dependencies.macwire
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(commonInfrastructure, discussionsJVM, usersJVM, discussionsApiJVM, usersApiJVM)
   .dependsOn(discussionsImpl % "it->it", usersImpl % "it->it")
@@ -295,6 +272,6 @@ val application = project
       Dependencies.logbackJackson,
       Dependencies.logbackJsonClassic,
     ),
-    customPredef("scala.util.chaining", "cats.implicits", "eu.timepit.refined.auto")
+    customPredef("scala.util.chaining", "cats.implicits")
   )
   .dependsOn(server, discussionsImpl, usersImpl)
