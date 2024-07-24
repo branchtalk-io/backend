@@ -1,12 +1,12 @@
 package io.branchtalk.users
 
-import io.branchtalk.shared.model.{ CreationScheduled, TestUUIDGenerator }
+import io.branchtalk.shared.model.{ CreationScheduled, TestUUID.Generator }
 import io.branchtalk.users.model.Session
 import org.specs2.mutable.Specification
 
 final class SessionReadsWritesSpec extends Specification with UsersIOTest with UsersFixtures {
 
-  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "Session Reads & Writes" should {
 

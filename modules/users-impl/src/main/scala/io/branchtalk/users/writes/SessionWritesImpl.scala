@@ -4,7 +4,7 @@ import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
-import io.branchtalk.shared.model.{ ID, UUIDGenerator }
+import io.branchtalk.shared.model.{ ID, UUID.Generator }
 import io.branchtalk.users.events.{ SessionEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
 import io.branchtalk.users.model.{ Session, SessionDao }
@@ -15,7 +15,7 @@ final class SessionWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, UsersEvent],
   transactor: Transactor[F]
 )(implicit
-  uuidGenerator: UUIDGenerator
+  uuidGenerator: UUID.Generator
 ) extends Writes[F, Session, UsersEvent](producer)
     with SessionWrites[F] {
 

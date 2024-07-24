@@ -27,7 +27,7 @@ object AuthorizeWithOwnership {
     new Functor[AuthorizeWithOwnership[F, Auth, Owner, *]] {
       override def map[A, B](
         fa: AuthorizeWithOwnership[F, Auth, Owner, A]
-      )(f:  A => B): AuthorizeWithOwnership[F, Auth, Owner, B] =
+      )(f: A => B): AuthorizeWithOwnership[F, Auth, Owner, B] =
         (auth: Auth, requiredPermissions: RequiredPermissions, owner: Owner) =>
           fa.authorize(auth, requiredPermissions, owner).map(f)
     }
@@ -89,7 +89,7 @@ object AuthedEndpoint {
       errorHandler: ServerErrorHandler[F, E],
       authorize:    Authorize[F, A, U]
     ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
-      endpoint.serverSecurityLogicPure(_.asRight[E]).serverLogic { auth: A => i: I =>
+      endpoint.serverSecurityLogicPure(_.asRight[E]).serverLogic { (auth: A) => (i: I) =>
         for {
           u <- authorize.authorize(auth, makePermissions(i))
           in = input(i, auth, u)
@@ -137,18 +137,15 @@ object AuthedEndpoint {
     private def buildServerEndpoint[In](
       input: (I, A, U) => In,
       logic: In => F[O]
-    )(implicit
+    )(using
       F:            MonadError[F, Throwable],
       errorHandler: ServerErrorHandler[F, E],
       authorize:    AuthorizeWithOwnership[F, A, Owner, U],
       codePosition: CodePosition
     ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
-      endpoint.serverSecurityLogicPure(_.asRight[E]).serverLogic { auth: A => i: I =>
+      endpoint.serverSecurityLogicPure(_.asRight[E]).serverLogic { (auth: A) => (i: I) =>
         for {
-          owner <- ownership(i).handleErrorWith { _ =>
-            (CommonError.InsufficientPermissions("Ownership was not confirmed", codePosition): Throwable)
-              .raiseError[F, Owner]
-          }
+          owner <- ownership(i).orRaise(CommonError.insufficientPermissions("Ownership was not confirmed"))
           u <- authorize.authorize(auth, makePermissions(i), owner)
           in = input(i, auth, u)
           out <- errorHandler(logic(in))

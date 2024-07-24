@@ -15,7 +15,7 @@ final class UserModerationServerSpec
     with UsersFixtures
     with DiscussionsFixtures {
 
-  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "UserModerationServer-provided endpoints" should {
 

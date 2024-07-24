@@ -11,7 +11,7 @@ import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._
 import io.branchtalk.logging.MDC
 import io.branchtalk.openapi.OpenAPIServer
-import io.branchtalk.shared.model.UUIDGenerator
+import io.branchtalk.shared.model.UUID.Generator
 import io.branchtalk.users.api.{
   ChannelBanServer,
   ChannelModerationServer,
@@ -110,7 +110,7 @@ object AppServer {
     postWrites:             PostWrites[F],
     channelWrites:          ChannelWrites[F],
     subscriptionWrites:     SubscriptionWrites[F]
-  )(implicit uuidGenerator: UUIDGenerator): Resource[F, Server] =
+  )(implicit uuidGenerator: UUID.Generator): Resource[F, Server] =
     Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
       val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
 

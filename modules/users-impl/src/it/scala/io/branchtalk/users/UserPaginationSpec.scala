@@ -1,6 +1,6 @@
 package io.branchtalk.users
 
-import io.branchtalk.shared.model.{ OptionUpdatable, TestUUIDGenerator, Updatable }
+import io.branchtalk.shared.model.{ OptionUpdatable, TestUUID.Generator, Updatable }
 import io.branchtalk.users.model.Permission.ModerateChannel
 import io.branchtalk.users.model.{ Permission, Permissions, User }
 import org.specs2.mutable.Specification
@@ -12,7 +12,7 @@ final class UserPaginationSpec extends Specification with UsersIOTest with Users
   // User pagination tests cannot be run in parallel to other User tests (no parent to filter other tests)
   sequential
 
-  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "User pagination" should {
 

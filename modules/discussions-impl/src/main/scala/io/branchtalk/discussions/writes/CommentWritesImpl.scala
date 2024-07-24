@@ -13,7 +13,7 @@ final class CommentWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit
-  uuidGenerator: UUIDGenerator
+  uuidGenerator: UUID.Generator
 ) extends Writes[F, Comment, DiscussionsCommandEvent](producer)
     with CommentWrites[F] {
 

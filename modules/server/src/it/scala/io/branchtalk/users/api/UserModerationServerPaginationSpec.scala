@@ -19,7 +19,7 @@ final class UserModerationServerPaginationSpec
   // User pagination tests cannot be run in parallel to other User tests (no parent to filter other tests)
   sequential
 
-  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "UserModerationServer-provided pagination endpoints" should {
 

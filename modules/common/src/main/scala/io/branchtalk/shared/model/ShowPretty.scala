@@ -4,9 +4,10 @@ import cats.Show
 import magnolia1._
 
 // Custom implementation of ShowPretty which relies on Magnolia for derivation as opposed to Kittens' version.
+@SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
 trait ShowPretty[T] extends Show[T] {
 
-  def show(t: T): String = showPretty(t).toString()
+  final def show(t: T): String = showPretty(t).result()
 
   def showPretty(
     t:           T,
@@ -16,16 +17,17 @@ trait ShowPretty[T] extends Show[T] {
   ): StringBuilder
 }
 
+@SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
 object ShowPretty extends Derivation[ShowPretty] with ShowPrettyLowLevel {
 
   def join[T](caseClass: CaseClass[ShowPretty, T]): ShowPretty[T] =
     (t: T, sb: StringBuilder, indentWith: String, indentLevel: Int) => {
       val nextIndent = indentLevel + 1
       val lastIndex  = caseClass.parameters.size - 1
-      sb.append(caseClass.typeInfo.full).append("(\n")
+      void(sb.append(caseClass.typeInfo.full).append("(\n"))
       caseClass.parameters.foreach { p =>
-        sb.append(indentWith * nextIndent).append(p.label).append(" = ")
-        p.typeclass.showPretty(p.deref(t), sb, indentWith, nextIndent)
+        void(sb.append(indentWith * nextIndent).append(p.label).append(" = "))
+        void(p.typeclass.showPretty(p.deref(t), sb, indentWith, nextIndent))
         if (p.index =!= lastIndex) {
           sb.append(",")
         }
@@ -39,6 +41,7 @@ object ShowPretty extends Derivation[ShowPretty] with ShowPrettyLowLevel {
       sealedTrait.choose(t)(sub => sub.typeclass.showPretty(sub.cast(t), sb, indentWith, indentLevel))
 }
 
+@SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
 trait ShowPrettyLowLevel { self: ShowPretty.type =>
 
   implicit def liftShow[T](implicit normalShow: Show[T]): ShowPretty[T] =

@@ -15,7 +15,7 @@ import sttp.model.StatusCode
 
 final class UserServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "UserServer-provided endpoints" should {
 

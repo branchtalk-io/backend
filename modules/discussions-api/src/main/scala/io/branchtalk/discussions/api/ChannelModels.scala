@@ -28,11 +28,11 @@ object ChannelModels {
 
   // properties schemas
   implicit val channelUrlNameSchema: JsSchema[Channel.UrlName] =
-    summonSchema[String Refined MatchesRegex["[A-Za-z0-9_-]+"]].asNewtype[Channel.UrlName]
+    summonSchema[String Refined MatchesRegex["[A-Za-z0-9_-]+"]].asNewtypeSchema[Channel.UrlName]
   implicit val channelNameSchema: JsSchema[Channel.Name] =
-    summonSchema[NonEmptyString].asNewtype[Channel.Name]
+    summonSchema[NonEmptyString].asNewtypeSchema[Channel.Name]
   implicit val channelDescriptionSchema: JsSchema[Channel.Description] =
-    summonSchema[NonEmptyString].asNewtype[Channel.Description]
+    summonSchema[NonEmptyString].asNewtypeSchema[Channel.Description]
 
   @Semi(JsCodec, JsSchema) sealed trait ChannelError extends ADT
   object ChannelError {

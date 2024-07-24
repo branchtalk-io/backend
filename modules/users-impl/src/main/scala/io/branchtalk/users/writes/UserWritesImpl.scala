@@ -15,7 +15,7 @@ final class UserWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, UsersCommandEvent],
   transactor: Transactor[F]
 )(implicit
-  uuidGenerator: UUIDGenerator
+  uuidGenerator: UUID.Generator
 ) extends Writes[F, User, UsersCommandEvent](producer)
     with UserWrites[F] {
 

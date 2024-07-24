@@ -1,18 +1,16 @@
 package io.branchtalk.api
 
 import java.net.URI
-
 import cats.Id
 import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptySet }
-import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, discriminatorNameMapper }
-import io.estatico.newtype.Coercible
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, adtDiscriminatorNameMapper }
+import neotype.*
 import sttp.tapir.CodecFormat.TextPlain
 import sttp.tapir.generic.Configuration
 
 import scala.annotation.nowarn
 
 // Allows `import TapirSupport._` instead of `import sttp.tapir._, sttp.tapir.codec.refined._, ...`.
-@nowarn("cat=unused")
 object TapirSupport
     extends sttp.tapir.Tapir
     with sttp.tapir.TapirAliases
@@ -26,67 +24,49 @@ object TapirSupport
   type JsSchema[A] = sttp.tapir.Schema[A]
   val JsSchema = sttp.tapir.Schema
 
-  @inline def summonParam[T](implicit param:   Param[T]):    Param[T]    = param
-  @inline def summonSchema[T](implicit schema: JsSchema[T]): JsSchema[T] = schema
+  inline def summonParam[T](using param:   Param[T]):    Param[T]    = param
+  inline def summonSchema[T](using schema: JsSchema[T]): JsSchema[T] = schema
 
   // utilities
 
-  implicit class EndpointOps[A, I, E, O, R](private val endpoint: Endpoint[A, I, E, O, R]) extends AnyVal {
-
+  extension [A, I, E, O, R](endpoint: Endpoint[A, I, E, O, R])
     def notRequiringPermissions: AuthedEndpoint[A, I, E, O, R] =
       AuthedEndpoint(endpoint, _ => RequiredPermissions.empty)
-
     def requiringPermissions(permissions: I => RequiredPermissions): AuthedEndpoint[A, I, E, O, R] =
       AuthedEndpoint(endpoint, permissions)
-  }
 
-  implicit class TapirResultOps[A](private val decodeResult: DecodeResult[A]) extends AnyVal {
-
+  extension [A](decodeResult: DecodeResult[A])
     def toOption: Option[A] = decodeResult match {
       case DecodeResult.Value(v) => v.some
       case _                     => none[A]
     }
-  }
 
-  implicit class RefineSchema[T](private val schema: JsSchema[T]) extends AnyVal {
+  extension [T](schema: JsSchema[T])
+    def asNewtypeSchema[N](using newtype: Newtype.WithType[T, N]): JsSchema[N] =
+      newtype.unsafeMakeF[JsSchema](schema)
 
-    def asNewtype[N: Coercible[T, *]]: JsSchema[N] = Coercible.unsafeWrapMM[JsSchema, Id, T, N].apply(schema)
-  }
-
-  implicit val uriSchema: JsSchema[URI] = JsSchema.schemaForString.asInstanceOf[JsSchema[URI]]
+  given JsSchema[URI] = JsSchema.schemaForString.as[URI]
 
   // domain instances
 
-  implicit def idParam[A]:  Param[ID[A]]    = summonParam[UUID].map[ID[A]](ID[A](_))(_.uuid)
-  implicit def idSchema[A]: JsSchema[ID[A]] = summonSchema[UUID].asNewtype[ID[A]]
+  given [A]: Param[ID[A]]    = summonParam[UUID].map[ID[A]](ID[A].apply)(_.unwrap)
+  given [A]: JsSchema[ID[A]] = summonSchema[UUID].asNewtypeSchema[ID[A]]
 
-  implicit def updatableSchema[A: JsSchema]: JsSchema[Updatable[A]] = {
-    implicit val customConfiguration: Configuration =
-      Configuration.default.copy(toEncodedName = discriminatorNameMapper(".")).withDiscriminator("action")
+  given [A: JsSchema]: JsSchema[Updatable[A]] = {
+    given Configuration =
+      Configuration.default.copy(toEncodedName = adtDiscriminatorNameMapper).withDiscriminator("action")
     JsSchema.derived[Updatable[A]]
   }
-
-  implicit def optionUpdatableSchema[A: JsSchema]: JsSchema[OptionUpdatable[A]] = {
-    implicit val customConfiguration: Configuration =
-      Configuration.default.copy(toEncodedName = discriminatorNameMapper(".")).withDiscriminator("action")
+  given [A: JsSchema]: JsSchema[OptionUpdatable[A]] = {
+    given Configuration =
+      Configuration.default.copy(toEncodedName = adtDiscriminatorNameMapper).withDiscriminator("action")
     JsSchema.derived[OptionUpdatable[A]]
   }
 
   /// Cats codecs
 
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def chainSchema[A: JsSchema]: JsSchema[Chain[A]] =
-    summonSchema[List[A]].asInstanceOf[JsSchema[Chain[A]]] // scalastyle:ignore
-
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def necSchema[A: JsSchema]: JsSchema[NonEmptyChain[A]] =
-    summonSchema[List[A]].asInstanceOf[JsSchema[NonEmptyChain[A]]] // scalastyle:ignore
-
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def nelSchema[A: JsSchema]: JsSchema[NonEmptyList[A]] =
-    summonSchema[List[A]].asInstanceOf[JsSchema[NonEmptyList[A]]] // scalastyle:ignore
-
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  implicit def nesSchema[A: JsSchema]: JsSchema[NonEmptySet[A]] =
-    summonSchema[List[A]].asInstanceOf[JsSchema[NonEmptySet[A]]] // scalastyle:ignore
+  given [A: JsSchema]: JsSchema[Chain[A]]         = summonSchema[List[A]].as[Chain[A]]
+  given [A: JsSchema]: JsSchema[NonEmptyChain[A]] = summonSchema[List[A]].as[NonEmptyChain[A]]
+  given [A: JsSchema]: JsSchema[NonEmptyList[A]]  = summonSchema[List[A]].as[NonEmptyList[A]]
+  given [A: JsSchema]: JsSchema[NonEmptySet[A]]   = summonSchema[List[A]].as[NonEmptySet[A]]
 }

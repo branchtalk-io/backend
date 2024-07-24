@@ -1,30 +1,66 @@
 package io.branchtalk.api
 
-import io.branchtalk.api.JsoniterSupport._
-import io.branchtalk.api.TapirSupport.JsSchema
-import io.scalaland.chimney.dsl._
-import io.branchtalk.shared.model.Paginated
-import io.scalaland.catnip.Semi
+import cats.effect.Sync
+import io.branchtalk.api.JsoniterSupport.*
+import io.branchtalk.api.TapirSupport.*
+import io.scalaland.chimney.dsl.*
+import io.branchtalk.shared.model.{ Paginated, ParseNewtype }
+import neotype.*
 
-@Semi(JsCodec, JsSchema) final case class Pagination[A](
+final case class Pagination[A](
   entities:   List[A],
-  offset:     PaginationOffset,
-  limit:      PaginationLimit,
-  nextOffset: Option[PaginationOffset]
-)
+  offset:     Pagination.Offset,
+  limit:      Pagination.Limit,
+  nextOffset: Option[Pagination.Offset]
+) derives DefaultJsCodec,
+      JsSchema
 
-@SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object Pagination {
 
   def fromPaginated[Entity](
     paginated: Paginated[Entity],
-    offset:    PaginationOffset,
-    limit:     PaginationLimit
+    offset:    Offset,
+    limit:     Limit
   ): Pagination[Entity] =
     paginated
       .into[Pagination[Entity]]
       .withFieldConst(_.offset, offset)
       .withFieldConst(_.limit, limit)
-      .withFieldComputed(_.nextOffset, p => p.nextOffset.map(PaginationOffset(_)))
+      .withFieldComputed(_.nextOffset, _.nextOffset.map(o => Offset.unsafeMake(o.unwrap)))
       .transform
+
+  type Offset = Offset.Type
+  object Offset extends Newtype[Long] {
+
+    override def validate(input: Long): Boolean | String = input >= 0L
+
+    def unapply(offset: Offset): Some[Long] = Some(offset.unwrap)
+    def parse[F[_]: Sync](long: Long): F[Offset] = ParseNewtype[F].parse[Offset](long)
+
+    given JsCodec[Offset] = DefaultJsCodec.derived[Long].asNewtypeCodec[Offset]
+    given Param[Offset] = summonParam[Long].mapDecode(l => DecodeResult.fromEitherString(l.toString, make(l)))(_.unwrap)
+    given JsSchema[Offset] = summonSchema[Long].asNewtypeSchema[Offset]
+  }
+
+  type Limit = Limit.Type
+  object Limit extends Newtype[Long] {
+
+    override def validate(input: Long): Boolean | String = input > 0L
+
+    def unapply(limit: Limit): Some[Long] = Some(limit.unwrap)
+    def parse[F[_]: Sync](long: Long): F[Limit] = ParseNewtype[F].parse[Limit](long)
+
+    given JsCodec[Limit] = DefaultJsCodec.derived[Long].asNewtypeCodec[Limit]
+    given Param[Limit] = summonParam[Long].mapDecode(l => DecodeResult.fromEitherString(l.toString, make(l)))(_.unwrap)
+    given JsSchema[Limit] = summonSchema[Long].asNewtypeSchema[Limit]
+  }
+
+  type HasNext = HasNext.Type
+  object HasNext extends Newtype[Boolean] {
+
+    def unapply(hasNext: HasNext): Some[Boolean] = Some(hasNext.unwrap)
+
+    given JsCodec[HasNext]  = DefaultJsCodec.derived[Boolean].asNewtypeCodec[HasNext]
+    given JsSchema[HasNext] = summonSchema[Boolean].asNewtypeSchema[HasNext]
+  }
 }

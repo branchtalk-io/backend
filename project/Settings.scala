@@ -8,7 +8,6 @@ import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
 import com.typesafe.sbt.packager.docker.DockerPlugin
 import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport._
-import org.scalastyle.sbt.ScalastylePlugin.autoImport._
 import sbtassembly.AssemblyPlugin.autoImport._
 import sbtcrossproject.CrossPlugin.autoImport.JVMPlatform
 import sbtcrossproject.CrossProject
@@ -31,70 +30,36 @@ object Settings extends Dependencies {
   private val modulesSettings = commonSettings ++ Seq(
     scalacOptions ++= Seq(
       // standard settings
-      "-encoding",
-      "UTF-8",
+      // format: off
+      "-encoding", "UTF-8",
+      "-rewrite",
+      "-source", "3.3-migration",
+      // format: on
       "-unchecked",
       "-deprecation",
       "-explaintypes",
       "-feature",
-      /*
-      // language features
-      "-language:existentials",
-      "-language:higherKinds",
-      "-language:implicitConversions",
-      "-language:postfixOps",
-      // private options
-      "-Ybackend-parallelism",
-      "8",
-      "-Ymacro-annotations",
-      "-Wmacros:before",
-      // warnings
-      "-Ywarn-dead-code",
-      "-Ywarn-extra-implicit",
-      "-Ywarn-macros:before",
-      "-Ywarn-numeric-widen",
-      //"-Ywarn-unused", // TODO: a lot of new false-positive errors after bumping from 2.13.4 to 2.13.5
-      "-Ywarn-unused:implicits",
-      "-Ywarn-unused:imports",
-      "-Ywarn-unused:imports",
-      "-Ywarn-unused:locals",
-      "-Ywarn-unused:patvars",
-      "-Ywarn-unused:privates",
-      "-Ywarn-value-discard",
-      // advanced options
-      "-Xcheckinit",
-      "-Xfatal-warnings",
-      // linting
-      "-Xlint:adapted-args",
-      "-Xlint:constant",
-      "-Xlint:delayedinit-select",
-      "-Xlint:doc-detached",
-      "-Xlint:implicit-recursion",
-      "-Xlint:inaccessible",
-      "-Xlint:infer-any",
-      "-Xlint:missing-interpolator",
-      "-Xlint:nullary-unit",
-      "-Xlint:option-implicit",
-      "-Xlint:package-object-classes",
-      "-Xlint:poly-implicit-overload",
-      "-Xlint:private-shadow",
-      "-Xlint:stars-align",
-      "-Xlint:type-parameter-shadow"
+      "-Wnonunit-statement",
+      "-Wvalue-discard",
+      //"-Xfatal-warnings",
+      "-Ykind-projector:underscores"
     ),
     console / scalacOptions --= Seq(
       // warnings
       "-Ywarn-unused",
-      "-Ywarn-unused:implicits",
-      "-Ywarn-unused:imports",
-      "-Ywarn-unused:imports",
-      "-Ywarn-unused:locals",
-      "-Ywarn-unused:patvars",
-      "-Ywarn-unused:privates",
+      // "-Wunused:imports", // import x.Underlying as X is marked as unused even though it is! probably one of https://github.com/scala/scala3/issues/: #18564, #19252, #19657, #19912
+      "-Wunused:privates",
+      "-Wunused:locals",
+      "-Wunused:explicits",
+      "-Wunused:implicits",
+      "-Wunused:params",
+      "-Wvalue-discard",
+      "-Xfatal-warnings",
+      "-Xcheck-macros",
       // advanced options
       "-Xfatal-warnings",
       // linting
       "-Xlint"
-       */
     ),
     Global / cancelable := true,
     Compile / trapExit := false,
@@ -113,8 +78,7 @@ object Settings extends Dependencies {
       Wart.PublicInference,
       Wart.NonUnitStatements,
       Wart.Nothing
-    ),
-    scalastyleFailOnError := true
+    )
   )
 
   def customPredef(imports: String*): Def.Setting[Task[Seq[String]]] =
@@ -160,8 +124,6 @@ object Settings extends Dependencies {
           inConfig(config)(
             Seq(
               scalafmtOnCompile := true,
-              scalastyleConfig := baseDirectory.value / "scalastyle-test-config.xml",
-              scalastyleFailOnError := false,
               fork := requiresFork,
               testFrameworks := Seq(Specs2)
             )

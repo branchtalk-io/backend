@@ -23,3 +23,16 @@ enum CommonError extends Exception derives FastEq, ShowPretty {
 
   override def toString: String = this.show
 }
+object CommonError {
+
+  def invalidCredentials(using codePosition: CodePosition): CommonError =
+    InvalidCredentials(codePosition)
+  def insufficientPermissions(msg: String)(using codePosition: CodePosition): CommonError =
+    InsufficientPermissions(msg, codePosition)
+  def notFound(entity: String, id: ID[Any])(using codePosition: CodePosition): CommonError =
+    NotFound(entity, id, codePosition)
+  def parentNotExist(entity: String, id: ID[Any])(using codePosition: CodePosition): CommonError =
+    ParentNotExist(entity, id, codePosition)
+  def validationFailed(error: String, errors: String*)(using codePosition: CodePosition): CommonError =
+    ValidationFailed(NonEmptyList(error, errors.toList), codePosition)
+}

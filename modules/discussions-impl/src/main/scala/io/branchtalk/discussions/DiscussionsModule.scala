@@ -57,7 +57,7 @@ object DiscussionsModule {
   def writes[F[_]: Async: Dispatcher: MDC](
     domainConfig:           DomainConfig,
     registry:               CollectorRegistry
-  )(implicit uuidGenerator: UUIDGenerator): Resource[F, DiscussionsWrites[F]] =
+  )(implicit uuidGenerator: UUID.Generator): Resource[F, DiscussionsWrites[F]] =
     Logger.getLogger[F].pipe { logger =>
       Resource.make(logger.info("Initialize Discussions writes"))(_ => logger.info("Shut down Discussions writes")) >>
         module.setupWrites[F](domainConfig, registry).map {

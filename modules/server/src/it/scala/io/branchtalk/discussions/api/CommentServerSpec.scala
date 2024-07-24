@@ -14,7 +14,7 @@ import sttp.model.StatusCode
 
 final class CommentServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected lazy val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "CommentServer-provided endpoints" should {
 
