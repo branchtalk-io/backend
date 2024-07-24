@@ -15,7 +15,7 @@ import sttp.model.StatusCode
 
 final class PostServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
 
-  implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected lazy val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "PostServer-provided endpoints" should {
 

@@ -11,7 +11,7 @@ import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure.{ ConsumerStream, DomainConfig, StreamRunner }
-import io.branchtalk.shared.model.{ Logger, UUIDGenerator }
+import io.branchtalk.shared.model.{ Logger, UUID.Generator }
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 import org.http4s.metrics.prometheus.Prometheus
@@ -19,7 +19,7 @@ import sun.misc.Signal // scalastyle:ignore illegal.imports
 
 object Program {
 
-  implicit protected val uuidGenerator: UUIDGenerator = UUIDGenerator.FastUUIDGenerator
+  implicit protected val uuidGenerator: UUID.Generator = UUID.Generator.FastUUID.Generator
 
   def runApplication[F[_]: Async: MDC](args: List[String]): F[ExitCode] =
     (for {

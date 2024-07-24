@@ -17,15 +17,15 @@ object CommentModels {
 
   // properties codecs
   implicit val commentContentCodec: JsCodec[Comment.Content] =
-    summonCodec[String](JsonCodecMaker.make).asNewtype[Comment.Content]
+    summonCodec[String](JsonCodecMaker.make).asNewtypeCodec[Comment.Content]
   implicit val commentRepliesNrCodec: JsCodec[Comment.RepliesNr] =
     summonCodec[Int](JsonCodecMaker.make).refine[NonNegative].asNewtype[Comment.RepliesNr]
 
   // properties schemas
   implicit val commentContentSchema: JsSchema[Comment.Content] =
-    summonSchema[String].asNewtype[Comment.Content]
+    summonSchema[String].asNewtypeSchema[Comment.Content]
   implicit val commentRepliesNrSchema: JsSchema[Comment.RepliesNr] =
-    summonSchema[Int Refined NonNegative].asNewtype[Comment.RepliesNr]
+    summonSchema[Int Refined NonNegative].asNewtypeSchema[Comment.RepliesNr]
 
   @Semi(JsCodec, JsSchema) sealed trait CommentError extends ADT
   object CommentError {

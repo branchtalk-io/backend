@@ -7,7 +7,6 @@ addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.9.11")
 addSbtPlugin("com.github.sbt" % "sbt-git" % "2.0.1")
 // linting
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.6")
-addSbtPlugin("com.beautiful-scala" % "sbt-scalastyle" % "1.5.1")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.1.7")
 addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.0.10")
 // running

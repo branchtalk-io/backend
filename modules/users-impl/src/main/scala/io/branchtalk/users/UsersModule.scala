@@ -7,7 +7,7 @@ import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.logging.MDC
 import io.branchtalk.shared.infrastructure._
-import io.branchtalk.shared.model.{ Logger, UUID, UUIDGenerator }
+import io.branchtalk.shared.model.{ Logger, UUID, UUID.Generator }
 import io.branchtalk.users.events.{ UsersCommandEvent, UsersEvent }
 import io.branchtalk.users.reads._
 import io.branchtalk.users.writes._
@@ -56,7 +56,7 @@ object UsersModule {
   def writes[F[_]: Async: Dispatcher: MDC](
     domainConfig:           DomainConfig,
     registry:               CollectorRegistry
-  )(implicit uuidGenerator: UUIDGenerator): Resource[F, UsersWrites[F]] =
+  )(implicit uuidGenerator: UUID.Generator): Resource[F, UsersWrites[F]] =
     Logger.getLogger[F].pipe { logger =>
       Resource.make(logger.info("Initialize Users writes"))(_ => logger.info("Shut down Users writes")) >>
         module.setupWrites[F](domainConfig, registry).map {

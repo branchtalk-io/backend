@@ -27,38 +27,38 @@ object UserModels {
   implicit val usernameCodec: JsCodec[User.Name] =
     summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[User.Name]
   implicit val userDescriptionCodec: JsCodec[User.Description] =
-    summonCodec[String](JsonCodecMaker.make).asNewtype[User.Description]
+    summonCodec[String](JsonCodecMaker.make).asNewtypeCodec[User.Description]
   implicit val passwordRawCodec: JsCodec[Password.Raw] =
     summonCodec[String](JsonCodecMaker.make)
       .map[Array[Byte]](_.getBytes)(new String(_)) // I wanted to avoid that but the result is ugly :/
       .refine[NonEmpty] // I'll try to revisit that someday and e.g. use Base64 here?
       .asNewtype[Password.Raw]
   implicit val permissionsCodec: JsCodec[Permissions] =
-    summonCodec[Set[Permission]](JsonCodecMaker.make).asNewtype[Permissions]
+    summonCodec[Set[Permission]](JsonCodecMaker.make).asNewtypeCodec[Permissions]
   implicit val sessionExpirationCodec: JsCodec[Session.ExpirationTime] =
-    summonCodec[OffsetDateTime](JsonCodecMaker.make).asNewtype[Session.ExpirationTime]
+    summonCodec[OffsetDateTime](JsonCodecMaker.make).asNewtypeCodec[Session.ExpirationTime]
   implicit val banReasonCodec: JsCodec[Ban.Reason] =
     summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Ban.Reason]
 
   // properties schemas
   implicit val userEmailSchema: JsSchema[User.Email] =
-    summonSchema[String Refined MatchesRegex["(.+)@(.+)"]].asNewtype[User.Email]
+    summonSchema[String Refined MatchesRegex["(.+)@(.+)"]].asNewtypeSchema[User.Email]
   implicit val usernameSchema: JsSchema[User.Name] =
-    summonSchema[String Refined NonEmpty].asNewtype[User.Name]
+    summonSchema[String Refined NonEmpty].asNewtypeSchema[User.Name]
   implicit val userDescriptionSchema: JsSchema[User.Description] =
-    summonSchema[String].asNewtype[User.Description]
+    summonSchema[String].asNewtypeSchema[User.Description]
   implicit val passwordRawSchema: JsSchema[Password.Raw] =
     summonSchema[String]
       .map[Array[Byte] Refined NonEmpty](_.getBytes.pipe(refineV[NonEmpty](_).toOption))(_.value.pipe(new String(_)))
-      .asNewtype[Password.Raw]
+      .asNewtypeSchema[Password.Raw]
   implicit val permissionSchema: JsSchema[Permission] =
     Schema.derived[Permission]
   implicit val permissionsSchema: JsSchema[Permissions] =
-    summonSchema[Set[Permission]].asNewtype[Permissions]
+    summonSchema[Set[Permission]].asNewtypeSchema[Permissions]
   implicit val sessionExpirationSchema: JsSchema[Session.ExpirationTime] =
-    summonSchema[OffsetDateTime].asNewtype[Session.ExpirationTime]
+    summonSchema[OffsetDateTime].asNewtypeSchema[Session.ExpirationTime]
   implicit val banReasonSchema: JsSchema[Ban.Reason] =
-    summonSchema[NonEmptyString].asNewtype[Ban.Reason]
+    summonSchema[NonEmptyString].asNewtypeSchema[Ban.Reason]
 
   @Semi(JsCodec, JsSchema) sealed trait UserError extends ADT
   object UserError {

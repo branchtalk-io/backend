@@ -93,7 +93,7 @@ object Dependencies {
   val tapirSTTP        = "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion
   val jsoniter         = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion
   val jsoniterMacro =
-    "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion % "compile-internal"
+    "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion // % "compile-internal"
   // config
   val decline              = "com.monovore" %% "decline" % declineVersion
   val scalaConfig          = "com.typesafe" % "config" % "1.4.2" // https://github.com/lightbend/config/releases

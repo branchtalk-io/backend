@@ -7,18 +7,16 @@ import com.fasterxml.uuid.Generators
 type UUID = java.util.UUID
 object UUID {
 
-  def create[F[_]: Sync](implicit uuidGenerator: UUIDGenerator): F[UUID] = uuidGenerator.create[F]
-  def parse[F[_]: Sync](string: String)(implicit uuidGenerator: UUIDGenerator): F[UUID] = uuidGenerator.parse[F](string)
-}
+  val empty: UUID = java.util.UUID.fromString("00000000-0000-0000-0000-000000000000")
 
-trait UUIDGenerator {
+  def create[F[_]: Sync](using generator: Generator):                          F[UUID] = generator.create[F]
+  def parse[F[_]:  Sync](string:          String)(using generator: Generator): F[UUID] = generator.parse[F](string)
 
-  def create[F[_]: Sync]:                 F[UUID]
-  def parse[F[_]:  Sync](string: String): F[UUID]
-}
-
-object UUIDGenerator {
-  object FastUUIDGenerator extends UUIDGenerator {
+  trait Generator {
+    def create[F[_]: Sync]:                 F[UUID]
+    def parse[F[_]:  Sync](string: String): F[UUID]
+  }
+  object FastGenerator extends Generator {
     override def create[F[_]: Sync]:                 F[UUID] = Sync[F].delay(Generators.timeBasedGenerator().generate())
     override def parse[F[_]:  Sync](string: String): F[UUID] = Sync[F].delay(FastUUID.parseUUID(string))
   }

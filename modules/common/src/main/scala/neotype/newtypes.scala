@@ -21,9 +21,11 @@ abstract class NewtypeT[A] { self =>
   inline def unsafeMake[B](inline input:        A):       Type[B]    = input
   inline def unsafeMakeF[F[_], B](inline input: F[A]):    F[Type[B]] = input
 
-  transparent inline given instance[B]: Newtype.WithType[A, Type[B]] = new Newtype[A] {
+  private val impl = new Newtype[A] {
     override def validate(input: A): Boolean | String = self.validate(input)
-  }.asInstanceOf[Newtype.WithType[A, Type[B]]]
+  }
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+  given instance[B]: Newtype.WithType[A, Type[B]] = impl.asInstanceOf[Newtype.WithType[A, Type[B]]]
 }
 
 // TODO: PR to upstream
@@ -44,7 +46,9 @@ abstract class NewtypeF[F[_]] { self =>
   inline def unsafeMake[A](inline input:        F[A]):    Type[A]    = input
   inline def unsafeMakeF[G[_], A](inline input: G[F[A]]): G[Type[A]] = input
 
-  transparent inline given instance[A]: Newtype.WithType[F[A], Type[A]] = new Newtype[F[A]] {
-    override def validate(input: F[A]): Boolean | String = self.validate(input)
-  }.asInstanceOf[Newtype.WithType[F[A], Type[A]]]
+  private val impl = new Newtype[F[Any]] {
+    override def validate(input: F[Any]): Boolean | String = self.validate(input)
+  }
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+  given instance[A]: Newtype.WithType[F[A], Type[A]] = impl.asInstanceOf[Newtype.WithType[F[A], Type[A]]]
 }

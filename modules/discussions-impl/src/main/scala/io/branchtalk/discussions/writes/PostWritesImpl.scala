@@ -15,7 +15,7 @@ final class PostWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit
-  uuidGenerator: UUIDGenerator
+  uuidGenerator: UUID.Generator
 ) extends Writes[F, Post, DiscussionsCommandEvent](producer)
     with PostWrites[F] {
 

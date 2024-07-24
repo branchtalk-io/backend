@@ -2,105 +2,97 @@ package io.branchtalk.api
 
 import cats.{ Id, Order }
 import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptySet }
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import com.github.plokhotnyuk.jsoniter_scala.macros._
-import eu.timepit.refined.api.{ Refined, Validate }
-import eu.timepit.refined.refineV
-import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, discriminatorNameMapper }
-import io.estatico.newtype.Coercible
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, adtDiscriminatorNameMapper }
+import neotype.*
 
-// Provides (missing :/) support for .map, .mapDecode, .refine, .asNewtype for Jsoniter Scala codecs.
-// TODO: consider moving to some external library
-@SuppressWarnings(Array("org.wartremover.warts.All")) // handling valid null values, macros
+// Provides (missing :/) support for .map, .mapDecode,.asNewtype for Jsoniter Scala codecs.
 object JsoniterSupport {
 
-  // shortcut with object allowing consistent usage of @Semi(JsCodec)
-  type JsCodec[A] = JsonValueCodec[A]
-  object JsCodec
+  // for shortening
 
-  @inline def summonCodec[T](implicit codec: JsCodec[T]): JsCodec[T] = codec
+  type JsCodec[A] = JsonValueCodec[A]
+  export com.github.plokhotnyuk.jsoniter_scala.macros.ConfiguredJsonValueCodec as DefaultJsCodec
 
   // utilities
 
-  implicit class RefineCodec[T](private val codec: JsCodec[T]) extends AnyVal {
+  inline def summonCodec[T](using codec: JsCodec[T]): JsCodec[T] = codec
 
-    def mapDecode[U](f: T => Either[String, U])(g: U => T): JsCodec[U] = new JsCodec[U] {
-      override def decodeValue(in: JsonReader, default: U): U =
-        codec.decodeValue(in, if (default != null) g(default) else null.asInstanceOf[T]) match { // scalastyle:ignore
-          case null => null.asInstanceOf[U] // scalastyle:ignore
+  extension [A](codec: JsCodec[A])
+    @SuppressWarnings(Array("org.wartremover.warts.All"))
+    def mapDecode[B](f: A => Either[String, B])(g: B => A): JsCodec[B] = new JsCodec[B] {
+      override def decodeValue(in: JsonReader, default: B): B =
+        codec.decodeValue(in, if (default != null) g(default) else null.asInstanceOf[A]) match {
+          case null => null.asInstanceOf[B]
           case t =>
             f(t) match {
-              case null         => null.asInstanceOf[U] // scalastyle:ignore
+              case null         => null.asInstanceOf[B]
               case Left(error)  => in.decodeError(error)
               case Right(value) => value
             }
         }
 
-      override def encodeValue(x: U, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
+      override def encodeValue(x: B, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
 
-      override def nullValue: U = codec.nullValue match {
-        case null => null.asInstanceOf[U] // scalastyle:ignore
-        case u    => f(u).getOrElse(null.asInstanceOf[U]) // scalastyle:ignore
+      override def nullValue: B = codec.nullValue match {
+        case null => null.asInstanceOf[B]
+        case u    => f(u).getOrElse(null.asInstanceOf[B])
       }
     }
 
-    def map[U](f: T => U)(g: U => T): JsCodec[U] = new JsCodec[U] {
-      override def decodeValue(in: JsonReader, default: U): U =
-        codec.decodeValue(in, if (default != null) g(default) else null.asInstanceOf[T]) match { // scalastyle:ignore
-          case null => null.asInstanceOf[U] // scalastyle:ignore
+    @SuppressWarnings(Array("org.wartremover.warts.All"))
+    def map[B](f: A => B)(g: B => A): JsCodec[B] = new JsCodec[B] {
+      override def decodeValue(in: JsonReader, default: B): B =
+        codec.decodeValue(in, if (default != null) g(default) else null.asInstanceOf[A]) match {
+          case null => null.asInstanceOf[B]
           case t    => f(t)
         }
 
-      override def encodeValue(x: U, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
+      override def encodeValue(x: B, out: JsonWriter): Unit = codec.encodeValue(g(x), out)
 
-      override def nullValue: U = codec.nullValue match {
-        case null => null.asInstanceOf[U] // scalastyle:ignore
+      override def nullValue: B = codec.nullValue match {
+        case null => null.asInstanceOf[B]
         case u    => f(u)
       }
     }
 
-    def refine[P: Validate[T, *]]: JsCodec[T Refined P] = mapDecode(refineV[P](_: T))(_.value)
-
-    def asNewtype[N: Coercible[T, *]]: JsCodec[N] = Coercible.unsafeWrapMM[JsCodec, Id, T, N].apply(codec)
-  }
+    def asNewtypeCodec[B](using newtype: Newtype.WithType[A, B]): JsCodec[B] =
+      newtype.unsafeMakeF[JsCodec](codec)
 
   // domain instances
 
-  implicit def idCodec[A]: JsCodec[ID[A]] = summonCodec[UUID](JsonCodecMaker.make).asNewtype[ID[A]]
+  given [A]: JsCodec[ID[A]] = DefaultJsCodec.derived[UUID].asNewtypeCodec[ID[A]]
 
-  implicit def updatableCodec[A: JsCodec]: JsCodec[Updatable[A]] = summonCodec[Updatable[A]](
-    JsonCodecMaker.make(
-      CodecMakerConfig
-        .withAdtLeafClassNameMapper(discriminatorNameMapper("."))
-        .withDiscriminatorFieldName(Some("action"))
-    )
-  )
+  given [A](using JsCodec[A]): JsCodec[Updatable[A]] = {
+    inline given CodecMakerConfig =
+      CodecMakerConfig.withAdtLeafClassNameMapper(adtDiscriminatorNameMapper).withDiscriminatorFieldName(Some("action"))
+    DefaultJsCodec.derived[Updatable[A]]
+  }
 
-  implicit def optionUpdatableCodec[A: JsCodec]: JsCodec[OptionUpdatable[A]] = summonCodec[OptionUpdatable[A]](
-    JsonCodecMaker.make(
-      CodecMakerConfig
-        .withAdtLeafClassNameMapper(discriminatorNameMapper("."))
-        .withDiscriminatorFieldName(Some("action"))
-    )
-  )
+  given [A](using JsCodec[A]): JsCodec[OptionUpdatable[A]] =
+    inline given CodecMakerConfig =
+      CodecMakerConfig.withAdtLeafClassNameMapper(adtDiscriminatorNameMapper).withDiscriminatorFieldName(Some("action"))
+    DefaultJsCodec.derived[OptionUpdatable[A]]
 
   // Cats instances
 
-  implicit def chainCodec[A: JsCodec]: JsCodec[Chain[A]] =
-    summonCodec[List[A]](JsonCodecMaker.make).map(Chain.fromSeq)(_.toList)
-
-  implicit def necCodec[A: JsCodec]: JsCodec[NonEmptyChain[A]] = summonCodec[List[A]](JsonCodecMaker.make).mapDecode {
-    case head :: tail => NonEmptyChain(head, tail: _*).asRight[String]
-    case _            => "Expected non-empty list".asLeft[NonEmptyChain[A]]
-  }(_.toList)
-
-  implicit def nelCodec[A: JsCodec]: JsCodec[NonEmptyList[A]] = summonCodec[List[A]](JsonCodecMaker.make).mapDecode {
-    case head :: tail => NonEmptyList(head, tail).asRight[String]
-    case _            => "Expected non-empty list".asLeft[NonEmptyList[A]]
-  }(_.toList)
-
-  implicit def nesCodec[A: JsCodec: Order]: JsCodec[NonEmptySet[A]] =
-    summonCodec[List[A]](JsonCodecMaker.make).mapDecode {
+  given [A: JsCodec]: JsCodec[Chain[A]] = DefaultJsCodec.derived[List[A]].map(Chain.fromSeq)(_.toList)
+  given [A: JsCodec]: JsCodec[NonEmptyChain[A]] = DefaultJsCodec
+    .derived[List[A]]
+    .mapDecode {
+      case head :: tail => NonEmptyChain(head, tail: _*).asRight[String]
+      case _            => "Expected non-empty list".asLeft[NonEmptyChain[A]]
+    }(_.toList)
+  given [A: JsCodec]: JsCodec[NonEmptyList[A]] = DefaultJsCodec
+    .derived[List[A]]
+    .mapDecode {
+      case head :: tail => NonEmptyList(head, tail).asRight[String]
+      case _            => "Expected non-empty list".asLeft[NonEmptyList[A]]
+    }(_.toList)
+  given [A: JsCodec: Order]: JsCodec[NonEmptySet[A]] = DefaultJsCodec
+    .derived[List[A]]
+    .mapDecode {
       case head :: tail => NonEmptySet.of(head, tail: _*).asRight[String]
       case _            => "Expected non-empty list".asLeft[NonEmptySet[A]]
     }(_.toList)

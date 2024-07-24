@@ -5,7 +5,7 @@ import cats.effect.{ Async, Resource }
 import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites, TestDiscussionsConfig }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.model.UUIDGenerator
+import io.branchtalk.shared.model.UUID.Generator
 import io.branchtalk.users.{ TestUsersConfig, UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 
@@ -21,7 +21,7 @@ object TestDependencies {
 
   @nowarn("cat=unused") // macwire
   def resources[F[_]: Async: MDC](registry: CollectorRegistry)(implicit
-    uuidGenerator: UUIDGenerator
+    uuidGenerator: UUID.Generator
   ): Resource[F, TestDependencies[F]] =
     for {
       implicit0(dispatcher: Dispatcher[F]) <- Dispatcher[F]

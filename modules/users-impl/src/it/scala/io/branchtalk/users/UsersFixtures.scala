@@ -9,7 +9,7 @@ import scala.util.Random
 
 trait UsersFixtures {
 
-  def channelIDCreate(implicit uuidGenerator: UUIDGenerator): IO[ID[Channel]] =
+  def channelIDCreate(implicit uuidGenerator: UUID.Generator): IO[ID[Channel]] =
     ID.create[IO, Channel]
 
   def passwordCreate(password: String = "pass"): IO[Password] =

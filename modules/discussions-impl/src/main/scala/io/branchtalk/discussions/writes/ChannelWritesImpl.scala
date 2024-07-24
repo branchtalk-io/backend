@@ -13,7 +13,7 @@ final class ChannelWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit
-  uuidGenerator: UUIDGenerator
+  uuidGenerator: UUID.Generator
 ) extends Writes[F, Channel, DiscussionsCommandEvent](producer)
     with ChannelWrites[F] {
 

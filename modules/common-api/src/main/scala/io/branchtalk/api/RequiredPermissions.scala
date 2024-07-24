@@ -2,54 +2,54 @@ package io.branchtalk.api
 
 import cats.Eq
 import cats.data.{ NonEmptyList, NonEmptySet }
-import com.github.plokhotnyuk.jsoniter_scala.macros._
-import io.branchtalk.ADT
-import io.branchtalk.api.JsoniterSupport._
-import io.branchtalk.shared.model.{ FastEq, ShowPretty }
-import io.scalaland.catnip.Semi
+import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import io.branchtalk.api.JsoniterSupport.{ *, given }
+import io.branchtalk.shared.model.{ FastEq, ShowPretty, void }
 
-@Semi(FastEq, ShowPretty) sealed trait RequiredPermissions extends ADT {
+import scala.annotation.targetName
 
-  // scalastyle:off method.name
-  def &&(other: RequiredPermissions): RequiredPermissions = RequiredPermissions.And(this, other)
-  def ||(other: RequiredPermissions): RequiredPermissions = RequiredPermissions.Or(this, other)
-  def unary_! : RequiredPermissions = RequiredPermissions.Not(this)
-  // scalastyle:on method.name
+enum RequiredPermissions derives FastEq, ShowPretty {
+  case Empty
+
+  case AllOf(toSet: NonEmptySet[Permission])
+  case AnyOf(toSet: NonEmptySet[Permission])
+
+  case And(x: RequiredPermissions, y: RequiredPermissions)
+  case Or(x: RequiredPermissions, y: RequiredPermissions)
+  case Not(x: RequiredPermissions)
+
+  @targetName("and") def &&(other: RequiredPermissions): RequiredPermissions = And(this, other)
+  @targetName("or") def ||(other:  RequiredPermissions): RequiredPermissions = Or(this, other)
+  @targetName("not") def unary_!                       : RequiredPermissions = Not(this)
 }
 object RequiredPermissions {
 
-  def empty: RequiredPermissions = Empty
-  def one(permission: Permission): RequiredPermissions = AllOf(NonEmptySet.one(permission))
+  def empty:                                          RequiredPermissions = Empty
+  def one(permission: Permission):                    RequiredPermissions = AllOf(NonEmptySet.one(permission))
   def allOf(head:     Permission, tail: Permission*): RequiredPermissions = AllOf(NonEmptySet.of(head, tail: _*))
   def anyOf(head:     Permission, tail: Permission*): RequiredPermissions = AnyOf(NonEmptySet.of(head, tail: _*))
 
-  case object Empty extends RequiredPermissions
+  given JsCodec[RequiredPermissions] = {
+    transparent inline given CodecMakerConfig = CodecMakerConfig.withAllowRecursiveTypes(true)
+    DefaultJsCodec.derived[RequiredPermissions]
+  }
 
-  final case class AllOf(toSet: NonEmptySet[Permission]) extends RequiredPermissions
-  final case class AnyOf(toSet: NonEmptySet[Permission]) extends RequiredPermissions
-
-  final case class And(x: RequiredPermissions, y: RequiredPermissions) extends RequiredPermissions
-  final case class Or(x: RequiredPermissions, y: RequiredPermissions) extends RequiredPermissions
-  final case class Not(x: RequiredPermissions) extends RequiredPermissions
-
-  @SuppressWarnings(Array("org.wartremover.warts.All")) // handling valid null values
-  implicit val jsCodec: JsCodec[RequiredPermissions] =
-    summonCodec[RequiredPermissions](JsonCodecMaker.make(CodecMakerConfig.withAllowRecursiveTypes(true)))
-
-  implicit val nesEq: Eq[NonEmptySet[Permission]] = (x: NonEmptySet[Permission], y: NonEmptySet[Permission]) =>
+  given Eq[NonEmptySet[Permission]] = (x: NonEmptySet[Permission], y: NonEmptySet[Permission]) =>
     x.toSortedSet === y.toSortedSet
-  implicit val nesShow: ShowPretty[NonEmptySet[Permission]] =
+
+  @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
+  given ShowPretty[NonEmptySet[Permission]] =
     (t: NonEmptySet[Permission], sb: StringBuilder, indentWith: String, indentLevel: Int) => {
       val nextIndent = indentLevel + 1
-      sb.append(indentWith * indentLevel).append("NonEmptySet(\n")
+      void(sb.append(indentWith * indentLevel).append("NonEmptySet(\n"))
       t.toNonEmptyList match {
         case NonEmptyList(head, tail) =>
           sb.append(indentWith * nextIndent)
-          implicitly[ShowPretty[Permission]].showPretty(head, sb, indentWith, nextIndent)
+          void(summon[ShowPretty[Permission]].showPretty(head, sb, indentWith, nextIndent))
           tail.foreach { elem =>
             sb.append(",\n")
             sb.append(indentWith * nextIndent)
-            implicitly[ShowPretty[Permission]].showPretty(elem, sb, indentWith, nextIndent)
+            summon[ShowPretty[Permission]].showPretty(elem, sb, indentWith, nextIndent)
           }
           sb.append("\n)")
       }

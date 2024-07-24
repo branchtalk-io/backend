@@ -1,12 +1,12 @@
 package io.branchtalk.discussions
 
 import io.branchtalk.discussions.model.Subscription
-import io.branchtalk.shared.model.TestUUIDGenerator
+import io.branchtalk.shared.model.TestUUID.Generator
 import org.specs2.mutable.Specification
 
 final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "Subscription Reads & Writes" should {
 

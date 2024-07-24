@@ -1,7 +1,7 @@
 package io.branchtalk.discussions
 
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.model.TestUUIDGenerator
+import io.branchtalk.shared.model.TestUUID.Generator
 import org.specs2.mutable.Specification
 
 final class ChannelPaginationSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
@@ -9,7 +9,7 @@ final class ChannelPaginationSpec extends Specification with DiscussionsIOTest w
   // Channel pagination tests cannot be run in parallel to other Channel tests (no parent to filter other tests)
   sequential
 
-  implicit protected val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
 
   "Channel pagination" should {
 

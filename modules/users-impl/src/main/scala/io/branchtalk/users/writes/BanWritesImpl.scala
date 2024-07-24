@@ -4,7 +4,7 @@ import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
-import io.branchtalk.shared.model.{ CreationTime, ModificationTime, UUIDGenerator }
+import io.branchtalk.shared.model.{ CreationTime, ModificationTime, UUID.Generator }
 import io.branchtalk.users.events.{ BanCommandEvent, UsersCommandEvent }
 import io.branchtalk.users.model.{ Ban, User }
 import io.scalaland.chimney.dsl._
@@ -13,7 +13,7 @@ final class BanWritesImpl[F[_]: Sync: MDC](
   producer:   EventBusProducer[F, UsersCommandEvent],
   transactor: Transactor[F]
 )(implicit
-  uuidGenerator: UUIDGenerator
+  uuidGenerator: UUID.Generator
 ) extends Writes[F, User, UsersCommandEvent](producer)
     with BanWrites[F] {
 

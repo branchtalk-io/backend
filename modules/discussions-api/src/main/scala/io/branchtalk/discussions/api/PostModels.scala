@@ -31,33 +31,33 @@ object PostModels {
   implicit val postURLCodec: JsCodec[Post.URL] =
     summonCodec[String](JsonCodecMaker.make)
       .mapDecode[URI](s => Try(URI.create(s)).fold(_ => Left(s"Invalid URI: $s"), Right(_)))(_.toString)
-      .asNewtype[Post.URL]
+      .asNewtypeCodec[Post.URL]
   implicit val postTextCodec: JsCodec[Post.Text] =
-    summonCodec[String](JsonCodecMaker.make).asNewtype[Post.Text]
+    summonCodec[String](JsonCodecMaker.make).asNewtypeCodec[Post.Text]
   implicit val postContentCodec: JsCodec[Post.Content] =
     summonCodec[Post.Content](
-      JsonCodecMaker.make(CodecMakerConfig.withAdtLeafClassNameMapper(discriminatorNameMapper(".")))
+      JsonCodecMaker.make(CodecMakerConfig.withAdtLeafClassNameMapper(adtDiscriminatorNameMapper))
     )
   implicit val postRepliesNrCodec: JsCodec[Post.CommentsNr] =
     summonCodec[Int](JsonCodecMaker.make).refine[NonNegative].asNewtype[Post.CommentsNr]
 
   // properties schemas
   implicit val postUrlTitleSchema: JsSchema[Post.UrlTitle] =
-    summonSchema[String Refined NonEmpty].asNewtype[Post.UrlTitle]
+    summonSchema[String Refined NonEmpty].asNewtypeSchema[Post.UrlTitle]
   implicit val postTitleSchema: JsSchema[Post.Title] =
-    summonSchema[String Refined NonEmpty].asNewtype[Post.Title]
+    summonSchema[String Refined NonEmpty].asNewtypeSchema[Post.Title]
   implicit val postURLSchema: JsSchema[Post.URL] =
-    summonSchema[URI].asNewtype[Post.URL]
+    summonSchema[URI].asNewtypeSchema[Post.URL]
   implicit val postTextSchema: JsSchema[Post.Text] =
-    summonSchema[String].asNewtype[Post.Text]
+    summonSchema[String].asNewtypeSchema[Post.Text]
   implicit val postContentSchema: JsSchema[Post.Content] = {
     // used in macros
     @unused implicit val customConfiguration: Configuration =
-      Configuration.default.copy(toEncodedName = discriminatorNameMapper("."))
+      Configuration.default.copy(toEncodedName = adtDiscriminatorNameMapper)
     Schema.derived[Post.Content]
   }
   implicit val postCommentsNrSchema: JsSchema[Post.CommentsNr] =
-    summonSchema[Int Refined NonNegative].asNewtype[Post.CommentsNr]
+    summonSchema[Int Refined NonNegative].asNewtypeSchema[Post.CommentsNr]
 
   @Semi(JsCodec, JsSchema) sealed trait PostError extends ADT
   object PostError {

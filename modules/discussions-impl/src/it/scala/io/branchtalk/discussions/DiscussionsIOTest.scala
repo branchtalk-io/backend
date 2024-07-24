@@ -3,11 +3,11 @@ package io.branchtalk.discussions
 import cats.effect.{ IO, Resource }
 import io.branchtalk.shared.infrastructure.DomainConfig
 import io.branchtalk.{ IOTest, ResourcefulTest }
-import io.branchtalk.shared.model.UUIDGenerator
+import io.branchtalk.shared.model.UUID.Generator
 
 trait DiscussionsIOTest extends IOTest with ResourcefulTest {
 
-  implicit protected def uuidGenerator: UUIDGenerator
+  implicit protected def uuidGenerator: UUID.Generator
 
   // populated by resources
   protected var discussionsCfg:    DomainConfig          = _
