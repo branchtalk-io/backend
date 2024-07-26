@@ -1,20 +1,24 @@
 package io.branchtalk.discussions.model
 
 import io.branchtalk.shared.model.{ FastEq, ID, ShowPretty }
-import io.scalaland.catnip.Semi
 
-@Semi(FastEq, ShowPretty) final case class Subscription(
+import scala.annotation.targetName
+
+final case class Subscription(
   subscriberID:  ID[User],
   subscriptions: Set[ID[Channel]]
-) {
+) derives FastEq,
+      ShowPretty {
 
-  def ++(subscriptions: Set[ID[Channel]]): Subscription = // scalastyle:ignore method.name
+  @targetName("addAll")
+  def ++(subscriptions: Set[ID[Channel]]): Subscription =
     Subscription(subscriberID = subscriberID, subscriptions = this.subscriptions ++ subscriptions)
 
-  def --(subscriptions: Set[ID[Channel]]): Subscription = // scalastyle:ignore method.name
+  @targetName("removeAll")
+  def --(subscriptions: Set[ID[Channel]]): Subscription =
     Subscription(subscriberID = subscriberID, subscriptions = this.subscriptions -- subscriptions)
 }
 object Subscription extends SubscriptionCommands {
 
-  @Semi(FastEq, ShowPretty) final case class Scheduled(subscription: Subscription)
+  final case class Scheduled(subscription: Subscription) derives FastEq, ShowPretty
 }

@@ -4,13 +4,13 @@ import cats.effect.Sync
 import io.branchtalk.discussions.events.{ CommentCommandEvent, DiscussionsCommandEvent }
 import io.branchtalk.discussions.model.{ Channel, Comment, Post }
 import io.branchtalk.logging.{ CorrelationID, MDC }
-import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, Writes }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
 final class CommentWritesImpl[F[_]: Sync: MDC](
-  producer:   EventBusProducer[F, DiscussionsCommandEvent],
+  producer:   KafkaEventBus.Producer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit
   uuidGenerator: UUID.Generator

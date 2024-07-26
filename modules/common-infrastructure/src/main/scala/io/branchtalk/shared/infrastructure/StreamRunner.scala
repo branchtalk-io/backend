@@ -2,9 +2,9 @@ package io.branchtalk.shared.infrastructure
 
 import cats.{ Monad, Semigroup }
 import cats.effect.{ Async, Deferred, Resource }
-import cats.effect.implicits._
+import cats.effect.implicits.*
 import fs2.Stream
-import io.branchtalk.shared.model.Logger
+import io.branchtalk.logging.Logger
 
 // Start Stream as a Fiber, close it gracefully when releasing the resource.
 final case class StreamRunner[F[_]](asResource: Resource[F, Unit])
@@ -30,13 +30,12 @@ object StreamRunner {
         )
       }
       .void
-      .handleErrorWith { error: Throwable =>
+      .handleErrorWith { (error: Throwable) =>
         Resource.eval(
           logger.error(error)("Error occurred before kill-switch was triggered") >> error.raiseError[F, Unit]
         )
       }
   }
 
-  implicit def semigroup[F[_]: Monad]: Semigroup[StreamRunner[F]] =
-    (a, b) => StreamRunner(a.asResource >> b.asResource)
+  given [F[_]: Monad]: Semigroup[StreamRunner[F]] = (a, b) => StreamRunner(a.asResource >> b.asResource)
 }

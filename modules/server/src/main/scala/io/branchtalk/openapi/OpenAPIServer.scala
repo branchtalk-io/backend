@@ -61,9 +61,9 @@ object OpenAPIServer {
 
   // technically, we only need encoder part so we can mock all the rest and call it a day
   trait JsEncoderOnly[T] extends JsCodec[T] {
-    override def decodeValue(in: JsonReader, default: T): T = ???
-    override def nullValue: T = null.asInstanceOf[T] // scalastyle:ignore null
-    def encodeValue(x: T, out: JsonWriter): Unit
+    override def decodeValue(in: JsonReader, default: T):          T = ???
+    override def nullValue:                                        T = null.asInstanceOf[T]
+    def encodeValue(x:           T, out:              JsonWriter): Unit
   }
   object JsEncoderOnly {
     def apply[T](f: (T, JsonWriter) => Unit): JsEncoderOnly[T] = (value: T, out: JsonWriter) => f(value, out)
@@ -93,24 +93,23 @@ object OpenAPIServer {
   implicit val encoderSecurityScheme: JsCodec[SecurityScheme] = JsonCodecMaker.make
   implicit val encoderExampleSingleValue: JsCodec[ExampleSingleValue] = JsEncoderOnly {
     // TODO: handle parse -> encode JSON
-    case (ExampleSingleValue(value: String), out) => JsonCodecMaker.make[String].encodeValue(value, out)
-    case (ExampleSingleValue(value: Int), out) => JsonCodecMaker.make[Int].encodeValue(value, out)
-    case (ExampleSingleValue(value: Long), out) => JsonCodecMaker.make[Long].encodeValue(value, out)
-    case (ExampleSingleValue(value: Float), out) => JsonCodecMaker.make[Float].encodeValue(value, out)
-    case (ExampleSingleValue(value: Double), out) => JsonCodecMaker.make[Double].encodeValue(value, out)
-    case (ExampleSingleValue(value: Boolean), out) => JsonCodecMaker.make[Boolean].encodeValue(value, out)
+    case (ExampleSingleValue(value: String), out)     => JsonCodecMaker.make[String].encodeValue(value, out)
+    case (ExampleSingleValue(value: Int), out)        => JsonCodecMaker.make[Int].encodeValue(value, out)
+    case (ExampleSingleValue(value: Long), out)       => JsonCodecMaker.make[Long].encodeValue(value, out)
+    case (ExampleSingleValue(value: Float), out)      => JsonCodecMaker.make[Float].encodeValue(value, out)
+    case (ExampleSingleValue(value: Double), out)     => JsonCodecMaker.make[Double].encodeValue(value, out)
+    case (ExampleSingleValue(value: Boolean), out)    => JsonCodecMaker.make[Boolean].encodeValue(value, out)
     case (ExampleSingleValue(value: BigDecimal), out) => JsonCodecMaker.make[BigDecimal].encodeValue(value, out)
-    case (ExampleSingleValue(value: BigInt), out) => JsonCodecMaker.make[BigInt].encodeValue(value, out)
-    case (ExampleSingleValue(null), out) => // scalastyle:ignore null
-      JsonCodecMaker.make[Option[String]].encodeValue(None, out)
-    case (ExampleSingleValue(value), out) => JsonCodecMaker.make[String].encodeValue(value.toString, out)
+    case (ExampleSingleValue(value: BigInt), out)     => JsonCodecMaker.make[BigInt].encodeValue(value, out)
+    case (ExampleSingleValue(null), out)              => JsonCodecMaker.make[Option[String]].encodeValue(None, out)
+    case (ExampleSingleValue(value), out)             => JsonCodecMaker.make[String].encodeValue(value.toString, out)
   }
   val encodeExampleMultipleValues: JsCodec[ExampleMultipleValue] =
     summonCodec[List[ExampleSingleValue]](JsonCodecMaker.make).map[ExampleMultipleValue](_ => ???) {
       case ExampleMultipleValue(values) => values.map(ExampleSingleValue)
     }
   implicit val encodeExampleValue: JsCodec[ExampleValue] = JsEncoderOnly[ExampleValue] {
-    case (e: ExampleSingleValue, out) => encoderExampleSingleValue.encodeValue(e, out)
+    case (e: ExampleSingleValue, out)   => encoderExampleSingleValue.encodeValue(e, out)
     case (e: ExampleMultipleValue, out) => encodeExampleMultipleValues.encodeValue(e, out)
   }
   implicit val encoderSchemaType: JsCodec[SchemaType] = summonCodec[String](JsonCodecMaker.make).map(_ => ???)(_.value)

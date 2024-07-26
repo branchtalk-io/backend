@@ -6,13 +6,13 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.discussions.events.{ DiscussionsCommandEvent, PostCommandEvent }
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.logging.{ CorrelationID, MDC }
-import io.branchtalk.shared.infrastructure.{ EventBusProducer, NormalizeForUrl, Writes }
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, NormalizeForUrl, Writes }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
 import io.branchtalk.shared.model._
 import io.scalaland.chimney.dsl._
 
 final class PostWritesImpl[F[_]: Sync: MDC](
-  producer:   EventBusProducer[F, DiscussionsCommandEvent],
+  producer:   KafkaEventBus.Producer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
 )(implicit
   uuidGenerator: UUID.Generator

@@ -6,15 +6,12 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.string.MatchesRegex
 import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.ADT
-import io.branchtalk.api.JsoniterSupport._
-import io.branchtalk.api.TapirSupport._
+import io.branchtalk.api.JsoniterSupport.*
+import io.branchtalk.api.TapirSupport.*
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
-import io.scalaland.catnip.Semi
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
 
-@SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object ChannelModels {
 
   // properties codecs
@@ -34,45 +31,48 @@ object ChannelModels {
   implicit val channelDescriptionSchema: JsSchema[Channel.Description] =
     summonSchema[NonEmptyString].asNewtypeSchema[Channel.Description]
 
-  @Semi(JsCodec, JsSchema) sealed trait ChannelError extends ADT
+  sealed trait ChannelError derives JsCodec, JsSchema
   object ChannelError {
 
-    @Semi(JsCodec, JsSchema) final case class BadCredentials(msg: String) extends ChannelError
-    @Semi(JsCodec, JsSchema) final case class NoPermission(msg: String) extends ChannelError
-    @Semi(JsCodec, JsSchema) final case class NotFound(msg: String) extends ChannelError
-    @Semi(JsCodec, JsSchema) final case class ValidationFailed(error: NonEmptyList[String]) extends ChannelError
+    final case class BadCredentials(msg: String) extends ChannelError derives JsCodec, JsSchema
+    final case class NoPermission(msg: String) extends ChannelError derives JsCodec, JsSchema
+    final case class NotFound(msg: String) extends ChannelError derives JsCodec, JsSchema
+    final case class ValidationFailed(error: NonEmptyList[String]) extends ChannelError derives JsCodec, JsSchema
   }
 
-  @Semi(JsCodec, JsSchema) final case class APIChannel(
+  final case class APIChannel(
     id:          ID[Channel],
     urlName:     Channel.UrlName,
     name:        Channel.Name,
     description: Option[Channel.Description]
-  )
+  ) derives JsCodec,
+        JsSchema
   object APIChannel {
 
     def fromDomain(channel: Channel): APIChannel =
       channel.data.into[APIChannel].withFieldConst(_.id, channel.id).transform
   }
 
-  @Semi(JsCodec, JsSchema) final case class CreateChannelRequest(
+  final case class CreateChannelRequest(
     urlName:     Channel.UrlName,
     name:        Channel.Name,
     description: Option[Channel.Description]
-  )
+  ) derives JsCodec,
+        JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class CreateChannelResponse(id: ID[Channel])
+  final case class CreateChannelResponse(id: ID[Channel]) derives JsCodec, JsSchema
 
   // TODO: unify behavior (Channel sets UrlName while Post generates it)
-  @Semi(JsCodec, JsSchema) final case class UpdateChannelRequest(
+  final case class UpdateChannelRequest(
     newUrlName:     Updatable[Channel.UrlName],
     newName:        Updatable[Channel.Name],
     newDescription: OptionUpdatable[Channel.Description]
-  )
+  ) derives JsCodec,
+        JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class UpdateChannelResponse(id: ID[Channel])
+  final case class UpdateChannelResponse(id: ID[Channel]) derives JsCodec, JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class DeleteChannelResponse(id: ID[Channel])
+  final case class DeleteChannelResponse(id: ID[Channel]) derives JsCodec, JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class RestoreChannelResponse(id: ID[Channel])
+  final case class RestoreChannelResponse(id: ID[Channel]) derives JsCodec, JsSchema
 }

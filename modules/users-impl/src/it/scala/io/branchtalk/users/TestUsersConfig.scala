@@ -9,15 +9,14 @@ import io.branchtalk.shared.infrastructure.{
   TestPostgresConfig,
   TestResources
 }
-import io.scalaland.catnip.Semi
 import pureconfig.{ ConfigReader, ConfigSource }
 
-@Semi(ConfigReader) final case class TestUsersConfig(
+final case class TestUsersConfig(
   database:          TestPostgresConfig,
   publishedEventBus: TestKafkaEventBusConfig,
   internalEventBus:  TestKafkaEventBusConfig,
   consumers:         Map[String, KafkaEventConsumerConfig]
-)
+) derives ConfigReader
 object TestUsersConfig {
 
   def load[F[_]: Sync]: Resource[F, TestUsersConfig] =

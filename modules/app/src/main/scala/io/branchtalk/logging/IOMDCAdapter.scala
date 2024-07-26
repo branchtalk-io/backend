@@ -38,7 +38,7 @@ object IOMDCAdapter {
         classOf[org.slf4j.MDC]
           .getDeclaredField("mdcAdapter")
           .tap(_.setAccessible(true))
-          .set(null, new IOMDCAdapter(local)) // scalastyle:ignore null
+          .set(null, new IOMDCAdapter(local))
       }
     } yield new IOMDC(local)
 }

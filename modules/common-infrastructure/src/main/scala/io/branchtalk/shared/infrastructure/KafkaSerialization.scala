@@ -8,9 +8,9 @@ import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
 
 object KafkaSerialization {
 
-  implicit def kafkaSerializer[F[_]: Sync, A: Encoder]: Serializer[F, A] =
+  given [F[_]: Sync, A: Encoder: SchemaFor]: Serializer[F, A] =
     Serializer.lift[F, A](AvroSerialization.serialize(_))
 
-  implicit def kafkaDeserializer[F[_]: Sync, A: Decoder: SchemaFor]: SafeDeserializer[F, A] =
+  given [F[_]: Sync, A: Decoder: SchemaFor]: SafeDeserializer[F, A] =
     Deserializer.lift[F, DeserializationResult[A]](AvroSerialization.deserialize(_))
 }

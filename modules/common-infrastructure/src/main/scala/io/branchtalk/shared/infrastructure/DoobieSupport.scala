@@ -2,11 +2,9 @@ package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ Sync, SyncIO }
 import com.typesafe.scalalogging.Logger
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.{ NonNegative, Positive }
-import io.branchtalk.shared.model._
-import io.estatico.newtype.Coercible
+import io.branchtalk.shared.model.*
 import org.tpolecat.typename.TypeName
+import neotype.*
 
 // Allows `import DoobieSupport._` instead of... a lot of imports.
 // Additionally provides support for a few useful but missing features.
@@ -25,75 +23,66 @@ object DoobieSupport
     with doobie.postgres.syntax.ToPostgresMonadErrorOps
     with doobie.postgres.syntax.ToFragmentOps
     with doobie.postgres.syntax.ToPostgresExplainOps
-    with doobie.refined.Instances // refined types
     with doobie.util.meta.MetaConstructors // Java Time extensions
     with doobie.util.meta.TimeMetaInstances {
 
   // enumeratum automatic support
 
-  implicit def enumeratumMeta[A <: enumeratum.EnumEntry](implicit
-    `enum`:  enumeratum.Enum[A],
-    typeTag: TypeName[A]
-  ): Meta[A] =
-    Meta[String].timap(`enum`.withNameInsensitive)(_.entryName)
+  export enumeratum.Doobie.meta as enumeraturmMeta
 
   // newtype automatic support
 
-  implicit def coercibleMeta[R, N](implicit ev: Coercible[Meta[R], Meta[N]], R: Meta[R]): Meta[N] = ev(R)
+  export neotype.interop.doobie.{
+    newtypeArrayGet,
+    newtypeArrayPut,
+    newtypeGet,
+    newtypePut,
+    subtypeArrayGet,
+    subtypeArrayPut,
+    subtypeGet,
+    subtypePut
+  }
 
-  implicit def idArrayMeta[E](implicit
-    to:   Coercible[Set[UUID], Set[ID[E]]],
-    from: Coercible[Set[ID[E]], Set[UUID]]
-  ): Meta[Set[ID[E]]] =
-    unliftedUUIDArrayType.imap[Set[ID[E]]](arr => to(arr.toSet))(set => from(set).toArray)
+  given [E]: Meta[Set[ID[E]]] =
+    ID.unsafeMakeF[[A] =>> Meta[Set[A]], E](unliftedUUIDArrayType.imap[Set[UUID]](_.toSet)(_.toArray))
 
   // handle updateable
 
-  implicit class DoobieUpdatableOps[A](private val updatable: Updatable[A]) extends AnyVal {
-
-    def toUpdateFragment(columnName: Fragment)(implicit meta: Put[A]): Option[Fragment] =
+  extension [A](updatable: Updatable[A])
+    def toUpdateFragment(columnName: Fragment)(using Put[A]): Option[Fragment] =
       updatable.fold(value => (columnName ++ fr" = ${value}").some, none[Fragment])
-  }
 
-  implicit class DoobieOptionUpdatableOps[A](private val updatable: OptionUpdatable[A]) extends AnyVal {
-
-    def toUpdateFragment(columnName: Fragment)(implicit meta: Put[A]): Option[Fragment] =
+  extension [A](updatable: OptionUpdatable[A])
+    def toUpdateFragment(columnName: Fragment)(using Put[A]): Option[Fragment] =
       updatable.fold(value => (columnName ++ fr"= ${value}").some, (columnName ++ fr"= null").some, none[Fragment])
-  }
 
-  implicit class FragmentOps(private val fragment: Fragment) extends AnyVal {
-
-    def exists(implicit logHandler: LogHandler): ConnectionIO[Boolean] =
+  extension (fragment: Fragment)
+    def exists: ConnectionIO[Boolean] =
       (fr"SELECT EXISTS(" ++ fragment ++ fr")").query[Boolean].unique
 
-    def paginate[Entity: Read](offset: Long Refined NonNegative, limit: Int Refined Positive)(implicit
-      logHandler: LogHandler
-    ): ConnectionIO[Paginated[Entity]] = {
-      val o = offset.value
-      val l = limit.value
+    def paginate[Entity: Read](offset: Paginated.Offset, limit: Paginated.Limit): ConnectionIO[Paginated[Entity]] = {
+      val o: Long = offset.unwrap
+      val l: Int  = limit.unwrap
       // limit 1 entity more than returned to check if there is a next page in pagination
       (fragment ++ fr"LIMIT ${l + 1} OFFSET ${o}").query[Entity].to[List].map { entities =>
         val result = entities.take(l)
         val nextOffset =
-          if (entities.sizeCompare(l) <= 0) None
-          else ParseNewtype[SyncIO].parse[NonNegative](o + l).attempt.unsafeRunSync().toOption
+          if (entities.sizeIs <= l) None
+          else ParseNewtype[SyncIO].parse[Paginated.Offset](o + l).attempt.unsafeRunSync().toOption
         Paginated(result, nextOffset)
       }
     }
-  }
 
   // handle errors
 
-  implicit class QueryOps[A](private val query: Query0[A]) extends AnyVal {
-
-    def failNotFound(entity: String, id: ID[_])(implicit codePosition: CodePosition): ConnectionIO[A] =
-      query.unique.handleErrorWith { _ =>
-        Sync[ConnectionIO].raiseError(CommonError.NotFound(entity, id, codePosition))
-      }
-  }
+  extension [A](query: Query0[A])
+    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+    def failNotFound[Entity](entity: String, id: ID[Entity])(using CodePosition): ConnectionIO[A] =
+      query.unique.orRaise(CommonError.notFound(entity, id.asInstanceOf[ID[Any]]))
 
   // log results
 
+  /*
   def doobieLogger(clazz: Class[_]): LogHandler = {
     val logger = Logger(clazz)
     LogHandler {
@@ -127,4 +116,5 @@ object DoobieSupport
         )
     }
   }
+   */
 }

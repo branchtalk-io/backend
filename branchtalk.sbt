@@ -89,7 +89,7 @@ val commonInfrastructure = project
       Dependencies.doobie,
       Dependencies.doobieHikari,
       Dependencies.doobiePostgres,
-      Dependencies.doobieRefined,
+      Dependencies.enumeratumDoobie,
       Dependencies.flyway,
       Dependencies.fs2,
       Dependencies.fs2IO,
@@ -121,7 +121,6 @@ val commonApi = crossProject(JVMPlatform, JSPlatform)
       Dependencies.neotypeJsoniter,
       Dependencies.tapir,
       Dependencies.tapirJsoniter,
-      Dependencies.tapirRefined,
     ),
     customPredef("scala.util.chaining", "cats.implicits")
   )

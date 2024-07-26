@@ -5,7 +5,7 @@ import cats.effect.{ Async, Resource }
 import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites, TestDiscussionsConfig }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.model.UUID.Generator
+import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.{ TestUsersConfig, UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 
@@ -24,7 +24,7 @@ object TestDependencies {
     uuidGenerator: UUID.Generator
   ): Resource[F, TestDependencies[F]] =
     for {
-      implicit0(dispatcher: Dispatcher[F]) <- Dispatcher[F]
+      given Dispatcher[F] <- Dispatcher.parallel[F]
       usersConfig <- TestUsersConfig.loadDomainConfig[F]
       usersReads <- UsersModule.reads[F](usersConfig, registry)
       usersWrites <- UsersModule.writes[F](usersConfig, registry)

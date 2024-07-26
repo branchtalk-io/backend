@@ -1,15 +1,15 @@
 package io.branchtalk.discussions.model
 
-import io.scalaland.catnip.Semi
-import io.branchtalk.shared.model._
+import io.branchtalk.shared.model.*
 
-@Semi(FastEq, ShowPretty) final case class Comment(
+final case class Comment(
   id:   ID[Comment],
   data: Comment.Data
-)
-object Comment extends CommentProperties with CommentCommands {
+) derives FastEq,
+      ShowPretty
+object Comment {
 
-  @Semi(FastEq, ShowPretty) final case class Data(
+  final case class Data(
     authorID:           ID[User],
     channelID:          ID[Channel],
     postID:             ID[Post],
@@ -23,5 +23,19 @@ object Comment extends CommentProperties with CommentCommands {
     downvores:          Comment.Downvotes,
     totalScore:         Comment.TotalScore,
     controversialScore: Comment.ControversialScore
-  )
+  ) derives FastEq,
+        ShowPretty
+
+  export CommentCommands.{ Create, Delete, Downvote, Restore, RevokeVote, Update, Upvote }
+
+  export CommentProperties.{
+    Content,
+    ControversialScore,
+    Downvotes,
+    NestingLevel,
+    RepliesNr,
+    Sorting,
+    TotalScore,
+    Upvotes
+  }
 }

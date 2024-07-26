@@ -3,14 +3,14 @@ package io.branchtalk.users.writes
 import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, Writes }
 import io.branchtalk.shared.model.{ CreationTime, ModificationTime, UUID.Generator }
 import io.branchtalk.users.events.{ BanCommandEvent, UsersCommandEvent }
 import io.branchtalk.users.model.{ Ban, User }
 import io.scalaland.chimney.dsl._
 
 final class BanWritesImpl[F[_]: Sync: MDC](
-  producer:   EventBusProducer[F, UsersCommandEvent],
+  producer:   KafkaEventBus.Producer[F, UsersCommandEvent],
   transactor: Transactor[F]
 )(implicit
   uuidGenerator: UUID.Generator

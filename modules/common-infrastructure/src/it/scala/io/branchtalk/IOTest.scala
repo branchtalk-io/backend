@@ -5,16 +5,15 @@ import cats.effect.unsafe.implicits.global
 import io.branchtalk.logging.MDC
 import io.branchtalk.logging.MDC.Ctx
 import io.branchtalk.shared.model.CodePosition
-import org.specs2.matcher.MatchResult
+import org.specs2.execute.Result
 import org.specs2.specification.core.{ AsExecution, Execution }
-import org.specs2.matcher.Matchers._
-import org.specs2.matcher.MustMatchers.theValue
+import org.specs2.matcher.MustMatchers.{ *, given }
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 trait IOTest {
 
-  val pass: MatchResult[Boolean] = true must beTrue
+  val pass: Result = true must beTrue
 
   // we don't rely on MDC in tests
   implicit protected val noopMDC: MDC[IO] = new MDC[IO] {
@@ -27,8 +26,8 @@ trait IOTest {
 
   implicit class IOTestOps[T](private val io: IO[T]) {
 
-    def eventually(retry: Int = 50, delay: FiniteDuration = 250.millis, timeout: FiniteDuration = 15.seconds)(implicit
-      codePosition:       CodePosition
+    def eventually(retry: Int = 50, delay: FiniteDuration = 250.millis, timeout: FiniteDuration = 15.seconds)(using
+      codePosition: CodePosition
     ): IO[T] = {
       def withRetry(attemptsLeft: Int): PartialFunction[Throwable, IO[T]] = { case cause: Throwable =>
         if (attemptsLeft <= 0)

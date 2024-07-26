@@ -1,21 +1,19 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.data.NonEmptyList
-import eu.timepit.refined.collection.NonEmpty
-import eu.timepit.refined.refineV
-import io.branchtalk.shared.infrastructure.PureconfigSupport._
-import io.scalaland.catnip.Semi
-import io.scalaland.chimney.dsl._
+import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import io.scalaland.chimney.dsl.*
+import neotype.*
 
-@Semi(ConfigReader) final case class TestKafkaEventBusConfig(
+final case class TestKafkaEventBusConfig(
   servers:     NonEmptyList[Server],
-  topicPrefix: Topic,
+  topicPrefix: KafkaEventBus.Topic,
   cache:       Server
-) {
+) derives ConfigReader {
 
-  def topic(generatedSuffix: String): Topic =
-    Topic(refineV[NonEmpty](topicPrefix.nonEmptyString.value + generatedSuffix).getOrElse(???))
+  def topic(generatedSuffix: String): KafkaEventBus.Topic =
+    KafkaEventBus.Topic.unsafeMake(topicPrefix.unwrap + generatedSuffix)
 
-  def toKafkaEventBusConfig(generatedSuffix: String): KafkaEventBusConfig =
-    this.into[KafkaEventBusConfig].withFieldConst(_.topic, topic(generatedSuffix)).transform
+  def toKafkaEventBusConfig(generatedSuffix: String): KafkaEventBus.BusConfig =
+    this.into[KafkaEventBus.BusConfig].withFieldConst(_.topic, topic(generatedSuffix)).transform
 }

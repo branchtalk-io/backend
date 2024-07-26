@@ -1,17 +1,15 @@
 package io.branchtalk.discussions.events
 
-import com.sksamuel.avro4s._
-import io.branchtalk.ADT
+import com.sksamuel.avro4s.*
 import io.branchtalk.discussions.model.{ Channel, Comment, Post, User }
 import io.branchtalk.logging.CorrelationID
-import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport._
-import io.scalaland.catnip.Semi
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.AvroSupport.*
 
-@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait CommentEvent extends ADT
+sealed trait CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 object CommentEvent {
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Created(
+  final case class Created(
     id:            ID[Comment],
     authorID:      ID[User],
     channelID:     ID[Channel],
@@ -20,43 +18,43 @@ object CommentEvent {
     replyTo:       Option[ID[Comment]],
     createdAt:     CreationTime,
     correlationID: CorrelationID
-  ) extends CommentEvent
+  ) extends CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Updated(
+  final case class Updated(
     id:            ID[Comment],
     editorID:      ID[User],
     newContent:    Updatable[Comment.Content],
     modifiedAt:    ModificationTime,
     correlationID: CorrelationID
-  ) extends CommentEvent
+  ) extends CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Deleted(
+  final case class Deleted(
     id:            ID[Comment],
     editorID:      ID[User],
     correlationID: CorrelationID
-  ) extends CommentEvent
+  ) extends CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Restored(
+  final case class Restored(
     id:            ID[Comment],
     editorID:      ID[User],
     correlationID: CorrelationID
-  ) extends CommentEvent
+  ) extends CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Upvoted(
+  final case class Upvoted(
     id:            ID[Comment],
     voterID:       ID[User],
     correlationID: CorrelationID
-  ) extends CommentEvent
+  ) extends CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Downvoted(
+  final case class Downvoted(
     id:            ID[Comment],
     voterID:       ID[User],
     correlationID: CorrelationID
-  ) extends CommentEvent
+  ) extends CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class VoteRevoked(
+  final case class VoteRevoked(
     id:            ID[Comment],
     voterID:       ID[User],
     correlationID: CorrelationID
-  ) extends CommentEvent
+  ) extends CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 }

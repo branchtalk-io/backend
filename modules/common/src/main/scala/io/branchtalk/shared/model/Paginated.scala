@@ -18,4 +18,10 @@ object Paginated {
 
     override def validate(input: Long): Boolean | String = input >= 0L
   }
+
+  type Limit = Limit.Type
+  object Limit extends Newtype[Int] {
+
+    override def validate(input: Int): Boolean | String = input > 0
+  }
 }

@@ -51,8 +51,7 @@ object UsersModule {
 
         wire[UsersReads[F]]
       }
-
-  // scalastyle:off method.length
+  
   def writes[F[_]: Async: Dispatcher: MDC](
     domainConfig:           DomainConfig,
     registry:               CollectorRegistry
@@ -107,7 +106,6 @@ object UsersModule {
             wire[UsersWrites[F]]
         }
     }
-  // scalastyle:on method.length
 
   def listenToUsers[F[_]](domainConfig: DomainConfig)(
     discussionEventConsumer:            ConsumerStream.Factory[F, DiscussionEvent],

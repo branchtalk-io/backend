@@ -1,55 +1,57 @@
 package io.branchtalk.shared.infrastructure
 
+import cats.Show
 import cats.effect.{ Async, Resource, Sync }
 import com.zaxxer.hikari.metrics.{ IMetricsTracker, MetricsTrackerFactory, PoolStats }
 import com.zaxxer.hikari.metrics.prometheus.PrometheusHistogramMetricsTrackerFactory
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 import doobie.hikari.HikariTransactor
 import io.branchtalk.shared.infrastructure.PostgresDatabase.PrefixedMetricsTrackerFactory
+import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import io.branchtalk.shared.model.*
 import io.prometheus.client.{ Collector, CollectorRegistry }
 import org.flywaydb.core.Flyway
+import neotype.*
 
 import scala.util.Random
 
-final class PostgresDatabase(config: PostgresConfig) {
+final class PostgresDatabase(config: PostgresDatabase.Config) {
 
   private val randomPrefixLength = 6
 
   private def flyway[F[_]: Sync] = Sync[F].delay(
     Flyway
       .configure()
-      .dataSource(config.url.nonEmptyString.value,
-                  config.username.nonEmptyString.value,
-                  config.password.nonEmptyString.value
-      )
-      .schemas(config.schema.nonEmptyString.value)
-      .table(s"flyway_${config.domain.nonEmptyString.value}_schema_history")
-      .locations(s"db/${config.domain.nonEmptyString.value}/migrations")
+      .dataSource(config.url.unwrap, config.username.unwrap, config.password.unwrap)
+      .schemas(config.schema.unwrap)
+      .table(s"flyway_${config.domain.unwrap}_schema_history")
+      .locations(s"db/${config.domain.unwrap}/migrations")
       .load()
   )
 
   def transactor[F[_]: Async](registry: CollectorRegistry): Resource[F, HikariTransactor[F]] =
     for {
-      connectEC <- doobie.util.ExecutionContexts.fixedThreadPool[F](config.connectionPool.positiveInt.value)
-      xa <- HikariTransactor.initial[F](connectEC)
+      connectEC <- doobie.util.ExecutionContexts.fixedThreadPool[F](config.connectionPool.unwrap)
+      xa <- HikariTransactor.initial[F](connectEC, logHandler = None) // TODO: logHandler
       _ <- Resource.eval {
         xa.configure { ds =>
           Async[F].delay {
             ds.setMetricsTrackerFactory(
-              new PrefixedMetricsTrackerFactory(config.domain.nonEmptyString.value + "_" + LazyList
-                                                  .continually(Random.nextPrintableChar())
-                                                  .filter(_.isLetter)
-                                                  .take(randomPrefixLength)
-                                                  .mkString,
-                                                registry
+              new PrefixedMetricsTrackerFactory(
+                config.domain.unwrap + "_" + LazyList
+                  .continually(Random.nextPrintableChar())
+                  .filter(_.isLetter)
+                  .take(randomPrefixLength)
+                  .mkString,
+                registry
               )
             )
-            ds.setJdbcUrl(config.url.nonEmptyString.value)
-            ds.setUsername(config.username.nonEmptyString.value)
-            ds.setPassword(config.password.nonEmptyString.value)
+            ds.setJdbcUrl(config.url.unwrap)
+            ds.setUsername(config.username.unwrap)
+            ds.setPassword(config.password.unwrap)
             ds.setMaxLifetime(5 * 60 * 1000)
-            ds.setSchema(config.schema.nonEmptyString.value)
+            ds.setSchema(config.schema.unwrap)
           }
         }
       }
@@ -62,12 +64,99 @@ final class PostgresDatabase(config: PostgresConfig) {
 }
 object PostgresDatabase {
 
+  type URL = URL.Type
+  object URL extends Newtype[String] {
+
+    override def validate(input: String): Boolean | String = input.nonEmpty
+
+    def unapply(url: URL): Some[String] = Some(url.unwrap)
+
+    given ConfigReader[URL] = ConfigReader[String].emapString("URL")(make)
+    given Show[URL]         = unsafeMakeF[Show](Show[String])
+  }
+
+  type Username = Username.Type
+  object Username extends Newtype[String] {
+
+    override def validate(input: String): Boolean | String = input.nonEmpty
+
+    def unapply(username: Username): Some[String] = Some(username.unwrap)
+
+    given ConfigReader[Username] = ConfigReader[String].emapString("Username")(make)
+    given Show[Username]         = unsafeMakeF[Show](Show[String])
+  }
+
+  // not a newtype to override toString
+  final case class Password private (unwrap: String) {
+    override def toString: String = "[PASSWORD]"
+  }
+  object Password {
+    def parse(string: String): Either[String, Password] =
+      if string.nonEmpty then Right(Password(string)) else Left("Password cannot be empty")
+
+    given ConfigReader[Password] = ConfigReader[String].emapString("Password")(parse)
+    given Show[Password]         = _ => "PASSWORD"
+  }
+
+  type Schema = Schema.Type
+  object Schema extends Newtype[String] {
+
+    override def validate(input: String): Boolean | String = input.nonEmpty
+
+    def unapply(domainName: Schema): Some[String] = Some(domainName.unwrap)
+
+    given ConfigReader[Schema] = ConfigReader[String].emapString("Schema")(make)
+    given Show[Schema]         = unsafeMakeF[Show](Show[String])
+  }
+
+  type Domain = Domain.Type
+  object Domain extends Newtype[String] {
+
+    override def validate(input: String): Boolean | String = input.nonEmpty
+
+    def unapply(domain: Domain): Some[String] = Some(domain.unwrap)
+
+    given ConfigReader[Domain] = ConfigReader[String].emapString("Domain")(make)
+    given Show[Domain]         = unsafeMakeF[Show](Show[String])
+  }
+
+  type ConnectionPool = ConnectionPool.Type
+  object ConnectionPool extends Newtype[Int] {
+
+    override def validate(input: Int): Boolean | String = input > 0
+
+    def unapply(connectionPool: ConnectionPool): Some[Int] = Some(connectionPool.unwrap)
+
+    given ConfigReader[ConnectionPool] = ConfigReader[Int].emapString("ConnectionPool")(make)
+    given Show[ConnectionPool]         = unsafeMakeF[Show](Show[Int])
+  }
+
+  type MigrationOnStart = MigrationOnStart.Type
+  object MigrationOnStart extends Newtype[Boolean] {
+
+    def unapply(migrationOnStart: MigrationOnStart): Some[Boolean] = Some(migrationOnStart.unwrap)
+
+    given ConfigReader[MigrationOnStart] = unsafeMakeF[ConfigReader](ConfigReader[Boolean])
+    given Show[MigrationOnStart]         = unsafeMakeF[Show](Show[Boolean])
+  }
+
+  final case class Config(
+    url:              URL,
+    username:         Username,
+    password:         Password,
+    schema:           Schema,
+    domain:           Domain,
+    connectionPool:   ConnectionPool,
+    migrationOnStart: MigrationOnStart
+  ) derives ConfigReader,
+        ShowPretty
+
   // suppress "Collector already registered that provides name: hikaricp_"
-  final class NonComplainingCollectorRegistry(impl: CollectorRegistry) extends CollectorRegistry {
+  final private class NonComplainingCollectorRegistry(impl: CollectorRegistry) extends CollectorRegistry {
     override def register(m: Collector): Unit = try impl.register(m)
     catch { case _: IllegalArgumentException => /* suppressed */ }
     override def unregister(m: Collector): Unit = impl.unregister(m)
-    override def clear(): Unit = impl.clear()
+    override def clear():                  Unit = impl.clear()
     override def metricFamilySamples(): java.util.Enumeration[Collector.MetricFamilySamples] =
       impl.metricFamilySamples()
     override def filteredMetricFamilySamples(

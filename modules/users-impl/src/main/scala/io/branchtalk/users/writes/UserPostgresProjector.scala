@@ -33,8 +33,7 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       logger.error("User event processing failed", error)
       Stream.empty
     }
-
-  // scalastyle:off method.length
+  
   def toCreate(encrypted: UserEvent.Created.Encrypted): F[Option[(UUID, UserEvent.Created.Encrypted)]] =
     withCorrelationID(encrypted.correlationID) {
       findKeys(encrypted.id)
@@ -89,9 +88,7 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         .as((encrypted.id.uuid -> encrypted).some)
         .transact(transactor)
     }
-  // scalastyle:on method.length
-
-  // scalastyle:off method.length
+  
   def toUpdate(encrypted: UserEvent.Updated.Encrypted): F[Option[(UUID, UserEvent.Updated.Encrypted)]] =
     withCorrelationID(encrypted.correlationID) {
       findKeys(encrypted.id)
@@ -148,7 +145,6 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         )
         .transact(transactor)
     }
-  // scalastyle:on method.length
 
   def toDelete(event: UserEvent.Deleted): F[Option[(UUID, UserEvent.Deleted)]] =
     withCorrelationID(event.correlationID) {

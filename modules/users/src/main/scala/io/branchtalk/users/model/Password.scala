@@ -12,11 +12,11 @@ import io.branchtalk.shared.model._
 import io.estatico.newtype.macros.newtype
 import io.scalaland.catnip.Semi
 
-@Semi(FastEq, ShowPretty) final case class Password(
+final case class Password(
   algorithm: Password.Algorithm,
   hash:      Password.Hash,
   salt:      Password.Salt
-) {
+) derives FastEq, ShowPretty{
 
   def update(raw: Password.Raw): Password = copy(hash = algorithm.hashRaw(raw, salt))
   def verify(raw: Password.Raw): Boolean  = algorithm.verify(raw, salt, hash)
@@ -34,7 +34,7 @@ import io.scalaland.catnip.Semi
 }
 object Password {
 
-  @Semi(FastEq, ShowPretty) sealed trait Algorithm extends EnumEntry with Hyphencase {
+  sealed trait Algorithm extends EnumEntry with Hyphencase derives FastEq, ShowPretty {
 
     def createSalt: Password.Salt
     def hashRaw(raw: Password.Raw, salt: Password.Salt): Password.Hash
