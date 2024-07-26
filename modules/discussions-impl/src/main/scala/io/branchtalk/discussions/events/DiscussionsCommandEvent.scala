@@ -1,12 +1,11 @@
 package io.branchtalk.discussions.events
 
 import com.sksamuel.avro4s._
-import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
 import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport._
+import io.branchtalk.shared.model.AvroSupport.*
 
-@Semi(Decoder, Encoder, ShowPretty, SchemaFor) sealed trait DiscussionsCommandEvent extends ADT
+sealed trait DiscussionsCommandEvent derives Decoder, Encoder, ShowPretty, SchemaFor
 object DiscussionsCommandEvent {
   final case class ForChannel(channel: ChannelCommandEvent) extends DiscussionsCommandEvent
   final case class ForComment(comment: CommentCommandEvent) extends DiscussionsCommandEvent

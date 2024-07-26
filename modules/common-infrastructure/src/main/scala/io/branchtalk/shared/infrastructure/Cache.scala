@@ -8,8 +8,10 @@ import dev.profunktor.redis4cats.effect.Log
 import dev.profunktor.redis4cats.{ Redis, RedisCommands }
 import fs2.kafka.{ Headers, Serializer }
 import fs2.{ Pipe, Stream }
-import io.branchtalk.shared.model.{ Logger, branchtalkCharset }
+import io.branchtalk.logging.Logger
+import io.branchtalk.shared.model.branchtalkCharset
 import io.lettuce.core.codec.{ RedisCodec => JRedisCodec }
+import neotype.*
 
 import scala.util.control.NoStackTrace
 
@@ -18,11 +20,10 @@ abstract class Cache[F[_]: Sync, K, V] {
 
   def apply(key: K)(value: F[V]): F[(K, V)]
 
-  final private case object EmptyStream extends Exception with NoStackTrace
+  private case object EmptyStream extends Exception with NoStackTrace
 
-  @SuppressWarnings(Array("org.wartremover.warts.Throw")) // will be handled just after use
   private def unliftPipe[I](pipe: Pipe[F, I, V]): I => F[V] =
-    i => Stream(i).through(pipe).compile.last.map(_.getOrElse(throw EmptyStream))
+    i => Stream(i).through(pipe).compile.last.flatMap(_.fold((EmptyStream: Throwable).raiseError[F, V])(_.pure[F]))
 
   def piped[I](key: I => K, pipe: Pipe[F, I, V]): Pipe[F, I, V] =
     (_: Stream[F, I]).flatMap(i => Stream.eval(apply(key(i))(unliftPipe(pipe)(i)))).map(_._2).handleErrorWith {
@@ -32,7 +33,7 @@ abstract class Cache[F[_]: Sync, K, V] {
 }
 object Cache {
 
-  def fromRedis[F[_]: Sync, K, V](redis: RedisCommands[F, K, V]): Cache[F, K, V] = new Cache[F, K, V] {
+  def fromRedis[F[_]: Sync, K, V](redis: RedisCommands[F, K, V]): Cache[F, K, V] = new {
 
     override def apply(key: K)(valueF: F[V]): F[(K, V)] = redis.get(key).flatMap {
       case Some(value) => (key -> value).pure[F]
@@ -41,23 +42,20 @@ object Cache {
   }
 
   def fromConfigs[F[_]: Async: Dispatcher, Event: Serializer[F, *]: SafeDeserializer[F, *]](
-    busConfig: KafkaEventBusConfig
+    busConfig: KafkaEventBus.BusConfig
   ): Resource[F, Cache[F, String, Event]] =
     for {
       logger <- Resource.eval(Logger.fromClass[F](classOf[Cache[F, String, Event]]))
-      implicit0(log: Log[F]) = new Log[F] {
+      given Log[F] = new Log[F] {
         override def debug(msg: => String): F[Unit] = logger.debug(msg)
         override def error(msg: => String): F[Unit] = logger.error(msg)
         override def info(msg:  => String): F[Unit] = logger.info(msg)
       }
-      redis <- Redis[F].simple(
-        show"redis://${busConfig.cache.host.value}:${busConfig.cache.port.value}",
-        prepareCodec[F, Event](busConfig.topic.nonEmptyString.value)
-      )
+      redis <- Redis[F].simple(show"redis://${busConfig.cache}", prepareCodec[F, Event](busConfig.topic))
     } yield fromRedis(redis)
 
   private def prepareCodec[F[_]: Sync: Dispatcher, Event: Serializer[F, *]: SafeDeserializer[F, *]](
-    topic: String
+    topic: KafkaEventBus.Topic
   ): RedisCodec[String, Event] = RedisCodec(
     new JRedisCodec[String, Event] {
       override def decodeKey(bytes: ByteBuffer): String = new String(bytes.array(), branchtalkCharset)
@@ -68,21 +66,21 @@ object Cache {
       override def decodeValue(bytes: ByteBuffer): Event =
         if (bytes.hasArray) {
           SafeDeserializer[F, Event]
-            .deserialize(topic, Headers.empty, bytes.array())
+            .deserialize(topic.unwrap, Headers.empty, bytes.array())
             .flatMap {
               case Left(error)  => new Exception(error.toString).raiseError[F, Event]
               case Right(value) => value.pure[F]
             }
-            .pipe(implicitly[Dispatcher[F]].unsafeRunSync(_))
-        } else null.asInstanceOf[Event] // scalastyle:ignore null
+            .pipe(summon[Dispatcher[F]].unsafeRunSync(_))
+        } else null.asInstanceOf[Event]
 
       override def encodeKey(key: String): ByteBuffer = ByteBuffer.wrap(key.getBytes(branchtalkCharset))
 
       override def encodeValue(value: Event): ByteBuffer =
         Serializer[F, Event]
-          .serialize(topic, Headers.empty, value)
+          .serialize(topic.unwrap, Headers.empty, value)
           .map(ByteBuffer.wrap)
-          .pipe(implicitly[Dispatcher[F]].unsafeRunSync(_))
+          .pipe(summon[Dispatcher[F]].unsafeRunSync(_))
     }
   )
 }

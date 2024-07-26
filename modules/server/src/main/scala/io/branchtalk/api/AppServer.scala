@@ -11,7 +11,7 @@ import io.branchtalk.discussions.reads._
 import io.branchtalk.discussions.writes._
 import io.branchtalk.logging.MDC
 import io.branchtalk.openapi.OpenAPIServer
-import io.branchtalk.shared.model.UUID.Generator
+import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.api.{
   ChannelBanServer,
   ChannelModerationServer,
@@ -55,7 +55,7 @@ final class AppServer[F[_]: Async: MDC](
     .withAllowCredentials(apiConfig.http.corsAllowCredentials)
     .withMaxAge(apiConfig.http.corsMaxAge)
 
-  private val logger = io.branchtalk.shared.model.Logger.getLogger[F]
+  private val logger = io.branchtalk.logging.Logger.getLogger[F]
 
   private val logRoutes = Logger[F, F](
     logHeaders = apiConfig.http.logHeaders,
@@ -88,8 +88,7 @@ final class AppServer[F[_]: Async: MDC](
       .pipe(logRoutes)
 }
 object AppServer {
-
-  // scalastyle:off method.length parameter.number
+  
   @nowarn("cat=unused") // macwire
   @SuppressWarnings(Array("org.wartremover.warts.GlobalExecutionContext")) // for BlazeServer
   def asResource[F[_]: Async: MDC](
@@ -110,7 +109,7 @@ object AppServer {
     postWrites:             PostWrites[F],
     channelWrites:          ChannelWrites[F],
     subscriptionWrites:     SubscriptionWrites[F]
-  )(implicit uuidGenerator: UUID.Generator): Resource[F, Server] =
+  )(using UUID.Generator): Resource[F, Server] =
     Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
       val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
 
@@ -169,7 +168,7 @@ object AppServer {
 
       val appServer = wire[AppServer[F]]
 
-      val logger = io.branchtalk.shared.model.Logger.getLogger[F]
+      val logger = io.branchtalk.logging.Logger.getLogger[F]
 
       Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
         BlazeServerBuilder[F]
@@ -184,5 +183,4 @@ object AppServer {
             Resource.eval(logger.info(s"API server started at ${server.address.toString}"))
           }
     }
-  // scalastyle:on parameter.number method.length
 }

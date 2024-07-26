@@ -9,24 +9,6 @@ import io.branchtalk.shared.model._
 import io.estatico.newtype.macros.newtype
 import io.estatico.newtype.ops._
 
-trait CommentProperties { self: Comment.type =>
-  type Content            = CommentProperties.Content
-  type NestingLevel       = CommentProperties.NestingLevel
-  type RepliesNr          = CommentProperties.RepliesNr
-  type Upvotes            = CommentProperties.Upvotes
-  type Downvotes          = CommentProperties.Downvotes
-  type TotalScore         = CommentProperties.TotalScore
-  type ControversialScore = CommentProperties.ControversialScore
-  type Sorting            = CommentProperties.Sorting
-  val Content            = CommentProperties.Content
-  val NestingLevel       = CommentProperties.NestingLevel
-  val RepliesNr          = CommentProperties.RepliesNr
-  val Upvotes            = CommentProperties.Upvotes
-  val Downvotes          = CommentProperties.Downvotes
-  val TotalScore         = CommentProperties.TotalScore
-  val ControversialScore = CommentProperties.ControversialScore
-  val Sorting            = CommentProperties.Sorting
-}
 object CommentProperties {
 
   @newtype final case class Content(string: String)

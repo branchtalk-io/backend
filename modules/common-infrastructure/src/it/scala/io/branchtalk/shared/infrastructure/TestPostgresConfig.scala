@@ -1,30 +1,28 @@
 package io.branchtalk.shared.infrastructure
 
-import eu.timepit.refined.collection.NonEmpty
-import eu.timepit.refined.refineV
-import io.scalaland.catnip.Semi
-import io.scalaland.chimney.dsl._
-import pureconfig.ConfigReader
+import io.scalaland.chimney.dsl.*
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
+import neotype.*
 
-@Semi(ConfigReader) final case class TestPostgresConfig(
-  url:            DatabaseURL,
-  rootPassword:   DatabasePassword,
-  usernamePrefix: DatabaseUsername,
-  password:       DatabasePassword,
-  schemaPrefix:   DatabaseSchema,
-  domain:         DatabaseDomain,
-  connectionPool: DatabaseConnectionPool
-) {
+final case class TestPostgresConfig(
+  url:            PostgresDatabase.URL,
+  rootPassword:   PostgresDatabase.Password,
+  usernamePrefix: PostgresDatabase.Username,
+  password:       PostgresDatabase.Password,
+  schemaPrefix:   PostgresDatabase.Schema,
+  domain:         PostgresDatabase.Domain,
+  connectionPool: PostgresDatabase.ConnectionPool
+) derives ConfigReader {
 
-  def username(generatedSuffix: String): DatabaseUsername =
-    DatabaseUsername(refineV[NonEmpty](usernamePrefix.nonEmptyString.value + generatedSuffix).getOrElse(???))
-  def schema(generatedSuffix: String): DatabaseSchema =
-    DatabaseSchema(refineV[NonEmpty](schemaPrefix.nonEmptyString.value + generatedSuffix).getOrElse(???))
-  def migrationOnStart: DatabaseMigrationOnStart = DatabaseMigrationOnStart(true)
+  def username(generatedSuffix: String): PostgresDatabase.Username =
+    PostgresDatabase.Username.unsafeMake(usernamePrefix.unwrap + generatedSuffix)
+  def schema(generatedSuffix: String): PostgresDatabase.Schema =
+    PostgresDatabase.Schema.unsafeMake(schemaPrefix.unwrap + generatedSuffix)
+  def migrationOnStart: PostgresDatabase.MigrationOnStart = PostgresDatabase.MigrationOnStart(true)
 
-  def toPostgresConfig(generatedSuffix: String): PostgresConfig =
+  def toPostgresConfig(generatedSuffix: String): PostgresDatabase.Config =
     this
-      .into[PostgresConfig]
+      .into[PostgresDatabase.Config]
       .withFieldConst(_.username, username(generatedSuffix))
       .withFieldConst(_.schema, schema(generatedSuffix))
       .withFieldConst(_.migrationOnStart, migrationOnStart)

@@ -25,8 +25,7 @@ object AppArguments {
   }
 
   final case class NoConfig(help: Help) extends Exception {
-
-    // scalastyle:off regex
+    
     def printHelp(config: Config): ExitCode = {
       println(help.toString())
       println(additionalInfo(config))
@@ -38,7 +37,6 @@ object AppArguments {
       println(help.errors.map("  " + _).intercalate("\n"))
       ExitCode.Error
     }
-    // scalastyle:on regex
   }
 
   private val help: Opts[Nothing] =

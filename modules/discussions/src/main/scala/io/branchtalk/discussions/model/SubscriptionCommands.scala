@@ -1,7 +1,6 @@
 package io.branchtalk.discussions.model
 
 import io.branchtalk.shared.model.{ FastEq, ID, ShowPretty }
-import io.scalaland.catnip.Semi
 
 trait SubscriptionCommands {
   type Subscribe   = SubscriptionCommands.Subscribe
@@ -11,13 +10,13 @@ trait SubscriptionCommands {
 }
 object SubscriptionCommands {
 
-  @Semi(FastEq, ShowPretty) final case class Subscribe(
+  final case class Subscribe(
     subscriberID:  ID[User],
     subscriptions: Set[ID[Channel]]
-  )
+  ) derives FastEq, ShowPretty
 
-  @Semi(FastEq, ShowPretty) final case class Unsubscribe(
+  final case class Unsubscribe(
     subscriberID:  ID[User],
     subscriptions: Set[ID[Channel]]
-  )
+  ) derives FastEq, ShowPretty
 }

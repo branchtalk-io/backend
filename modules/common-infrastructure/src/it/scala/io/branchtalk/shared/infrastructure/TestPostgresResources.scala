@@ -1,27 +1,29 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ Async, Resource }
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import neotype.*
 
 trait TestPostgresResources extends TestResourcesHelpers {
 
-  implicit val logger: DoobieSupport.LogHandler = doobieLogger(getClass)
+  // implicit val logger: DoobieSupport.LogHandler = doobieLogger(getClass)
 
   def postgresConfigResource[F[_]: Async](
     testPostgresConfig: TestPostgresConfig
-  ): Resource[F, PostgresConfig] =
+  ): Resource[F, PostgresDatabase.Config] =
     Resource.eval(generateRandomSuffix[F]).flatMap { randomSuffix =>
       val schemaCreator = Transactor.fromDriverManager[F](
         driver = classOf[org.postgresql.Driver].getName, // driver classname
-        url = testPostgresConfig.url.nonEmptyString.value, // connect URL (driver-specific)
+        url = testPostgresConfig.url.unwrap, // connect URL (driver-specific)
         user = "postgres", // user
-        pass = testPostgresConfig.rootPassword.nonEmptyString.value // password
+        password = testPostgresConfig.rootPassword.unwrap, // password
+        logHandler = None // TODO: logHandler
       )
 
       val cfg      = testPostgresConfig.toPostgresConfig(randomSuffix.toLowerCase)
-      val username = Fragment.const(cfg.username.nonEmptyString.value)
-      val password = Fragment.const(s"""'${cfg.password.nonEmptyString.value}'""")
-      val schema   = Fragment.const(cfg.schema.nonEmptyString.value)
+      val username = Fragment.const(cfg.username.unwrap)
+      val password = Fragment.const(s"""'${cfg.password.unwrap}'""")
+      val schema   = Fragment.const(cfg.schema.unwrap)
 
       val createUser   = (fr"CREATE USER" ++ username ++ fr"WITH PASSWORD" ++ password).update.run
       val createSchema = (fr"CREATE SCHEMA" ++ schema ++ fr"AUTHORIZATION" ++ username).update.run

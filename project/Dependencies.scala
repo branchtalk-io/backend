@@ -41,16 +41,17 @@ object Dependencies {
   ).flatten
 
   // functional libraries
-  val cats       = "org.typelevel" %% "cats-core" % catsVersion
-  val catsFree   = "org.typelevel" %% "cats-free" % catsVersion
-  val catsEffect = "org.typelevel" %% "cats-effect" % catsEffectVersion
-  val alleycats  = "org.typelevel" %% "alleycats-core" % catsVersion
-  val kittens    = "org.typelevel" %% "kittens" % "3.3.0" // https://github.com/typelevel/kittens/releases
-  val catsLaws   = "org.typelevel" %% "cats-laws" % catsVersion
-  val chimney    = "io.scalaland" %% "chimney" % "1.3.0" // https://github.com/scalalandio/chimney/releases
-  val droste     = "io.higherkindness" %% "droste-core" % drosteVersion
-  val enumeratum = "com.beachape" %% "enumeratum" % enumeratumVersion
-  val fastuuid   = "com.eatthepath" % "fast-uuid" % "0.2.0" // https://github.com/jchambers/fast-uuid/releases
+  val cats             = "org.typelevel" %% "cats-core" % catsVersion
+  val catsFree         = "org.typelevel" %% "cats-free" % catsVersion
+  val catsEffect       = "org.typelevel" %% "cats-effect" % catsEffectVersion
+  val alleycats        = "org.typelevel" %% "alleycats-core" % catsVersion
+  val kittens          = "org.typelevel" %% "kittens" % "3.3.0" // https://github.com/typelevel/kittens/releases
+  val catsLaws         = "org.typelevel" %% "cats-laws" % catsVersion
+  val chimney          = "io.scalaland" %% "chimney" % "1.3.0" // https://github.com/scalalandio/chimney/releases
+  val droste           = "io.higherkindness" %% "droste-core" % drosteVersion
+  val enumeratum       = "com.beachape" %% "enumeratum" % enumeratumVersion
+  val enumeratumDoobie = "com.beachape" %% "enumeratum-doobie" % "1.7.6"
+  val fastuuid         = "com.eatthepath" % "fast-uuid" % "0.2.0" // https://github.com/jchambers/fast-uuid/releases
   val uuidGenerator =
     "com.fasterxml.uuid" % "java-uuid-generator" % "5.1.0" // https://github.com/cowtowncoder/java-uuid-generator/releases
   val fs2   = "co.fs2" %% "fs2-core" % fs2Version
@@ -70,7 +71,6 @@ object Dependencies {
   val doobie         = "org.tpolecat" %% "doobie-core" % doobieVersion
   val doobieHikari   = "org.tpolecat" %% "doobie-hikari" % doobieVersion
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
-  val doobieRefined  = "org.tpolecat" %% "doobie-refined" % doobieVersion
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
   val flyway         = "org.flywaydb" % "flyway-core" % "10.16.0" // https://github.com/flyway/flyway/releases
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "3.5.1" // https://github.com/fd4s/fs2-kafka/releases
@@ -87,7 +87,6 @@ object Dependencies {
   val tapir            = "com.softwaremill.sttp.tapir" %% "tapir-core" % tapirVersion
   val tapirHttp4s      = "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % tapirVersion
   val tapirJsoniter    = "com.softwaremill.sttp.tapir" %% "tapir-jsoniter-scala" % tapirVersion
-  val tapirRefined     = "com.softwaremill.sttp.tapir" %% "tapir-refined" % tapirVersion
   val tapirOpenAPI     = "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % tapirVersion
   val tapirSwaggerUI   = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-http4s" % "0.19.0-M4" // tapirVersion
   val tapirSTTP        = "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion
@@ -96,12 +95,12 @@ object Dependencies {
     "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion // % "compile-internal"
   // config
   val decline              = "com.monovore" %% "decline" % declineVersion
-  val scalaConfig          = "com.typesafe" % "config" % "1.4.2" // https://github.com/lightbend/config/releases
+  val scalaConfig          = "com.typesafe" % "config" % "1.4.3" // https://github.com/lightbend/config/releases
   val pureConfig           = "com.github.pureconfig" %% "pureconfig-core" % pureConfigVersion
   val pureConfigCats       = "com.github.pureconfig" %% "pureconfig-cats" % pureConfigVersion
   val pureConfigEnumeratum = "com.github.pureconfig" %% "pureconfig-enumeratum" % pureConfigVersion
   // security
-  val bcrypt = "at.favre.lib" % "bcrypt" % "0.9.0"
+  val bcrypt = "at.favre.lib" % "bcrypt" % "0.10.2"
   // logging
   val log4cats           = "org.typelevel" %% "log4cats-core" % log4catsVersion
   val log4catsSlf4j      = "org.typelevel" %% "log4cats-slf4j" % log4catsVersion
@@ -110,7 +109,7 @@ object Dependencies {
   val logbackJackson     = "ch.qos.logback.contrib" % "logback-jackson" % "0.1.5" // see MVN
   val logbackJsonClassic = "ch.qos.logback.contrib" % "logback-json-classic" % "0.1.5" // see MVN
   val sourcecode         = "com.lihaoyi" %% "sourcecode" % "0.4.2" // https://github.com/lihaoyi/sourcecode/releases
-  val prometheus         = "io.prometheus" % "simpleclient" % "0.16.0" // https://github.com/prometheus/client_java/releases
+  val prometheus = "io.prometheus" % "simpleclient" % "0.16.0" // https://github.com/prometheus/client_java/releases
   // testing
   val jfairy = "com.devskiller" % "jfairy" % "0.6.5" // https://github.com/Devskiller/jfairy/releases
   val guice  = "com.google.inject" % "guice" % "7.0.0" // required by jfairy on JDK 15+

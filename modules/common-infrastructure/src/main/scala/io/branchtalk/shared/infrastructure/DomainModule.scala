@@ -1,42 +1,33 @@
 package io.branchtalk.shared.infrastructure
 
+import cats.Show
 import cats.effect.std.Dispatcher
 import cats.effect.{ Async, Resource }
 import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import doobie.util.transactor.Transactor
-import io.branchtalk.shared.infrastructure.KafkaSerialization._
+import io.branchtalk.shared.infrastructure.KafkaSerialization.{ *, given }
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
+import io.branchtalk.shared.model.ShowPretty
 import io.prometheus.client.CollectorRegistry
+import neotype.*
 
 // Utilities for connecting to database and events buses through Resources.
 
-final case class ReadsInfrastructure[F[_], Event](
-  transactor: Transactor[F],
-  consumer:   KafkaEventConsumerConfig => ConsumerStream[F, Event]
-)
-
-final case class WritesInfrastructure[F[_], Event, InternalEvent](
-  transactor:             Transactor[F],
-  internalProducer:       EventBusProducer[F, InternalEvent],
-  internalConsumerStream: ConsumerStream[F, InternalEvent],
-  producer:               EventBusProducer[F, Event],
-  consumerStream:         ConsumerStream.Factory[F, Event],
-  cache:                  Cache[F, String, Event]
-)
 final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
 
   def setupReads[F[_]: Async](
-    domainConfig: DomainConfig,
+    domainConfig: DomainModule.Config,
     registry:     CollectorRegistry
-  ): Resource[F, ReadsInfrastructure[F, Event]] =
+  ): Resource[F, Reads.Infrastructure[F, Event]] =
     for {
       transactor <- new PostgresDatabase(domainConfig.databaseReads).transactor(registry)
       consumerStreamBuilder = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus)
-    } yield ReadsInfrastructure(transactor, consumerStreamBuilder)
+    } yield Reads.Infrastructure(transactor, consumerStreamBuilder)
 
   def setupWrites[F[_]: Async: Dispatcher](
-    domainConfig: DomainConfig,
+    domainConfig: DomainModule.Config,
     registry:     CollectorRegistry
-  ): Resource[F, WritesInfrastructure[F, Event, InternalEvent]] =
+  ): Resource[F, Writes.Infrastructure[F, Event, InternalEvent]] =
     for {
       transactor <- new PostgresDatabase(domainConfig.databaseWrites).transactor(registry)
       internalProducer       = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
@@ -44,7 +35,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
       producer               = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
       consumerStream         = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus)
       cache <- Cache.fromConfigs[F, Event](domainConfig.internalEventBus)
-    } yield WritesInfrastructure(
+    } yield Writes.Infrastructure(
       transactor,
       internalProducer,
       internalConsumerStream(domainConfig.internalConsumer),
@@ -59,4 +50,29 @@ object DomainModule {
     Event,
     InternalEvent
   ] = new DomainModule[Event, InternalEvent]
+
+  type Name = Name.Type
+  object Name extends Newtype[String] {
+
+    override def validate(input: String): Boolean | String = input.nonEmpty
+
+    def unapply(domainName: Name): Some[String] = Some(domainName.unwrap)
+
+    given ConfigReader[Name] = ConfigReader[String].emapString("Name")(make)
+    given Show[Name]         = unsafeMakeF[Show](Show[String])
+  }
+
+  final case class Config(
+    name:              Name,
+    databaseReads:     PostgresDatabase.Config,
+    databaseWrites:    PostgresDatabase.Config,
+    publishedEventBus: KafkaEventBus.BusConfig,
+    internalEventBus:  KafkaEventBus.BusConfig,
+    consumers:         Map[String, KafkaEventBus.ConsumerConfig]
+  ) derives ConfigReader,
+        ShowPretty {
+
+    // assumes that each config has to have this field
+    def internalConsumer: KafkaEventBus.ConsumerConfig = consumers("internal")
+  }
 }

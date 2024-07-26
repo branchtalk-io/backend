@@ -3,7 +3,7 @@ package io.branchtalk.users.writes
 import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.infrastructure.{ EventBusProducer, Writes }
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, Writes }
 import io.branchtalk.shared.model.{ ID, UUID.Generator }
 import io.branchtalk.users.events.{ SessionEvent, UsersEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions._
@@ -12,7 +12,7 @@ import io.branchtalk.users.reads.SessionReadsImpl
 import io.scalaland.chimney.dsl._
 
 final class SessionWritesImpl[F[_]: Sync: MDC](
-  producer:   EventBusProducer[F, UsersEvent],
+  producer:   KafkaEventBus.Producer[F, UsersEvent],
   transactor: Transactor[F]
 )(implicit
   uuidGenerator: UUID.Generator

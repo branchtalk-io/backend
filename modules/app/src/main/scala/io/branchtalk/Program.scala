@@ -15,7 +15,7 @@ import io.branchtalk.shared.model.{ Logger, UUID.Generator }
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 import org.http4s.metrics.prometheus.Prometheus
-import sun.misc.Signal // scalastyle:ignore illegal.imports
+import sun.misc.Signal
 
 object Program {
 
@@ -69,8 +69,7 @@ object Program {
       runModules[F](appArguments, apiConfig, awaitTerminationSignal[F], UsersModule.listenToUsers[F](usersConfig)) _
     run.tupled(modules)
   }
-
-  // scalastyle:off method.length parameter.number
+  
   def runModules[F[_]: Async: MDC](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
@@ -121,7 +120,6 @@ object Program {
       )
     ).tupled >> logBeforeAfter[F]("Services initialized", "Received exit signal")
   }.use(_ => terminationSignal) // here we are blocking until e.g. user press Ctrl+C
-  // scalastyle:on parameter.number method.length
 
   // kudos to Łukasz Byczyński
   private def awaitTerminationSignal[F[_]: Async]: F[Unit] = {

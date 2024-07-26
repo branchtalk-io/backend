@@ -1,15 +1,14 @@
 package io.branchtalk.discussions.model
 
-import io.scalaland.catnip.Semi
-import io.branchtalk.shared.model._
+import io.branchtalk.shared.model.*
 
-@Semi(FastEq, ShowPretty) final case class Post(
+final case class Post(
   id:   ID[Post],
   data: Post.Data
-)
+) derives FastEq, ShowPretty
 object Post extends PostProperties with PostCommands {
 
-  @Semi(FastEq, ShowPretty) final case class Data(
+  final case class Data(
     authorID:           ID[User],
     channelID:          ID[Channel],
     urlTitle:           Post.UrlTitle,
@@ -22,5 +21,5 @@ object Post extends PostProperties with PostCommands {
     downvotes:          Post.Downvotes,
     totalScore:         Post.TotalScore,
     controversialScore: Post.ControversialScore
-  )
+  ) derives FastEq, ShowPretty
 }

@@ -2,18 +2,19 @@ package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ Resource, Sync }
 import org.apache.kafka.clients.admin.{ AdminClient, AdminClientConfig }
+import neotype.*
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 trait TestKafkaResources extends TestResourcesHelpers {
 
   def kafkaEventBusConfigResource[F[_]: Sync](
     testKafkaEventBusConfig: TestKafkaEventBusConfig
-  ): Resource[F, KafkaEventBusConfig] =
+  ): Resource[F, KafkaEventBus.BusConfig] =
     Resource
       .eval(generateRandomSuffix[F])
       .flatMap(randomSuffix =>
-        Resource.pure[F, KafkaEventBusConfig](testKafkaEventBusConfig.toKafkaEventBusConfig(randomSuffix))
+        Resource.pure[F, KafkaEventBus.BusConfig](testKafkaEventBusConfig.toKafkaEventBusConfig(randomSuffix))
       )
       .flatTap { cfg =>
         Resource.make {
@@ -26,10 +27,12 @@ trait TestKafkaResources extends TestResourcesHelpers {
           }
         } { client =>
           Sync[F].delay {
-            try if (client.listTopics().names().get().asScala.contains(cfg.topic.nonEmptyString.value)) {
-              client.deleteTopics(List(cfg.topic.nonEmptyString.value).asJavaCollection)
-              ()
-            } finally client.close()
+            try
+              if (client.listTopics().names().get().asScala.contains(cfg.topic.unwrap)) {
+                client.deleteTopics(List(cfg.topic.unwrap).asJavaCollection)
+                ()
+              }
+            finally client.close()
           }
         }
       }

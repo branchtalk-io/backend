@@ -1,16 +1,36 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.Show
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.Positive
-import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.shared.infrastructure.PureconfigSupport._
-import io.scalaland.catnip.Semi
+import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import neotype.*
 
-@Semi(ConfigReader) final case class Server(
-  host: NonEmptyString,
-  port: Int Refined Positive
-)
+final case class Server(
+  host: Server.Host,
+  port: Server.Port
+) derives ConfigReader
 object Server {
-  implicit def show: Show[Server] = (s: Server) => show"${s.host.value}:${s.port.value}"
+
+  type Host = Host.Type
+  object Host extends Newtype[String] {
+
+    override def validate(input: String): Boolean | String = input.nonEmpty
+
+    def unapply(host: Host): Some[String] = Some(host.unwrap)
+
+    given ConfigReader[Host] = ConfigReader[String].emapString("Host")(make)
+    given Show[Host]         = unsafeMakeF[Show](Show[String])
+  }
+
+  type Port = Port.Type
+  object Port extends Newtype[Int] {
+
+    override def validate(input: Int): Boolean | String = input > 0
+
+    def unapply(port: Port): Some[Int] = Some(port.unwrap)
+
+    given ConfigReader[Port] = ConfigReader[Int].emapString("Port")(make)
+    given Show[Port]         = unsafeMakeF[Show](Show[Int])
+  }
+
+  given Show[Server] = (s: Server) => show"${s.host}:${s.port}"
 }

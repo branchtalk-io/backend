@@ -1,8 +1,8 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.effect.Sync
-import doobie._
-import doobie.implicits._
+import doobie.*
+import doobie.implicits.*
 import fs2.Stream
 
 // Utilities for reads services.
@@ -15,4 +15,11 @@ abstract class Reads[F[_]: Sync, Entity](transactor: Transactor[F]) {
   final protected def queryList(query: Query0[Entity]): F[List[Entity]] = query.accumulate[List].transact(transactor)
 
   final protected def queryStream(query: Query0[Entity]): Stream[F, Entity] = query.stream.transact(transactor)
+}
+object Reads {
+
+  final case class Infrastructure[F[_], Event](
+    transactor: Transactor[F],
+    consumer:   KafkaEventBus.ConsumerConfig => ConsumerStream[F, Event]
+  )
 }

@@ -13,7 +13,10 @@ object JsoniterSupport {
   // for shortening
 
   type JsCodec[A] = JsonValueCodec[A]
-  export com.github.plokhotnyuk.jsoniter_scala.macros.ConfiguredJsonValueCodec as DefaultJsCodec
+  export com.github.plokhotnyuk.jsoniter_scala.macros.{
+    CodecMakerConfig as JsCodecConfig,
+    ConfiguredJsonValueCodec as DefaultJsCodec
+  }
 
   // utilities
 
@@ -96,4 +99,8 @@ object JsoniterSupport {
       case head :: tail => NonEmptySet.of(head, tail: _*).asRight[String]
       case _            => "Expected non-empty list".asLeft[NonEmptySet[A]]
     }(_.toList)
+
+  // Neotype
+
+  export neotype.interop.jsoniter.{ newtypeCodec, subtypeCodec }
 }
