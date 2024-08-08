@@ -2,20 +2,16 @@ package io.branchtalk.users.api
 
 import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
 import io.branchtalk.discussions.DiscussionsFixtures
-import io.branchtalk.mappings._
-import io.branchtalk.shared.model._
+import io.branchtalk.mappings.*
+import io.branchtalk.shared.model.*
 import io.branchtalk.users.UsersFixtures
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Permission, RequiredPermissions, User }
 import org.specs2.mutable.Specification
 
-final class UserModerationServerSpec
-    extends Specification
-    with ServerIOTest
-    with UsersFixtures
-    with DiscussionsFixtures {
+final class UserModerationServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
-  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
+  protected given TestUUIDGenerator = new TestUUIDGenerator
 
   "UserModerationServer-provided endpoints" should {
 

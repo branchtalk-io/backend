@@ -1,10 +1,10 @@
 package io.branchtalk.users.api
 
-import io.branchtalk.api._
-import io.branchtalk.api.AuthenticationSupport._
-import io.branchtalk.api.TapirSupport._
+import io.branchtalk.api.*
+import io.branchtalk.api.AuthenticationSupport.{ *, given }
+import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.shared.model.ID
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.Channel
 import sttp.model.StatusCode
 
@@ -21,7 +21,7 @@ object ChannelModerationAPIs {
 
   val paginate: AuthedEndpoint[
     Authentication,
-    (ID[Channel], Option[PaginationOffset], Option[PaginationLimit]),
+    (ID[Channel], Option[Pagination.Offset], Option[Pagination.Limit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -33,12 +33,12 @@ object ChannelModerationAPIs {
     .get
     .securityIn(authHeader)
     .in(prefix)
-    .in(query[Option[PaginationOffset]]("offset"))
-    .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[Pagination.Offset]]("offset"))
+    .in(query[Option[Pagination.Limit]]("limit"))
     .out(jsonBody[Pagination[APIUser]])
     .errorOut(errorMapping)
     .requiringPermissions { case (channelID, _, _) =>
-      RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.uuid)), Permission.Administrate)
+      RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.unwrap)), Permission.Administrate)
     }
 
   val grantChannelModeration: AuthedEndpoint[
@@ -59,7 +59,7 @@ object ChannelModerationAPIs {
     .out(jsonBody[GrantModerationResponse])
     .errorOut(errorMapping)
     .requiringPermissions { case (channelID, _) =>
-      RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.uuid)), Permission.Administrate)
+      RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.unwrap)), Permission.Administrate)
     }
 
   val revokeChannelModeration: AuthedEndpoint[
@@ -80,6 +80,6 @@ object ChannelModerationAPIs {
     .out(jsonBody[RevokeModerationResponse])
     .errorOut(errorMapping)
     .requiringPermissions { case (channelID, _) =>
-      RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.uuid)), Permission.Administrate)
+      RequiredPermissions.anyOf(Permission.ModerateChannel(ChannelID(channelID.unwrap)), Permission.Administrate)
     }
 }

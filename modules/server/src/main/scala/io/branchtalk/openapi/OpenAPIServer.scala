@@ -2,13 +2,13 @@ package io.branchtalk.openapi
 
 import cats.data.NonEmptyList
 import cats.effect.Sync
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import com.github.plokhotnyuk.jsoniter_scala.macros._
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import com.github.plokhotnyuk.jsoniter_scala.macros.*
 import io.branchtalk.api
-import io.branchtalk.api.JsoniterSupport._
+import io.branchtalk.api.JsoniterSupport.*
 import io.branchtalk.configs.APIInfo
 import org.http4s.HttpRoutes
-import monocle.macros.syntax.lens._
+import monocle.macros.syntax.lens.*
 import sttp.apispec.{
   Discriminator,
   ExampleMultipleValue,
@@ -26,8 +26,8 @@ import sttp.apispec.{
   SecurityScheme,
   Tag
 }
-import sttp.apispec.openapi._
-import sttp.tapir.docs.openapi._
+import sttp.apispec.openapi.*
+import sttp.tapir.docs.openapi.*
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.swagger.http4s.SwaggerHttp4s
 
@@ -39,7 +39,7 @@ final class OpenAPIServer[F[_]: Sync](
   endpoints: NonEmptyList[ServerEndpoint[Any, F]]
 ) {
 
-  import OpenAPIServer._
+  import OpenAPIServer.*
 
   private val removedName = classOf[api.RequiredPermissions].getName
   private def fixPathItem(pathItem: PathItem) =

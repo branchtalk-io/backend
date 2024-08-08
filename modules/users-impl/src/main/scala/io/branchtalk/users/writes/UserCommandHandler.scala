@@ -6,7 +6,7 @@ import fs2.Stream
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.events.{ UserCommandEvent, UserEvent, UsersCommandEvent, UsersEvent }
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
 
 final class UserCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEvent, (UUID, UsersEvent)] {
 

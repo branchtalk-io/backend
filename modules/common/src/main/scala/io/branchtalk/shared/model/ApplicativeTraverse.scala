@@ -3,7 +3,7 @@ package io.branchtalk.shared.model
 import cats.{ Applicative, Eval, Traverse }
 
 // because, apparently, you cannot have both at once since both extends Functor
-trait ApplicativeTraverse[F[_]] extends Applicative[F] with Traverse[F]
+trait ApplicativeTraverse[F[_]] extends Applicative[F], Traverse[F]
 object ApplicativeTraverse {
 
   def derived[F[_]: Applicative: Traverse]: ApplicativeTraverse[F] = {

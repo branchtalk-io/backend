@@ -4,7 +4,7 @@ import cats.data.{ Kleisli, OptionT }
 import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.model.UUID.Generator
-import org.http4s._
+import org.http4s.*
 
 final class CorrelationIDOps[F[_]: Sync: MDC](implicit uuidGenerator: UUID.Generator) {
 

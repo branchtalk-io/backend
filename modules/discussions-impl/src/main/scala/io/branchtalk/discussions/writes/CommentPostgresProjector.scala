@@ -6,10 +6,10 @@ import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
 import io.branchtalk.discussions.events.{ CommentEvent, DiscussionEvent }
-import io.branchtalk.discussions.infrastructure.DoobieExtensions._
+import io.branchtalk.discussions.infrastructure.DoobieExtensions.*
 import io.branchtalk.discussions.model.{ Comment, User, Vote }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.{ ID, UUID }
 

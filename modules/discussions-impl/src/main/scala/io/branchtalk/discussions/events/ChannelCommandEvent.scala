@@ -1,12 +1,12 @@
 package io.branchtalk.discussions.events
 
-import com.sksamuel.avro4s._
+import com.sksamuel.avro4s.*
 import io.scalaland.catnip.Semi
 import io.branchtalk.ADT
 import io.branchtalk.discussions.model.{ Channel, User }
 import io.branchtalk.logging.CorrelationID
-import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport._
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.AvroSupport.*
 
 @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait ChannelCommandEvent extends ADT
 object ChannelCommandEvent {

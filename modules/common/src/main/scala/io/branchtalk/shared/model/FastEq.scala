@@ -1,11 +1,11 @@
 package io.branchtalk.shared.model
 
 import cats.Eq
-import magnolia1._
+import magnolia1.*
 
 // Custom implementation of Eq which relies on Magnolia for derivation as opposed to Kittens' version.
 trait FastEq[T] extends Eq[T]
-object FastEq extends Derivation[FastEq] with FastEqLowLevel {
+object FastEq extends Derivation[FastEq], FastEqLowLevel {
 
   def join[T](caseClass: CaseClass[FastEq, T]): FastEq[T] =
     (x, y) => caseClass.parameters.forall(p => p.typeclass.eqv(p.deref(x), p.deref(y)))
@@ -16,6 +16,5 @@ object FastEq extends Derivation[FastEq] with FastEqLowLevel {
 
 trait FastEqLowLevel { self: FastEq.type =>
 
-  implicit def liftEq[T](implicit normalEq: Eq[T]): FastEq[T] =
-    (x: T, y: T) => normalEq.eqv(x, y)
+  given liftEq[T](using normalEq: Eq[T]): FastEq[T] = (x: T, y: T) => normalEq.eqv(x, y)
 }

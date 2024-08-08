@@ -2,24 +2,20 @@ package io.branchtalk.users.api
 
 import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
 import io.branchtalk.discussions.DiscussionsFixtures
-import io.branchtalk.mappings._
-import io.branchtalk.shared.model._
+import io.branchtalk.mappings.*
+import io.branchtalk.shared.model.*
 import io.branchtalk.users.UsersFixtures
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Permission, RequiredPermissions, User }
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
-final class UserServerPaginationSpec
-    extends Specification
-    with ServerIOTest
-    with UsersFixtures
-    with DiscussionsFixtures {
+final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
   // User pagination tests cannot be run in parallel to other User tests (no parent to filter other tests)
   sequential
 
-  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
+  protected given TestUUIDGenerator = new TestUUIDGenerator
 
   "UserServer-provided pagination endpoints" should {
 
@@ -56,12 +52,12 @@ final class UserServerPaginationSpec
           response1 <- UserAPIs.paginate.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             None,
-            PaginationLimit(5).some
+            Pagination.Limit(5).some
           )
           response2 <- UserAPIs.paginate.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
-            PaginationOffset(5L).some,
-            PaginationLimit(5).some
+            Pagination.Offset(5L).some,
+            Pagination.Limit(5).some
           )
         } yield {
           // then
@@ -115,12 +111,12 @@ final class UserServerPaginationSpec
           response1 <- UserAPIs.newest.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             None,
-            PaginationLimit(5).some
+            Pagination.Limit(5).some
           )
           response2 <- UserAPIs.newest.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
-            PaginationOffset(5L).some,
-            PaginationLimit(5).some
+            Pagination.Offset(5L).some,
+            Pagination.Limit(5).some
           )
         } yield {
           // then

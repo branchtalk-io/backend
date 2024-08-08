@@ -1,20 +1,19 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s._
-import io.branchtalk.ADT
-import io.branchtalk.logging.CorrelationID
-import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport._
+import com.sksamuel.avro4s.*
+import io.branchtalk.logging.*
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.AvroSupport.{ *, given }
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
 import io.branchtalk.users.model.{ Password, Permission, Session, User }
-import io.scalaland.catnip.Semi
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
+import io.scalaland.chimney.partial.syntax.*
 
 // user events doesn't store any data as they can be sensitive data
-@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait UserEvent extends ADT
+sealed trait UserEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 object UserEvent {
 
-  @Semi(FastEq, ShowPretty) final case class Created(
+  final case class Created(
     id:               ID[User],
     sessionID:        ID[Session], // session created by registration
     email:            SensitiveData[User.Email],
@@ -24,7 +23,8 @@ object UserEvent {
     sessionExpiresAt: Session.ExpirationTime,
     createdAt:        CreationTime,
     correlationID:    CorrelationID
-  ) {
+  ) derives FastEq,
+        ShowPretty {
 
     def encrypt(
       algorithm: SensitiveData.Algorithm,
@@ -38,7 +38,7 @@ object UserEvent {
   }
   object Created {
 
-    @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Encrypted(
+    final case class Encrypted(
       id:               ID[User],
       sessionID:        ID[Session], // session created by registration
       email:            SensitiveData.Encrypted[User.Email],
@@ -48,21 +48,23 @@ object UserEvent {
       sessionExpiresAt: Session.ExpirationTime,
       createdAt:        CreationTime,
       correlationID:    CorrelationID
-    ) extends UserEvent {
+    ) extends UserEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor {
 
       def decrypt(
         algorithm: SensitiveData.Algorithm,
         key:       SensitiveData.Key
       ): DeserializationResult[Created] = this
-        .intoF[DeserializationResult, Created]
-        .withFieldComputedF(_.email, _.email.decrypt(algorithm, key))
-        .withFieldComputedF(_.username, _.username.decrypt(algorithm, key))
-        .withFieldComputedF(_.password, _.password.decrypt(algorithm, key))
+        .intoPartial[Created]
+        .withFieldComputedPartial(_.email, _.email.decrypt(algorithm, key).asResult)
+        .withFieldComputedPartial(_.username, _.username.decrypt(algorithm, key).asResult)
+        .withFieldComputedPartial(_.password, _.password.decrypt(algorithm, key).asResult)
         .transform
+        .asEither
+        .leftMap(e => DeserializationError.DecryptionError(this.show, e.asErrorPathMessageStrings.toMap))
     }
   }
 
-  @Semi(FastEq, ShowPretty) final case class Updated(
+  final case class Updated(
     id:                ID[User],
     moderatorID:       Option[ID[User]],
     newUsername:       Updatable[SensitiveData[User.Name]],
@@ -71,7 +73,8 @@ object UserEvent {
     updatePermissions: List[Permission.Update],
     modifiedAt:        ModificationTime,
     correlationID:     CorrelationID
-  ) {
+  ) derives FastEq,
+        ShowPretty {
 
     def encrypt(
       algorithm: SensitiveData.Algorithm,
@@ -84,7 +87,7 @@ object UserEvent {
   }
   object Updated {
 
-    @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Encrypted(
+    final case class Encrypted(
       id:                ID[User],
       moderatorID:       Option[ID[User]],
       newUsername:       Updatable[SensitiveData.Encrypted[User.Name]],
@@ -93,23 +96,25 @@ object UserEvent {
       updatePermissions: List[Permission.Update],
       modifiedAt:        ModificationTime,
       correlationID:     CorrelationID
-    ) extends UserEvent {
+    ) extends UserEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor {
 
       def decrypt(
         algorithm: SensitiveData.Algorithm,
         key:       SensitiveData.Key
       ): DeserializationResult[Updated] = this
-        .intoF[DeserializationResult, Updated]
-        .withFieldComputedF(_.newUsername, _.newUsername.traverse(_.decrypt(algorithm, key)))
-        .withFieldComputedF(_.newPassword, _.newPassword.traverse(_.decrypt(algorithm, key)))
+        .intoPartial[Updated]
+        .withFieldComputedPartial(_.newUsername, _.newUsername.traverse(_.decrypt(algorithm, key)).asResult)
+        .withFieldComputedPartial(_.newPassword, _.newPassword.traverse(_.decrypt(algorithm, key)).asResult)
         .transform
+        .asEither
+        .leftMap(e => DeserializationError.DecryptionError(this.show, e.asErrorPathMessageStrings.toMap))
     }
   }
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Deleted(
+  final case class Deleted(
     id:            ID[User],
     moderatorID:   Option[ID[User]],
     deletedAt:     ModificationTime,
     correlationID: CorrelationID
-  ) extends UserEvent
+  ) extends UserEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 }

@@ -7,9 +7,9 @@ import io.branchtalk.discussions.events.{ DiscussionsCommandEvent, PostCommandEv
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.logging.{ CorrelationID, MDC }
 import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, NormalizeForUrl, Writes }
-import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.model._
-import io.scalaland.chimney.dsl._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.model.*
+import io.scalaland.chimney.dsl.*
 
 final class PostWritesImpl[F[_]: Sync: MDC](
   producer:   KafkaEventBus.Producer[F, DiscussionsCommandEvent],

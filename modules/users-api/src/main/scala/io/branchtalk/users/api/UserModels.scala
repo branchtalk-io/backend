@@ -2,82 +2,54 @@ package io.branchtalk.users.api
 
 import java.time.OffsetDateTime
 import cats.data.NonEmptyList
-import com.github.plokhotnyuk.jsoniter_scala.macros._
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.collection.NonEmpty
-import eu.timepit.refined.refineV
-import eu.timepit.refined.string.MatchesRegex
-import eu.timepit.refined.types.string.NonEmptyString
-import io.branchtalk.ADT
-import io.branchtalk.api.JsoniterSupport._
-import io.branchtalk.api.TapirSupport._
-import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
-import io.branchtalk.users.model.SessionProperties.Usage.Type
-import io.branchtalk.users.model._
-import io.scalaland.catnip.Semi
-import io.scalaland.chimney.dsl._
+import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import io.branchtalk.api.JsoniterSupport.{ *, given }
+import io.branchtalk.api.TapirSupport.{ *, given }
+import io.branchtalk.shared.model.*
+import io.branchtalk.users.model.*
+import io.scalaland.chimney.dsl.*
 import sttp.tapir.Schema
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object UserModels {
 
   // properties codecs
-  implicit val userEmailCodec: JsCodec[User.Email] =
-    summonCodec[String](JsonCodecMaker.make).refine[MatchesRegex["(.+)@(.+)"]].asNewtype[User.Email]
-  implicit val usernameCodec: JsCodec[User.Name] =
-    summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[User.Name]
-  implicit val userDescriptionCodec: JsCodec[User.Description] =
-    summonCodec[String](JsonCodecMaker.make).asNewtypeCodec[User.Description]
-  implicit val passwordRawCodec: JsCodec[Password.Raw] =
-    summonCodec[String](JsonCodecMaker.make)
-      .map[Array[Byte]](_.getBytes)(new String(_)) // I wanted to avoid that but the result is ugly :/
-      .refine[NonEmpty] // I'll try to revisit that someday and e.g. use Base64 here?
-      .asNewtype[Password.Raw]
-  implicit val permissionsCodec: JsCodec[Permissions] =
-    summonCodec[Set[Permission]](JsonCodecMaker.make).asNewtypeCodec[Permissions]
-  implicit val sessionExpirationCodec: JsCodec[Session.ExpirationTime] =
-    summonCodec[OffsetDateTime](JsonCodecMaker.make).asNewtypeCodec[Session.ExpirationTime]
-  implicit val banReasonCodec: JsCodec[Ban.Reason] =
-    summonCodec[String](JsonCodecMaker.make).refine[NonEmpty].asNewtype[Ban.Reason]
+  given JsCodec[User.Email]       = newtypeCodec
+  given JsCodec[User.Name]        = newtypeCodec
+  given JsCodec[User.Description] = newtypeCodec
+  // I wanted to avoid that but the result is ugly :/
+  // I'll try to revisit that someday and e.g. use Base64 here?
+  given JsCodec[Password.Raw] =
+    DefaultJsCodec.derived[String].map[Array[Byte]](_.getBytes)(new String(_)).asNewtypeCodec
+  given JsCodec[Permissions]            = newtypeCodec
+  given JsCodec[Session.ExpirationTime] = newtypeCodec
+  given JsCodec[Ban.Reason]             = newtypeCodec
 
   // properties schemas
-  implicit val userEmailSchema: JsSchema[User.Email] =
-    summonSchema[String Refined MatchesRegex["(.+)@(.+)"]].asNewtypeSchema[User.Email]
-  implicit val usernameSchema: JsSchema[User.Name] =
-    summonSchema[String Refined NonEmpty].asNewtypeSchema[User.Name]
-  implicit val userDescriptionSchema: JsSchema[User.Description] =
-    summonSchema[String].asNewtypeSchema[User.Description]
-  implicit val passwordRawSchema: JsSchema[Password.Raw] =
-    summonSchema[String]
-      .map[Array[Byte] Refined NonEmpty](_.getBytes.pipe(refineV[NonEmpty](_).toOption))(_.value.pipe(new String(_)))
-      .asNewtypeSchema[Password.Raw]
-  implicit val permissionSchema: JsSchema[Permission] =
-    Schema.derived[Permission]
-  implicit val permissionsSchema: JsSchema[Permissions] =
-    summonSchema[Set[Permission]].asNewtypeSchema[Permissions]
-  implicit val sessionExpirationSchema: JsSchema[Session.ExpirationTime] =
-    summonSchema[OffsetDateTime].asNewtypeSchema[Session.ExpirationTime]
-  implicit val banReasonSchema: JsSchema[Ban.Reason] =
-    summonSchema[NonEmptyString].asNewtypeSchema[Ban.Reason]
+  given JsSchema[Permission]  = JsSchema.derived
+  given JsSchema[Permissions] = summonSchema[List[Permission]].as[Set[Permission]].asNewtypeSchema[Permissions]
+  given JsSchema[Password.Raw] =
+    summonSchema[String].map[Array[Byte]](_.getBytes.some)(new String(_)).asNewtypeSchema[Password.Raw]
 
-  @Semi(JsCodec, JsSchema) sealed trait UserError extends ADT
+  sealed trait UserError derives DefaultJsCodec, JsSchema
   object UserError {
 
-    @Semi(JsCodec, JsSchema) final case class BadCredentials(msg: String) extends UserError
-    @Semi(JsCodec, JsSchema) final case class NoPermission(msg: String) extends UserError
-    @Semi(JsCodec, JsSchema) final case class NotFound(msg: String) extends UserError
-    @Semi(JsCodec, JsSchema) final case class ValidationFailed(error: NonEmptyList[String]) extends UserError
+    final case class BadCredentials(msg: String) extends UserError derives DefaultJsCodec, JsSchema
+    final case class NoPermission(msg: String) extends UserError derives DefaultJsCodec, JsSchema
+    final case class NotFound(msg: String) extends UserError derives DefaultJsCodec, JsSchema
+    final case class ValidationFailed(error: NonEmptyList[String]) extends UserError derives DefaultJsCodec, JsSchema
   }
 
-  @Semi(JsCodec, JsSchema) final case class APISession(
+  final case class APISession(
     id:          ID[Session],
     userID:      ID[User],
     sessionType: APISession.SessionType,
     expiresAt:   Session.ExpirationTime
-  )
+  ) derives DefaultJsCodec,
+        JsSchema
   object APISession {
 
-    @Semi(JsCodec, JsSchema) sealed trait SessionType extends ADT
+    sealed trait SessionType derives DefaultJsCodec, JsSchema
     object SessionType {
       case object UserSession extends SessionType
       case object OAuth extends SessionType
@@ -86,8 +58,8 @@ object UserModels {
     def fromDomain(session: Session): APISession = {
       val Session.Usage.Tupled(domainSessionType, _) = session.data.usage
       val sessionType = domainSessionType match {
-        case Type.UserSession => SessionType.UserSession
-        case Type.OAuth       => SessionType.OAuth
+        case Session.Usage.Type.UserSession => SessionType.UserSession
+        case Session.Usage.Type.OAuth       => SessionType.OAuth
       }
       session.data
         .into[APISession]
@@ -97,64 +69,66 @@ object UserModels {
     }
   }
 
-  @Semi(JsCodec, JsSchema) final case class SignUpRequest(
+  final case class SignUpRequest(
     email:       User.Email,
     username:    User.Name,
     description: Option[User.Description],
     password:    Password.Raw
-  )
-  @Semi(JsCodec, JsSchema) final case class SignUpResponse(
+  ) derives DefaultJsCodec,
+        JsSchema
+  final case class SignUpResponse(
     userID:    ID[User],
     sessionID: ID[Session]
-  )
+  ) derives DefaultJsCodec,
+        JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class SignInResponse(
+  final case class SignInResponse(
     userID:    ID[User],
     sessionID: ID[Session],
     expiresAt: Session.ExpirationTime
-  )
+  ) derives DefaultJsCodec,
+        JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class SignOutResponse(
+  final case class SignOutResponse(
     userID:    ID[User],
     sessionID: Option[ID[Session]] // in case user wasn't using sessionID
-  )
+  ) derives DefaultJsCodec,
+        JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class APIUser(
+  final case class APIUser(
     id:          ID[User],
     email:       User.Email,
     username:    User.Name,
     description: Option[User.Description],
     permissions: Permissions
-  )
+  ) derives DefaultJsCodec,
+        JsSchema
   object APIUser {
 
     def fromDomain(user: User): APIUser = user.data.into[APIUser].withFieldConst(_.id, user.id).transform
   }
 
-  @Semi(JsCodec, JsSchema) final case class UpdateUserRequest(
+  final case class UpdateUserRequest(
     newUsername:    Updatable[User.Name],
     newDescription: OptionUpdatable[User.Description],
     newPassword:    Updatable[Password.Raw]
-  )
-  @Semi(JsCodec, JsSchema) final case class UpdateUserResponse(id: ID[User])
+  ) derives DefaultJsCodec,
+        JsSchema
+  final case class UpdateUserResponse(id: ID[User]) derives DefaultJsCodec, JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class DeleteUserResponse(id: ID[User])
+  final case class DeleteUserResponse(id: ID[User]) derives DefaultJsCodec, JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class GrantModerationRequest(id: ID[User])
+  final case class GrantModerationRequest(id: ID[User]) derives DefaultJsCodec, JsSchema
+  final case class GrantModerationResponse(id: ID[User]) derives DefaultJsCodec, JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class GrantModerationResponse(id: ID[User])
+  final case class RevokeModerationRequest(id: ID[User]) derives DefaultJsCodec, JsSchema
+  final case class RevokeModerationResponse(id: ID[User]) derives DefaultJsCodec, JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class RevokeModerationRequest(id: ID[User])
+  final case class BansResponse(bannedIDs: List[ID[User]]) derives DefaultJsCodec, JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class RevokeModerationResponse(id: ID[User])
+  final case class BanOrderRequest(id: ID[User], reason: Ban.Reason) derives DefaultJsCodec, JsSchema
+  final case class BanOrderResponse(id: ID[User]) derives DefaultJsCodec, JsSchema
 
-  @Semi(JsCodec, JsSchema) final case class BansResponse(bannedIDs: List[ID[User]])
-
-  @Semi(JsCodec, JsSchema) final case class BanOrderRequest(id: ID[User], reason: Ban.Reason)
-
-  @Semi(JsCodec, JsSchema) final case class BanOrderResponse(id: ID[User])
-
-  @Semi(JsCodec, JsSchema) final case class BanLiftRequest(id: ID[User])
-
-  @Semi(JsCodec, JsSchema) final case class BanLiftResponse(id: ID[User])
+  final case class BanLiftRequest(id: ID[User]) derives DefaultJsCodec, JsSchema
+  final case class BanLiftResponse(id: ID[User]) derives DefaultJsCodec, JsSchema
 }

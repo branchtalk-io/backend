@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.model
 
 import io.branchtalk.shared.model.{ CreationTime, ID, ModificationTime }
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
 
 final case class PostDao(
   id:                 ID[Post],

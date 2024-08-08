@@ -2,9 +2,9 @@ package io.branchtalk.discussions.events
 
 import com.sksamuel.avro4s.*
 import io.branchtalk.discussions.model.{ Channel, Comment, Post, User }
-import io.branchtalk.logging.CorrelationID
+import io.branchtalk.logging.*
 import io.branchtalk.shared.model.*
-import io.branchtalk.shared.model.AvroSupport.*
+import io.branchtalk.shared.model.AvroSupport.{ *, given }
 
 sealed trait CommentEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 object CommentEvent {

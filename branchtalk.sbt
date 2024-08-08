@@ -1,54 +1,181 @@
-import sbt._
-import Settings._
-import sbtcrossproject.CrossPlugin.autoImport.{ CrossType, crossProject }
+import sbt.*
+import commandmatrix.extra.*
 import com.typesafe.sbt.SbtNativePackager.Docker
+import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
+import sbt.TestFrameworks.Specs2
 
-Global / excludeLintKeys ++= Set(scalacOptions, trapExit)
+Global / excludeLintKeys ++= Set(
+  dockerExposedPorts,
+  dockerUpdateLatest,
+  fork,
+  ideSkipProject,
+  libraryDependencies,
+  packageName,
+  scalacOptions,
+  trapExit
+)
 
-lazy val root = project.root
-  .setName("branchtalk")
-  .setDescription("branchtalk build")
-  .configureRoot
-  .aggregate(
-    commonJVM,
-    commonInfrastructure,
-    commonApiJVM,
-    discussionsJVM,
-    discussionsApiJVM,
-    discussionsImpl,
-    usersJVM,
-    usersApiJVM,
-    usersImpl,
-    server,
-    application
+// Common settings:
+
+val only1VersionInIDE = Seq(
+  MatrixAction.ForPlatform(VirtualAxis.jvm).Configure(_.settings(ideSkipProject := false, bspEnabled := true)),
+  MatrixAction.ForPlatform(VirtualAxis.js).Configure(_.settings(ideSkipProject := true, bspEnabled := false))
+)
+
+val settings = Seq(
+  organization := "io.branchtalk",
+  scalaVersion := Dependencies.scalaVersion,
+  scalacOptions ++= Seq(
+    // standard settings
+    // format: off
+    "-encoding", "UTF-8",
+    "-rewrite",
+    "-source", "3.3-migration",
+    // format: on
+    "-unchecked",
+    "-deprecation",
+    "-explaintypes",
+    "-feature",
+    "-no-indent",
+    // format:off
+    "-Xmax-inlines",
+    "64",
+    // format:on
+    "-Wnonunit-statement",
+    "-Wvalue-discard",
+    // "-Xfatal-warnings",
+    "-Ykind-projector:underscores"
+  ),
+  console / scalacOptions --= Seq(
+    // warnings
+    "-Ywarn-unused",
+    // "-Wunused:imports", // import x.Underlying as X is marked as unused even though it is! probably one of https://github.com/scala/scala3/issues/: #18564, #19252, #19657, #19912
+    "-Wunused:privates",
+    "-Wunused:locals",
+    "-Wunused:explicits",
+    "-Wunused:implicits",
+    "-Wunused:params",
+    "-Wvalue-discard",
+    "-Xfatal-warnings",
+    "-Xcheck-macros",
+    // advanced options
+    "-Xfatal-warnings",
+    // linting
+    "-Xlint"
+  ),
+  Global / cancelable := true,
+  Compile / trapExit := false,
+  Compile / connectInput := true,
+  Compile / outputStrategy := Some(StdoutOutput),
+  libraryDependencies ++= Seq(
+    Dependencies.cats,
+    Dependencies.catsFree,
+    Dependencies.catsEffect,
+    Dependencies.alleycats,
+    Dependencies.kittens,
+    Dependencies.chimney,
+    Dependencies.enumeratum,
+    Dependencies.fastuuid,
+    Dependencies.uuidGenerator,
+    Dependencies.log4cats,
+    Dependencies.log4catsSlf4j,
+    Dependencies.magnolia,
+    Dependencies.monocle,
+    Dependencies.monocleMacro,
+    Dependencies.neotype,
+    Dependencies.scalaLogging,
+    Dependencies.logback
+  ),
+  Compile / scalafmtOnCompile := true,
+  Compile / compile / wartremoverWarnings ++= Warts.allBut(
+    Wart.Any,
+    Wart.DefaultArguments,
+    Wart.ExplicitImplicitTypes,
+    Wart.ImplicitConversion,
+    Wart.ImplicitParameter,
+    Wart.Overloading,
+    Wart.PublicInference,
+    Wart.NonUnitStatements,
+    Wart.Nothing
+  ),
+  // don't publish
+  publish / skip := true,
+  publishArtifact := false
+)
+
+val tests = Seq(
+  libraryDependencies ++= Seq(
+    Dependencies.catsLaws % Test,
+    Dependencies.spec2Core % Test,
+    Dependencies.spec2Scalacheck % Test
   )
-
-lazy val scalaJsArtifacts = project.in(file("scala-js"))
-  .setName("scala-js-artifacts")
-  .setDescription("aggregates all Scala.js modules to publish")
-  .configureRoot
-  .aggregate(
-    commonJS,
-    commonApiJS,
-    discussionsJS,
-    discussionsApiJS,
-    usersJS,
-    usersApiJS
+) ++ inConfig(Test)(
+  Seq(
+    scalafmtOnCompile := true,
+    testFrameworks := Seq(Specs2),
+    libraryDependencies ++= Seq(
+      Dependencies.catsLaws % Test,
+      Dependencies.spec2Core % Test,
+      Dependencies.spec2Scalacheck % Test
+    )
   )
+) ++ inConfig(Test)(scalafmtConfigSettings)
 
-addCommandAlias("fmt", "scalafmt ; Test/scalafmt ; It/scalafmt")
-addCommandAlias("fullTest", "test ; It/test")
-addCommandAlias("fullCoverageTest", "coverage ; test ; It/test ; coverageReport ; coverageAggregate")
+val integrationTests = tests ++ Seq(
+  Test / fork := true
+)
+
+def customPredef(imports: String*): Def.Setting[Task[Seq[String]]] =
+  scalacOptions += s"-Yimports:${(Seq("java.lang", "scala", "scala.Predef") ++ imports).mkString(",")}"
+
+// modules
+
+lazy val root = project
+  .in(file("."))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "branchtalk",
+    description := "branchtalk build"
+  )
+  .settings(settings *)
+  .aggregate(common.projectRefs *)
+/*
+  .aggregate(commonApi.projectRefs *)
+  .aggregate(discussions.projectRefs *)
+  .aggregate(discussionsApi.projectRefs *)
+  .aggregate(users.projectRefs *)
+  .aggregate(usersApi.projectRefs *)
+  .aggregate(commonInfrastructure, usersImpl, server, application)
+ */
+
+//lazy val scalaJsArtifacts = project
+//  .in(file("scala-js"))
+//  .enablePlugins(GitVersioning, GitBranchPrompt)
+//  .settings(
+//    name := "scala-js-artifacts",
+//    description := "aggregates all Scala.js modules to publish"
+//  )
+//  .settings(settings *)
+//  .aggregate(
+//    common.js(Dependencies.scalaVersion),
+//    discussions.js(Dependencies.scalaVersion),
+//    discussionsApi.js(Dependencies.scalaVersion),
+//    users.js(Dependencies.scalaVersion),
+//    usersApi.js(Dependencies.scalaVersion)
+//  )
 
 // commons
 
-val common = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .build
-  .from("common")
-  .setName("common")
-  .setDescription("Common utilities")
-  .configureModule
+val common = projectMatrix
+  .in(file("modules/common"))
+  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "common",
+    description := "Common utilities"
+  )
+  .settings(settings *)
+  .settings(tests *)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.avro4s,
@@ -60,30 +187,16 @@ val common = crossProject(JVMPlatform, JSPlatform)
     ),
     customPredef("scala.util.chaining", "cats.implicits")
   )
-  .settings(
-    Compile / resourceGenerators += task[Seq[File]] {
-      val file = (Compile / resourceManaged).value / "branchtalk-version.conf"
-      IO.write(
-        file,
-        s"""# Populated by the build tool, used by e.g. OpenAPI to display version.
-           |branchtalk-build {
-           |  version = "${version.value}"
-           |  commit  = "${git.gitHeadCommit.value.getOrElse("null")}"
-           |  date    = "${git.gitHeadCommitDate.value.getOrElse("null")}"
-           |}""".stripMargin
-      )
-      Seq(file)
-    }
-  )
-val commonJVM = common.jvm
-val commonJS  = common.js
 
 val commonInfrastructure = project
-  .from("common-infrastructure")
-  .setName("common-infrastructure")
-  .setDescription("Infrastructure-dependent implementations")
-  .configureModule
-  .configureIntegrationTests()
+  .in(file("modules/common-infrastructure"))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "common-infrastructure",
+    description := "Infrastructure-dependent implementations"
+  )
+  .settings(settings *)
+  .settings(integrationTests *)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.doobie,
@@ -101,18 +214,20 @@ val commonInfrastructure = project
       Dependencies.pureConfigEnumeratum,
       Dependencies.redis4cats
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
-  .dependsOn(commonJVM)
+  .dependsOn(common.jvm(Dependencies.scalaVersion))
 
-val commonApi = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .build
-  .from("common-api")
-  .setName("common-api")
-  .setDescription("Infrastructure-dependent implementations")
-  .configureModule
-  .configureTests()
+val commonApi = projectMatrix
+  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .in(file("modules/common-api"))
+  .settings(
+    name := "common-api",
+    description := "Infrastructure-dependent implementations"
+  )
+  .settings(settings *)
+  .settings(tests *)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniter,
@@ -120,157 +235,219 @@ val commonApi = crossProject(JVMPlatform, JSPlatform)
       Dependencies.neotypeTapir,
       Dependencies.neotypeJsoniter,
       Dependencies.tapir,
-      Dependencies.tapirJsoniter,
+      Dependencies.tapirJsoniter
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
   .dependsOn(common)
-val commonApiJVM = commonApi.jvm
-val commonApiJS  = commonApi.js
 
 // discussions
 
-val discussions = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .build
-  .from("discussions")
-  .setName("discussions")
-  .setDescription("Discussions' published language")
-  .configureModule
-  .configureTests()
+val discussions = projectMatrix
+  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .in(file("modules/discussions"))
   .settings(
-    customPredef("scala.util.chaining", "cats.implicits")
+    name := "discussions",
+    description := "Discussions' published language"
+  )
+  .settings(settings)
+  .settings(tests)
+  .settings(
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
   .dependsOn(common)
-val discussionsJVM = discussions.jvm
-val discussionsJS  = discussions.js
 
-val discussionsApi = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .build
-  .from("discussions-api")
-  .setName("discussions-api")
-  .setDescription("Discussions' HTTP API")
-  .configureModule
-  .configureTests()
+val discussionsApi = projectMatrix
+  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .in(file("modules/discussions-api"))
+  .settings(
+    name := "discussions-api",
+    description := "Discussions' HTTP API"
+  )
+  .settings(settings)
+  .settings(tests)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniterMacro
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
   .dependsOn(commonApi, discussions)
-val discussionsApiJVM = discussionsApi.jvm
-val discussionsApiJS  = discussionsApi.js
 
 val discussionsImpl = project
-  .from("discussions-impl")
-  .setName("discussions-impl")
-  .setDescription("Discussions' Reads, Writes and Services' implementations")
-  .configureModule
-  .configureIntegrationTests(requiresFork = true)
+  .in(file("modules/discussions-impl"))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "discussions-impl",
+    description := "Discussions' Reads, Writes and Services' implementations"
+  )
+  .settings(settings)
+  .settings(integrationTests)
   .settings(
     libraryDependencies += Dependencies.macwire,
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
-  .compileAndTestDependsOn(commonInfrastructure)
-  .dependsOn(discussionsJVM, commonJVM % "compile->compile;it->test")
+  .dependsOn(
+    common.jvm(Dependencies.scalaVersion) % s"$Compile->$Compile ; $Test->$Test",
+    commonInfrastructure % s"$Compile->$Compile ; $Test->$Test",
+    discussions.jvm(Dependencies.scalaVersion)
+  )
 
 // users
 
-val users = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .build
-  .from("users")
-  .setName("users")
-  .setDescription("Users' published language")
-  .configureModule
-  .configureTests()
+val users = projectMatrix
+  .in(file("modules/users"))
+  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "users",
+    description := "Users' published language"
+  )
+  .settings(settings)
+  .settings(tests)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.bcrypt
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
   .dependsOn(common)
-val usersJVM = users.jvm
-val usersJS  = users.js
 
-val usersApi = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .build
-  .from("users-api")
-  .setName("users-api")
-  .setDescription("Users' HTTP API")
-  .configureModule
-  .configureTests()
+val usersApi = projectMatrix
+  .in(file("modules/users-api"))
+  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "users-api",
+    description := "Users' HTTP API"
+  )
+  .settings(settings)
+  .settings(tests)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniterMacro
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
   .dependsOn(commonApi, users)
-val usersApiJVM = usersApi.jvm
-val usersApiJS  = usersApi.js
 
 val usersImpl = project
-  .from("users-impl")
-  .setName("users-impl")
-  .setDescription("Users' Reads, Writes and Services' implementations")
-  .configureModule
-  .configureIntegrationTests(requiresFork = true)
+  .in(file("modules/users-impl"))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "users-impl",
+    description := "Users' Reads, Writes and Services' implementations"
+  )
+  .settings(settings)
+  .settings(integrationTests)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniter,
       Dependencies.jsoniterMacro,
       Dependencies.macwire
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
-  .compileAndTestDependsOn(commonInfrastructure)
-  .dependsOn(usersJVM, discussionsJVM, commonJVM % "compile->compile;it->test")
+  .dependsOn(
+    common.jvm(Dependencies.scalaVersion) % s"$Compile->$Compile ; $Test->$Test",
+    commonInfrastructure % s"$Compile->$Compile ; $Test->$Test",
+    discussions.jvm(Dependencies.scalaVersion),
+    users.jvm(Dependencies.scalaVersion)
+  )
 
 // application
 
 val server = project
-  .from("server")
-  .setName("server")
-  .setDescription("Branchtalk backend business logic")
-  .configureModule
-  .configureIntegrationTests(requiresFork = true)
+  .in(file("modules/server"))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "server",
+    description := "Branchtalk backend business logic"
+  )
+  .settings(settings)
+  .settings(integrationTests)
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.decline,
       Dependencies.jsoniterMacro,
-      Dependencies.sttpCats % IntegrationTest,
+      Dependencies.sttpCats % Test,
       Dependencies.http4sBlaze,
       Dependencies.http4sPrometheus,
       Dependencies.tapirHttp4s,
       Dependencies.tapirOpenAPI,
       Dependencies.tapirSwaggerUI,
-      Dependencies.tapirSTTP % IntegrationTest,
+      Dependencies.tapirSTTP % Test,
       Dependencies.macwire
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype"),
+    Compile / resourceGenerators += task[Seq[File]] {
+      val file = (Compile / resourceManaged).value / "branchtalk-version.conf"
+      IO.write(
+        file,
+        s"""# Populated by the build tool, used by e.g. OpenAPI to display version.
+           |branchtalk-build {
+           |  version = "${version.value}"
+           |  commit  = "${git.gitHeadCommit.value.getOrElse("null")}"
+           |  date    = "${git.gitHeadCommitDate.value.getOrElse("null")}"
+           |}""".stripMargin
+      )
+      Seq(file)
+    }
   )
-  .dependsOn(commonInfrastructure, discussionsJVM, usersJVM, discussionsApiJVM, usersApiJVM)
-  .dependsOn(discussionsImpl % "it->it", usersImpl % "it->it")
+  .dependsOn(
+    commonInfrastructure,
+    discussions.jvm(Dependencies.scalaVersion),
+    discussionsApi.jvm(Dependencies.scalaVersion),
+    discussionsImpl % s"$Test->$Test",
+    users.jvm(Dependencies.scalaVersion),
+    usersApi.jvm(Dependencies.scalaVersion),
+    usersImpl % s"$Test->$Test"
+  )
 
 val application = project
-  .from("app")
-  .setName("app")
-  .setDescription("Branchtalk backend application")
-  .configureModule
-  .configureRun("io.branchtalk.Main")
+  .in(file("modules/app"))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
+    name := "app",
+    description := "Branchtalk backend application"
+  )
+  .settings(settings)
+  .settings(
+    Compile / run / mainClass := Some("io.branchtalk.Main"),
+    Compile / run / fork := true,
+    Compile / runMain / fork := true,
     dockerUpdateLatest := true,
     Docker / packageName := "branchtalk-server",
     Docker / dockerExposedPorts := Seq(8080),
     libraryDependencies ++= Seq(
       Dependencies.logbackJackson,
-      Dependencies.logbackJsonClassic,
+      Dependencies.logbackJsonClassic
     ),
-    customPredef("scala.util.chaining", "cats.implicits")
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
+  )
+  .settings(
+    inTask(assembly)(
+      Seq(
+        assemblyJarName := s"${name.value}.jar",
+        assemblyMergeStrategy := {
+          // required for OpenAPIServer to work
+          case PathList("META-INF", "maven", "org.webjars", "swagger-ui", "pom.properties") =>
+            MergeStrategy.singleOrError
+          // conflicts on random crap
+          case "module-info.class" => MergeStrategy.discard
+          // otherwise
+          case strategy => MergeStrategy.defaultMergeStrategy(strategy)
+        },
+        mainClass := Some("io.branchtalk.Main")
+      )
+    )
   )
   .dependsOn(server, discussionsImpl, usersImpl)
+
+// aliases
+
+addCommandAlias("fmt", "scalafmt ; Test/scalafmt")
+addCommandAlias("fullTest", "test")
+addCommandAlias("fullCoverageTest", "coverage ; test ; coverageReport ; coverageAggregate")

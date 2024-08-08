@@ -2,7 +2,7 @@ package io.branchtalk
 
 import cats.{ Functor, Monad }
 import cats.effect.{ Async, ExitCode, Resource, Sync }
-import cats.effect.implicits._
+import cats.effect.implicits.*
 import cats.effect.std.Dispatcher
 import com.typesafe.config.ConfigFactory
 import io.branchtalk.api.AppServer
@@ -69,7 +69,7 @@ object Program {
       runModules[F](appArguments, apiConfig, awaitTerminationSignal[F], UsersModule.listenToUsers[F](usersConfig)) _
     run.tupled(modules)
   }
-  
+
   def runModules[F[_]: Async: MDC](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,

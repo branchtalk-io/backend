@@ -4,7 +4,7 @@ import cats.ApplicativeError
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.{ api, users }
-import io.branchtalk.mappings._
+import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.{ CodePosition, CommonError, ID }
 import io.branchtalk.users.reads.{ BanReads, SessionReads, UserReads }
 

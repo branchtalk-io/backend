@@ -16,12 +16,12 @@ object Paginated {
   type Offset = Offset.Type
   object Offset extends Newtype[Long] {
 
-    override def validate(input: Long): Boolean | String = input >= 0L
+    override inline def validate(input: Long): Boolean = input >= 0L
   }
 
   type Limit = Limit.Type
   object Limit extends Newtype[Int] {
 
-    override def validate(input: Int): Boolean | String = input > 0
+    override inline def validate(input: Int): Boolean = input > 0
   }
 }

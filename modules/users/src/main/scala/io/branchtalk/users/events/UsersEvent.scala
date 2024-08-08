@@ -1,20 +1,24 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s._
-import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport._
-import io.branchtalk.ADT
-import io.scalaland.catnip.Semi
+import com.sksamuel.avro4s.*
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.AvroSupport.{ *, given }
 
-@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait UsersEvent extends ADT
+sealed trait UsersEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 object UsersEvent {
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor)
-  final case class ForUser(user: UserEvent) extends UsersEvent
+  final case class ForUser(
+    user: UserEvent
+  ) extends UsersEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor)
   final case class ForSession(session: SessionEvent) extends UsersEvent
+      derives Decoder,
+        Encoder,
+        FastEq,
+        ShowPretty,
+        SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor)
-  final case class ForBan(ban: BanEvent) extends UsersEvent
+  final case class ForBan(
+    ban: BanEvent
+  ) extends UsersEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 }

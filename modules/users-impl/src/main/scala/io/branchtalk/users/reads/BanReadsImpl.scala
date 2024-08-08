@@ -1,10 +1,10 @@
 package io.branchtalk.users.reads
 
 import cats.effect.Sync
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.infrastructure.DoobieSupport.Fragments.whereAnd
 import io.branchtalk.shared.model.ID
-import io.branchtalk.users.infrastructure.DoobieExtensions._
+import io.branchtalk.users.infrastructure.DoobieExtensions.*
 import io.branchtalk.users.model.{ Ban, BanDao, Channel, User }
 
 final class BanReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends BanReads[F] {

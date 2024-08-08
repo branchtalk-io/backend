@@ -1,8 +1,8 @@
 package io.branchtalk.discussions.events
 
-import com.sksamuel.avro4s._
+import com.sksamuel.avro4s.*
 import io.branchtalk.ADT
-import io.branchtalk.shared.model._
+import io.branchtalk.shared.model.*
 import io.branchtalk.shared.model.AvroSupport.*
 
 sealed trait DiscussionsCommandEvent derives Decoder, Encoder, ShowPretty, SchemaFor

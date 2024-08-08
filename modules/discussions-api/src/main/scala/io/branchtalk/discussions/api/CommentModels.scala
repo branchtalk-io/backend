@@ -1,33 +1,25 @@
 package io.branchtalk.discussions.api
 
 import cats.data.NonEmptyList
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.NonNegative
-import io.branchtalk.ADT
-import io.branchtalk.api.JsoniterSupport.*
-import io.branchtalk.api.TapirSupport.*
+import io.branchtalk.api.JsoniterSupport.{ *, given }
+import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.discussions.model.{ Channel, Comment, Post, User }
 import io.branchtalk.shared.model.{ ID, Updatable }
-import io.scalaland.catnip.Semi
 import io.scalaland.chimney.dsl.*
 
 object CommentModels {
 
   // properties codecs
-  given JsCodec[Comment.Content]   = DefaultJsCodec.derived[String].asNewtypeCodec[Comment.Content]
-  given JsCodec[Comment.RepliesNr] = DefaultJsCodec.derived[Int].asNewtypeCodec[Comment.RepliesNr]
+  given JsCodec[Comment.Content]   = newtypeCodec
+  given JsCodec[Comment.RepliesNr] = newtypeCodec
 
-  // properties schemas
-  given JsSchema[Comment.Content]   = summonSchema[String].asNewtypeSchema[Comment.Content]
-  given JsSchema[Comment.RepliesNr] = summonSchema[Int Refined NonNegative].asNewtypeSchema[Comment.RepliesNr]
-
-  sealed trait CommentError derives JsCodec, JsSchema
+  sealed trait CommentError derives DefaultJsCodec, JsSchema
   object CommentError {
 
-    final case class BadCredentials(msg: String) extends CommentError derives JsCodec, JsSchema
-    final case class NoPermission(msg: String) extends CommentError derives JsCodec, JsSchema
-    final case class NotFound(msg: String) extends CommentError derives JsCodec, JsSchema
-    final case class ValidationFailed(error: NonEmptyList[String]) extends CommentError derives JsCodec, JsSchema
+    final case class BadCredentials(msg: String) extends CommentError derives DefaultJsCodec, JsSchema
+    final case class NoPermission(msg: String) extends CommentError derives DefaultJsCodec, JsSchema
+    final case class NotFound(msg: String) extends CommentError derives DefaultJsCodec, JsSchema
+    final case class ValidationFailed(error: NonEmptyList[String]) extends CommentError derives DefaultJsCodec, JsSchema
   }
 
   final case class APIComment(
@@ -38,7 +30,7 @@ object CommentModels {
     content:   Comment.Content,
     replyTo:   Option[ID[Comment]],
     repliesNr: Comment.RepliesNr
-  ) derives JsCodec,
+  ) derives DefaultJsCodec,
         JsSchema
   object APIComment {
 
@@ -49,19 +41,19 @@ object CommentModels {
   final case class CreateCommentRequest(
     content: Comment.Content,
     replyTo: Option[ID[Comment]]
-  ) derives JsCodec,
+  ) derives DefaultJsCodec,
         JsSchema
 
-  final case class CreateCommentResponse(id: ID[Comment]) derives JsCodec, JsSchema
+  final case class CreateCommentResponse(id: ID[Comment]) derives DefaultJsCodec, JsSchema
 
   final case class UpdateCommentRequest(
     newContent: Updatable[Comment.Content]
-  ) derives JsCodec,
+  ) derives DefaultJsCodec,
         JsSchema
 
-  final case class UpdateCommentResponse(id: ID[Comment]) derives JsCodec, JsSchema
+  final case class UpdateCommentResponse(id: ID[Comment]) derives DefaultJsCodec, JsSchema
 
-  final case class DeleteCommentResponse(id: ID[Comment]) derives JsCodec, JsSchema
+  final case class DeleteCommentResponse(id: ID[Comment]) derives DefaultJsCodec, JsSchema
 
-  final case class RestoreCommentResponse(id: ID[Comment]) derives JsCodec, JsSchema
+  final case class RestoreCommentResponse(id: ID[Comment]) derives DefaultJsCodec, JsSchema
 }

@@ -4,8 +4,8 @@ import cats.effect.Sync
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.infrastructure.DoobieSupport._
-import io.branchtalk.shared.model._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.model.*
 
 final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends ChannelReads[F] {
 

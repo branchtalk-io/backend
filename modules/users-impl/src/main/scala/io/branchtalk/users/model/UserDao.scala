@@ -1,7 +1,7 @@
 package io.branchtalk.users.model
 
 import io.branchtalk.shared.model.{ CreationTime, ID, ModificationTime }
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
 
 final case class UserDao(
   id:                ID[User],

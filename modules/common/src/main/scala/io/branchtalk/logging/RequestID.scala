@@ -1,5 +1,6 @@
 package io.branchtalk.logging
 
+import cats.{ Order, Show }
 import cats.effect.Sync
 import io.branchtalk.shared.model.UUID
 import neotype.*
@@ -18,4 +19,7 @@ object RequestID extends Newtype[String] {
     getCurrent[F].flatMap(_.fold(generate[F])(_.pure[F]))
 
   extension (rid: RequestID) def updateMDC[F[_]: MDC]: F[Unit] = MDC[F].set(key, rid.unwrap)
+
+  given Show[RequestID]  = unsafeMakeF[Show](Show[String])
+  given Order[RequestID] = unsafeMakeF[Order](Order[String])
 }

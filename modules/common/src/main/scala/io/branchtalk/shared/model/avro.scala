@@ -3,11 +3,11 @@ package io.branchtalk.shared.model
 import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 import java.net.URI
 import java.util
-
 import cats.{ Eq, Id, Show }
 import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptyVector }
 import cats.effect.{ Resource, Sync, SyncIO }
 import com.sksamuel.avro4s.*
+import io.scalaland.chimney.partial
 import org.apache.avro.Schema
 import neotype.*
 
@@ -15,19 +15,24 @@ import scala.collection.compat.Factory
 import scala.jdk.CollectionConverters.*
 import scala.util.{ Failure, Success }
 import scala.util.control.NoStackTrace
-
 import org.apache.avro.Schema
 
 import scala.language.implicitConversions
 
 // Missing helpers for serializations and deserialization with some API saner than byte array streams.
-enum DeserializationError extends Throwable with NoStackTrace derives FastEq, ShowPretty {
+enum DeserializationError extends Throwable, NoStackTrace derives FastEq, ShowPretty {
   case DecodingError(badValue: String, error: Throwable)
+  case DecryptionError(badValue: String, errors: Map[String, String])
 }
 object DeserializationError {
 
   private given Show[Throwable] = _.getMessage
   private given Eq[Throwable]   = _.getMessage === _.getMessage
+
+  given partial.AsResult[AvroSerialization.DeserializationResult] with {
+    def asResult[A](fa: AvroSerialization.DeserializationResult[A]): partial.Result[A] =
+      fa.fold[partial.Result[A]](partial.Result.fromErrorThrowable, partial.Result.fromValue)
+  }
 }
 
 object AvroSerialization {
@@ -104,57 +109,60 @@ object AvroSupport {
   given [T](using encoder: Encoder[T]): Encoder[NonEmptyList[T]] = (schema: Schema) => {
     require(schema.getType == Schema.Type.ARRAY)
     val encode = encoder.encode(schema)
-    { value => value.map(encode).toList.asJava }
+    (value: NonEmptyList[T]) => value.map(encode).toList.asJava
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Equals"))
   given [T](using encoder: Encoder[T]): Encoder[NonEmptyVector[T]] = (schema: Schema) => {
     require(schema.getType == Schema.Type.ARRAY)
     val encode = encoder.encode(schema)
-    { value => value.map(encode).toVector.asJava }
+    (value: NonEmptyVector[T]) => value.map(encode).toVector.asJava
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Equals"))
   given [T](using encoder: Encoder[T]): Encoder[NonEmptyChain[T]] = (schema: Schema) => {
     require(schema.getType == Schema.Type.ARRAY)
     val encode = encoder.encode(schema)
-    { value => value.map(encode).toNonEmptyList.toList.asJava }
+    (value: NonEmptyChain[T]) => value.map(encode).toNonEmptyList.toList.asJava
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Equals"))
   given [T](using decoder: Decoder[T]): Decoder[NonEmptyList[T]] = (schema: Schema) => {
     require(schema.getType == Schema.Type.ARRAY)
     val decode = decoder.decode(schema)
-    {
-      case array: Array[?] if array.nonEmpty => NonEmptyList.fromListUnsafe(array.toList.map(decode))
-      case list:  java.util.Collection[?] if !list.isEmpty =>
-        NonEmptyList.fromListUnsafe(list.asScala.map(decode).toList)
-      case other => sys.error(s"Unsupported type $other")
-    }
+    (value: Any) =>
+      value match {
+        case array: Array[?] if array.nonEmpty => NonEmptyList.fromListUnsafe(array.toList.map(decode))
+        case list:  java.util.Collection[?] if !list.isEmpty =>
+          NonEmptyList.fromListUnsafe(list.asScala.map(decode).toList)
+        case other => sys.error(s"Unsupported type $other")
+      }
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Equals"))
   given [T](using decoder: Decoder[T]): Decoder[NonEmptyVector[T]] = (schema: Schema) => {
     require(schema.getType == Schema.Type.ARRAY)
     val decode = decoder.decode(schema)
-    {
-      case array: Array[?] if array.nonEmpty => NonEmptyVector.fromVectorUnsafe(array.toVector.map(decode))
-      case list:  java.util.Collection[?] if !list.isEmpty =>
-        NonEmptyVector.fromVectorUnsafe(list.asScala.map(decode).toVector)
-      case other => sys.error(s"Unsupported type $other") // A
-    }
+    (value: Any) =>
+      value match {
+        case array: Array[?] if array.nonEmpty => NonEmptyVector.fromVectorUnsafe(array.toVector.map(decode))
+        case list:  java.util.Collection[?] if !list.isEmpty =>
+          NonEmptyVector.fromVectorUnsafe(list.asScala.map(decode).toVector)
+        case other => sys.error(s"Unsupported type $other") // A
+      }
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Equals", "org.wartremover.warts.OptionPartial"))
   given [T](using decoder: Decoder[T]): Decoder[NonEmptyChain[T]] = (schema: Schema) => {
     require(schema.getType == Schema.Type.ARRAY)
     val decode = decoder.decode(schema)
-    {
-      case array: Array[?] if array.nonEmpty => NonEmptyChain.fromChainUnsafe(Chain.fromSeq(array.toSeq).map(decode))
-      case list:  java.util.Collection[?] if !list.isEmpty =>
-        NonEmptyChain.fromChainUnsafe(Chain.fromSeq(list.asScala.toSeq).map(decode))
-      case other => sys.error(s"Unsupported type $other")
-    }
+    (value: Any) =>
+      value match {
+        case array: Array[?] if array.nonEmpty => NonEmptyChain.fromChainUnsafe(Chain.fromSeq(array.toSeq).map(decode))
+        case list:  java.util.Collection[?] if !list.isEmpty =>
+          NonEmptyChain.fromChainUnsafe(Chain.fromSeq(list.asScala.toSeq).map(decode))
+        case other => sys.error(s"Unsupported type $other")
+      }
   }
 
   // custom types

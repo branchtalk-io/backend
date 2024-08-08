@@ -4,8 +4,7 @@ import cats.effect.Sync
 import io.branchtalk.api.JsoniterSupport.*
 import io.branchtalk.api.TapirSupport.*
 import io.scalaland.chimney.dsl.*
-import io.branchtalk.shared.model.{ Paginated, ParseNewtype }
-import neotype.*
+import io.branchtalk.shared.model.*
 
 final case class Pagination[A](
   entities:   List[A],
@@ -32,7 +31,7 @@ object Pagination {
   type Offset = Offset.Type
   object Offset extends Newtype[Long] {
 
-    override def validate(input: Long): Boolean | String = input >= 0L
+    override inline def validate(input: Long): Boolean = input >= 0L
 
     def unapply(offset: Offset): Some[Long] = Some(offset.unwrap)
     def parse[F[_]: Sync](long: Long): F[Offset] = ParseNewtype[F].parse[Offset](long)
@@ -45,7 +44,7 @@ object Pagination {
   type Limit = Limit.Type
   object Limit extends Newtype[Long] {
 
-    override def validate(input: Long): Boolean | String = input > 0L
+    override inline def validate(input: Long): Boolean = input > 0L
 
     def unapply(limit: Limit): Some[Long] = Some(limit.unwrap)
     def parse[F[_]: Sync](long: Long): F[Limit] = ParseNewtype[F].parse[Limit](long)

@@ -1,9 +1,9 @@
 package io.branchtalk.discussions.api
 
-import io.branchtalk.api._
-import io.branchtalk.api.AuthenticationSupport._
-import io.branchtalk.api.TapirSupport._
-import io.branchtalk.discussions.api.ChannelModels._
+import io.branchtalk.api.*
+import io.branchtalk.api.AuthenticationSupport.{ *, given }
+import io.branchtalk.api.TapirSupport.{ *, given }
+import io.branchtalk.discussions.api.ChannelModels.*
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
 import sttp.model.StatusCode
@@ -21,7 +21,7 @@ object ChannelAPIs {
 
   val paginate: AuthedEndpoint[
     Option[Authentication],
-    (Option[PaginationOffset], Option[PaginationLimit]),
+    (Option[Pagination.Offset], Option[Pagination.Limit]),
     ChannelError,
     Pagination[APIChannel],
     Any
@@ -33,8 +33,8 @@ object ChannelAPIs {
     .get
     .securityIn(optAuthHeader)
     .in(prefix)
-    .in(query[Option[PaginationOffset]]("offset"))
-    .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[Pagination.Offset]]("offset"))
+    .in(query[Option[Pagination.Limit]]("limit"))
     .out(jsonBody[Pagination[APIChannel]])
     .errorOut(errorMapping)
     .notRequiringPermissions
@@ -84,7 +84,7 @@ object ChannelAPIs {
         List(
           EndpointIO.Example.of(
             UpdateChannelRequest(
-              newUrlName = Updatable.Set(Channel.UrlName("example")),
+              newUrlName = Updatable.Set(Channel.UrlName.unsafeMake("example")), // should not be unsafeMake :(
               newName = Updatable.Set(Channel.Name("example")),
               newDescription = OptionUpdatable.Set(Channel.Description("example"))
             ),
@@ -115,7 +115,7 @@ object ChannelAPIs {
     .out(jsonBody[UpdateChannelResponse])
     .errorOut(errorMapping)
     .requiringPermissions { case (channelID, _) =>
-      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
+      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID.unsafeMake(channelID.unwrap)))
     }
 
   val delete: AuthedEndpoint[Authentication, ID[Channel], ChannelError, DeleteChannelResponse, Any] = endpoint
@@ -129,7 +129,7 @@ object ChannelAPIs {
     .out(jsonBody[DeleteChannelResponse])
     .errorOut(errorMapping)
     .requiringPermissions(channelID =>
-      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
+      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID.unsafeMake(channelID.unwrap)))
     )
 
   val restore: AuthedEndpoint[Authentication, ID[Channel], ChannelError, RestoreChannelResponse, Any] = endpoint
@@ -143,6 +143,6 @@ object ChannelAPIs {
     .out(jsonBody[RestoreChannelResponse])
     .errorOut(errorMapping)
     .requiringPermissions(channelID =>
-      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
+      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID.unsafeMake(channelID.unwrap)))
     )
 }

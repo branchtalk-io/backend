@@ -2,9 +2,9 @@ package io.branchtalk.discussions.events
 
 import com.sksamuel.avro4s.*
 import io.branchtalk.discussions.model.{ Channel, User }
-import io.branchtalk.logging.CorrelationID
-import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport.*
+import io.branchtalk.logging.*
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.AvroSupport.{ *, given }
 
 sealed trait ChannelEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 object ChannelEvent {
@@ -17,7 +17,7 @@ object ChannelEvent {
     description:   Option[Channel.Description],
     createdAt:     CreationTime,
     correlationID: CorrelationID
-  ) extends ChannelEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor 
+  ) extends ChannelEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
   final case class Updated(
     id:             ID[Channel],

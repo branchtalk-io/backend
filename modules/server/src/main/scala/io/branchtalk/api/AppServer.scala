@@ -7,8 +7,8 @@ import com.softwaremill.macwire.wire
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfig }
 import io.branchtalk.discussions.api.{ ChannelServer, CommentServer, PostServer, SubscriptionServer }
-import io.branchtalk.discussions.reads._
-import io.branchtalk.discussions.writes._
+import io.branchtalk.discussions.reads.*
+import io.branchtalk.discussions.writes.*
 import io.branchtalk.logging.MDC
 import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.shared.model.UUID
@@ -19,16 +19,16 @@ import io.branchtalk.users.api.{
   UserModerationServer,
   UserServer
 }
-import io.branchtalk.users.reads._
-import io.branchtalk.users.writes._
+import io.branchtalk.users.reads.*
+import io.branchtalk.users.writes.*
 import io.prometheus.client.CollectorRegistry
-import org.http4s._
+import org.http4s.*
 import org.http4s.blaze.server.BlazeServerBuilder
-import org.http4s.implicits._
+import org.http4s.implicits.*
 import org.http4s.metrics.MetricsOps
 import org.http4s.metrics.prometheus.Prometheus
 import org.http4s.server.Server
-import org.http4s.server.middleware._
+import org.http4s.server.middleware.*
 import sttp.tapir.server.ServerEndpoint
 
 import scala.annotation.nowarn
@@ -88,7 +88,7 @@ final class AppServer[F[_]: Async: MDC](
       .pipe(logRoutes)
 }
 object AppServer {
-  
+
   @nowarn("cat=unused") // macwire
   @SuppressWarnings(Array("org.wartremover.warts.GlobalExecutionContext")) // for BlazeServer
   def asResource[F[_]: Async: MDC](

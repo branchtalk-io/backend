@@ -6,17 +6,14 @@ import cats.{ Eq, Show }
 import cats.effect.{ Sync, SyncIO }
 import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.collection.NonEmpty
-import io.branchtalk.shared.model._
-import io.estatico.newtype.macros.newtype
-import io.scalaland.catnip.Semi
+import io.branchtalk.shared.model.*
 
 final case class Password(
   algorithm: Password.Algorithm,
   hash:      Password.Hash,
   salt:      Password.Salt
-) derives FastEq, ShowPretty{
+) derives FastEq,
+      ShowPretty {
 
   def update(raw: Password.Raw): Password = copy(hash = algorithm.hashRaw(raw, salt))
   def verify(raw: Password.Raw): Boolean  = algorithm.verify(raw, salt, hash)
@@ -24,20 +21,18 @@ final case class Password(
   // allows comparison of Passwords which would otherwise use Array's hashCode method
 
   override def equals(other: Any): Boolean = other match {
-    case Password(`algorithm`, otherHash, otherSalt)
-        if hash.bytes.sameElements(otherHash.bytes) && salt.bytes.sameElements(otherSalt.bytes) =>
-      true
-    case _ => false
+    case Password(`algorithm`, otherHash, otherSalt) => hash === otherHash && salt === otherSalt
+    case _                                           => false
   }
 
-  override def hashCode(): Int = algorithm.hashCode() ^ hash.bytes.toSeq.hashCode() ^ salt.bytes.toSeq.hashCode()
+  override def hashCode(): Int = algorithm.hashCode() ^ hash.unwrap.toSeq.hashCode() ^ salt.unwrap.toSeq.hashCode()
 }
 object Password {
 
   sealed trait Algorithm extends EnumEntry with Hyphencase derives FastEq, ShowPretty {
 
-    def createSalt: Password.Salt
-    def hashRaw(raw: Password.Raw, salt: Password.Salt): Password.Hash
+    def createSalt:                                                           Password.Salt
+    def hashRaw(raw: Password.Raw, salt: Password.Salt):                      Password.Hash
     def verify(raw:  Password.Raw, salt: Password.Salt, hash: Password.Hash): Boolean
   }
   object Algorithm extends Enum[Algorithm] {
@@ -58,10 +53,10 @@ object Password {
       }
 
       override def hashRaw(raw: Password.Raw, salt: Password.Salt): Password.Hash =
-        Password.Hash(hasher.hashRaw(cost, salt.bytes, raw.nonEmptyBytes).rawHash)
+        Password.Hash(hasher.hashRaw(cost, salt.unwrap, raw.unwrap).rawHash)
 
       override def verify(raw: Password.Raw, salt: Password.Salt, hash: Password.Hash): Boolean =
-        verifier.verify(raw.nonEmptyBytes, cost, salt.bytes, hash.bytes).verified
+        verifier.verify(raw.unwrap, cost, salt.unwrap, hash.unwrap).verified
     }
 
     def default: Algorithm = BCrypt
@@ -69,33 +64,34 @@ object Password {
     val values: IndexedSeq[Algorithm] = findValues
   }
 
-  @newtype final case class Hash(bytes: Array[Byte])
-  object Hash {
-    def unapply(hash: Hash): Some[Array[Byte]] = Some(hash.bytes)
+  private val arrayEq: Eq[Array[Byte]] = _ sameElements _
 
-    implicit val show: Show[Hash] = Show.wrap(_ => "EDITED OUT")
-    implicit val eq:   Eq[Hash]   = _.bytes sameElements _.bytes
+  type Hash = Hash.Type
+  object Hash extends Newtype[Array[Byte]] {
+    def unapply(hash: Hash): Some[Array[Byte]] = Some(hash.unwrap)
+
+    given Show[Hash] = _ => "EDITED OUT"
+    given Eq[Hash]   = unsafeMakeF[Eq](arrayEq)
   }
 
-  @newtype final case class Salt(bytes: Array[Byte])
-  object Salt {
-    def unapply(salt: Salt): Some[Array[Byte]] = Some(salt.bytes)
+  type Salt = Salt.Type
+  object Salt extends Newtype[Array[Byte]] {
+    def unapply(salt: Salt): Some[Array[Byte]] = Some(salt.unwrap)
 
-    implicit val show: Show[Salt] = Show.wrap(_ => "EDITED OUT")
-    implicit val eq:   Eq[Salt]   = _.bytes sameElements _.bytes
+    given Show[Salt] = _ => "EDITED OUT"
+    given Eq[Salt]   = unsafeMakeF[Eq](arrayEq)
   }
 
-  @newtype final case class Raw(nonEmptyBytes: Array[Byte] Refined NonEmpty)
-  object Raw {
-    def unapply(raw: Raw): Some[Array[Byte] Refined NonEmpty] = Some(raw.nonEmptyBytes)
-    def parse[F[_]: Sync](bytes: Array[Byte]): F[Raw] =
-      ParseNewtype[F].parse[NonEmpty](bytes).map(Raw.apply)
+  type Raw = Raw.Type
+  object Raw extends Newtype[Array[Byte]] {
+    override inline def validate(input: Array[Byte]): Boolean = input.nonEmpty
 
-    def fromString(string: String Refined NonEmpty): Raw =
-      Raw(ParseNewtype[SyncIO].parse[NonEmpty](string.getBytes(branchtalkCharset)).unsafeRunSync())
+    def unapply(hash: Raw): Some[Array[Byte]] = Some(hash.unwrap)
 
-    implicit val show: Show[Raw] = Show.wrap(_ => "EDITED OUT")
-    implicit val eq:   Eq[Raw]   = _.nonEmptyBytes.value sameElements _.nonEmptyBytes.value
+    def fromString(string: String): Either[String, Raw] = make(string.getBytes(branchtalkCharset))
+
+    given Show[Raw] = _ => "EDITED OUT"
+    given Eq[Raw]   = unsafeMakeF[Eq](arrayEq)
   }
 
   def create(raw: Password.Raw): Password = {

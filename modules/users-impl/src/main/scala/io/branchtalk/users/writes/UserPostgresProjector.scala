@@ -5,11 +5,11 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.{ ID, SensitiveData, UUID }
 import io.branchtalk.users.events.{ UserEvent, UsersEvent }
-import io.branchtalk.users.infrastructure.DoobieExtensions._
+import io.branchtalk.users.infrastructure.DoobieExtensions.*
 import io.branchtalk.users.model.{ Permission, Permissions, Session, User }
 
 final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
@@ -33,7 +33,7 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       logger.error("User event processing failed", error)
       Stream.empty
     }
-  
+
   def toCreate(encrypted: UserEvent.Created.Encrypted): F[Option[(UUID, UserEvent.Created.Encrypted)]] =
     withCorrelationID(encrypted.correlationID) {
       findKeys(encrypted.id)
@@ -88,7 +88,7 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         .as((encrypted.id.uuid -> encrypted).some)
         .transact(transactor)
     }
-  
+
   def toUpdate(encrypted: UserEvent.Updated.Encrypted): F[Option[(UUID, UserEvent.Updated.Encrypted)]] =
     withCorrelationID(encrypted.correlationID) {
       findKeys(encrypted.id)
@@ -96,7 +96,7 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           _.traverse { case (algorithm, key) =>
             @SuppressWarnings(Array("org.wartremover.warts.Throw"))
             val event = encrypted.decrypt(algorithm, key).fold(e => throw new Exception(e.show), identity)
-            import event._
+            import event.*
 
             val defaultPermissions   = Permissions.empty
             val permissionsUpdateNel = NonEmptyList.fromList(updatePermissions)

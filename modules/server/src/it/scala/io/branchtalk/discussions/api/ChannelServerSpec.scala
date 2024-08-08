@@ -3,20 +3,20 @@ package io.branchtalk.discussions.api
 import cats.effect.IO
 import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
 import io.branchtalk.discussions.DiscussionsFixtures
-import io.branchtalk.discussions.api.ChannelModels._
+import io.branchtalk.discussions.api.ChannelModels.*
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.mappings._
-import io.branchtalk.shared.model._
+import io.branchtalk.mappings.*
+import io.branchtalk.shared.model.*
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.model.{ Permission, RequiredPermissions }
-import io.scalaland.chimney.dsl._
-import monocle.macros.syntax.lens._
+import io.scalaland.chimney.dsl.*
+import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
-final class ChannelServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
+final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
-  implicit protected lazy val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
+  implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelServer-provided endpoints" should {
 

@@ -4,11 +4,10 @@ import cats.{ Id, Order }
 import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptySet }
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.github.plokhotnyuk.jsoniter_scala.macros.*
-import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, adtDiscriminatorNameMapper }
-import neotype.*
+import io.branchtalk.shared.model.*
 
 // Provides (missing :/) support for .map, .mapDecode,.asNewtype for Jsoniter Scala codecs.
-object JsoniterSupport {
+object JsoniterSupport extends JsoniterSupportImplicits {
 
   // for shortening
 
@@ -22,7 +21,7 @@ object JsoniterSupport {
 
   inline def summonCodec[T](using codec: JsCodec[T]): JsCodec[T] = codec
 
-  extension [A](codec: JsCodec[A])
+  extension [A](codec: JsCodec[A]) {
     @SuppressWarnings(Array("org.wartremover.warts.All"))
     def mapDecode[B](f: A => Either[String, B])(g: B => A): JsCodec[B] = new JsCodec[B] {
       override def decodeValue(in: JsonReader, default: B): B =
@@ -62,6 +61,7 @@ object JsoniterSupport {
 
     def asNewtypeCodec[B](using newtype: Newtype.WithType[A, B]): JsCodec[B] =
       newtype.unsafeMakeF[JsCodec](codec)
+  }
 
   // domain instances
 
@@ -73,10 +73,11 @@ object JsoniterSupport {
     DefaultJsCodec.derived[Updatable[A]]
   }
 
-  given [A](using JsCodec[A]): JsCodec[OptionUpdatable[A]] =
+  given [A](using JsCodec[A]): JsCodec[OptionUpdatable[A]] = {
     inline given CodecMakerConfig =
       CodecMakerConfig.withAdtLeafClassNameMapper(adtDiscriminatorNameMapper).withDiscriminatorFieldName(Some("action"))
     DefaultJsCodec.derived[OptionUpdatable[A]]
+  }
 
   // Cats instances
 
@@ -103,4 +104,8 @@ object JsoniterSupport {
   // Neotype
 
   export neotype.interop.jsoniter.{ newtypeCodec, subtypeCodec }
+}
+private[api] trait JsoniterSupportImplicits { self: JsoniterSupport.type =>
+
+  inline given CodecMakerConfig = CodecMakerConfig
 }

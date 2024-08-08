@@ -2,20 +2,20 @@ package io.branchtalk.users.api
 
 import cats.effect.IO
 import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
-import io.branchtalk.api.TapirSupport._
+import io.branchtalk.api.TapirSupport.*
 import io.branchtalk.discussions.DiscussionsFixtures
-import io.branchtalk.mappings._
-import io.branchtalk.shared.model._
+import io.branchtalk.mappings.*
+import io.branchtalk.shared.model.*
 import io.branchtalk.users.UsersFixtures
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Password, Session, User }
-import monocle.macros.syntax.lens._
+import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
-final class UserServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
+final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
-  implicit protected val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
+  protected given TestUUIDGenerator = new TestUUIDGenerator
 
   "UserServer-provided endpoints" should {
 
@@ -42,12 +42,12 @@ final class UserServerSpec extends Specification with ServerIOTest with UsersFix
           response1 <- UserAPIs.sessions.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             None,
-            PaginationLimit(5).some
+            Pagination.Limit(5).some
           )
           response2 <- UserAPIs.sessions.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
-            PaginationOffset(5L).some,
-            PaginationLimit(5).some
+            Pagination.Offset(5L).some,
+            Pagination.Limit(5).some
           )
         } yield {
           // then

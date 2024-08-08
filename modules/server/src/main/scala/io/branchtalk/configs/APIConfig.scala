@@ -1,18 +1,18 @@
 package io.branchtalk.configs
 
 import cats.Show
-import enumeratum._
+import enumeratum.*
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.string.{ MatchesRegex, Url }
-import io.branchtalk.api.{ PaginationLimit, PaginationOffset }
+import io.branchtalk.api.{ Pagination.Limit, Pagination.Offset }
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.infrastructure.PureconfigSupport._
+import io.branchtalk.shared.infrastructure.PureconfigSupport.*
 import io.branchtalk.shared.model.{ ID, ShowPretty, UUID }
 import io.scalaland.catnip.Semi
 import pureconfig.error.CannotConvert
-import sttp.apispec.openapi._
+import sttp.apispec.openapi.*
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -85,18 +85,18 @@ object APIHttp {
 }
 
 @Semi(ConfigReader, ShowPretty) final case class PaginationConfig(
-  defaultLimit: PaginationLimit,
-  maxLimit:     PaginationLimit
+  defaultLimit: Pagination.Limit,
+  maxLimit:     Pagination.Limit
 ) {
 
-  def resolveOffset(passedOffset: Option[PaginationOffset]): PaginationOffset =
-    passedOffset.getOrElse(PaginationOffset(0L))
+  def resolveOffset(passedOffset: Option[Pagination.Offset]): Pagination.Offset =
+    passedOffset.getOrElse(Pagination.Offset(0L))
 
-  def resolveLimit(passedLimit: Option[PaginationLimit]): PaginationLimit =
+  def resolveLimit(passedLimit: Option[Pagination.Limit]): Pagination.Limit =
     passedLimit.filter(_.positiveInt.value <= maxLimit.positiveInt.value).getOrElse(defaultLimit)
 }
 object PaginationConfig {
-  implicit private val showLimit: Show[PaginationLimit] = _.positiveInt.value.toString
+  implicit private val showLimit: Show[Pagination.Limit] = _.positiveInt.value.toString
 }
 
 sealed trait APIPart extends EnumEntry
@@ -134,6 +134,6 @@ object APIPart extends Enum[APIPart] {
 
   val safePagination: Map[APIPart, PaginationConfig] =
     pagination.withDefaultValue(
-      PaginationConfig(PaginationLimit(Defaults.defaultPaginationLimit), PaginationLimit(Defaults.maxPaginationLimit))
+      PaginationConfig(Pagination.Limit(Defaults.defaultPaginationLimit), Pagination.Limit(Defaults.maxPaginationLimit))
     )
 }

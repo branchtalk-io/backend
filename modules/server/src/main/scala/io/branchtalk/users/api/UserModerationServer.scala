@@ -4,15 +4,15 @@ import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.{ Permission => _, _ }
-import io.branchtalk.auth._
+import io.branchtalk.auth.*
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.shared.model.{ CommonError, OptionUpdatable, Updatable }
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Permission, User }
 import io.branchtalk.users.reads.UserReads
 import io.branchtalk.users.writes.UserWrites
-import org.http4s._
-import sttp.tapir.server.http4s._
+import org.http4s.*
+import sttp.tapir.server.http4s.*
 import sttp.tapir.server.ServerEndpoint
 
 final class UserModerationServer[F[_]: Async](

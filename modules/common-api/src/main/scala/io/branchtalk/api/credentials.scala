@@ -5,12 +5,11 @@ import cats.effect.Sync
 import io.branchtalk.shared.model.ParseNewtype
 import io.branchtalk.api.JsoniterSupport.*
 import io.branchtalk.api.TapirSupport.*
-import neotype.*
 
 type Username = Username.Type
 object Username extends Newtype[String] {
 
-  override def validate(input: String): Boolean | String = input.nonEmpty
+  override inline def validate(input: String): Boolean = input.nonEmpty
 
   def unapply(username: Username): Some[String] = Some(username.unwrap)
   def parse[F[_]: Sync](string: String): F[Username] = ParseNewtype[F].parse[Username](string)
@@ -24,7 +23,7 @@ object Username extends Newtype[String] {
 type Password = Password.Type
 object Password extends Newtype[Array[Byte]] {
 
-  override def validate(input: Array[Byte]): Boolean | String = input.nonEmpty
+  override inline def validate(input: Array[Byte]): Boolean = input.nonEmpty
 
   def unapply(password: Password): Some[Array[Byte]] = Some(password.unwrap)
   def parse[F[_]: Sync](array: Array[Byte]): F[Password] = ParseNewtype[F].parse[Password](array)

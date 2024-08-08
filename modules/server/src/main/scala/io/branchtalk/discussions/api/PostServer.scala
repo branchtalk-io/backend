@@ -3,19 +3,19 @@ package io.branchtalk.discussions.api
 import cats.data.{ NonEmptyList, NonEmptySet }
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api._
-import io.branchtalk.auth._
+import io.branchtalk.api.*
+import io.branchtalk.auth.*
 import io.branchtalk.configs.PaginationConfig
-import io.branchtalk.discussions.api.PostModels._
+import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.discussions.reads.PostReads
 import io.branchtalk.discussions.writes.PostWrites
-import io.branchtalk.mappings._
+import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.{ CommonError, CreationScheduled, ID, Paginated }
 import io.branchtalk.users.model.User
-import io.scalaland.chimney.dsl._
-import org.http4s._
-import sttp.tapir.server.http4s._
+import io.scalaland.chimney.dsl.*
+import org.http4s.*
+import sttp.tapir.server.http4s.*
 import sttp.tapir.server.ServerEndpoint
 
 import scala.collection.immutable.SortedSet

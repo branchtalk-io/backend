@@ -2,7 +2,7 @@ package io.branchtalk.users.model
 
 import cats.Eq
 import cats.data.{ NonEmptyList, NonEmptySet }
-import io.branchtalk.shared.model.{ FastEq, ShowPretty }
+import io.branchtalk.shared.model.*
 
 import scala.annotation.targetName
 
@@ -29,14 +29,15 @@ object RequiredPermissions {
 
   given Eq[NonEmptySet[Permission]] = (x: NonEmptySet[Permission], y: NonEmptySet[Permission]) =>
     x.toSortedSet === y.toSortedSet
-  given ShowPretty[NonEmptySet[Permission]] =
-    (t: NonEmptySet[Permission], sb: StringBuilder, indentWith: String, indentLevel: Int) => {
+  @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
+  given ShowPretty[NonEmptySet[Permission]] = {
+    (t: NonEmptySet[Permission], sb: StringBuilder, indentWith: String, indentLevel: Int) =>
       val nextIndent = indentLevel + 1
-      sb.append(indentWith * indentLevel).append("NonEmptySet(\n")
+      void(sb.append(indentWith * indentLevel).append("NonEmptySet(\n"))
       t.toNonEmptyList match {
         case NonEmptyList(head, tail) =>
           sb.append(indentWith * nextIndent)
-          summon[ShowPretty[Permission]].showPretty(head, sb, indentWith, nextIndent)
+          void(summon[ShowPretty[Permission]].showPretty(head, sb, indentWith, nextIndent))
           tail.foreach { elem =>
             sb.append(",\n")
             sb.append(indentWith * nextIndent)
@@ -45,5 +46,5 @@ object RequiredPermissions {
           sb.append("\n)")
       }
       sb
-    }
+  }
 }

@@ -1,26 +1,24 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s._
-import io.branchtalk.ADT
-import io.branchtalk.logging.CorrelationID
-import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport._
+import com.sksamuel.avro4s.*
+import io.branchtalk.logging.*
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.AvroSupport.{ *, given }
 import io.branchtalk.users.model.{ Session, User }
-import io.scalaland.catnip.Semi
 
-@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait SessionEvent extends ADT
+sealed trait SessionEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 object SessionEvent {
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class LoggedIn(
+  final case class LoggedIn(
     id:            ID[Session],
     userID:        ID[User],
     expiresAt:     Session.ExpirationTime,
     correlationID: CorrelationID
-  ) extends SessionEvent
+  ) extends SessionEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class LoggedOut(
+  final case class LoggedOut(
     id:            ID[Session],
     userID:        ID[User],
     correlationID: CorrelationID
-  ) extends SessionEvent
+  ) extends SessionEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 }

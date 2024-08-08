@@ -2,7 +2,7 @@ package io.branchtalk.api
 
 import cats.{ Functor, Monad, MonadError }
 import io.branchtalk.shared.model.{ CodePosition, CommonError }
-import sttp.tapir._
+import sttp.tapir.*
 import sttp.tapir.server.ServerEndpoint
 
 trait Authorize[F[_], Auth, Out] {

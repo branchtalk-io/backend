@@ -3,9 +3,8 @@ package io.branchtalk.api
 import java.util.Base64
 import cats.effect.{ GenSpawn, SyncIO }
 import io.branchtalk.api.Authentication.{ Credentials, Session }
-import io.branchtalk.shared.model.{ ParseNewtype, UUID, branchtalkCharset }
+import io.branchtalk.shared.model.*
 import sttp.tapir.*
-import neotype.*
 
 import scala.util.Try
 
@@ -38,11 +37,12 @@ object AuthenticationSupport {
     }
   }
 
-  extension [A](io: SyncIO[A])
+  extension [A](io: SyncIO[A]) {
     private def asResult(original: String): DecodeResult[A] = io.attempt.unsafeRunSync() match {
       case Left(value)  => DecodeResult.Error(original, value)
       case Right(value) => DecodeResult.Value(value)
     }
+  }
 
   val authHeaderMapping: Mapping[String, Authentication] = Mapping.fromDecode[String, Authentication] {
     case original @ basic(user, pass) =>

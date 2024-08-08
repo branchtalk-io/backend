@@ -5,7 +5,6 @@ import cats.effect.Sync
 import io.branchtalk.shared.model.{ ParseNewtype, UUID }
 import io.branchtalk.api.JsoniterSupport.*
 import io.branchtalk.api.TapirSupport.*
-import neotype.*
 
 type SessionID = SessionID.Type
 object SessionID extends Newtype[UUID] {

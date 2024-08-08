@@ -1,8 +1,6 @@
 package io.branchtalk.discussions.reads
 
 import cats.data.NonEmptySet
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.model.{ ID, Paginated }
 
@@ -11,8 +9,8 @@ trait PostReads[F[_]] {
   def paginate(
     channels: NonEmptySet[ID[Channel]],
     sortBy:   Post.Sorting,
-    offset:   Long Refined NonNegative,
-    limit:    Int Refined Positive
+    offset:   Paginated.Offset,
+    limit:    Paginated.Limit
   ): F[Paginated[Post]]
 
   def exists(id: ID[Post]): F[Boolean]

@@ -3,9 +3,9 @@ package io.branchtalk.users.reads
 import cats.effect.Sync
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.model.{ ID, Paginated }
-import io.branchtalk.users.infrastructure.DoobieExtensions._
+import io.branchtalk.users.infrastructure.DoobieExtensions.*
 import io.branchtalk.users.model.{ Session, SessionDao, User }
 
 final class SessionReadsImpl[F[_]: Sync](

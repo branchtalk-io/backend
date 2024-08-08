@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import io.branchtalk.discussions.events.{ ChannelEvent, DiscussionEvent }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
 

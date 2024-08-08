@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.infrastructure
 
 import io.branchtalk.discussions.model.{ Post, Vote }
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.model.branchtalkLocale
 
 object DoobieExtensions {
