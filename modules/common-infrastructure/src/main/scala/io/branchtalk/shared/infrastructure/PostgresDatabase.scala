@@ -7,12 +7,12 @@ import com.zaxxer.hikari.metrics.prometheus.PrometheusHistogramMetricsTrackerFac
 import doobie.*
 import doobie.implicits.*
 import doobie.hikari.HikariTransactor
-import io.branchtalk.shared.infrastructure.PostgresDatabase.PrefixedMetricsTrackerFactory
+import io.branchtalk.logging.Logger
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.infrastructure.PureconfigSupport.*
 import io.branchtalk.shared.model.*
 import io.prometheus.client.{ Collector, CollectorRegistry }
 import org.flywaydb.core.Flyway
-import neotype.*
 
 import scala.util.Random
 
@@ -30,15 +30,15 @@ final class PostgresDatabase(config: PostgresDatabase.Config) {
       .load()
   )
 
-  def transactor[F[_]: Async](registry: CollectorRegistry): Resource[F, HikariTransactor[F]] =
+  def transactor[F[_]: Async](logger: Logger[F], registry: CollectorRegistry): Resource[F, HikariTransactor[F]] =
     for {
       connectEC <- doobie.util.ExecutionContexts.fixedThreadPool[F](config.connectionPool.unwrap)
-      xa <- HikariTransactor.initial[F](connectEC, logHandler = None) // TODO: logHandler
+      xa <- HikariTransactor.initial[F](connectEC, logHandler = Some(doobieLogger(logger)))
       _ <- Resource.eval {
         xa.configure { ds =>
           Async[F].delay {
             ds.setMetricsTrackerFactory(
-              new PrefixedMetricsTrackerFactory(
+              new PostgresDatabase.PrefixedMetricsTrackerFactory(
                 config.domain.unwrap + "_" + LazyList
                   .continually(Random.nextPrintableChar())
                   .filter(_.isLetter)
@@ -67,7 +67,7 @@ object PostgresDatabase {
   type URL = URL.Type
   object URL extends Newtype[String] {
 
-    override def validate(input: String): Boolean | String = input.nonEmpty
+    override inline def validate(input: String): Boolean = input.nonEmpty
 
     def unapply(url: URL): Some[String] = Some(url.unwrap)
 
@@ -78,7 +78,7 @@ object PostgresDatabase {
   type Username = Username.Type
   object Username extends Newtype[String] {
 
-    override def validate(input: String): Boolean | String = input.nonEmpty
+    override inline def validate(input: String): Boolean = input.nonEmpty
 
     def unapply(username: Username): Some[String] = Some(username.unwrap)
 
@@ -101,7 +101,7 @@ object PostgresDatabase {
   type Schema = Schema.Type
   object Schema extends Newtype[String] {
 
-    override def validate(input: String): Boolean | String = input.nonEmpty
+    override inline def validate(input: String): Boolean = input.nonEmpty
 
     def unapply(domainName: Schema): Some[String] = Some(domainName.unwrap)
 
@@ -112,7 +112,7 @@ object PostgresDatabase {
   type Domain = Domain.Type
   object Domain extends Newtype[String] {
 
-    override def validate(input: String): Boolean | String = input.nonEmpty
+    override inline def validate(input: String): Boolean = input.nonEmpty
 
     def unapply(domain: Domain): Some[String] = Some(domain.unwrap)
 
@@ -123,7 +123,7 @@ object PostgresDatabase {
   type ConnectionPool = ConnectionPool.Type
   object ConnectionPool extends Newtype[Int] {
 
-    override def validate(input: Int): Boolean | String = input > 0
+    override inline def validate(input: Int): Boolean = input > 0
 
     def unapply(connectionPool: ConnectionPool): Some[Int] = Some(connectionPool.unwrap)
 

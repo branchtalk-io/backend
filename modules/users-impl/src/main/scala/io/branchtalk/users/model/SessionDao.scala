@@ -1,7 +1,7 @@
 package io.branchtalk.users.model
 
 import io.branchtalk.shared.model.ID
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
 
 final case class SessionDao(
   id:               ID[Session],

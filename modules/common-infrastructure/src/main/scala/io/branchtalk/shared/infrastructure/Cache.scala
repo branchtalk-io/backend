@@ -11,7 +11,6 @@ import fs2.{ Pipe, Stream }
 import io.branchtalk.logging.Logger
 import io.branchtalk.shared.model.branchtalkCharset
 import io.lettuce.core.codec.{ RedisCodec => JRedisCodec }
-import neotype.*
 
 import scala.util.control.NoStackTrace
 
@@ -20,7 +19,7 @@ abstract class Cache[F[_]: Sync, K, V] {
 
   def apply(key: K)(value: F[V]): F[(K, V)]
 
-  private case object EmptyStream extends Exception with NoStackTrace
+  private case object EmptyStream extends Exception, NoStackTrace
 
   private def unliftPipe[I](pipe: Pipe[F, I, V]): I => F[V] =
     i => Stream(i).through(pipe).compile.last.flatMap(_.fold((EmptyStream: Throwable).raiseError[F, V])(_.pure[F]))

@@ -1,9 +1,9 @@
 package io.branchtalk.users.api
 
-import io.branchtalk.api._
-import io.branchtalk.api.AuthenticationSupport._
-import io.branchtalk.api.TapirSupport._
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.api.*
+import io.branchtalk.api.AuthenticationSupport.{ *, given }
+import io.branchtalk.api.TapirSupport.{ *, given }
+import io.branchtalk.users.api.UserModels.{ *, given }
 import sttp.model.StatusCode
 
 object UserModerationAPIs {
@@ -19,7 +19,7 @@ object UserModerationAPIs {
 
   val paginate: AuthedEndpoint[
     Authentication,
-    (Option[PaginationOffset], Option[PaginationLimit]),
+    (Option[Pagination.Offset], Option[Pagination.Limit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -31,8 +31,8 @@ object UserModerationAPIs {
     .get
     .securityIn(authHeader)
     .in(prefix)
-    .in(query[Option[PaginationOffset]]("offset"))
-    .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[Pagination.Offset]]("offset"))
+    .in(query[Option[Pagination.Limit]]("limit"))
     .out(jsonBody[Pagination[APIUser]])
     .errorOut(errorMapping)
     .requiringPermissions(_ => RequiredPermissions.anyOf(Permission.ModerateUsers, Permission.Administrate))

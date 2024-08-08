@@ -4,7 +4,7 @@ import cats.data.{ Kleisli, OptionT }
 import cats.effect.Sync
 import io.branchtalk.logging.{ MDC, RequestID }
 import org.http4s.server.middleware.RequestId
-import org.http4s._
+import org.http4s.*
 
 final class RequestIDOps[F[_]: Sync: MDC] {
 

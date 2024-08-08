@@ -3,19 +3,19 @@ package io.branchtalk.discussions.api
 import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api._
-import io.branchtalk.auth._
+import io.branchtalk.api.*
+import io.branchtalk.auth.*
 import io.branchtalk.configs.PaginationConfig
-import io.branchtalk.discussions.api.ChannelModels._
+import io.branchtalk.discussions.api.ChannelModels.*
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.discussions.reads.ChannelReads
 import io.branchtalk.discussions.writes.ChannelWrites
 import io.branchtalk.mappings.userIDUsers2Discussions
 import io.branchtalk.shared.model.{ CommonError, CreationScheduled }
 import io.branchtalk.users.model.User
-import io.scalaland.chimney.dsl._
-import org.http4s._
-import sttp.tapir.server.http4s._
+import io.scalaland.chimney.dsl.*
+import org.http4s.*
+import sttp.tapir.server.http4s.*
 import sttp.tapir.server.ServerEndpoint
 
 final class ChannelServer[F[_]: Async](

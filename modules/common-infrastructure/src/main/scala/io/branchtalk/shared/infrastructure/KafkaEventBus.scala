@@ -9,7 +9,6 @@ import fs2.kafka.*
 import io.branchtalk.shared.model.{ ShowPretty, UUID }
 import io.branchtalk.shared.infrastructure.PureconfigSupport.*
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
-import neotype.*
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -59,7 +58,7 @@ object KafkaEventBus {
   type Topic = Topic.Type
   object Topic extends Newtype[String] {
 
-    override def validate(input: String): Boolean | String = input.nonEmpty
+    override inline def validate(input: String): Boolean = input.nonEmpty
 
     def unapply(topic: Topic): Some[String] = Some(topic.unwrap)
 
@@ -70,7 +69,7 @@ object KafkaEventBus {
   type ConsumerGroup = ConsumerGroup.Type
   object ConsumerGroup extends Newtype[String] {
 
-    override def validate(input: String): Boolean | String = input.nonEmpty
+    override inline def validate(input: String): Boolean = input.nonEmpty
 
     def unapply(consumerGroup: ConsumerGroup): Some[String] = Some(consumerGroup.unwrap)
 
@@ -81,7 +80,7 @@ object KafkaEventBus {
   type MaxCommitSize = MaxCommitSize.Type
   object MaxCommitSize extends Newtype[Int] {
 
-    override def validate(input: Int): Boolean | String = input > 0
+    override inline def validate(input: Int): Boolean = input > 0
 
     def unapply(domainName: MaxCommitSize): Some[Int] = Some(domainName.unwrap)
 

@@ -12,6 +12,6 @@ object Defaults {
   val runUsersProjections:       Boolean = false
   val runDiscussionsProjections: Boolean = false
 
-  val defaultPaginationLimit: Int Refined Positive = 50
-  val maxPaginationLimit:     Int Refined Positive = 100
+  val defaultPaginationLimit: Int = 50
+  val maxPaginationLimit:     Int = 100
 }

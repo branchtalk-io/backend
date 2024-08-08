@@ -1,19 +1,9 @@
 import sbt._
-import sbt.Keys.{ libraryDependencies, scalaBinaryVersion }
-import Dependencies._
-import sbtcrossproject.CrossProject
-import sbtcrossproject.CrossPlugin.autoImport._
-import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
-import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.scalaJSVersion
-
-import Dependencies._
 
 object Dependencies {
 
   // scala version
-  val scalaOrganization  = "org.scala-lang"
-  val scalaVersion       = "3.3.3"
-  val crossScalaVersions = Seq("3.3.3")
+  val scalaVersion      = "3.3.3"
 
   // libraries versions
   val avro4sVersion     = "5.0.13" // https://github.com/sksamuel/avro4s/releases
@@ -32,13 +22,6 @@ object Dependencies {
   val pureConfigVersion = "0.17.7" // https://github.com/pureconfig/pureconfig/releases
   val specs2Version     = "5.5.3" // https://github.com/etorreborre/specs2/releases
   val tapirVersion      = "1.10.14" // https://github.com/softwaremill/tapir/releases
-
-  // resolvers
-  val resolvers = Seq(
-    Resolver.sonatypeOssRepos("public"),
-    Resolver.sonatypeOssRepos("releases"),
-    Seq(Resolver.typesafeRepo("releases"))
-  ).flatten
 
   // functional libraries
   val cats             = "org.typelevel" %% "cats-core" % catsVersion
@@ -117,82 +100,4 @@ object Dependencies {
     "com.google.inject.extensions" % "guice-assistedinject" % "7.0.0" // required by jfairy on JDK 15+
   val spec2Core       = "org.specs2" %% "specs2-core" % specs2Version
   val spec2Scalacheck = "org.specs2" %% "specs2-scalacheck" % specs2Version
-}
-
-trait Dependencies {
-
-  val scalaVersionUsed       = scalaVersion
-  val crossScalaVersionsUsed = crossScalaVersions
-
-  // resolvers
-  val commonResolvers = resolvers
-
-  val mainDeps = Seq(
-    cats,
-    catsFree,
-    catsEffect,
-    alleycats,
-    kittens,
-    chimney,
-    enumeratum,
-    fastuuid,
-    uuidGenerator,
-    log4cats,
-    log4catsSlf4j,
-    magnolia,
-    monocle,
-    monocleMacro,
-    neotype,
-    scalaLogging,
-    logback
-  )
-
-  val testDeps = Seq(catsLaws, spec2Core, spec2Scalacheck)
-
-  implicit final class ProjectRoot(project: Project) {
-
-    def root: Project = project in file(".")
-  }
-
-  implicit final class ProjectFrom(project: Project) {
-
-    private val commonDir = "modules"
-
-    def from(dir: String): Project = project in file(s"$commonDir/$dir")
-  }
-
-  implicit final class DependsOnProject(project: Project) {
-
-    private val testConfigurations = Set("test", "fun", "it")
-    private def findCompileAndTestConfigs(p: Project) =
-      (p.configurations.map(_.name).toSet intersect testConfigurations) + "compile"
-
-    private val thisProjectsConfigs = findCompileAndTestConfigs(project)
-    private def generateDepsForProject(p: Project) =
-      p % (thisProjectsConfigs intersect findCompileAndTestConfigs(p) map (c => s"$c->$c") mkString ";")
-
-    def compileAndTestDependsOn(projects: Project*): Project =
-      project dependsOn (projects.map(generateDepsForProject): _*)
-  }
-
-  implicit final class CrossProjectFrom(project: CrossProject) {
-
-    private val commonDir = "modules"
-
-    def from(dir: String): CrossProject = project in file(s"$commonDir/$dir")
-  }
-
-  implicit final class DependsOnCrossProject(project: CrossProject) {
-
-    private val testConfigurations = Set("test", "fun", "it")
-    private def findCompileAndTestConfigs(p: CrossProject) =
-      (p.projects(JVMPlatform).configurations.map(_.name).toSet intersect testConfigurations) + "compile"
-
-    private val thisProjectsConfigs = findCompileAndTestConfigs(project)
-    private def generateDepsForProject(p: CrossProject) =
-      p % (thisProjectsConfigs intersect findCompileAndTestConfigs(p) map (c => s"$c->$c") mkString ";")
-
-    def compileAndTestDependsOn(projects: CrossProject*): CrossProject =
-      project dependsOn (projects.map(generateDepsForProject): _*)
-  }
 }

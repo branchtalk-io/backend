@@ -1,7 +1,5 @@
 package io.branchtalk.discussions.reads
 
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.discussions.model.{ Comment, Post }
 import io.branchtalk.shared.model.{ ID, Paginated }
 
@@ -11,8 +9,8 @@ trait CommentReads[F[_]] {
     post:      ID[Post],
     repliesTo: Option[ID[Comment]],
     sorting:   Comment.Sorting,
-    offset:    Long Refined NonNegative,
-    limit:     Int Refined Positive
+    offset:    Paginated.Offset,
+    limit:     Paginated.Limit
   ): F[Paginated[Comment]]
 
   def exists(id: ID[Comment]): F[Boolean]

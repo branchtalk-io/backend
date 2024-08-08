@@ -3,19 +3,14 @@ package io.branchtalk.api
 import java.net.URI
 import cats.Id
 import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptySet }
-import io.branchtalk.shared.model.{ ID, OptionUpdatable, UUID, Updatable, adtDiscriminatorNameMapper }
-import neotype.*
+import io.branchtalk.shared.model.*
 import sttp.tapir.CodecFormat.TextPlain
 import sttp.tapir.generic.Configuration
 
 import scala.annotation.nowarn
 
-// Allows `import TapirSupport._` instead of `import sttp.tapir._, sttp.tapir.codec.refined._, ...`.
-object TapirSupport
-    extends sttp.tapir.Tapir
-    with sttp.tapir.TapirAliases
-    with sttp.tapir.codec.refined.TapirCodecRefined
-    with sttp.tapir.json.jsoniter.TapirJsonJsoniter {
+// Allows `import TapirSupport._` instead of `import sttp.tapir._, sttp.tapir.json.jsoniter._, ...`.
+object TapirSupport extends sttp.tapir.Tapir, sttp.tapir.TapirAliases, sttp.tapir.json.jsoniter.TapirJsonJsoniter {
 
   // shortcuts
   type Param[A] = sttp.tapir.Codec[String, A, TextPlain]
@@ -29,21 +24,26 @@ object TapirSupport
 
   // utilities
 
-  extension [A, I, E, O, R](endpoint: Endpoint[A, I, E, O, R])
+  extension [A, I, E, O, R](endpoint: Endpoint[A, I, E, O, R]) {
     def notRequiringPermissions: AuthedEndpoint[A, I, E, O, R] =
       AuthedEndpoint(endpoint, _ => RequiredPermissions.empty)
     def requiringPermissions(permissions: I => RequiredPermissions): AuthedEndpoint[A, I, E, O, R] =
       AuthedEndpoint(endpoint, permissions)
+  }
 
-  extension [A](decodeResult: DecodeResult[A])
+  extension [A](decodeResult: DecodeResult[A]) {
     def toOption: Option[A] = decodeResult match {
       case DecodeResult.Value(v) => v.some
       case _                     => none[A]
     }
+  }
 
-  extension [T](schema: JsSchema[T])
-    def asNewtypeSchema[N](using newtype: Newtype.WithType[T, N]): JsSchema[N] =
+  extension [A](schema: JsSchema[A]) {
+    def asNewtypeSchema[B](using newtype: Newtype.WithType[A, B]): JsSchema[B] =
       newtype.unsafeMakeF[JsSchema](schema)
+  }
+
+  given [A, B](using A: Newtype.WithType[B, A], B: JsSchema[B]): JsSchema[A] = B.asNewtypeSchema[A]
 
   given JsSchema[URI] = JsSchema.schemaForString.as[URI]
 

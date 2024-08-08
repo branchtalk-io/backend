@@ -1,7 +1,7 @@
 package io.branchtalk.configs
 
 import cats.effect.{ ExitCode, Sync }
-import com.monovore.decline._
+import com.monovore.decline.*
 import com.typesafe.config.{ Config, ConfigRenderOptions }
 import io.branchtalk.shared.model.ShowPretty
 import io.scalaland.catnip.Semi
@@ -25,7 +25,7 @@ object AppArguments {
   }
 
   final case class NoConfig(help: Help) extends Exception {
-    
+
     def printHelp(config: Config): ExitCode = {
       println(help.toString())
       println(additionalInfo(config))

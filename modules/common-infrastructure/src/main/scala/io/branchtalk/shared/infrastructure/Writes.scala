@@ -4,7 +4,6 @@ import cats.effect.Sync
 import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.model.{ CodePosition, CommonError, ID, UUID }
 import fs2.*
-import neotype.*
 
 // Utilities for writes services.
 abstract class Writes[F[_]: Sync, Entity, Event](producer: KafkaEventBus.Producer[F, Event]) {

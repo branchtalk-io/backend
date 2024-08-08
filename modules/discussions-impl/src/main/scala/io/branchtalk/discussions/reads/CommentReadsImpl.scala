@@ -4,7 +4,7 @@ import cats.effect.Sync
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.discussions.model.{ Comment, Post }
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.model.{ ID, Paginated }
 
 final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends CommentReads[F] {

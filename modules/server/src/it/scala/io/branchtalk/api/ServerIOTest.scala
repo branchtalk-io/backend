@@ -8,10 +8,10 @@ import org.specs2.matcher.{ OptionLikeCheckedMatcher, OptionLikeMatcher, ValueCh
 import sttp.client3.{ Response, SttpBackend }
 import sttp.client3.asynchttpclient.cats.AsyncHttpClientCatsBackend
 import sttp.model.Uri
-import sttp.tapir._
-import sttp.tapir.client.sttp._
+import sttp.tapir.*
+import sttp.tapir.client.sttp.*
 
-trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
+trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
 
   // populated by resources
   protected var server: Server               = _
@@ -94,13 +94,13 @@ trait ServerIOTest extends UsersIOTest with DiscussionsIOTest {
         .send(client)
   }
 
-  import ServerIOTest._
+  import ServerIOTest.*
 
   implicit def toDecoderResultOps[A](result: DecodeResult[A]): DecodeResultOps[A] = new DecodeResultOps[A](result)
 
-  import org.specs2.control.ImplicitParameters._
-  def beValid[T](t:          ValueCheck[T]):                     ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
-  def beValid[T](implicit p: ImplicitParam = implicitParameter): ValidResultMatcher[T]        = use(p)(ValidResultMatcher[T]())
+  import org.specs2.control.ImplicitParameters.*
+  def beValid[T](t: ValueCheck[T]): ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
+  def beValid[T](implicit p: ImplicitParam = implicitParameter): ValidResultMatcher[T] = use(p)(ValidResultMatcher[T]())
 }
 
 object ServerIOTest {

@@ -1,7 +1,5 @@
 package io.branchtalk.users.reads
 
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.shared.model.{ ID, Paginated }
 import io.branchtalk.users.model.{ Password, User }
 
@@ -11,8 +9,8 @@ trait UserReads[F[_]] {
 
   def paginate(
     sortBy:  User.Sorting,
-    offset:  Long Refined NonNegative,
-    limit:   Int Refined Positive,
+    offset:  Paginated.Offset,
+    limit:   Paginated.Limit,
     filters: List[User.Filter] = List.empty
   ): F[Paginated[User]]
 

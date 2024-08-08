@@ -1,10 +1,10 @@
 package io.branchtalk.discussions.api
 
-import io.branchtalk.api._
-import io.branchtalk.api.AuthenticationSupport._
-import io.branchtalk.api.TapirSupport._
-import io.branchtalk.discussions.api.PostModels._
-import io.branchtalk.discussions.api.SubscriptionModels._
+import io.branchtalk.api.*
+import io.branchtalk.api.AuthenticationSupport.{ *, given }
+import io.branchtalk.api.TapirSupport.{ *, given }
+import io.branchtalk.discussions.api.PostModels.*
+import io.branchtalk.discussions.api.SubscriptionModels.*
 import sttp.model.StatusCode
 
 object SubscriptionAPIs {
@@ -22,7 +22,7 @@ object SubscriptionAPIs {
 
   val newest: AuthedEndpoint[
     Option[Authentication],
-    (Option[PaginationOffset], Option[PaginationLimit]),
+    (Option[Pagination.Offset], Option[Pagination.Limit]),
     PostError,
     Pagination[APIPost],
     Any
@@ -34,8 +34,8 @@ object SubscriptionAPIs {
     .get
     .securityIn(optAuthHeader)
     .in(prefix / "newest")
-    .in(query[Option[PaginationOffset]]("offset"))
-    .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[Pagination.Offset]]("offset"))
+    .in(query[Option[Pagination.Limit]]("limit"))
     .out(jsonBody[Pagination[APIPost]])
     .errorOut(PostAPIs.errorMapping) // an exception in our API
     .notRequiringPermissions

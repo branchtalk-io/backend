@@ -10,9 +10,12 @@ package object auth {
   implicit def authUserSession[F[_]: AuthServices]: Authorize[F, Authentication, (User, Option[Session])] =
     (auth: Authentication, requiredPermissions: RequiredPermissions) =>
       AuthServices[F].authorizeUser(auth, requiredPermissions, None)
-  implicit def authOptUserSession[F[_]: Applicative: AuthServices]: Authorize[F, Option[
-    Authentication
-  ], (Option[User], Option[Session])] =
+  implicit def authOptUserSession[F[_]: Applicative: AuthServices]: Authorize[F,
+                                                                              Option[
+                                                                                Authentication
+                                                                              ],
+                                                                              (Option[User], Option[Session])
+  ] =
     (auth: Option[Authentication], requiredPermissions: RequiredPermissions) =>
       auth.traverse(AuthServices[F].authorizeUser(_, requiredPermissions, None)).map { optUserSession =>
         optUserSession.map(_._1) -> optUserSession.flatMap(_._2)

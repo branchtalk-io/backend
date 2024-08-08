@@ -1,14 +1,14 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s._
+import com.sksamuel.avro4s.*
 import io.branchtalk.ADT
 import io.branchtalk.logging.CorrelationID
-import io.branchtalk.shared.model._
+import io.branchtalk.shared.model.*
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
-import io.branchtalk.shared.model.AvroSupport._
+import io.branchtalk.shared.model.AvroSupport.*
 import io.branchtalk.users.model.{ Password, Permission, Session, User }
 import io.scalaland.catnip.Semi
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
 
 @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait UserCommandEvent extends ADT
 object UserCommandEvent {

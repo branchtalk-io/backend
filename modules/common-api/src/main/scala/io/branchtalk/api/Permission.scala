@@ -2,8 +2,7 @@ package io.branchtalk.api
 
 import cats.Order
 import io.branchtalk.api.JsoniterSupport.*
-import io.branchtalk.shared.model.{ ShowPretty, UUID }
-import neotype.*
+import io.branchtalk.shared.model.*
 
 enum Permission derives ShowPretty, DefaultJsCodec {
   case Administrate

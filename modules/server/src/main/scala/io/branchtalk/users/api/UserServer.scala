@@ -3,18 +3,18 @@ package io.branchtalk.users.api
 import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api._
-import io.branchtalk.auth._
+import io.branchtalk.api.*
+import io.branchtalk.auth.*
 import io.branchtalk.configs.PaginationConfig
-import io.branchtalk.mappings._
+import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.{ CommonError, ID }
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Password, Session, User }
 import io.branchtalk.users.reads.{ SessionReads, UserReads }
 import io.branchtalk.users.writes.{ SessionWrites, UserWrites }
-import io.scalaland.chimney.dsl._
-import org.http4s._
-import sttp.tapir.server.http4s._
+import io.scalaland.chimney.dsl.*
+import org.http4s.*
+import sttp.tapir.server.http4s.*
 import sttp.tapir.server.ServerEndpoint
 
 final class UserServer[F[_]: Async](

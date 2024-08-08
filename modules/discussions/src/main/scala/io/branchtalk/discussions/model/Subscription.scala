@@ -18,7 +18,22 @@ final case class Subscription(
   def --(subscriptions: Set[ID[Channel]]): Subscription =
     Subscription(subscriberID = subscriberID, subscriptions = this.subscriptions -- subscriptions)
 }
-object Subscription extends SubscriptionCommands {
+object Subscription {
 
-  final case class Scheduled(subscription: Subscription) derives FastEq, ShowPretty
+  final case class Scheduled(
+    subscription: Subscription
+  ) derives FastEq,
+        ShowPretty
+
+  final case class Subscribe(
+    subscriberID:  ID[User],
+    subscriptions: Set[ID[Channel]]
+  ) derives FastEq,
+        ShowPretty
+
+  final case class Unsubscribe(
+    subscriberID:  ID[User],
+    subscriptions: Set[ID[Channel]]
+  ) derives FastEq,
+        ShowPretty
 }

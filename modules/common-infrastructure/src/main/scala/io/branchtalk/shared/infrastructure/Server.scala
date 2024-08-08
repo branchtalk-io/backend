@@ -2,7 +2,6 @@ package io.branchtalk.shared.infrastructure
 
 import cats.Show
 import io.branchtalk.shared.infrastructure.PureconfigSupport.*
-import neotype.*
 
 final case class Server(
   host: Server.Host,
@@ -13,7 +12,7 @@ object Server {
   type Host = Host.Type
   object Host extends Newtype[String] {
 
-    override def validate(input: String): Boolean | String = input.nonEmpty
+    override inline def validate(input: String): Boolean = input.nonEmpty
 
     def unapply(host: Host): Some[String] = Some(host.unwrap)
 
@@ -24,7 +23,7 @@ object Server {
   type Port = Port.Type
   object Port extends Newtype[Int] {
 
-    override def validate(input: Int): Boolean | String = input > 0
+    override inline def validate(input: Int): Boolean = input > 0
 
     def unapply(port: Port): Some[Int] = Some(port.unwrap)
 

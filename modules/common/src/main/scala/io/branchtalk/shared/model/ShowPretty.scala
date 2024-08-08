@@ -1,7 +1,7 @@
 package io.branchtalk.shared.model
 
 import cats.Show
-import magnolia1._
+import magnolia1.*
 
 // Custom implementation of ShowPretty which relies on Magnolia for derivation as opposed to Kittens' version.
 @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
@@ -18,10 +18,10 @@ trait ShowPretty[T] extends Show[T] {
 }
 
 @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
-object ShowPretty extends Derivation[ShowPretty] with ShowPrettyLowLevel {
+object ShowPretty extends Derivation[ShowPretty], ShowPrettyLowLevel {
 
-  def join[T](caseClass: CaseClass[ShowPretty, T]): ShowPretty[T] =
-    (t: T, sb: StringBuilder, indentWith: String, indentLevel: Int) => {
+  def join[T](caseClass: CaseClass[ShowPretty, T]): ShowPretty[T] = {
+    (t: T, sb: StringBuilder, indentWith: String, indentLevel: Int) =>
       val nextIndent = indentLevel + 1
       val lastIndex  = caseClass.parameters.size - 1
       void(sb.append(caseClass.typeInfo.full).append("(\n"))
@@ -34,7 +34,7 @@ object ShowPretty extends Derivation[ShowPretty] with ShowPrettyLowLevel {
         sb.append("\n")
       }
       sb.append(indentWith * indentLevel).append(")")
-    }
+  }
 
   def split[T](sealedTrait: SealedTrait[ShowPretty, T]): ShowPretty[T] =
     (t: T, sb: StringBuilder, indentWith: String, indentLevel: Int) =>

@@ -5,7 +5,7 @@ import io.branchtalk.configs.{ APIConfig, APIContact, APIHttp, APIInfo, APILicen
 import io.branchtalk.shared.model.UUID.Generator
 
 import scala.collection.mutable
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 object TestApiConfigs {
 

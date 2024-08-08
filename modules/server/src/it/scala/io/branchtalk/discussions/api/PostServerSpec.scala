@@ -1,21 +1,21 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.IO
-import io.branchtalk.api.{ Authentication, Pagination, PaginationLimit, PaginationOffset, ServerIOTest }
+import io.branchtalk.api.{ Authentication, Pagination, Pagination.Limit, Pagination.Offset, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
-import io.branchtalk.discussions.api.PostModels._
+import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.model.Post
-import io.branchtalk.mappings._
-import io.branchtalk.shared.model._
+import io.branchtalk.mappings.*
+import io.branchtalk.shared.model.*
 import io.branchtalk.users.UsersFixtures
-import io.scalaland.chimney.dsl._
-import monocle.macros.syntax.lens._
+import io.scalaland.chimney.dsl.*
+import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
-final class PostServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
+final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
-  implicit protected lazy val uuidGenerator: TestUUID.Generator = new TestUUID.Generator
+  implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "PostServer-provided endpoints" should {
 
@@ -31,11 +31,11 @@ final class PostServerSpec extends Specification with ServerIOTest with UsersFix
           )
           posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when
-          response1 <- PostAPIs.newest.toTestCall.untupled(None, channelID, None, PaginationLimit(5).some)
+          response1 <- PostAPIs.newest.toTestCall.untupled(None, channelID, None, Pagination.Limit(5).some)
           response2 <- PostAPIs.newest.toTestCall.untupled(None,
                                                            channelID,
-                                                           PaginationOffset(5L).some,
-                                                           PaginationLimit(5).some
+                                                           Pagination.Offset(5L).some,
+                                                           Pagination.Limit(5).some
           )
         } yield {
           // then

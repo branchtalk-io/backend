@@ -1,6 +1,6 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s._
+import com.sksamuel.avro4s.*
 import io.branchtalk.ADT
 import io.branchtalk.shared.model.{ FastEq, ShowPretty }
 import io.scalaland.catnip.Semi

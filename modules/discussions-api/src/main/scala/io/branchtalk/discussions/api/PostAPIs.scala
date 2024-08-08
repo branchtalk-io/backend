@@ -2,10 +2,10 @@ package io.branchtalk.discussions.api
 
 import java.net.URI
 
-import io.branchtalk.api._
-import io.branchtalk.api.AuthenticationSupport._
-import io.branchtalk.api.TapirSupport._
-import io.branchtalk.discussions.api.PostModels._
+import io.branchtalk.api.*
+import io.branchtalk.api.AuthenticationSupport.{ *, given }
+import io.branchtalk.api.TapirSupport.{ *, given }
+import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.shared.model.{ ID, Updatable }
 import sttp.model.StatusCode
@@ -23,7 +23,7 @@ object PostAPIs {
 
   val newest: AuthedEndpoint[
     Option[Authentication],
-    (ID[Channel], Option[PaginationOffset], Option[PaginationLimit]),
+    (ID[Channel], Option[Pagination.Offset], Option[Pagination.Limit]),
     PostError,
     Pagination[APIPost],
     Any
@@ -35,8 +35,8 @@ object PostAPIs {
     .get
     .securityIn(optAuthHeader)
     .in(prefix / "newest")
-    .in(query[Option[PaginationOffset]]("offset"))
-    .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[Pagination.Offset]]("offset"))
+    .in(query[Option[Pagination.Limit]]("limit"))
     .out(jsonBody[Pagination[APIPost]])
     .errorOut(errorMapping)
     .notRequiringPermissions
@@ -139,7 +139,7 @@ object PostAPIs {
     .out(jsonBody[UpdatePostResponse])
     .errorOut(errorMapping)
     .requiringPermissions { case (channelID, _, _) =>
-      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
+      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.unwrap)))
     }
 
   val delete: AuthedEndpoint[
@@ -159,7 +159,7 @@ object PostAPIs {
     .out(jsonBody[DeletePostResponse])
     .errorOut(errorMapping)
     .requiringPermissions { case (channelID, _) =>
-      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
+      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.unwrap)))
     }
 
   val restore: AuthedEndpoint[
@@ -179,7 +179,7 @@ object PostAPIs {
     .out(jsonBody[RestorePostResponse])
     .errorOut(errorMapping)
     .requiringPermissions { case (channelID, _) =>
-      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.uuid)))
+      RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateChannel(ChannelID(channelID.unwrap)))
     }
 
   val upvote: AuthedEndpoint[

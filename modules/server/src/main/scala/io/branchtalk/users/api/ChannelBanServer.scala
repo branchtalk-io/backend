@@ -4,14 +4,14 @@ import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.{ Permission => _, _ }
-import io.branchtalk.auth._
+import io.branchtalk.auth.*
 import io.branchtalk.shared.model.CommonError
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Ban, User }
 import io.branchtalk.users.reads.BanReads
 import io.branchtalk.users.writes.BanWrites
-import org.http4s._
-import sttp.tapir.server.http4s._
+import org.http4s.*
+import sttp.tapir.server.http4s.*
 import sttp.tapir.server.ServerEndpoint
 
 final class ChannelBanServer[F[_]: Async](

@@ -5,7 +5,7 @@ import cats.effect.{ IO, IOLocal }
 import java.{ util => ju }
 import ch.qos.logback.classic.util.LogbackMDCAdapter
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 // Based on solution described by OlegPy in https://olegpy.com/better-logging-monix-1/
 // Using experimental hack: https://gist.github.com/MateuszKubuszok/d506706ee3c9b4c2291d47279f619523

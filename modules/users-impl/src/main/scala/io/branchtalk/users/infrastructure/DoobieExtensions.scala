@@ -1,9 +1,9 @@
 package io.branchtalk.users.infrastructure
 
 import cats.Id
-import com.github.plokhotnyuk.jsoniter_scala.core._
-import com.github.plokhotnyuk.jsoniter_scala.macros._
-import io.branchtalk.shared.infrastructure.DoobieSupport._
+import com.github.plokhotnyuk.jsoniter_scala.core.*
+import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.*
 import io.branchtalk.shared.model.{ ID, SensitiveData, UUID, branchtalkLocale }
 import io.branchtalk.users.model.{ Ban, Password, Permission, Permissions, Session }
 import io.estatico.newtype.Coercible

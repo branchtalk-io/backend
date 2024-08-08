@@ -1,20 +1,23 @@
 package io.branchtalk.users.model
 
 import cats.Order
-import io.branchtalk.ADT
-import io.branchtalk.shared.model.{ ID, ShowPretty }
-import io.scalaland.catnip.Semi
+import io.branchtalk.shared.model.*
 
-@Semi(ShowPretty) sealed trait Permission extends ADT
-object Permission extends PermissionCommands {
+enum Permission derives ShowPretty {
+  case Administrate
+  case IsUser(userID: ID[User])
+  case ModerateUsers
+  case ModerateChannel(channelID: ID[Channel])
+  case CanPublish(channelID: ID[Channel])
+}
+object Permission {
 
-  case object Administrate extends Permission
-  final case class IsUser(userID: ID[User]) extends Permission
-  case object ModerateUsers extends Permission
-  final case class ModerateChannel(channelID: ID[Channel]) extends Permission
-  final case class CanPublish(channelID: ID[Channel]) extends Permission
+  enum Update derives FastEq, ShowPretty {
+    case Add(permission: Permission)
+    case Remove(permission: Permission)
+  }
 
-  implicit val order: Order[Permission] = {
+  given Order[Permission] = {
     case (Administrate, Administrate)               => 0
     case (Administrate, _)                          => 1
     case (IsUser(u1), IsUser(u2))                   => Order[ID[User]].compare(u1, u2)

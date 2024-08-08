@@ -6,7 +6,7 @@ import fs2.Stream
 import io.branchtalk.discussions.events.{ DiscussionEvent, DiscussionsCommandEvent, PostCommandEvent, PostEvent }
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
-import io.scalaland.chimney.dsl._
+import io.scalaland.chimney.dsl.*
 
 final class PostCommandHandler[F[_]: Sync] extends Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] {
 

@@ -5,11 +5,11 @@ import cats.effect.std.Dispatcher
 import cats.effect.{ Async, Resource }
 import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
 import doobie.util.transactor.Transactor
+import io.branchtalk.logging.Logger
 import io.branchtalk.shared.infrastructure.KafkaSerialization.{ *, given }
 import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 import io.branchtalk.shared.model.ShowPretty
 import io.prometheus.client.CollectorRegistry
-import neotype.*
 
 // Utilities for connecting to database and events buses through Resources.
 
@@ -17,19 +17,21 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
 
   def setupReads[F[_]: Async](
     domainConfig: DomainModule.Config,
+    logger:       Logger[F],
     registry:     CollectorRegistry
   ): Resource[F, Reads.Infrastructure[F, Event]] =
     for {
-      transactor <- new PostgresDatabase(domainConfig.databaseReads).transactor(registry)
+      transactor <- new PostgresDatabase(domainConfig.databaseReads).transactor(logger, registry)
       consumerStreamBuilder = ConsumerStream.fromConfigs[F, Event](domainConfig.publishedEventBus)
     } yield Reads.Infrastructure(transactor, consumerStreamBuilder)
 
   def setupWrites[F[_]: Async: Dispatcher](
     domainConfig: DomainModule.Config,
+    logger:       Logger[F],
     registry:     CollectorRegistry
   ): Resource[F, Writes.Infrastructure[F, Event, InternalEvent]] =
     for {
-      transactor <- new PostgresDatabase(domainConfig.databaseWrites).transactor(registry)
+      transactor <- new PostgresDatabase(domainConfig.databaseWrites).transactor(logger, registry)
       internalProducer       = KafkaEventBus.producer[F, InternalEvent](domainConfig.internalEventBus)
       internalConsumerStream = ConsumerStream.fromConfigs[F, InternalEvent](domainConfig.internalEventBus)
       producer               = KafkaEventBus.producer[F, Event](domainConfig.publishedEventBus)
@@ -54,7 +56,7 @@ object DomainModule {
   type Name = Name.Type
   object Name extends Newtype[String] {
 
-    override def validate(input: String): Boolean | String = input.nonEmpty
+    override inline def validate(input: String): Boolean = input.nonEmpty
 
     def unapply(domainName: Name): Some[String] = Some(domainName.unwrap)
 

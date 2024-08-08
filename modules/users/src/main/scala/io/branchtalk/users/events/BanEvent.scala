@@ -1,30 +1,28 @@
 package io.branchtalk.users.events
 
 import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
-import io.branchtalk.ADT
-import io.branchtalk.logging.CorrelationID
-import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport._
+import io.branchtalk.logging.*
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.AvroSupport.{ *, given }
 import io.branchtalk.users.model.{ Ban, User }
-import io.scalaland.catnip.Semi
 
-@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait BanEvent extends ADT
+sealed trait BanEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 object BanEvent {
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Banned(
+  final case class Banned(
     bannedUserID:  ID[User],
     moderatorID:   Option[ID[User]],
     scope:         Ban.Scope,
     reason:        Ban.Reason,
     createdAt:     CreationTime,
     correlationID: CorrelationID
-  ) extends BanEvent
+  ) extends BanEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Unbanned(
+  final case class Unbanned(
     bannedUserID:  ID[User],
     moderatorID:   Option[ID[User]],
     scope:         Ban.Scope,
     modifiedAt:    ModificationTime,
     correlationID: CorrelationID
-  ) extends BanEvent
+  ) extends BanEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 }

@@ -1,10 +1,10 @@
 package io.branchtalk.users.api
 
-import io.branchtalk.api._
-import io.branchtalk.api.AuthenticationSupport._
-import io.branchtalk.api.TapirSupport._
+import io.branchtalk.api.*
+import io.branchtalk.api.AuthenticationSupport.{ *, given }
+import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
-import io.branchtalk.users.api.UserModels._
+import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.Password.{ Raw => RawPassword }
 import io.branchtalk.users.model.User
 import sttp.model.StatusCode
@@ -22,7 +22,7 @@ object UserAPIs {
 
   val paginate: AuthedEndpoint[
     Authentication,
-    (Option[PaginationOffset], Option[PaginationLimit]),
+    (Option[Pagination.Offset], Option[Pagination.Limit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -34,15 +34,15 @@ object UserAPIs {
     .get
     .securityIn(authHeader)
     .in(prefix)
-    .in(query[Option[PaginationOffset]]("offset"))
-    .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[Pagination.Offset]]("offset"))
+    .in(query[Option[Pagination.Limit]]("limit"))
     .out(jsonBody[Pagination[APIUser]])
     .errorOut(errorMapping)
     .requiringPermissions(_ => RequiredPermissions.one(Permission.ModerateUsers))
 
   val newest: AuthedEndpoint[
     Authentication,
-    (Option[PaginationOffset], Option[PaginationLimit]),
+    (Option[Pagination.Offset], Option[Pagination.Limit]),
     UserError,
     Pagination[APIUser],
     Any
@@ -54,15 +54,15 @@ object UserAPIs {
     .get
     .securityIn(authHeader)
     .in(prefix / "newest")
-    .in(query[Option[PaginationOffset]]("offset"))
-    .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[Pagination.Offset]]("offset"))
+    .in(query[Option[Pagination.Limit]]("limit"))
     .out(jsonBody[Pagination[APIUser]])
     .errorOut(errorMapping)
     .requiringPermissions(_ => RequiredPermissions.one(Permission.ModerateUsers))
 
   val sessions: AuthedEndpoint[
     Authentication,
-    (Option[PaginationOffset], Option[PaginationLimit]),
+    (Option[Pagination.Offset], Option[Pagination.Limit]),
     UserError,
     Pagination[APISession],
     Any
@@ -74,8 +74,8 @@ object UserAPIs {
     .get
     .securityIn(authHeader)
     .in(prefix / "sessions")
-    .in(query[Option[PaginationOffset]]("offset"))
-    .in(query[Option[PaginationLimit]]("limit"))
+    .in(query[Option[Pagination.Offset]]("offset"))
+    .in(query[Option[Pagination.Limit]]("limit"))
     .out(jsonBody[Pagination[APISession]])
     .errorOut(errorMapping)
     .notRequiringPermissions
@@ -143,7 +143,7 @@ object UserAPIs {
               UpdateUserRequest(
                 newUsername = Updatable.Set(User.Name("example")),
                 newDescription = OptionUpdatable.Set(User.Description("example")),
-                newPassword = Updatable.Set(RawPassword.fromString("example"))
+                newPassword = Updatable.Set(RawPassword.unsafeMake("example".getBytes))
               ),
               name = "Set all".some,
               summary = "Assigns new value to all fields".some

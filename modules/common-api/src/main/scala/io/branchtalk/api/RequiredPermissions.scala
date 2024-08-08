@@ -38,8 +38,8 @@ object RequiredPermissions {
     x.toSortedSet === y.toSortedSet
 
   @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
-  given ShowPretty[NonEmptySet[Permission]] =
-    (t: NonEmptySet[Permission], sb: StringBuilder, indentWith: String, indentLevel: Int) => {
+  given ShowPretty[NonEmptySet[Permission]] = {
+    (t: NonEmptySet[Permission], sb: StringBuilder, indentWith: String, indentLevel: Int) =>
       val nextIndent = indentLevel + 1
       void(sb.append(indentWith * indentLevel).append("NonEmptySet(\n"))
       t.toNonEmptyList match {
@@ -54,5 +54,5 @@ object RequiredPermissions {
           sb.append("\n)")
       }
       sb
-    }
+  }
 }

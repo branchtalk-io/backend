@@ -1,10 +1,10 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s._
+import com.sksamuel.avro4s.*
 import io.branchtalk.ADT
 import io.branchtalk.logging.CorrelationID
-import io.branchtalk.shared.model._
-import io.branchtalk.shared.model.AvroSupport._
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.AvroSupport.*
 import io.branchtalk.users.model.{ Ban, User }
 import io.scalaland.catnip.Semi
 

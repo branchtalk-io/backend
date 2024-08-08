@@ -71,13 +71,13 @@ final class ChannelModerationServerPaginationSpec
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             channelID,
             None,
-            PaginationLimit(5).some
+            Pagination.Limit(5).some
           )
           response2 <- ChannelModerationAPIs.paginate.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             channelID,
-            PaginationOffset(5L).some,
-            PaginationLimit(5).some
+            Pagination.Offset(5L).some,
+            Pagination.Limit(5).some
           )
         } yield {
           // then

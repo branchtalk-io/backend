@@ -1,9 +1,9 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.IO
-import io.branchtalk.api.{ Authentication, Pagination, PaginationLimit, PaginationOffset, ServerIOTest }
+import io.branchtalk.api.{ Authentication, Pagination, Pagination.Limit, Pagination.Offset, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
-import io.branchtalk.discussions.api.PostModels._
+import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.api.SubscriptionModels.{
   APISubscriptions,
   SubscribeRequest,
@@ -12,17 +12,17 @@ import io.branchtalk.discussions.api.SubscriptionModels.{
   UnsubscribeResponse
 }
 import io.branchtalk.discussions.model.{ Channel, Subscription }
-import io.branchtalk.mappings._
-import io.branchtalk.shared.model._
+import io.branchtalk.mappings.*
+import io.branchtalk.shared.model.*
 import io.branchtalk.users.UsersFixtures
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
-final class SubscriptionServerSpec extends Specification with ServerIOTest with UsersFixtures with DiscussionsFixtures {
+final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
   private val defaultChannelID = ID[Channel](java.util.UUID.randomUUID())
-  implicit protected lazy val uuidGenerator: TestUUID.Generator =
-    (new TestUUID.Generator).tap(_.stubNext(defaultChannelID.uuid)) // stub generation in ServerIOTest resources
+  implicit protected lazy val uuidGenerator: TestUUIDGenerator =
+    (new TestUUIDGenerator).tap(_.stubNext(defaultChannelID.uuid)) // stub generation in ServerIOTest resources
 
   "SubscriptionServer-provided endpoints" should {
 
@@ -41,10 +41,10 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
           )
           posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when
-          response1 <- SubscriptionAPIs.newest.toTestCall.untupled(None, None, PaginationLimit(5).some)
+          response1 <- SubscriptionAPIs.newest.toTestCall.untupled(None, None, Pagination.Limit(5).some)
           response2 <- SubscriptionAPIs.newest.toTestCall.untupled(None,
-                                                                   PaginationOffset(5L).some,
-                                                                   PaginationLimit(5).some
+                                                                   Pagination.Offset(5L).some,
+                                                                   Pagination.Limit(5).some
           )
         } yield {
           // then
@@ -86,12 +86,12 @@ final class SubscriptionServerSpec extends Specification with ServerIOTest with 
           response1 <- SubscriptionAPIs.newest.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)).some,
             None,
-            PaginationLimit(5).some
+            Pagination.Limit(5).some
           )
           response2 <- SubscriptionAPIs.newest.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)).some,
-            PaginationOffset(5L).some,
-            PaginationLimit(5).some
+            Pagination.Offset(5L).some,
+            Pagination.Limit(5).some
           )
         } yield {
           // then
