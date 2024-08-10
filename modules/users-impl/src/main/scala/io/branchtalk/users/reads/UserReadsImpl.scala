@@ -1,17 +1,12 @@
 package io.branchtalk.users.reads
 
 import cats.effect.Sync
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.{ NonNegative, Positive }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.*
-import io.branchtalk.shared.model.Paginated
-import io.branchtalk.users.infrastructure.DoobieExtensions.*
-import io.branchtalk.users.model.{ Password, User, UserDao }
+import io.branchtalk.users.infrastructure.DoobieExtensions.{ *, given }
+import io.branchtalk.users.model.*
 
 final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserReads[F] {
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT id,
@@ -41,7 +36,7 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
 
   override def authenticate(username: User.Name, password: Password.Raw): F[User] =
     (commonSelect ++ fr"WHERE username = ${username}")
-      .query[UserDao]
+      .queryWithLabel[UserDao](show"Authenticate Users' User for Name=${username}")
       .map(_.toDomain)
       .option
       .transact(transactor)
@@ -54,27 +49,36 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
 
   override def paginate(
     sortBy:  User.Sorting,
-    offset:  Long Refined NonNegative,
-    limit:   Int Refined Positive,
+    offset:  Paginated.Offset,
+    limit:   Paginated.Limit,
     filters: List[User.Filter] = List.empty
   ): F[Paginated[User]] =
-    (commonSelect ++ Fragments.whereAnd(filters.map(filtered): _*) ++ orderBy(sortBy))
-      .paginate[UserDao](offset, limit)
+    (commonSelect ++ Fragments.whereAndOpt(filters.map(filtered)) ++ orderBy(sortBy))
+      .paginate[UserDao](offset,
+                         limit,
+                         show"Paginate Users' Session from ${offset} taking ${limit} sorted by ${sortBy}"
+      )
       .map(_.map(_.toDomain))
       .transact(transactor)
 
   override def exists(id: ID[User]): F[Boolean] =
-    (fr"SELECT 1 FROM users WHERE" ++ idExists(id)).exists.transact(transactor)
+    (fr"SELECT 1 FROM users WHERE" ++ idExists(id)).exists(show"Users' User ID=${id} exists").transact(transactor)
 
   override def deleted(id: ID[User]): F[Boolean] =
-    (fr"SELECT 1 FROM deleted_users WHERE" ++ idExists(id)).exists.transact(transactor)
+    (fr"SELECT 1 FROM deleted_users WHERE" ++ idExists(id))
+      .exists(show"Users' User ID=${id} deleted")
+      .transact(transactor)
 
   override def getById(id: ID[User]): F[Option[User]] =
-    (commonSelect ++ fr"WHERE" ++ idExists(id)).query[UserDao].map(_.toDomain).option.transact(transactor)
+    (commonSelect ++ fr"WHERE" ++ idExists(id))
+      .queryWithLabel[UserDao](show"Get Users' User by ID=${id}")
+      .map(_.toDomain)
+      .option
+      .transact(transactor)
 
   override def requireById(id: ID[User]): F[User] =
     (commonSelect ++ fr"WHERE" ++ idExists(id))
-      .query[UserDao]
+      .queryWithLabel[UserDao](show"Require Users' User by ID=${id}")
       .map(_.toDomain)
       .failNotFound("User", id)
       .transact(transactor)

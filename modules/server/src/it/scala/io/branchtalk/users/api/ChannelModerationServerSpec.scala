@@ -11,7 +11,7 @@ import org.specs2.mutable.Specification
 
 final class ChannelModerationServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelModerationServer-provided endpoints" should {
 

@@ -15,7 +15,7 @@ final class ChannelBanServerListingSpec extends Specification, ServerIOTest, Use
   // User pagination tests cannot be run in parallel to other User tests (no parent to filter other tests)
   sequential
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelBanServer-provided pagination endpoints" should {
 

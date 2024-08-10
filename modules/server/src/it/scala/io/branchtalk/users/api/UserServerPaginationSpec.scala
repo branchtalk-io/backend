@@ -15,7 +15,7 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
   // User pagination tests cannot be run in parallel to other User tests (no parent to filter other tests)
   sequential
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "UserServer-provided pagination endpoints" should {
 

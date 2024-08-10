@@ -9,7 +9,6 @@ import io.branchtalk.discussions.writes.*
 import io.branchtalk.logging.*
 import io.branchtalk.shared.model.*
 import io.branchtalk.shared.infrastructure.*
-import com.softwaremill.macwire.wire
 import io.branchtalk.logging.MDC
 import io.prometheus.client.CollectorRegistry
 
@@ -31,7 +30,6 @@ final case class DiscussionsWrites[F[_]](
   runProjecions:      StreamRunner[F]
 )
 
-@nowarn("cat=unused") // macwire
 object DiscussionsModule {
 
   private val module = DomainModule[DiscussionEvent, DiscussionsCommandEvent]
@@ -44,16 +42,18 @@ object DiscussionsModule {
     registry:     CollectorRegistry
   ): Resource[F, DiscussionsReads[F]] =
     for {
-      logger <- Resource.eval(Logger.getLogger[F])
+      logger <- Resource.eval(Logger.create[F])
       _ <- Resource.make(logger.info("Initialize Discussions reads"))(_ => logger.info("Shut down Discussions reads"))
-      case Reads.Infrastructure(transactor, consumer) <- module.setupReads[F](domainConfig, registry)
+      case Reads.Infrastructure(transactor, consumer) <- module.setupReads[F](domainConfig, logger, registry)
     } yield {
-      val channelReads:      ChannelReads[F]      = wire[ChannelReadsImpl[F]]
-      val postReads:         PostReads[F]         = wire[PostReadsImpl[F]]
-      val commentReads:      CommentReads[F]      = wire[CommentReadsImpl[F]]
-      val subscriptionReads: SubscriptionReads[F] = wire[SubscriptionReadsImpl[F]]
+      // macwire got removed due to:
+      // https://github.com/softwaremill/macwire/blob/abf95284e24138a984a06ef4f08d0788af371825/macros/src/main/scala-3/com/softwaremill/macwire/internals/ConstructorCrimper.scala#L91
+      val channelReads:      ChannelReads[F]      = ChannelReadsImpl[F](transactor)
+      val postReads:         PostReads[F]         = PostReadsImpl[F](transactor)
+      val commentReads:      CommentReads[F]      = CommentReadsImpl[F](transactor)
+      val subscriptionReads: SubscriptionReads[F] = SubscriptionReadsImpl[F](transactor)
 
-      wire[DiscussionsReads[F]]
+      DiscussionsReads(channelReads, postReads, commentReads, subscriptionReads, consumer)
     }
 
   def writes[F[_]: Async: Dispatcher: MDC](
@@ -61,7 +61,7 @@ object DiscussionsModule {
     registry:     CollectorRegistry
   )(using UUID.Generator): Resource[F, DiscussionsWrites[F]] =
     for {
-      logger <- Resource.eval(Logger.getLogger[F])
+      logger <- Resource.eval(Logger.create[F])
       _ <- Resource.make(logger.info("Initialize Discussions writes"))(_ => logger.info("Shut down Discussions writes"))
       case Writes.Infrastructure(transactor,
                                  internalProducer,
@@ -69,27 +69,29 @@ object DiscussionsModule {
                                  producer,
                                  consumerStream,
                                  cache
-      ) <- module.setupWrites[F](domainConfig, registry)
+      ) <- module.setupWrites[F](domainConfig, logger, registry)
     } yield {
-      val channelWrites:      ChannelWrites[F]      = wire[ChannelWritesImpl[F]]
-      val postWrites:         PostWrites[F]         = wire[PostWritesImpl[F]]
-      val commentWrites:      CommentWrites[F]      = wire[CommentWritesImpl[F]]
-      val subscriptionWrites: SubscriptionWrites[F] = wire[SubscriptionWritesImpl[F]]
+      // macwire got removed due to:
+      // https://github.com/softwaremill/macwire/blob/abf95284e24138a984a06ef4f08d0788af371825/macros/src/main/scala-3/com/softwaremill/macwire/internals/ConstructorCrimper.scala#L91
+      val channelWrites:      ChannelWrites[F]      = ChannelWritesImpl[F](internalProducer, transactor)
+      val postWrites:         PostWrites[F]         = PostWritesImpl[F](internalProducer, transactor)
+      val commentWrites:      CommentWrites[F]      = CommentWritesImpl[F](internalProducer, transactor)
+      val subscriptionWrites: SubscriptionWrites[F] = SubscriptionWritesImpl[F](internalProducer, transactor)
 
       val commandHandler: Projector[F, DiscussionsCommandEvent, (UUID, DiscussionEvent)] = NonEmptyList
         .of(
-          wire[ChannelCommandHandler[F]],
-          wire[PostCommandHandler[F]],
-          wire[CommentCommandHandler[F]],
-          wire[SubscriptionCommandHandler[F]]
+          ChannelCommandHandler[F],
+          PostCommandHandler[F],
+          CommentCommandHandler[F],
+          SubscriptionCommandHandler[F]
         )
         .reduce
       val postgresProjector: Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] = NonEmptyList
         .of(
-          wire[ChannelPostgresProjector[F]],
-          wire[CommentPostgresProjector[F]],
-          wire[PostPostgresProjector[F]],
-          wire[SubscriptionPostgresProjector[F]]
+          ChannelPostgresProjector[F](transactor),
+          CommentPostgresProjector[F](transactor),
+          PostPostgresProjector[F](transactor),
+          SubscriptionPostgresProjector[F](transactor)
         )
         .reduce
       val runProjector: StreamRunner[F] = {
@@ -104,6 +106,6 @@ object DiscussionsModule {
         runCommandProjector |+| runPostgresProjector
       }
 
-      wire[DiscussionsWrites[F]]
+      DiscussionsWrites(commentWrites, postWrites, channelWrites, subscriptionWrites, runProjector)
     }
 }

@@ -7,10 +7,10 @@ import io.branchtalk.shared.model.*
 
 trait DiscussionsIOTest extends IOTest, ResourcefulTest {
 
-  protected given UUID.Generator
+  protected given uuidGenerator: UUID.Generator
 
   // populated by resources
-  protected var discussionsCfg:    DomainModule.Config          = _
+  protected var discussionsCfg:    DomainModule.Config   = _
   protected var discussionsReads:  DiscussionsReads[IO]  = _
   protected var discussionsWrites: DiscussionsWrites[IO] = _
 

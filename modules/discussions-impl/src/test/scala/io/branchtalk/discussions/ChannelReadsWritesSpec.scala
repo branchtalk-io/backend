@@ -7,7 +7,7 @@ import org.specs2.mutable.Specification
 
 final class ChannelReadsWritesSpec extends Specification, DiscussionsIOTest, DiscussionsFixtures {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Channel Reads & Writes" should {
 

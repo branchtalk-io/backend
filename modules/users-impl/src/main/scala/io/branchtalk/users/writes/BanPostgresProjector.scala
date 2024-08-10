@@ -4,20 +4,17 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.events.{ BanEvent, UsersEvent }
-import io.branchtalk.users.infrastructure.DoobieExtensions.*
+import io.branchtalk.users.infrastructure.DoobieExtensions.{ *, given }
 import io.branchtalk.users.model.Ban
-import io.branchtalk.users.model.BanProperties.Scope
 
 final class BanPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, UsersEvent, (UUID, UsersEvent)] {
 
   private val logger = Logger(getClass)
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, UsersEvent]): Stream[F, (UUID, UsersEvent)] =
     in.collect { case UsersEvent.ForBan(event) =>
@@ -46,7 +43,7 @@ final class BanPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |  ${banType},
            |  ${banID},
            |  ${event.reason}
-           |)""".stripMargin.update.run.as(event.bannedUserID.uuid -> event).transact(transactor)
+           |)""".stripMargin.update.run.as(event.bannedUserID.unwrap -> event).transact(transactor)
 
     }
 
@@ -54,15 +51,15 @@ final class BanPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     withCorrelationID(event.correlationID) {
       val Ban.Scope.Tupled(banType, _) = event.scope
       (event.scope match {
-        case Scope.ForChannel(channelID) =>
+        case Ban.Scope.ForChannel(channelID) =>
           sql"""DELETE FROM bans
                |WHERE user_id  = ${event.bannedUserID}
                |  AND ban_type = $banType
                |  AND ban_id   = $channelID""".stripMargin
-        case Scope.Globally =>
+        case Ban.Scope.Globally =>
           sql"""DELETE FROM bans
                |WHERE user_id  = ${event.bannedUserID}
                |  AND ban_type = $banType""".stripMargin
-      }).update.run.as(event.bannedUserID.uuid -> event).transact(transactor)
+      }).update.run.as(event.bannedUserID.unwrap -> event).transact(transactor)
     }
 }

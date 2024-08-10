@@ -8,7 +8,7 @@ import sttp.client3.*
 
 final class OpenAPIServerSpec extends Specification, ServerIOTest {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "OpenAPIServer" should {
 

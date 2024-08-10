@@ -92,7 +92,7 @@ object User {
     case HasPermissions(permissions: Permissions)
   }
 
-  enum Sorting {
+  enum Sorting derives FastEq, ShowPretty {
     case Newest
     case NameAlphabetically
     case EmailAlphabetically

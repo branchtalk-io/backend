@@ -10,7 +10,7 @@ import scala.concurrent.duration.DurationInt
 
 final class PostReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Post Reads & Writes" should {
 

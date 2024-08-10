@@ -34,13 +34,12 @@ val settings = Seq(
     // format: on
     "-unchecked",
     "-deprecation",
-    "-explaintypes",
+    // "-explaintypes",
     "-feature",
     "-no-indent",
-    // format:off
-    "-Xmax-inlines",
-    "64",
-    // format:on
+    // format: off
+    "-Xmax-inlines", "64",
+    // format: on
     "-Wnonunit-statement",
     "-Wvalue-discard",
     // "-Xfatal-warnings",
@@ -139,36 +138,38 @@ lazy val root = project
   )
   .settings(settings *)
   .aggregate(common.projectRefs *)
-/*
   .aggregate(commonApi.projectRefs *)
+  .aggregate(commonInfrastructure)
   .aggregate(discussions.projectRefs *)
   .aggregate(discussionsApi.projectRefs *)
   .aggregate(users.projectRefs *)
   .aggregate(usersApi.projectRefs *)
-  .aggregate(commonInfrastructure, usersImpl, server, application)
- */
+  .aggregate(usersImpl)
+  .aggregate(server, application)
 
-//lazy val scalaJsArtifacts = project
-//  .in(file("scala-js"))
-//  .enablePlugins(GitVersioning, GitBranchPrompt)
-//  .settings(
-//    name := "scala-js-artifacts",
-//    description := "aggregates all Scala.js modules to publish"
-//  )
-//  .settings(settings *)
-//  .aggregate(
-//    common.js(Dependencies.scalaVersion),
-//    discussions.js(Dependencies.scalaVersion),
-//    discussionsApi.js(Dependencies.scalaVersion),
-//    users.js(Dependencies.scalaVersion),
-//    usersApi.js(Dependencies.scalaVersion)
-//  )
+lazy val scalaJsArtifacts = project
+  .in(file("scala-js"))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "scala-js-artifacts",
+    description := "aggregates all Scala.js modules to publish"
+  )
+  .settings(settings *)
+  .aggregate(
+    common.js(Dependencies.scalaVersion),
+    commonApi.js(Dependencies.scalaVersion),
+    discussions.js(Dependencies.scalaVersion),
+    discussionsApi.js(Dependencies.scalaVersion),
+    users.js(Dependencies.scalaVersion),
+    usersApi.js(Dependencies.scalaVersion)
+  )
 
 // commons
 
 val common = projectMatrix
   .in(file("modules/common"))
   .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "common",
@@ -187,6 +188,30 @@ val common = projectMatrix
     ),
     customPredef("scala.util.chaining", "cats.implicits")
   )
+
+val commonApi = projectMatrix
+  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .in(file("modules/common-api"))
+  .settings(
+    name := "common-api",
+    description := "Infrastructure-dependent implementations"
+  )
+  .settings(settings *)
+  .settings(tests *)
+  .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.jsoniter,
+      Dependencies.jsoniterMacro,
+      Dependencies.neotypeTapir,
+      Dependencies.neotypeJsoniter,
+      Dependencies.tapir,
+      Dependencies.tapirJsoniter
+    ),
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
+  )
+  .dependsOn(common)
 
 val commonInfrastructure = project
   .in(file("modules/common-infrastructure"))
@@ -218,33 +243,11 @@ val commonInfrastructure = project
   )
   .dependsOn(common.jvm(Dependencies.scalaVersion))
 
-val commonApi = projectMatrix
-  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
-  .in(file("modules/common-api"))
-  .settings(
-    name := "common-api",
-    description := "Infrastructure-dependent implementations"
-  )
-  .settings(settings *)
-  .settings(tests *)
-  .settings(
-    libraryDependencies ++= Seq(
-      Dependencies.jsoniter,
-      Dependencies.jsoniterMacro,
-      Dependencies.neotypeTapir,
-      Dependencies.neotypeJsoniter,
-      Dependencies.tapir,
-      Dependencies.tapirJsoniter
-    ),
-    customPredef("scala.util.chaining", "cats.implicits", "neotype")
-  )
-  .dependsOn(common)
-
 // discussions
 
 val discussions = projectMatrix
   .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .in(file("modules/discussions"))
   .settings(
@@ -260,6 +263,7 @@ val discussions = projectMatrix
 
 val discussionsApi = projectMatrix
   .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .in(file("modules/discussions-api"))
   .settings(
@@ -300,6 +304,7 @@ val discussionsImpl = project
 val users = projectMatrix
   .in(file("modules/users"))
   .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "users",
@@ -318,6 +323,7 @@ val users = projectMatrix
 val usersApi = projectMatrix
   .in(file("modules/users-api"))
   .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
+  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "users-api",

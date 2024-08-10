@@ -81,7 +81,7 @@ object Session {
     }
   }
 
-  enum Sorting {
+  enum Sorting derives FastEq, ShowPretty {
     case ClosestToExpiry
   }
 }

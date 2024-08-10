@@ -46,8 +46,15 @@ object DoobieSupport
     subtypePut
   }
 
+  given [E]: Meta[ID[E]] =
+    ID.unsafeMakeF[Meta, E](Meta[UUID])
+
   given [E]: Meta[Set[ID[E]]] =
     ID.unsafeMakeF[[A] =>> Meta[Set[A]], E](unliftedUUIDArrayType.imap[Set[UUID]](_.toSet)(_.toArray))
+
+  given Meta[CreationTime] = CreationTime.unsafeMakeF[Meta](JavaOffsetDateTimeMeta)
+
+  given Meta[ModificationTime] = ModificationTime.unsafeMakeF[Meta](JavaOffsetDateTimeMeta)
 
   // handle updateable
 
@@ -62,14 +69,18 @@ object DoobieSupport
   }
 
   extension (fragment: Fragment) {
-    def exists: ConnectionIO[Boolean] =
-      (fr"SELECT EXISTS(" ++ fragment ++ fr")").query[Boolean].unique
+    def exists(label: String): ConnectionIO[Boolean] =
+      (fr"SELECT EXISTS(" ++ fragment ++ fr")").queryWithLabel[Boolean](label).unique
 
-    def paginate[Entity: Read](offset: Paginated.Offset, limit: Paginated.Limit): ConnectionIO[Paginated[Entity]] = {
+    def paginate[Entity: Read](
+      offset: Paginated.Offset,
+      limit:  Paginated.Limit,
+      label:  String
+    ): ConnectionIO[Paginated[Entity]] = {
       val o: Long = offset.unwrap
       val l: Int  = limit.unwrap
       // limit 1 entity more than returned to check if there is a next page in pagination
-      (fragment ++ fr"LIMIT ${l + 1} OFFSET ${o}").query[Entity].to[List].map { entities =>
+      (fragment ++ fr"LIMIT ${l + 1} OFFSET ${o}").queryWithLabel[Entity](label).to[List].map { entities =>
         val result     = entities.take(l)
         val nextOffset = if (entities.sizeIs <= l) None else Paginated.Offset.make(o + l).toOption
         Paginated(result, nextOffset)

@@ -6,10 +6,10 @@ import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
 import io.branchtalk.discussions.events.{ CommentEvent, DiscussionEvent }
-import io.branchtalk.discussions.infrastructure.DoobieExtensions.*
+import io.branchtalk.discussions.infrastructure.DoobieExtensions.{ *, given }
 import io.branchtalk.discussions.model.{ Comment, User, Vote }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.{ ID, UUID }
 
@@ -17,8 +17,6 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, DiscussionEvent]): Stream[F, (UUID, DiscussionEvent)] =
     in.collect { case DiscussionEvent.ForComment(event) =>
@@ -77,7 +75,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |WHERE id = ${event.replyTo}
                  |""".stripMargin.update.run
         }
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
@@ -96,7 +94,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           Sync[ConnectionIO].delay(
             logger.warn(show"Comment update ignored as it doesn't contain any modification:\n$event")
           )
-      }).as(event.id.uuid -> event).transact(transactor)
+      }).as(event.id.unwrap -> event).transact(transactor)
     }
 
   def toDelete(event: CommentEvent.Deleted): F[(UUID, CommentEvent.Deleted)] =
@@ -111,7 +109,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
              |SET replies_nr = replies_nr - 1
              |FROM (SELECT reply_to FROM comments WHERE id = ${event.id}) as subquery
              |WHERE id = subquery.reply_to
-             |""".stripMargin.update.run).as(event.id.uuid -> event).transact(transactor)
+             |""".stripMargin.update.run).as(event.id.unwrap -> event).transact(transactor)
     }
 
   def toRestore(event: CommentEvent.Restored): F[(UUID, CommentEvent.Restored)] =
@@ -126,7 +124,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
              |SET replies_nr = replies_nr + 1
              |FROM (SELECT reply_to FROM comments WHERE id = ${event.id}) as subquery
              |WHERE id = subquery.reply_to
-             |""".stripMargin.update.run).as(event.id.uuid -> event).transact(transactor)
+             |""".stripMargin.update.run).as(event.id.unwrap -> event).transact(transactor)
     }
 
   private def fetchVote(commentID: ID[Comment], voterID: ID[User]) =
@@ -173,7 +171,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |)""".stripMargin.update.run >>
               updateCommentVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr").void
         }
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
@@ -204,7 +202,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |)""".stripMargin.update.run >>
               updateCommentVotes(event.id, fr"upvotes_nr", fr"downvotes_nr + 1").void
         }
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
@@ -228,7 +226,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             // do nothing - vote doesn't exist
             ().pure[ConnectionIO]
         }
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 }

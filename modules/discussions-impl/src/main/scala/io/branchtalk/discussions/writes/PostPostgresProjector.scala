@@ -6,10 +6,10 @@ import com.typesafe.scalalogging.Logger
 import doobie.Transactor
 import fs2.Stream
 import io.branchtalk.discussions.events.{ DiscussionEvent, PostEvent }
-import io.branchtalk.discussions.infrastructure.DoobieExtensions.*
+import io.branchtalk.discussions.infrastructure.DoobieExtensions.{ *, given }
 import io.branchtalk.discussions.model.{ Post, User, Vote }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.{ ID, UUID }
 
@@ -17,8 +17,6 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, DiscussionEvent]): Stream[F, (UUID, DiscussionEvent)] =
     in.collect { case DiscussionEvent.ForPost(event) =>
@@ -61,7 +59,7 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |  ${contentRaw},
            |  ${event.createdAt}
            |)
-           |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.as(event.id.uuid -> event).transact(transactor)
+           |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.as(event.id.unwrap -> event).transact(transactor)
     }
 
   def toUpdate(event: PostEvent.Updated): F[(UUID, PostEvent.Updated)] =
@@ -83,20 +81,20 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           Sync[ConnectionIO].delay(
             logger.warn(show"Post update ignored as it doesn't contain any modification:\n$event")
           )
-      }).as(event.id.uuid -> event).transact(transactor)
+      }).as(event.id.unwrap -> event).transact(transactor)
     }
 
   def toDelete(event: PostEvent.Deleted): F[(UUID, PostEvent.Deleted)] =
     withCorrelationID(event.correlationID) {
       sql"UPDATE posts SET deleted = TRUE WHERE id = ${event.id}".update.run
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
   def toRestore(event: PostEvent.Restored): F[(UUID, PostEvent.Restored)] =
     withCorrelationID(event.correlationID) {
       sql"UPDATE posts SET deleted = FALSE WHERE id = ${event.id}".update.run
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
@@ -142,7 +140,7 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |)""".stripMargin.update.run >>
               updatePostVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr").void
         }
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
@@ -173,7 +171,7 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |)""".stripMargin.update.run >>
               updatePostVotes(event.id, fr"upvotes_nr", fr"downvotes_nr + 1").void
         }
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
@@ -197,7 +195,7 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             // do nothing - vote doesn't exist
             ().pure[ConnectionIO]
         }
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 }

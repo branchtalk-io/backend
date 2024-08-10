@@ -11,7 +11,7 @@ import org.specs2.mutable.Specification
 
 final class UserModerationServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "UserModerationServer-provided endpoints" should {
 

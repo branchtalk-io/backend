@@ -2,12 +2,10 @@ package io.branchtalk.discussions.reads
 
 import cats.effect.Sync
 import io.branchtalk.discussions.model.{ Subscription, User }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.*
 
 final class SubscriptionReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends SubscriptionReads[F] {
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT subscriber_id,
@@ -16,7 +14,7 @@ final class SubscriptionReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends
 
   override def requireForUser(userID: ID[User]): F[Subscription] =
     (commonSelect ++ fr"WHERE subscriber_id = ${userID}")
-      .query[Subscription]
+      .queryWithLabel[Subscription](show"Require Discussions' Subscription for User=${userID}")
       .option
       .map(_.getOrElse(Subscription(userID, Set.empty)))
       .transact(transactor)

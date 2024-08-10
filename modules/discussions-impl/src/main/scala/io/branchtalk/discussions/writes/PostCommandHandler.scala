@@ -31,23 +31,23 @@ final class PostCommandHandler[F[_]: Sync] extends Projector[F, DiscussionsComma
     }
 
   def toCreate(command: PostCommandEvent.Create): F[(UUID, PostEvent.Created)] =
-    (command.id.uuid -> command.transformInto[PostEvent.Created]).pure[F]
+    (command.id.unwrap -> command.transformInto[PostEvent.Created]).pure[F]
 
   def toUpdate(command: PostCommandEvent.Update): F[(UUID, PostEvent.Updated)] =
-    (command.id.uuid -> command.transformInto[PostEvent.Updated]).pure[F]
+    (command.id.unwrap -> command.transformInto[PostEvent.Updated]).pure[F]
 
   def toDelete(command: PostCommandEvent.Delete): F[(UUID, PostEvent.Deleted)] =
-    (command.id.uuid -> command.transformInto[PostEvent.Deleted]).pure[F]
+    (command.id.unwrap -> command.transformInto[PostEvent.Deleted]).pure[F]
 
   def toRestore(command: PostCommandEvent.Restore): F[(UUID, PostEvent.Restored)] =
-    (command.id.uuid -> command.transformInto[PostEvent.Restored]).pure[F]
+    (command.id.unwrap -> command.transformInto[PostEvent.Restored]).pure[F]
 
   def toUpvote(command: PostCommandEvent.Upvote): F[(UUID, PostEvent.Upvoted)] =
-    (command.id.uuid -> command.transformInto[PostEvent.Upvoted]).pure[F]
+    (command.id.unwrap -> command.transformInto[PostEvent.Upvoted]).pure[F]
 
   def toDownvote(command: PostCommandEvent.Downvote): F[(UUID, PostEvent.Downvoted)] =
-    (command.id.uuid -> command.transformInto[PostEvent.Downvoted]).pure[F]
+    (command.id.unwrap -> command.transformInto[PostEvent.Downvoted]).pure[F]
 
   def toRevokeVote(command: PostCommandEvent.RevokeVote): F[(UUID, PostEvent.VoteRevoked)] =
-    (command.id.uuid -> command.transformInto[PostEvent.VoteRevoked]).pure[F]
+    (command.id.unwrap -> command.transformInto[PostEvent.VoteRevoked]).pure[F]
 }

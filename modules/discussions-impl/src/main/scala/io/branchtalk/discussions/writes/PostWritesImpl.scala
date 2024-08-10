@@ -1,32 +1,26 @@
 package io.branchtalk.discussions.writes
 
 import cats.effect.Sync
-import eu.timepit.refined.collection.NonEmpty
-import eu.timepit.refined.types.string.NonEmptyString
 import io.branchtalk.discussions.events.{ DiscussionsCommandEvent, PostCommandEvent }
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.logging.{ CorrelationID, MDC }
-import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, NormalizeForUrl, Writes }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus, NormalizeForUrl, Writes }
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.*
 import io.scalaland.chimney.dsl.*
 
 final class PostWritesImpl[F[_]: Sync: MDC](
   producer:   KafkaEventBus.Producer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
-)(implicit
-  uuidGenerator: UUID.Generator
-) extends Writes[F, Post, DiscussionsCommandEvent](producer)
-    with PostWrites[F] {
+)(using UUID.Generator)
+    extends Writes[F, Post, DiscussionsCommandEvent](producer),
+      PostWrites[F] {
 
   private val channelCheck = new ParentCheck[Channel]("Channel", transactor)
   private val postCheck    = new EntityCheck("Post", transactor)
 
   private def titleToUrlTitle(title: Post.Title): F[Post.UrlTitle] =
-    ParseNewtype[F]
-      .parse[NonEmpty](NormalizeForUrl(title.nonEmptyString.value))
-      .handleError(_ => "post": NonEmptyString)
-      .map(Post.UrlTitle(_))
+    ParseNewtype[F].parse[Post.UrlTitle](NormalizeForUrl(title.unwrap))
 
   override def createPost(newPost: Post.Create): F[CreationScheduled[Post]] =
     for {

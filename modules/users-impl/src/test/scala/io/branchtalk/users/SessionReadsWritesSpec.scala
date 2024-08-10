@@ -4,9 +4,9 @@ import io.branchtalk.shared.model.{ CreationScheduled, TestUUIDGenerator }
 import io.branchtalk.users.model.Session
 import org.specs2.mutable.Specification
 
-final class SessionReadsWritesSpec extends Specification , UsersIOTest , UsersFixtures {
+final class SessionReadsWritesSpec extends Specification, UsersIOTest, UsersFixtures {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Session Reads & Writes" should {
 

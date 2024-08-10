@@ -2,11 +2,11 @@ package io.branchtalk.users.writes
 
 import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
-import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, Writes }
-import io.branchtalk.shared.model.{ ID, UUID.Generator }
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus, Writes }
+import io.branchtalk.shared.model.{ ID, UUID }
 import io.branchtalk.users.events.{ SessionEvent, UsersEvent }
-import io.branchtalk.users.infrastructure.DoobieExtensions.*
+import io.branchtalk.users.infrastructure.DoobieExtensions.{ *, given }
 import io.branchtalk.users.model.{ Session, SessionDao }
 import io.branchtalk.users.reads.SessionReadsImpl
 import io.scalaland.chimney.dsl.*
@@ -14,14 +14,11 @@ import io.scalaland.chimney.dsl.*
 final class SessionWritesImpl[F[_]: Sync: MDC](
   producer:   KafkaEventBus.Producer[F, UsersEvent],
   transactor: Transactor[F]
-)(implicit
-  uuidGenerator: UUID.Generator
-) extends Writes[F, Session, UsersEvent](producer)
-    with SessionWrites[F] {
+)(using UUID.Generator)
+    extends Writes[F, Session, UsersEvent](producer),
+      SessionWrites[F] {
 
   private val reads = new SessionReadsImpl[F](transactor)
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def createSession(newSession: Session.Create): F[Session] =
     for {

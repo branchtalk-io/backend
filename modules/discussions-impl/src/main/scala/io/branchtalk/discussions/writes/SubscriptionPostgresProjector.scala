@@ -5,7 +5,7 @@ import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import io.branchtalk.discussions.events.{ DiscussionEvent, SubscriptionEvent }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
 
@@ -13,8 +13,6 @@ final class SubscriptionPostgresProjector[F[_]: Sync: MDC](transactor: Transacto
     extends Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, DiscussionEvent]): Stream[F, (UUID, DiscussionEvent)] =
     in.collect { case DiscussionEvent.ForSubscription(event) =>
@@ -42,7 +40,7 @@ final class SubscriptionPostgresProjector[F[_]: Sync: MDC](transactor: Transacto
            |ON CONFLICT (subscriber_id) DO
            |UPDATE
            |SET subscriptions_ids = array_distinct(subscriptions.subscriptions_ids || ${event.subscriptions})""" //
-        .stripMargin.update.run.as(event.subscriberID.uuid -> event).transact(transactor)
+        .stripMargin.update.run.as(event.subscriberID.unwrap -> event).transact(transactor)
     }
 
   def toUnsubscribe(event: SubscriptionEvent.Unsubscribed): F[(UUID, SubscriptionEvent.Unsubscribed)] =
@@ -50,7 +48,7 @@ final class SubscriptionPostgresProjector[F[_]: Sync: MDC](transactor: Transacto
       sql"""UPDATE subscriptions
            |SET subscriptions_ids = array_diff(subscriptions.subscriptions_ids, ${event.subscriptions})
            |WHERE subscriber_id = ${event.subscriberID}""".stripMargin.update.run
-        .as(event.subscriberID.uuid -> event)
+        .as(event.subscriberID.unwrap -> event)
         .transact(transactor)
     }
 }

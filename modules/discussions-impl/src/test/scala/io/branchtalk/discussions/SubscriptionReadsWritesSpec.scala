@@ -6,7 +6,7 @@ import org.specs2.mutable.Specification
 
 final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Subscription Reads & Writes" should {
 
@@ -39,7 +39,7 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
         idsToRemove <- (0 until 3).toList.traverse { _ =>
           channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
         }
-        ids = (idsToKeep ++ idsToRemove)
+        ids = idsToKeep ++ idsToRemove
         _ <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
         _ <- discussionsWrites.subscriptionWrites.subscribe(Subscription.Subscribe(subscriberID, ids.toSet))
         _ <- discussionsReads.subscriptionReads

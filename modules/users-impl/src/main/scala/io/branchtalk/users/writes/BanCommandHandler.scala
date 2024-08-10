@@ -26,8 +26,8 @@ final class BanCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEvent
     }
 
   def toOrder(event: BanCommandEvent.OrderBan): F[(UUID, BanEvent.Banned)] =
-    (event.bannedUserID.uuid -> event.transformInto[BanEvent.Banned]).pure[F]
+    (event.bannedUserID.unwrap -> event.transformInto[BanEvent.Banned]).pure[F]
 
   def toLift(event: BanCommandEvent.LiftBan): F[(UUID, BanEvent.Unbanned)] =
-    (event.bannedUserID.uuid -> event.transformInto[BanEvent.Unbanned]).pure[F]
+    (event.bannedUserID.unwrap -> event.transformInto[BanEvent.Unbanned]).pure[F]
 }

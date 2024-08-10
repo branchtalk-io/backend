@@ -2,25 +2,20 @@ package io.branchtalk.configs
 
 import cats.Show
 import enumeratum.*
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.collection.NonEmpty
-import eu.timepit.refined.numeric.Positive
-import eu.timepit.refined.string.{ MatchesRegex, Url }
-import io.branchtalk.api.{ Pagination.Limit, Pagination.Offset }
+import io.branchtalk.api.Pagination
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.shared.infrastructure.PureconfigSupport.*
-import io.branchtalk.shared.model.{ ID, ShowPretty, UUID }
-import io.scalaland.catnip.Semi
+import io.branchtalk.shared.model.*
 import pureconfig.error.CannotConvert
 import sttp.apispec.openapi.*
 
 import scala.concurrent.duration.FiniteDuration
 
-@Semi(ConfigReader, ShowPretty) final case class APIContact(
+final case class APIContact(
   name:  String,
   email: String Refined MatchesRegex["(.+)@(.+)"],
   url:   String Refined Url
-) {
+) derives ConfigReader, ShowPretty {
 
   def toOpenAPI: Contact = Contact(
     name = name.some,
@@ -33,10 +28,10 @@ object APIContact {
   implicit private val showUrl:   Show[String Refined Url]                       = _.value
 }
 
-@Semi(ConfigReader, ShowPretty) final case class APILicense(
+final case class APILicense(
   name: String,
   url:  String Refined Url
-) {
+) derives ConfigReader, ShowPretty {
 
   def toOpenAPI: License = License(
     name = name,
@@ -47,14 +42,14 @@ object APILicense {
   implicit private val showUrl: Show[String Refined Url] = _.value
 }
 
-@Semi(ConfigReader, ShowPretty) final case class APIInfo(
+final case class APIInfo(
   title:          String Refined NonEmpty,
   version:        String Refined NonEmpty,
   description:    String Refined NonEmpty,
   termsOfService: String Refined Url,
   contact:        APIContact,
   license:        APILicense
-) {
+) derives ConfigReader, ShowPretty {
 
   def toOpenAPI: Info = Info(
     title = title.value,
@@ -70,7 +65,7 @@ object APIInfo {
   implicit private val showUrl: Show[String Refined Url]      = _.value
 }
 
-@Semi(ConfigReader, ShowPretty) final case class APIHttp(
+final case class APIHttp(
   logHeaders:           Boolean,
   logBody:              Boolean,
   http2Enabled:         Boolean,
@@ -79,15 +74,15 @@ object APIInfo {
   corsMaxAge:           FiniteDuration,
   maxHeaderLineLength:  Int Refined Positive,
   maxRequestLineLength: Int Refined Positive
-)
+)derives ConfigReader, ShowPretty
 object APIHttp {
   implicit private val showPositive: Show[Int Refined Positive] = _.value.toString
 }
 
-@Semi(ConfigReader, ShowPretty) final case class PaginationConfig(
+final case class PaginationConfig(
   defaultLimit: Pagination.Limit,
   maxLimit:     Pagination.Limit
-) {
+) derives ConfigReader, ShowPretty {
 
   def resolveOffset(passedOffset: Option[Pagination.Offset]): Pagination.Offset =
     passedOffset.getOrElse(Pagination.Offset(0L))
@@ -123,12 +118,12 @@ object APIPart extends Enum[APIPart] {
   implicit val show: Show[APIPart] = _.entryName
 }
 
-@Semi(ConfigReader, ShowPretty) final case class APIConfig(
+final case class APIConfig(
   info:            APIInfo,
   http:            APIHttp,
   defaultChannels: List[UUID],
   pagination:      Map[APIPart, PaginationConfig]
-) {
+) derives ConfigReader, ShowPretty {
 
   val signedOutSubscriptions: Set[ID[Channel]] = defaultChannels.map(ID[Channel]).toSet
 
