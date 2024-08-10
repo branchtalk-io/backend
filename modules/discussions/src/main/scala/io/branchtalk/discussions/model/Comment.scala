@@ -148,7 +148,7 @@ object Comment {
     given Order[ControversialScore] = unsafeMakeF[Order](Order[Int])
   }
 
-  enum Sorting {
+  enum Sorting derives FastEq, ShowPretty {
     case Newest
     case Hottest
     case Controversial

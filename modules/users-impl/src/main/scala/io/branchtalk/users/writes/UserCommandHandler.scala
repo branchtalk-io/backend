@@ -27,11 +27,11 @@ final class UserCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEven
     }
 
   def toCreate(command: UserCommandEvent.Create.Encrypted): F[(UUID, UserEvent.Created.Encrypted)] =
-    (command.id.uuid -> command.transformInto[UserEvent.Created.Encrypted]).pure[F]
+    (command.id.unwrap -> command.transformInto[UserEvent.Created.Encrypted]).pure[F]
 
   def toUpdate(command: UserCommandEvent.Update.Encrypted): F[(UUID, UserEvent.Updated.Encrypted)] =
-    (command.id.uuid -> command.transformInto[UserEvent.Updated.Encrypted]).pure[F]
+    (command.id.unwrap -> command.transformInto[UserEvent.Updated.Encrypted]).pure[F]
 
   def toDelete(command: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
-    (command.id.uuid -> command.transformInto[UserEvent.Deleted]).pure[F]
+    (command.id.unwrap -> command.transformInto[UserEvent.Deleted]).pure[F]
 }

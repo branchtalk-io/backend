@@ -1,15 +1,11 @@
 package io.branchtalk.discussions.reads
 
 import cats.effect.Sync
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.discussions.model.{ Comment, Post }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.{ ID, Paginated }
 
 final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends CommentReads[F] {
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT id,
@@ -42,29 +38,38 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
     post:      ID[Post],
     repliesTo: Option[ID[Comment]],
     sortBy:    Comment.Sorting,
-    offset:    Long Refined NonNegative,
-    limit:     Int Refined Positive
+    offset:    Paginated.Offset,
+    limit:     Paginated.Limit
   ): F[Paginated[Comment]] =
     (commonSelect ++ Fragments.whereAndOpt(fr"post_id = $post".some,
                                            repliesTo.map(parent => fr"reply_to = $parent"),
                                            fr"deleted = FALSE".some
-    ) ++ orderBy(sortBy)).paginate[Comment](offset, limit).transact(transactor)
+    ) ++ orderBy(sortBy))
+      .paginate[Comment](offset,
+                         limit,
+                         show"Paginate Discussions' Comment from ${offset} taking ${limit} sorted by ${sortBy}"
+      )
+      .transact(transactor)
 
   override def exists(id: ID[Comment]): F[Boolean] =
-    (fr"SELECT 1 FROM comments WHERE" ++ idExists(id)).exists.transact(transactor)
+    (fr"SELECT 1 FROM comments WHERE" ++ idExists(id))
+      .exists(show"Discussions' Comment ID=${id} exists")
+      .transact(transactor)
 
   override def deleted(id: ID[Comment]): F[Boolean] =
-    (fr"SELECT 1 FROM comments WHERE" ++ idDeleted(id)).exists.transact(transactor)
+    (fr"SELECT 1 FROM comments WHERE" ++ idDeleted(id))
+      .exists(show"Discussions' Comment ID=${id} deleted")
+      .transact(transactor)
 
   override def getById(id: ID[Comment], isDeleted: Boolean = false): F[Option[Comment]] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .query[Comment]
+      .queryWithLabel[Comment](show"Get Discussions' Comment by ID=${id}")
       .option
       .transact(transactor)
 
   override def requireById(id: ID[Comment], isDeleted: Boolean = false): F[Comment] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .query[Comment]
+      .queryWithLabel[Comment](show"Require Discussions' Comment by ID=${id}")
       .failNotFound("Comment", id)
       .transact(transactor)
 }

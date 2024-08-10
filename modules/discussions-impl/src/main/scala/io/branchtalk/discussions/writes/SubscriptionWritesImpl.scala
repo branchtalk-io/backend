@@ -4,20 +4,17 @@ import cats.effect.Sync
 import io.branchtalk.discussions.events.{ DiscussionsCommandEvent, SubscriptionCommandEvent }
 import io.branchtalk.discussions.model.{ Subscription, User }
 import io.branchtalk.logging.{ CorrelationID, MDC }
-import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, Writes }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus, Writes }
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.*
 import io.scalaland.chimney.dsl.*
 
 final class SubscriptionWritesImpl[F[_]: Sync: MDC](
   producer:   KafkaEventBus.Producer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
-)(implicit
-  uuidGenerator: UUID.Generator
-) extends Writes[F, User, DiscussionsCommandEvent](producer)
-    with SubscriptionWrites[F] {
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
+)(using UUID.Generator)
+    extends Writes[F, User, DiscussionsCommandEvent](producer),
+      SubscriptionWrites[F] {
 
   private val commonSelect: Fragment =
     fr"""SELECT subscriber_id,

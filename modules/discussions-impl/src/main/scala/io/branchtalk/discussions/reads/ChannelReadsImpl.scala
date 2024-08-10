@@ -1,15 +1,11 @@
 package io.branchtalk.discussions.reads
 
 import cats.effect.Sync
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.{ NonNegative, Positive }
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.*
 
 final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends ChannelReads[F] {
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT id,
@@ -31,28 +27,35 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
 
   override def paginate(
     sortBy: Channel.Sorting,
-    offset: Long Refined NonNegative,
-    limit:  Int Refined Positive
+    offset: Paginated.Offset,
+    limit:  Paginated.Limit
   ): F[Paginated[Channel]] =
     (commonSelect ++ Fragments.whereAnd(fr"deleted = FALSE") ++ orderBy(sortBy))
-      .paginate[Channel](offset, limit)
+      .paginate[Channel](offset,
+                         limit,
+                         show"Paginate Discussions' Channel from ${offset} taking ${limit} sorted by ${sortBy}"
+      )
       .transact(transactor)
 
   override def exists(id: ID[Channel]): F[Boolean] =
-    (fr"SELECT 1 FROM channels WHERE" ++ idExists(id)).exists.transact(transactor)
+    (fr"SELECT 1 FROM channels WHERE" ++ idExists(id))
+      .exists(show"Discussions' Channel ID=${id} exists")
+      .transact(transactor)
 
   override def deleted(id: ID[Channel]): F[Boolean] =
-    (fr"SELECT 1 FROM channels WHERE" ++ idDeleted(id)).exists.transact(transactor)
+    (fr"SELECT 1 FROM channels WHERE" ++ idDeleted(id))
+      .exists(show"Discussions' Channel ID=${id} deleted")
+      .transact(transactor)
 
   override def getById(id: ID[Channel], isDeleted: Boolean = false): F[Option[Channel]] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .query[Channel]
+      .queryWithLabel[Channel](show"Get Discussions' Channel by ID=${id}")
       .option
       .transact(transactor)
 
   override def requireById(id: ID[Channel], isDeleted: Boolean = false): F[Channel] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .query[Channel]
+      .queryWithLabel[Channel](show"Require Discussions' Channel by ID=${id}")
       .failNotFound("User", id)
       .transact(transactor)
 }

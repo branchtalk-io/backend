@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   // scala version
-  val scalaVersion      = "3.3.3"
+  val scalaVersion      = "3.4.2"
 
   // libraries versions
   val avro4sVersion     = "5.0.13" // https://github.com/sksamuel/avro4s/releases

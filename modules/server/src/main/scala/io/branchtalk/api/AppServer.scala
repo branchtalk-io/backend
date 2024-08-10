@@ -89,7 +89,7 @@ final class AppServer[F[_]: Async: MDC](
 }
 object AppServer {
 
-  @nowarn("cat=unused") // macwire
+
   @SuppressWarnings(Array("org.wartremover.warts.GlobalExecutionContext")) // for BlazeServer
   def asResource[F[_]: Async: MDC](
     appArguments:           AppArguments,

@@ -1,17 +1,15 @@
 package io.branchtalk.discussions.events
 
 import com.sksamuel.avro4s.*
-import io.scalaland.catnip.Semi
-import io.branchtalk.ADT
 import io.branchtalk.discussions.model.{ Channel, User }
 import io.branchtalk.logging.CorrelationID
 import io.branchtalk.shared.model.*
-import io.branchtalk.shared.model.AvroSupport.*
+import io.branchtalk.shared.model.AvroSupport.{ *, given }
 
-@Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) sealed trait ChannelCommandEvent extends ADT
+sealed trait ChannelCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 object ChannelCommandEvent {
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Create(
+  final case class Create(
     id:            ID[Channel],
     authorID:      ID[User],
     urlName:       Channel.UrlName,
@@ -19,9 +17,9 @@ object ChannelCommandEvent {
     description:   Option[Channel.Description],
     createdAt:     CreationTime,
     correlationID: CorrelationID
-  ) extends ChannelCommandEvent
+  ) extends ChannelCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Update(
+  final case class Update(
     id:             ID[Channel],
     editorID:       ID[User],
     newUrlName:     Updatable[Channel.UrlName],
@@ -29,17 +27,17 @@ object ChannelCommandEvent {
     newDescription: OptionUpdatable[Channel.Description],
     modifiedAt:     ModificationTime,
     correlationID:  CorrelationID
-  ) extends ChannelCommandEvent
+  ) extends ChannelCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Delete(
+  final case class Delete(
     id:            ID[Channel],
     editorID:      ID[User],
     correlationID: CorrelationID
-  ) extends ChannelCommandEvent
+  ) extends ChannelCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 
-  @Semi(Decoder, Encoder, FastEq, ShowPretty, SchemaFor) final case class Restore(
+  final case class Restore(
     id:            ID[Channel],
     editorID:      ID[User],
     correlationID: CorrelationID
-  ) extends ChannelCommandEvent
+  ) extends ChannelCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
 }

@@ -31,7 +31,7 @@ package object mappings {
   val channelIDApi2Users: Iso[api.ChannelID, ID[users.model.Channel]] = Iso[api.ChannelID, ID[users.model.Channel]] {
     channelID => ID[users.model.Channel](channelID.uuid)
   }(channelID => api.ChannelID(channelID.uuid))
-  
+
   @SuppressWarnings(Array("org.wartremover.warts.Throw")) // too PITA to do it right
   def permissionApi2Users(owner: UserID): Iso[api.Permission, users.model.Permission] =
     Iso[api.Permission, users.model.Permission] {
@@ -48,7 +48,7 @@ package object mappings {
     } {
       case users.model.Permission.Administrate =>
         api.Permission.Administrate
-      case users.model.Permission.IsUser(userID) if userID.uuid === owner.uuid && owner =!= UserID.empty =>
+      case users.model.Permission.IsUser(userID) if userID.unwrap === owner.unwrap && owner =!= UserID.empty =>
         api.Permission.IsOwner
       case users.model.Permission.IsUser(_) =>
         throw new Exception("Cannot map User to Owner if ID doesn't match current Owner ID")
@@ -59,7 +59,7 @@ package object mappings {
       case users.model.Permission.CanPublish(channelID) =>
         api.Permission.CanPublish(channelIDApi2Users.reverseGet(channelID))
     }
-  
+
   def requiredPermissionsApi2Users(owner: UserID): Iso[api.RequiredPermissions, users.model.RequiredPermissions] = {
     val permApi2Users = permissionApi2Users(owner)
     def safeReverseGet(perm: users.model.Permission) =

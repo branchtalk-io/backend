@@ -9,7 +9,7 @@ final class ChannelPaginationSpec extends Specification, DiscussionsIOTest, Disc
   // Channel pagination tests cannot be run in parallel to other Channel tests (no parent to filter other tests)
   sequential
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "Channel pagination" should {
 

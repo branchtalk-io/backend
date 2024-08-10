@@ -2,7 +2,7 @@ package io.branchtalk.shared.infrastructure
 
 import cats.effect.{ Async, Resource }
 import io.branchtalk.logging.Logger
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 
 trait TestPostgresResources extends TestResourcesHelpers {
 

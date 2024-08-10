@@ -19,7 +19,7 @@ final class ChannelModerationServerPaginationSpec
   // User pagination tests cannot be run in parallel to other User tests (no parent to filter other tests)
   sequential
 
-  protected given UUID.Generator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelModerationServer-provided pagination endpoints" should {
 

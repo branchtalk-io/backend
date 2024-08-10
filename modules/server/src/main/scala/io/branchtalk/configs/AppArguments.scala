@@ -4,15 +4,14 @@ import cats.effect.{ ExitCode, Sync }
 import com.monovore.decline.*
 import com.typesafe.config.{ Config, ConfigRenderOptions }
 import io.branchtalk.shared.model.ShowPretty
-import io.scalaland.catnip.Semi
 
-@Semi(ShowPretty) final case class AppArguments(
+final case class AppArguments(
   host:                      String = Defaults.host,
   port:                      Int = Defaults.port,
   runAPI:                    Boolean = Defaults.runAPI,
   runUsersProjections:       Boolean = Defaults.runUsersProjections,
   runDiscussionsProjections: Boolean = Defaults.runDiscussionsProjections
-) {
+) derives ShowPretty {
 
   def isAnythingRun: Boolean = runAPI || runUsersProjections || runDiscussionsProjections
 }

@@ -83,7 +83,7 @@ object Channel {
     given Order[Description] = unsafeMakeF[Order](Order[String])
   }
 
-  enum Sorting {
+  enum Sorting derives FastEq, ShowPretty {
     case Newest
     case Alphabetically
   }

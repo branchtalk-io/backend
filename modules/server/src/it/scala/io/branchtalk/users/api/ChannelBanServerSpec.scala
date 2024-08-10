@@ -11,7 +11,7 @@ import org.specs2.mutable.Specification
 
 final class ChannelBanServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelBanServer-provided endpoints" should {
 

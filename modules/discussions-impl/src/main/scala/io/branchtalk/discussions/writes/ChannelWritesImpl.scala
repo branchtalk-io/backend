@@ -4,18 +4,17 @@ import cats.effect.Sync
 import io.branchtalk.discussions.events.{ ChannelCommandEvent, DiscussionsCommandEvent }
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.logging.{ CorrelationID, MDC }
-import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, Writes }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus, Writes }
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.*
 import io.scalaland.chimney.dsl.*
 
 final class ChannelWritesImpl[F[_]: Sync: MDC](
   producer:   KafkaEventBus.Producer[F, DiscussionsCommandEvent],
   transactor: Transactor[F]
-)(implicit
-  uuidGenerator: UUID.Generator
-) extends Writes[F, Channel, DiscussionsCommandEvent](producer)
-    with ChannelWrites[F] {
+)(using UUID.Generator)
+    extends Writes[F, Channel, DiscussionsCommandEvent](producer),
+      ChannelWrites[F] {
 
   private val channelCheck = new EntityCheck("Channel", transactor)
 

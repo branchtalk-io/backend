@@ -32,8 +32,8 @@ final class SubscriptionCommandHandler[F[_]: Sync]
     }
 
   def toSubscribe(command: SubscriptionCommandEvent.Subscribe): F[(UUID, SubscriptionEvent.Subscribed)] =
-    (command.subscriberID.uuid -> command.transformInto[SubscriptionEvent.Subscribed]).pure[F]
+    (command.subscriberID.unwrap -> command.transformInto[SubscriptionEvent.Subscribed]).pure[F]
 
   def toUnsubscribe(command: SubscriptionCommandEvent.Unsubscribe): F[(UUID, SubscriptionEvent.Unsubscribed)] =
-    (command.subscriberID.uuid -> command.transformInto[SubscriptionEvent.Unsubscribed]).pure[F]
+    (command.subscriberID.unwrap -> command.transformInto[SubscriptionEvent.Unsubscribed]).pure[F]
 }

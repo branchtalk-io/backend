@@ -2,9 +2,9 @@ package io.branchtalk.users.writes
 
 import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
-import io.branchtalk.shared.infrastructure.{ KafkaEventBus.Producer, Writes }
-import io.branchtalk.shared.model.{ CreationTime, ModificationTime, UUID.Generator }
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
+import io.branchtalk.shared.infrastructure.{ KafkaEventBus, Writes }
+import io.branchtalk.shared.model.{ CreationTime, ModificationTime, UUID }
 import io.branchtalk.users.events.{ BanCommandEvent, UsersCommandEvent }
 import io.branchtalk.users.model.{ Ban, User }
 import io.scalaland.chimney.dsl.*
@@ -12,10 +12,9 @@ import io.scalaland.chimney.dsl.*
 final class BanWritesImpl[F[_]: Sync: MDC](
   producer:   KafkaEventBus.Producer[F, UsersCommandEvent],
   transactor: Transactor[F]
-)(implicit
-  uuidGenerator: UUID.Generator
-) extends Writes[F, User, UsersCommandEvent](producer)
-    with BanWrites[F] {
+)(using UUID.Generator)
+    extends Writes[F, User, UsersCommandEvent](producer),
+      BanWrites[F] {
 
   private val userCheck = new EntityCheck("User", transactor)
 

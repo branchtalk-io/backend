@@ -4,7 +4,6 @@ import cats.effect.std.Dispatcher
 import cats.effect.{ IO, Resource }
 import cats.effect.unsafe.implicits.global
 import io.prometheus.client.CollectorRegistry
-import org.specs2.specification.BeforeAfterSpec
 import org.specs2.specification.core.Execution
 
 trait ResourcefulTest extends org.specs2.specification.Resource[Unit] {

@@ -28,14 +28,14 @@ final class ChannelCommandHandler[F[_]: Sync] extends Projector[F, DiscussionsCo
     }
 
   def toCreate(command: ChannelCommandEvent.Create): F[(UUID, ChannelEvent.Created)] =
-    (command.id.uuid -> command.transformInto[ChannelEvent.Created]).pure[F]
+    (command.id.unwrap -> command.transformInto[ChannelEvent.Created]).pure[F]
 
   def toUpdate(command: ChannelCommandEvent.Update): F[(UUID, ChannelEvent.Updated)] =
-    (command.id.uuid -> command.transformInto[ChannelEvent.Updated]).pure[F]
+    (command.id.unwrap -> command.transformInto[ChannelEvent.Updated]).pure[F]
 
   def toDelete(command: ChannelCommandEvent.Delete): F[(UUID, ChannelEvent.Deleted)] =
-    (command.id.uuid -> command.transformInto[ChannelEvent.Deleted]).pure[F]
+    (command.id.unwrap -> command.transformInto[ChannelEvent.Deleted]).pure[F]
 
   def toRestore(command: ChannelCommandEvent.Restore): F[(UUID, ChannelEvent.Restored)] =
-    (command.id.uuid -> command.transformInto[ChannelEvent.Restored]).pure[F]
+    (command.id.unwrap -> command.transformInto[ChannelEvent.Restored]).pure[F]
 }

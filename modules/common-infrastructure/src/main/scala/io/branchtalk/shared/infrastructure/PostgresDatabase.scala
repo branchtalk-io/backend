@@ -8,7 +8,7 @@ import doobie.*
 import doobie.implicits.*
 import doobie.hikari.HikariTransactor
 import io.branchtalk.logging.Logger
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.infrastructure.PureconfigSupport.*
 import io.branchtalk.shared.model.*
 import io.prometheus.client.{ Collector, CollectorRegistry }

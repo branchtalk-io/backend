@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.Logger
 import fs2.Stream
 import io.branchtalk.discussions.events.{ ChannelEvent, DiscussionEvent }
 import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.infrastructure.Projector
 import io.branchtalk.shared.model.UUID
 
@@ -14,8 +14,6 @@ final class ChannelPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     extends Projector[F, DiscussionEvent, (UUID, DiscussionEvent)] {
 
   private val logger = Logger(getClass)
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   override def apply(in: Stream[F, DiscussionEvent]): Stream[F, (UUID, DiscussionEvent)] =
     in.collect { case DiscussionEvent.ForChannel(event) =>
@@ -48,7 +46,7 @@ final class ChannelPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |  ${event.description},
            |  ${event.createdAt}
            |)
-           |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.as(event.id.uuid -> event).transact(transactor)
+           |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.as(event.id.unwrap -> event).transact(transactor)
     }
 
   def toUpdate(event: ChannelEvent.Updated): F[(UUID, ChannelEvent.Updated)] =
@@ -69,21 +67,21 @@ final class ChannelPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
             fr"WHERE id = ${event.id}").update.run.void
         )
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
   def toDelete(event: ChannelEvent.Deleted): F[(UUID, ChannelEvent.Deleted)] =
     withCorrelationID(event.correlationID) {
       sql"UPDATE channels SET deleted = TRUE WHERE id = ${event.id}".update.run
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
   def toRestore(event: ChannelEvent.Restored): F[(UUID, ChannelEvent.Restored)] =
     withCorrelationID(event.correlationID) {
       sql"UPDATE channels SET deleted = FALSE WHERE id = ${event.id}".update.run
-        .as(event.id.uuid -> event)
+        .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 }

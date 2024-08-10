@@ -7,12 +7,12 @@ import org.specs2.mutable.Specification
 
 import scala.concurrent.duration.DurationInt
 
-final class UserPaginationSpec extends Specification , UsersIOTest , UsersFixtures {
+final class UserPaginationSpec extends Specification, UsersIOTest, UsersFixtures {
 
   // User pagination tests cannot be run in parallel to other User tests (no parent to filter other tests)
   sequential
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "User pagination" should {
 

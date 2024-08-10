@@ -15,7 +15,7 @@ final class UserModerationServerPaginationSpec extends Specification, ServerIOTe
   // User pagination tests cannot be run in parallel to other User tests (no parent to filter other tests)
   sequential
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "UserModerationServer-provided pagination endpoints" should {
 

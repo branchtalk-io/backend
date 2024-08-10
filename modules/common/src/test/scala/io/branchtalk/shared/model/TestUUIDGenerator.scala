@@ -12,10 +12,6 @@ class TestUUIDGenerator extends UUID.Generator {
     queue.enqueue(uuid)
     ()
   }
-//  def stubNext(string: String Refined Uuid): Unit = synchronized {
-//    queue.enqueue(apply(string))
-//    ()
-//  }
 
   def clean(): Unit = synchronized {
     queue.dequeueAll(_ => true)

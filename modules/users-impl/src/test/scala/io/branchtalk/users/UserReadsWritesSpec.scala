@@ -6,9 +6,9 @@ import io.branchtalk.users.model.{ Password, Permission, Permissions, User }
 import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 
-final class UserReadsWritesSpec extends Specification , UsersIOTest , UsersFixtures {
+final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixtures {
 
-  protected given TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "User Reads & Writes" should {
 

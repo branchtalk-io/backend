@@ -2,16 +2,12 @@ package io.branchtalk.discussions.reads
 
 import cats.data.NonEmptySet
 import cats.effect.Sync
-import eu.timepit.refined.api.Refined
-import eu.timepit.refined.numeric.{ NonNegative, Positive }
-import io.branchtalk.discussions.infrastructure.DoobieExtensions.*
+import io.branchtalk.discussions.infrastructure.DoobieExtensions.{ *, given }
 import io.branchtalk.discussions.model.{ Channel, Post, PostDao }
-import io.branchtalk.shared.infrastructure.DoobieSupport.*
+import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.{ ID, Paginated }
 
 final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostReads[F] {
-
-  implicit private val logHandler: LogHandler = doobieLogger(getClass)
 
   private val commonSelect: Fragment =
     fr"""SELECT id,
@@ -43,30 +39,37 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
   override def paginate(
     channels: NonEmptySet[ID[Channel]],
     sortBy:   Post.Sorting,
-    offset:   Long Refined NonNegative,
-    limit:    Int Refined Positive
+    offset:   Paginated.Offset,
+    limit:    Paginated.Limit
   ): F[Paginated[Post]] =
-    (commonSelect ++ Fragments.whereAnd(Fragments.in(fr"channel_id", channels), fr"deleted = FALSE") ++ orderBy(sortBy))
-      .paginate[PostDao](offset, limit)
+    (commonSelect ++ Fragments.whereAnd(Fragments.in(fr"channel_id", channels.toNonEmptyList),
+                                        fr"deleted = FALSE"
+    ) ++ orderBy(sortBy))
+      .paginate[PostDao](offset,
+                         limit,
+                         show"Paginate Discussions' Post from ${offset} taking ${limit} sorted by ${sortBy}"
+      )
       .map(_.map(_.toDomain))
       .transact(transactor)
 
   override def exists(id: ID[Post]): F[Boolean] =
-    (fr"SELECT 1 FROM posts WHERE" ++ idExists(id)).exists.transact(transactor)
+    (fr"SELECT 1 FROM posts WHERE" ++ idExists(id)).exists(show"Discussions' Post ${id} exists").transact(transactor)
 
   override def deleted(id: ID[Post]): F[Boolean] =
-    (fr"SELECT 1 FROM posts WHERE" ++ idDeleted(id)).exists.transact(transactor)
+    (fr"SELECT 1 FROM posts WHERE" ++ idDeleted(id))
+      .exists(show"Discussions' Post ID=${id} deleted")
+      .transact(transactor)
 
   override def getById(id: ID[Post], isDeleted: Boolean = false): F[Option[Post]] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .query[PostDao]
+      .queryWithLabel[PostDao](show"Get Discussions' Post by ID=${id}")
       .map(_.toDomain)
       .option
       .transact(transactor)
 
   override def requireById(id: ID[Post], isDeleted: Boolean = false): F[Post] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .query[PostDao]
+      .queryWithLabel[PostDao](show"Require Discussions' Post by ID=${id}")
       .map(_.toDomain)
       .failNotFound("Post", id)
       .transact(transactor)
