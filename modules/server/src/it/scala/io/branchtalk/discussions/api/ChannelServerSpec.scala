@@ -41,7 +41,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
           // TODO: check that this creates a new channel eventually!
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[CreateChannelResponse]))
         }
       }
@@ -66,7 +66,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(APIChannel.fromDomain(channel))))
         }
       }
@@ -113,9 +113,9 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(UpdateChannelResponse(channelID))))
-          updatedChannel must_=== channel
+          updatedChannel === channel
             .focus(_.data.urlName)
             .replace(newUrlName)
             .focus(_.data.name)
@@ -161,7 +161,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(DeleteChannelResponse(channelID))))
         }
       }
@@ -204,7 +204,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(RestoreChannelResponse(channelID))))
         }
       }

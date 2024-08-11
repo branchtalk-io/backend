@@ -42,7 +42,10 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         .fold(0.pure[ConnectionIO]) { replyId =>
           sql"""SELECT nesting_level + 1
                |FROM comments
-               |WHERE id = ${replyId}""".stripMargin.query[Int].option.map(_.getOrElse(0))
+               |WHERE id = $replyId""".stripMargin
+            .queryWithLabel[Int](show"Get nesting level new Discussions' Comment ID=$replyId")
+            .option
+            .map(_.getOrElse(0))
         }
         .flatMap { nestingLevel =>
           sql"""INSERT INTO comments (
@@ -128,13 +131,13 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     }
 
   private def fetchVote(commentID: ID[Comment], voterID: ID[User]) =
-    sql"SELECT vote FROM comment_votes WHERE comment_id = ${commentID} AND voter_id = ${voterID}"
-      .query[Vote.Type]
+    sql"SELECT vote FROM comment_votes WHERE comment_id = $commentID AND voter_id = $voterID"
+      .queryWithLabel[Vote.Type](show"Get Discussions' Vote for Comment=$commentID AND Voter=$voterID")
       .option
 
   private def updateCommentVotes(commentID: ID[Comment], upvotes: Fragment, downvotes: Fragment) =
     (fr"WITH nw AS (SELECT" ++ upvotes ++ fr"AS upvotes,"
-      ++ downvotes ++ fr"AS downvotes FROM comments WHERE id = ${commentID})" ++
+      ++ downvotes ++ fr"AS downvotes FROM comments WHERE id = $commentID)" ++
       fr"""
           |UPDATE comments
           |SET upvotes_nr          = nw.upvotes,
@@ -142,7 +145,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           |    total_score         = nw.upvotes - nw.downvotes,
           |    controversial_score = LEAST(nw.upvotes, nw.downvotes)
           |FROM nw
-          |WHERE id = ${commentID}""".stripMargin).update.run
+          |WHERE id = $commentID""".stripMargin).update.run
 
   def toUpvote(event: CommentEvent.Upvoted): F[(UUID, CommentEvent.Upvoted)] =
     withCorrelationID(event.correlationID) {

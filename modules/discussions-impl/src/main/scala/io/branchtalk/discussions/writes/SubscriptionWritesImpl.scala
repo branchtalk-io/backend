@@ -32,8 +32,8 @@ final class SubscriptionWritesImpl[F[_]: Sync: MDC](
         .withFieldConst(_.correlationID, correlationID)
         .transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForSubscription(command))
-      subscription <- (commonSelect ++ fr"WHERE subscriber_id = ${id}")
-        .query[Subscription]
+      subscription <- (commonSelect ++ fr"WHERE subscriber_id = $id")
+        .queryWithLabel[Subscription](show"Get Discussions' Subscriber ID=$id")
         .option
         .map(_.getOrElse(Subscription(id, Set.empty)))
         .transact(transactor)
@@ -50,8 +50,8 @@ final class SubscriptionWritesImpl[F[_]: Sync: MDC](
         .withFieldConst(_.correlationID, correlationID)
         .transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForSubscription(command))
-      subscription <- (commonSelect ++ fr"WHERE subscriber_id = ${id}")
-        .query[Subscription]
+      subscription <- (commonSelect ++ fr"WHERE subscriber_id = $id")
+        .queryWithLabel[Subscription](show"Get Discussions' Subscriber ID=$id")
         .option
         .map(_.getOrElse(Subscription(id, Set.empty)))
         .transact(transactor)

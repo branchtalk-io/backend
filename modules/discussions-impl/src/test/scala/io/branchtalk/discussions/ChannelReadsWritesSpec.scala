@@ -19,7 +19,7 @@ final class ChannelReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         creationData <- (0 until 3).toList.traverse(_ => channelCreate)
         // when
         toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         channels <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
         channelsOpt <- ids.traverse(discussionsReads.channelReads.getById(_)).eventually()
         channelsExist <- ids.traverse(discussionsReads.channelReads.exists).eventually()
@@ -62,7 +62,7 @@ final class ChannelReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         editorID <- editorIDCreate
         creationData <- (0 until 3).toList.traverse(_ => channelCreate)
         toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         created <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
         updateData = created.zipWithIndex.collect {
           case (Channel(id, data), 0) =>
@@ -104,13 +104,13 @@ final class ChannelReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         .collect {
           case ((Channel(_, older), Channel(_, newer)), 0) =>
             // set case
-            older must_=== newer.copy(lastModifiedAt = None)
+            older === newer.copy(lastModifiedAt = None)
           case ((Channel(_, older), Channel(_, newer)), 1) =>
             // keep case
-            older must_=== newer
+            older === newer
           case ((Channel(_, older), Channel(_, newer)), 2) =>
             // erase case
-            older.copy(description = None) must_=== newer.copy(lastModifiedAt = None)
+            older.copy(description = None) === newer.copy(lastModifiedAt = None)
         }
         .lastOption
         .getOrElse(true must beFalse)
@@ -123,7 +123,7 @@ final class ChannelReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         creationData <- (0 until 3).toList.traverse(_ => channelCreate)
         // when
         toCreate <- creationData.traverse(discussionsWrites.channelWrites.createChannel)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         _ <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
         _ <- ids.map(Channel.Delete(_, editorID)).traverse(discussionsWrites.channelWrites.deleteChannel)
         _ <- ids

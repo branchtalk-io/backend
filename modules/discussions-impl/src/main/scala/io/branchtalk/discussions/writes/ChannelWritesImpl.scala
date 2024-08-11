@@ -35,7 +35,7 @@ final class ChannelWritesImpl[F[_]: Sync: MDC](
   override def updateChannel(updatedChannel: Channel.Update): F[UpdateScheduled[Channel]] =
     for {
       id <- updatedChannel.id.pure[F]
-      _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = ${id} AND deleted = FALSE""")
+      _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = $id AND deleted = FALSE""")
       now <- ModificationTime.now[F]
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       command = updatedChannel
@@ -50,7 +50,7 @@ final class ChannelWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = deletedChannel.id
-      _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = ${id} AND deleted = FALSE""")
+      _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = $id AND deleted = FALSE""")
       command = deletedChannel.into[ChannelCommandEvent.Delete].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForChannel(command))
     } yield DeletionScheduled(id)
@@ -59,7 +59,7 @@ final class ChannelWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = restoredChannel.id
-      _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = ${id} AND deleted = TRUE""")
+      _ <- channelCheck(id, sql"""SELECT 1 FROM channels WHERE id = $id AND deleted = TRUE""")
       command = restoredChannel
         .into[ChannelCommandEvent.Restore]
         .withFieldConst(_.correlationID, correlationID)

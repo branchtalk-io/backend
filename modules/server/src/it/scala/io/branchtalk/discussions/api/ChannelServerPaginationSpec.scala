@@ -34,13 +34,13 @@ final class ChannelServerPaginationSpec extends Specification, ServerIOTest, Use
           )
         } yield {
           // then
-          response1.code must_=== StatusCode.Ok
+          response1.code === StatusCode.Ok
           response1.body must beValid(beRight(anInstanceOf[Pagination[APIChannel]]))
-          response2.code must_=== StatusCode.Ok
+          response2.code === StatusCode.Ok
           response2.body must beValid(beRight(anInstanceOf[Pagination[APIChannel]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== channels
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === channels
                 .map(APIChannel.fromDomain)
                 .toSet
             }

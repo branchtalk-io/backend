@@ -1,6 +1,7 @@
 package io.branchtalk.users
 
-import io.branchtalk.shared.model.{ CreationScheduled, TestUUIDGenerator }
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.model.Session
 import org.specs2.mutable.Specification
 
@@ -13,7 +14,7 @@ final class SessionReadsWritesSpec extends Specification, UsersIOTest, UsersFixt
     "create a Session and immediately read it" in {
       for {
         // given
-        userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+        userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.unwrap)
         _ <- usersReads.userReads.requireById(userID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
         // when
@@ -28,7 +29,7 @@ final class SessionReadsWritesSpec extends Specification, UsersIOTest, UsersFixt
     "allow immediate delete of a created Session" in {
       for {
         // given
-        userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+        userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.unwrap)
         _ <- usersReads.userReads.requireById(userID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => sessionCreate(userID))
         toCreate <- creationData.traverse(usersWrites.sessionWrites.createSession)
@@ -69,14 +70,22 @@ final class SessionReadsWritesSpec extends Specification, UsersIOTest, UsersFixt
         paginatedData <- (0 until 19).toList.traverse(_ => sessionCreate(userID))
         _ <- paginatedData.traverse(usersWrites.sessionWrites.createSession).map(_.map(_.id))
         // when
-        pagination <- usersReads.sessionReads.paginate(userID, Session.Sorting.ClosestToExpiry, 0L, 10)
-        pagination2 <- usersReads.sessionReads.paginate(userID, Session.Sorting.ClosestToExpiry, 10L, 10)
+        pagination <- usersReads.sessionReads.paginate(userID,
+                                                       Session.Sorting.ClosestToExpiry,
+                                                       Paginated.Offset(0L),
+                                                       Paginated.Limit(10)
+        )
+        pagination2 <- usersReads.sessionReads.paginate(userID,
+                                                        Session.Sorting.ClosestToExpiry,
+                                                        Paginated.Offset(10L),
+                                                        Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
   }

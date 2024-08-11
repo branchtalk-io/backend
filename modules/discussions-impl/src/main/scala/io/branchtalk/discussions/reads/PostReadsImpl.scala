@@ -32,9 +32,9 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
     case Post.Sorting.Controversial => fr"ORDER by controversial_score DESC"
   }
 
-  private def idExists(id: ID[Post]): Fragment = fr"id = ${id} AND deleted = FALSE"
+  private def idExists(id: ID[Post]): Fragment = fr"id = $id AND deleted = FALSE"
 
-  private def idDeleted(id: ID[Post]): Fragment = fr"id = ${id} AND deleted = TRUE"
+  private def idDeleted(id: ID[Post]): Fragment = fr"id = $id AND deleted = TRUE"
 
   override def paginate(
     channels: NonEmptySet[ID[Channel]],
@@ -45,31 +45,26 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
     (commonSelect ++ Fragments.whereAnd(Fragments.in(fr"channel_id", channels.toNonEmptyList),
                                         fr"deleted = FALSE"
     ) ++ orderBy(sortBy))
-      .paginate[PostDao](offset,
-                         limit,
-                         show"Paginate Discussions' Post from ${offset} taking ${limit} sorted by ${sortBy}"
-      )
+      .paginate[PostDao](offset, limit, show"Paginate Discussions' Post from $offset taking $limit sorted by $sortBy")
       .map(_.map(_.toDomain))
       .transact(transactor)
 
   override def exists(id: ID[Post]): F[Boolean] =
-    (fr"SELECT 1 FROM posts WHERE" ++ idExists(id)).exists(show"Discussions' Post ${id} exists").transact(transactor)
+    (fr"SELECT 1 FROM posts WHERE" ++ idExists(id)).exists(show"Discussions' Post $id exists").transact(transactor)
 
   override def deleted(id: ID[Post]): F[Boolean] =
-    (fr"SELECT 1 FROM posts WHERE" ++ idDeleted(id))
-      .exists(show"Discussions' Post ID=${id} deleted")
-      .transact(transactor)
+    (fr"SELECT 1 FROM posts WHERE" ++ idDeleted(id)).exists(show"Discussions' Post ID=$id deleted").transact(transactor)
 
   override def getById(id: ID[Post], isDeleted: Boolean = false): F[Option[Post]] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .queryWithLabel[PostDao](show"Get Discussions' Post by ID=${id}")
+      .queryWithLabel[PostDao](show"Get Discussions' Post by ID=$id")
       .map(_.toDomain)
       .option
       .transact(transactor)
 
   override def requireById(id: ID[Post], isDeleted: Boolean = false): F[Post] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .queryWithLabel[PostDao](show"Require Discussions' Post by ID=${id}")
+      .queryWithLabel[PostDao](show"Require Discussions' Post by ID=$id")
       .map(_.toDomain)
       .failNotFound("Post", id)
       .transact(transactor)

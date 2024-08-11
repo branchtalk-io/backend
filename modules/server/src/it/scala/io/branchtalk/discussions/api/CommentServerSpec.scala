@@ -48,13 +48,13 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
         } yield {
           // then
-          response1.code must_=== StatusCode.Ok
+          response1.code === StatusCode.Ok
           response1.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
-          response2.code must_=== StatusCode.Ok
+          response2.code === StatusCode.Ok
           response2.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== comments
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === comments
                 .map(APIComment.fromDomain)
                 .toSet
             }
@@ -80,12 +80,12 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           response <- CommentAPIs.hottest.toTestCall.untupled(None, channelID, postID, None)
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
           response.body.toValidOpt
             .flatMap(_.toOption)
             .map { pagination =>
-              pagination.entities.toSet must_=== comments.map(APIComment.fromDomain).toSet
+              pagination.entities.toSet === comments.map(APIComment.fromDomain).toSet
             }
             .getOrElse(pass)
         }
@@ -109,11 +109,11 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           response <- CommentAPIs.controversial.toTestCall.untupled(None, channelID, postID, None)
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
           response.body.toValidOpt
             .flatMap(_.toOption)
-            .map(_.entities.toSet must_=== comments.map(APIComment.fromDomain).toSet)
+            .map(_.entities.toSet === comments.map(APIComment.fromDomain).toSet)
             .getOrElse(pass)
         }
       }
@@ -144,7 +144,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           // TODO: check that this creates a new comment eventually!
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[CreateCommentResponse]))
         }
       }
@@ -177,7 +177,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(APIComment.fromDomain(comment))))
         }
       }
@@ -218,9 +218,9 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(UpdateCommentResponse(commentID))))
-          updatedComment must_=== comment
+          updatedComment === comment
             .focus(_.data.content)
             .replace(newContent)
             .focus(_.data.lastModifiedAt)
@@ -260,7 +260,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(DeleteCommentResponse(commentID))))
         }
       }
@@ -301,7 +301,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(RestoreCommentResponse(commentID))))
         }
       }
@@ -336,7 +336,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield
         // then
-        response.code must_=== StatusCode.Ok
+        response.code === StatusCode.Ok
       }
     }
 
@@ -369,7 +369,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield
         // then
-        response.code must_=== StatusCode.Ok
+        response.code === StatusCode.Ok
       }
     }
 
@@ -409,7 +409,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
             .eventually()
         } yield
         // then
-        response.code must_=== StatusCode.Ok
+        response.code === StatusCode.Ok
       }
     }
   }

@@ -16,16 +16,16 @@ trait DiscussionsFixtures {
   def channelCreate(using UUID.Generator): IO[Channel.Create] =
     (
       ID.create[IO, User],
-      noWhitespaces.flatMap(Channel.UrlName.make[IO]),
-      nameLike.flatMap(Channel.Name.parse[IO]),
-      textProducer.map(_.loremIpsum).flatMap(Channel.Description.parse[IO]).map(Option.apply)
+      noWhitespaces.flatMap(ParseNewtype[IO].parse[Channel.UrlName](_)),
+      nameLike.flatMap(ParseNewtype[IO].parse[Channel.Name](_)),
+      textProducer.map(_.loremIpsum).flatMap(ParseNewtype[IO].parse[Channel.Description](_)).map(Option.apply)
     ).mapN(Channel.Create.apply)
 
   def postCreate(channelID: ID[Channel])(using UUID.Generator): IO[Post.Create] =
     (
       ID.create[IO, User],
       channelID.pure[IO],
-      nameLike.flatMap(Post.Title.parse[IO]),
+      nameLike.flatMap(ParseNewtype[IO].parse[Post.Title](_)),
       textProducer.map(_.loremIpsum).map(Post.Text(_)).map(Post.Content.Text(_))
     ).mapN(Post.Create.apply)
 

@@ -45,7 +45,7 @@ final class PostWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = updatedPost.id
-      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = $id AND deleted = FALSE""")
       now <- ModificationTime.now[F]
       newUrlTitle <- updatedPost.newTitle.traverse(titleToUrlTitle)
       command = updatedPost
@@ -61,7 +61,7 @@ final class PostWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = deletedPost.id
-      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = $id AND deleted = FALSE""")
       command = deletedPost.into[PostCommandEvent.Delete].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield DeletionScheduled(id)
@@ -70,7 +70,7 @@ final class PostWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = restoredPost.id
-      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = TRUE""")
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = $id AND deleted = TRUE""")
       command = restoredPost.into[PostCommandEvent.Restore].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield RestoreScheduled(id)
@@ -79,7 +79,7 @@ final class PostWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = vote.id
-      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = $id AND deleted = FALSE""")
       command = vote.into[PostCommandEvent.Upvote].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield ()
@@ -88,7 +88,7 @@ final class PostWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = vote.id
-      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = $id AND deleted = FALSE""")
       command = vote.into[PostCommandEvent.Downvote].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield ()
@@ -97,7 +97,7 @@ final class PostWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = vote.id
-      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = ${id} AND deleted = FALSE""")
+      _ <- postCheck(id, sql"""SELECT 1 FROM posts WHERE id = $id AND deleted = FALSE""")
       command = vote.into[PostCommandEvent.RevokeVote].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForPost(command))
     } yield ()

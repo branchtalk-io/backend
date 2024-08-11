@@ -13,13 +13,13 @@ trait UsersFixtures {
     ID.create[IO, Channel]
 
   def passwordCreate(password: String = "pass"): IO[Password] =
-    Password.Raw.parse[IO](password.getBytes).map(Password.create)
+    ParseNewtype[IO].parse[Password.Raw](password.getBytes).map(Password.create)
 
   def userCreate: IO[User.Create] =
     (
-      company().map(_.getEmail).map(e => s"${Random.nextLong()}+$e").flatMap(User.Email.parse[IO]),
-      textProducer.map(_.randomString(10)).flatMap(User.Name.parse[IO]),
-      textProducer.map(_.loremIpsum()).map(User.Description(_).some),
+      company().map(_.getEmail).map(e => s"${Random.nextLong()}+$e").flatMap(ParseNewtype[IO].parse[User.Email](_)),
+      textProducer.map(_.randomString(10)).flatMap(ParseNewtype[IO].parse[User.Name](_)),
+      textProducer.map(_.loremIpsum()).flatMap(ParseNewtype[IO].parse[User.Description](_)).map(_.some),
       passwordCreate()
     ).mapN(User.Create.apply)
 
@@ -33,7 +33,7 @@ trait UsersFixtures {
   def banCreate(userID: ID[User], channelID: ID[Channel]): IO[Ban] =
     (
       userID.pure[IO],
-      textProducer.map(_.loremIpsum()).flatMap(Ban.Reason.parse[IO]),
+      textProducer.map(_.loremIpsum()).flatMap(ParseNewtype[IO].parse[Ban.Reason](_)),
       Ban.Scope.ForChannel(channelID).pure[IO]
     ).mapN(Ban.apply _)
 }

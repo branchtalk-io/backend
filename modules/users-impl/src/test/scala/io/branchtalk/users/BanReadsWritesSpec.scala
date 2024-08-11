@@ -1,9 +1,7 @@
 package io.branchtalk.users
 
-import cats.syntax.eq.*
 import io.branchtalk.shared.model.TestUUIDGenerator
 import io.branchtalk.users.model.Ban
-import io.branchtalk.users.model.BanProperties.Scope
 import io.scalaland.chimney.dsl.*
 import org.specs2.mutable.Specification
 
@@ -16,7 +14,7 @@ final class BanReadsWritesSpec extends Specification, UsersIOTest, UsersFixtures
     "order a User's Ban and lift User's ban and eventually execute command" in {
       for {
         // given
-        userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+        userID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.unwrap)
         _ <- usersReads.userReads.requireById(userID).eventually()
         channelID <- channelIDCreate
         expectedBans <- banCreate(userID, channelID).map(ban => List(ban, ban.copy(scope = Ban.Scope.Globally)))
@@ -37,20 +35,20 @@ final class BanReadsWritesSpec extends Specification, UsersIOTest, UsersFixtures
           .eventually()
       } yield {
         // then
-        bansExecuted must_=== expectedBans.toSet
-        channelBansExecuted must_=== expectedBans
+        bansExecuted === expectedBans.toSet
+        channelBansExecuted === expectedBans
           .filter(_.scope match {
-            case Scope.ForChannel(_) => true
-            case Scope.Globally      => false
+            case Ban.Scope.ForChannel(_) => true
+            case Ban.Scope.Globally      => false
           })
           .toSet
-        globalBansExecuted must_=== expectedBans
+        globalBansExecuted === expectedBans
           .filter(_.scope match {
-            case Scope.ForChannel(_) => false
-            case Scope.Globally      => true
+            case Ban.Scope.ForChannel(_) => false
+            case Ban.Scope.Globally      => true
           })
           .toSet
-        bansLifted must beEmpty
+        bansLifted.toSeq must beEmpty
       }
     }
   }

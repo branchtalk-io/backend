@@ -81,13 +81,13 @@ final class ChannelModerationServerPaginationSpec
           )
         } yield {
           // then
-          response1.code must_=== StatusCode.Ok
+          response1.code === StatusCode.Ok
           response1.body must beValid(beRight(anInstanceOf[Pagination[APIUser]]))
-          response2.code must_=== StatusCode.Ok
+          response2.code === StatusCode.Ok
           response2.body must beValid(beRight(anInstanceOf[Pagination[APIUser]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== users.map(APIUser.fromDomain).toSet
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === users.map(APIUser.fromDomain).toSet
             }
             .getOrElse(pass)
         }

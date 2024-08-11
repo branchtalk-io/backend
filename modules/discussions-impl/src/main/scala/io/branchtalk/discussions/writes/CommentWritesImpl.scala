@@ -42,7 +42,7 @@ final class CommentWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = updatedComment.id
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = $id AND deleted = FALSE""")
       now <- ModificationTime.now[F]
       command = updatedComment
         .into[CommentCommandEvent.Update]
@@ -56,7 +56,7 @@ final class CommentWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = deletedComment.id
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = $id AND deleted = FALSE""")
       command = deletedComment.into[CommentCommandEvent.Delete].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForComment(command))
     } yield DeletionScheduled(id)
@@ -65,7 +65,7 @@ final class CommentWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = restoredComment.id
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = TRUE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = $id AND deleted = TRUE""")
       command = restoredComment
         .into[CommentCommandEvent.Restore]
         .withFieldConst(_.correlationID, correlationID)
@@ -77,7 +77,7 @@ final class CommentWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = vote.id
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = $id AND deleted = FALSE""")
       command = vote.into[CommentCommandEvent.Upvote].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForComment(command))
     } yield ()
@@ -86,7 +86,7 @@ final class CommentWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = vote.id
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = $id AND deleted = FALSE""")
       command = vote.into[CommentCommandEvent.Downvote].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForComment(command))
     } yield ()
@@ -95,7 +95,7 @@ final class CommentWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = vote.id
-      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = ${id} AND deleted = FALSE""")
+      _ <- commentCheck(id, sql"""SELECT 1 FROM comments WHERE id = $id AND deleted = FALSE""")
       command = vote.into[CommentCommandEvent.RevokeVote].withFieldConst(_.correlationID, correlationID).transform
       _ <- postEvent(id, DiscussionsCommandEvent.ForComment(command))
     } yield ()

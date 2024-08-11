@@ -51,7 +51,7 @@ final class UserBanServerSpec extends Specification, ServerIOTest, UsersFixtures
       } yield {
         // then
         response.body must beValid(beRight(be_===(BanOrderResponse(bannedUserID))))
-        bans must_=== Set(Ban(bannedUserID, reason, Ban.Scope.Globally))
+        bans === Set(Ban(bannedUserID, reason, Ban.Scope.Globally))
       }
     }
 

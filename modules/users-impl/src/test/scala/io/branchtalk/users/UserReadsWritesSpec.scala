@@ -1,9 +1,8 @@
 package io.branchtalk.users
 
 import cats.effect.IO
-import io.branchtalk.shared.model.{ CommonError, ID, OptionUpdatable, TestUUIDGenerator, Updatable }
+import io.branchtalk.shared.model.*
 import io.branchtalk.users.model.{ Password, Permission, Permissions, User }
-import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 
 final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixtures {
@@ -20,7 +19,7 @@ final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixture
         creationData <- (0 until 3).toList.traverse(_ => userCreate)
         // when
         toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
-        ids = toCreate.map(_._1.id)
+        ids = toCreate.map(_._1.unwrap)
         users <- ids.traverse(usersReads.userReads.requireById).eventually()
         usersOpt <- ids.traverse(usersReads.userReads.getById).eventually()
         usersExist <- ids.traverse(usersReads.userReads.exists).eventually()
@@ -37,7 +36,7 @@ final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixture
     "don't update a User that doesn't exists" in {
       for {
         // given
-        moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+        moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.unwrap)
         _ <- usersReads.userReads.requireById(moderatorID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => userCreate)
         fakeUpdateData <- creationData.traverse { data =>
@@ -62,11 +61,11 @@ final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixture
     "update an existing User" in {
       for {
         // given
-        moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+        moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.unwrap)
         _ <- usersReads.userReads.requireById(moderatorID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => userCreate)
         toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
-        ids = toCreate.map(_._1.id)
+        ids = toCreate.map(_._1.unwrap)
         created <- ids.traverse(usersReads.userReads.requireById).eventually()
         updateData = created.zipWithIndex.collect {
           case (User(id, data), 0) =>
@@ -111,19 +110,15 @@ final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixture
         .collect {
           case ((User(id, older), User(_, newer)), 0) =>
             // set case
-            older.focus(_.permissions).replace(Permissions.empty.append(Permission.IsUser(id))) must_=== newer
-              .focus(_.lastModifiedAt)
-              .replace(None)
+            older.copy(permissions = Permissions.empty.append(Permission.IsUser(id))) === newer
+              .copy(lastModifiedAt = None)
           case ((User(_, older), User(_, newer)), 1) =>
             // keep case
-            older must_=== newer
+            older === newer
           case ((User(_, older), User(_, newer)), 2) =>
             // erase case
-            older
-              .focus(_.permissions)
-              .replace(Permissions.empty.append(Permission.ModerateUsers))
-              .focus(_.description)
-              .replace(None) must_=== newer.focus(_.lastModifiedAt).replace(None)
+            older.copy(permissions = Permissions.empty.append(Permission.ModerateUsers), description = None) === newer
+              .copy(lastModifiedAt = None)
         }
         .lastOption
         .getOrElse(true must beFalse)
@@ -132,12 +127,12 @@ final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixture
     "allow delete of a created User" in {
       for {
         // given
-        moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+        moderatorID <- userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.unwrap)
         _ <- usersReads.userReads.requireById(moderatorID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => userCreate)
         // when
         toCreate <- creationData.traverse(usersWrites.userWrites.createUser)
-        ids = toCreate.map(_._1.id)
+        ids = toCreate.map(_._1.unwrap)
         _ <- ids.traverse(usersReads.userReads.requireById).eventually()
         _ <- ids.map(User.Delete(_, moderatorID.some)).traverse(usersWrites.userWrites.deleteUser)
         _ <- ids
@@ -157,12 +152,12 @@ final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixture
       for {
         // given
         goodPassword <- passwordCreate("password")
-        rawGoodPassword <- Password.Raw.parse[IO]("password".getBytes)
-        rawBadPassword <- Password.Raw.parse[IO]("bad".getBytes)
+        rawGoodPassword <- ParseNewtype[IO].parse[Password.Raw]("password".getBytes)
+        rawBadPassword <- ParseNewtype[IO].parse[Password.Raw]("bad".getBytes)
         userId <- userCreate
           .map(_.copy(password = goodPassword))
           .flatMap(usersWrites.userWrites.createUser)
-          .map(_._1.id)
+          .map(_._1.unwrap)
         user <- usersReads.userReads.requireById(userId).eventually()
         // when
         ok <- usersReads.userReads.authenticate(user.data.username, rawGoodPassword).attempt
@@ -170,7 +165,7 @@ final class UserReadsWritesSpec extends Specification, UsersIOTest, UsersFixture
       } yield {
         // then
         ok must beRight(user)
-        fail must beLeft(anInstanceOf[CommonError.InvalidCredentials])
+        fail must beLeft(beAnInstanceOf[CommonError.InvalidCredentials])
       }
     }
   }
