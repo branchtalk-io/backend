@@ -1,7 +1,7 @@
 package io.branchtalk.discussions
 
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.model.TestUUIDGenerator
+import io.branchtalk.shared.model.*
 import org.specs2.mutable.Specification
 
 final class ChannelPaginationSpec extends Specification, DiscussionsIOTest, DiscussionsFixtures {
@@ -17,24 +17,32 @@ final class ChannelPaginationSpec extends Specification, DiscussionsIOTest, Disc
       for {
         // given
         editorID <- editorIDCreate
-        cleanupIDs <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest, 0L, 10).map(_.entities.map(_.id))
+        cleanupIDs <- discussionsReads.channelReads
+          .paginate(Channel.Sorting.Newest, Paginated.Offset(0L), Paginated.Limit(10))
+          .map(_.entities.map(_.id))
         _ <- cleanupIDs.traverse(id => discussionsWrites.channelWrites.deleteChannel(Channel.Delete(id, editorID)))
         _ <- cleanupIDs
           .traverse(discussionsReads.channelReads.deleted(_))
           .assert("Channels should be deleted eventually")(_.forall(identity))
           .eventually()
         paginatedData <- (0 until 20).toList.traverse(_ => channelCreate)
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.unwrap))
         _ <- paginatedIDs.traverse(discussionsReads.channelReads.requireById(_)).eventually()
         // when
-        pagination <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest, 0L, 10)
-        pagination2 <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest, 10L, 10)
+        pagination <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest,
+                                                             Paginated.Offset(0L),
+                                                             Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.channelReads.paginate(Channel.Sorting.Newest,
+                                                              Paginated.Offset(10L),
+                                                              Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
 
@@ -43,26 +51,32 @@ final class ChannelPaginationSpec extends Specification, DiscussionsIOTest, Disc
         // given
         editorID <- editorIDCreate
         cleanupIDs <- discussionsReads.channelReads
-          .paginate(Channel.Sorting.Newest, 0L, 1000)
+          .paginate(Channel.Sorting.Newest, Paginated.Offset(0L), Paginated.Limit(1000))
           .map(_.entities.map(_.id))
           .flatMap(_.traverse(id => discussionsWrites.channelWrites.deleteChannel(Channel.Delete(id, editorID))))
-          .map(_.map(_.id))
+          .map(_.map(_.unwrap))
         _ <- cleanupIDs
           .traverse(discussionsReads.channelReads.deleted(_))
           .assert("Channels should be deleted eventually")(_.forall(identity))
           .eventually()
         paginatedData <- (0 until 20).toList.traverse(_ => channelCreate)
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.channelWrites.createChannel).map(_.map(_.unwrap))
         _ <- paginatedIDs.traverse(discussionsReads.channelReads.requireById(_)).eventually()
         // when
-        pagination <- discussionsReads.channelReads.paginate(Channel.Sorting.Alphabetically, 0L, 10)
-        pagination2 <- discussionsReads.channelReads.paginate(Channel.Sorting.Alphabetically, 10L, 10)
+        pagination <- discussionsReads.channelReads.paginate(Channel.Sorting.Alphabetically,
+                                                             Paginated.Offset(0L),
+                                                             Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.channelReads.paginate(Channel.Sorting.Alphabetically,
+                                                              Paginated.Offset(10L),
+                                                              Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
   }

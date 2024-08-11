@@ -48,13 +48,13 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
           )
         } yield {
           // then
-          response1.code must_=== StatusCode.Ok
+          response1.code === StatusCode.Ok
           response1.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
-          response2.code must_=== StatusCode.Ok
+          response2.code === StatusCode.Ok
           response2.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== posts.map(APIPost.fromDomain).toSet
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === posts.map(APIPost.fromDomain).toSet
             }
             .getOrElse(pass)
         }
@@ -95,13 +95,13 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
           )
         } yield {
           // then
-          response1.code must_=== StatusCode.Ok
+          response1.code === StatusCode.Ok
           response1.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
-          response2.code must_=== StatusCode.Ok
+          response2.code === StatusCode.Ok
           response2.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== posts.map(APIPost.fromDomain).toSet
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === posts.map(APIPost.fromDomain).toSet
             }
             .getOrElse(pass)
         }
@@ -134,11 +134,11 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
           )
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[APISubscriptions]))
           response.body.toValidOpt
             .flatMap(_.toOption)
-            .map(subscriptions => subscriptions must_=== APISubscriptions(List(channelID)))
+            .map(subscriptions => subscriptions === APISubscriptions(List(channelID)))
             .getOrElse(pass)
         }
       }
@@ -168,13 +168,13 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[SubscribeResponse]))
           response.body.toValidOpt
             .flatMap(_.toOption)
-            .map(subscribed => subscribed.channels must_=== List(channelID))
+            .map(subscribed => subscribed.channels === List(channelID))
             .getOrElse(pass)
-          result must_=== Subscription(subscriberID, Set(channelID))
+          result === Subscription(subscriberID, Set(channelID))
         }
       }
     }
@@ -210,13 +210,13 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[UnsubscribeResponse]))
           response.body.toValidOpt
             .flatMap(_.toOption)
-            .map(unsubscribed => unsubscribed must_=== UnsubscribeResponse(List()))
+            .map(unsubscribed => unsubscribed === UnsubscribeResponse(List()))
             .getOrElse(pass)
-          result must_=== Subscription(subscriberID, Set.empty)
+          result === Subscription(subscriberID, Set.empty)
         }
       }
     }

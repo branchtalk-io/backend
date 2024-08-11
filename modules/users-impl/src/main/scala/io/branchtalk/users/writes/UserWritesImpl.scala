@@ -108,7 +108,9 @@ final class UserWritesImpl[F[_]: Sync: MDC](
       _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = $id""")
       (algorithm, key) <-
         sql"""SELECT enc_algorithm, key_value FROM sensitive_data_keys WHERE user_id = $id"""
-          .query[(SensitiveData.Algorithm, SensitiveData.Key)]
+          .queryWithLabel[(SensitiveData.Algorithm, SensitiveData.Key)](
+            show"Get encryption keys for Users' User ID=$id"
+          )
           .unique
           .transact(transactor)
       now <- ModificationTime.now[F]
@@ -127,7 +129,7 @@ final class UserWritesImpl[F[_]: Sync: MDC](
     for {
       correlationID <- CorrelationID.getCurrentOrGenerate[F]
       id = deletedUser.id
-      _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = ${id}""")
+      _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = $id""")
       now <- ModificationTime.now[F]
       command = deletedUser
         .into[UserCommandEvent.Delete]

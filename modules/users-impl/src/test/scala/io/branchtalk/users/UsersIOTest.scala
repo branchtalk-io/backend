@@ -1,18 +1,18 @@
 package io.branchtalk.users
 
 import cats.effect.{ IO, Resource }
-import io.branchtalk.shared.infrastructure.DomainConfig
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.{ IOTest, ResourcefulTest }
-import io.branchtalk.shared.model.UUID.Generator
+import io.branchtalk.shared.model.UUID
 
 trait UsersIOTest extends IOTest, ResourcefulTest {
 
   implicit protected def uuidGenerator: UUID.Generator
 
   // populated by resources
-  protected var usersCfg:    DomainConfig    = _
-  protected var usersReads:  UsersReads[IO]  = _
-  protected var usersWrites: UsersWrites[IO] = _
+  protected var usersCfg:    DomainModule.Config = _
+  protected var usersReads:  UsersReads[IO]      = _
+  protected var usersWrites: UsersWrites[IO]     = _
 
   protected lazy val usersResource: Resource[IO, Unit] = for {
     _ <- TestUsersConfig.loadDomainConfig[IO].map(usersCfg = _)

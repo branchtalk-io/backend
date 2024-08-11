@@ -39,13 +39,13 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then
-          response1.code must_=== StatusCode.Ok
+          response1.code === StatusCode.Ok
           response1.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
-          response2.code must_=== StatusCode.Ok
+          response2.code === StatusCode.Ok
           response2.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== posts.map(APIPost.fromDomain).toSet
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === posts.map(APIPost.fromDomain).toSet
             }
             .getOrElse(pass)
         }
@@ -67,11 +67,11 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           response <- PostAPIs.hottest.toTestCall.untupled(None, channelID)
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
           response.body.toValidOpt
             .flatMap(_.toOption)
-            .map(pagination => pagination.entities.toSet must_=== posts.map(APIPost.fromDomain).toSet)
+            .map(pagination => pagination.entities.toSet === posts.map(APIPost.fromDomain).toSet)
             .getOrElse(pass)
         }
       }
@@ -92,11 +92,11 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           response <- PostAPIs.controversial.toTestCall.untupled(None, channelID)
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
           response.body.toValidOpt
             .flatMap(_.toOption)
-            .map(_.entities.toSet must_=== posts.map(APIPost.fromDomain).toSet)
+            .map(_.entities.toSet === posts.map(APIPost.fromDomain).toSet)
             .getOrElse(pass)
         }
       }
@@ -124,7 +124,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           // TODO: check that this creates a new post eventually!
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[CreatePostResponse]))
         }
       }
@@ -152,7 +152,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(APIPost.fromDomain(post))))
         }
       }
@@ -192,9 +192,9 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(UpdatePostResponse(postID))))
-          updatedPost must_=== post
+          updatedPost === post
             .focus(_.data.title)
             .replace(newTitle)
             .focus(_.data.content)
@@ -235,7 +235,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(DeletePostResponse(postID))))
         }
       }
@@ -271,7 +271,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(RestorePostResponse(postID))))
         }
       }
@@ -303,7 +303,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             .eventually()
         } yield
         // then
-        response.code must_=== StatusCode.Ok
+        response.code === StatusCode.Ok
       }
     }
 
@@ -333,7 +333,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             .eventually()
         } yield
         // then
-        response.code must_=== StatusCode.Ok
+        response.code === StatusCode.Ok
       }
     }
 
@@ -369,7 +369,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             .eventually()
         } yield
         // then
-        response.code must_=== StatusCode.Ok
+        response.code === StatusCode.Ok
       }
     }
   }

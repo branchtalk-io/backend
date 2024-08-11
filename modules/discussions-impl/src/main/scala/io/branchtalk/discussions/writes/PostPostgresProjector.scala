@@ -99,11 +99,13 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     }
 
   private def fetchVote(postID: ID[Post], voterID: ID[User]) =
-    sql"SELECT vote FROM post_votes WHERE post_id = ${postID} AND voter_id = ${voterID}".query[Vote.Type].option
+    sql"SELECT vote FROM post_votes WHERE post_id = $postID AND voter_id = $voterID"
+      .queryWithLabel[Vote.Type](show"Get Discussions' Vote for Post=$postID AND Voter=$voterID")
+      .option
 
   private def updatePostVotes(postID: ID[Post], upvotes: Fragment, downvotes: Fragment) =
     (fr"WITH nw AS (SELECT" ++ upvotes ++ fr"AS upvotes,"
-      ++ downvotes ++ fr"AS downvotes FROM posts WHERE id = ${postID})" ++
+      ++ downvotes ++ fr"AS downvotes FROM posts WHERE id = $postID)" ++
       fr"""
           |UPDATE posts
           |SET upvotes_nr          = nw.upvotes,
@@ -111,7 +113,7 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           |    total_score         = nw.upvotes - nw.downvotes,
           |    controversial_score = LEAST(nw.upvotes, nw.downvotes)
           |FROM nw
-          |WHERE id = ${postID}""".stripMargin).update.run
+          |WHERE id = $postID""".stripMargin).update.run
 
   def toUpvote(event: PostEvent.Upvoted): F[(UUID, PostEvent.Upvoted)] =
     withCorrelationID(event.correlationID) {

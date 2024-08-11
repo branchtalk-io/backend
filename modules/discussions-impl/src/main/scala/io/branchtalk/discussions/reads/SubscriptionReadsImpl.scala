@@ -13,8 +13,8 @@ final class SubscriptionReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends
         |FROM subscriptions""".stripMargin
 
   override def requireForUser(userID: ID[User]): F[Subscription] =
-    (commonSelect ++ fr"WHERE subscriber_id = ${userID}")
-      .queryWithLabel[Subscription](show"Require Discussions' Subscription for User=${userID}")
+    (commonSelect ++ fr"WHERE subscriber_id = $userID")
+      .queryWithLabel[Subscription](show"Require Discussions' Subscription for User=$userID")
       .option
       .map(_.getOrElse(Subscription(userID, Set.empty)))
       .transact(transactor)

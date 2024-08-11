@@ -26,7 +26,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
       "return newest Sessions" in {
         for {
           // given
-          _ <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, 0L, 1000).flatMap {
+          _ <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, Paginated.Offset(0L), Paginated.Limit(1000)).flatMap {
             case Paginated(entities, _) =>
               entities.traverse_(user => usersWrites.userWrites.deleteUser(User.Delete(user.id, None)))
           }
@@ -51,13 +51,13 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then
-          response1.code must_=== StatusCode.Ok
+          response1.code === StatusCode.Ok
           response1.body must beValid(beRight(anInstanceOf[Pagination[APISession]]))
-          response2.code must_=== StatusCode.Ok
+          response2.code === StatusCode.Ok
           response2.body must beValid(beRight(anInstanceOf[Pagination[APISession]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) must_=== sessions
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === sessions
                 .map(APISession.fromDomain)
                 .toSet
             }
@@ -87,12 +87,12 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           session <- possibleResult.map(_.sessionID).traverse(usersReads.sessionReads.requireById).eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[SignUpResponse]))
           user must beSome(anInstanceOf[User])
           session must beSome(anInstanceOf[Session])
           (user, session, response.body.toOption.flatMap(_.toOption))
-            .mapN((u, s, r) => r must_=== SignUpResponse(u.id, s.id))
+            .mapN((u, s, r) => r === SignUpResponse(u.id, s.id))
             .getOrElse(pass)
         }
       }
@@ -121,9 +121,9 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then
-          sessionResponse.code must_=== StatusCode.Ok
+          sessionResponse.code === StatusCode.Ok
           sessionResponse.body must beValid(beRight(anInstanceOf[SignInResponse]))
-          credentialsResponse.code must_=== StatusCode.Ok
+          credentialsResponse.code === StatusCode.Ok
           credentialsResponse.body must beValid(beRight(anInstanceOf[SignInResponse]))
         }
       }
@@ -152,9 +152,9 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then
-          sessionResponse.code must_=== StatusCode.Ok
+          sessionResponse.code === StatusCode.Ok
           sessionResponse.body must beValid(beRight(be_===(SignOutResponse(userID, sessionID.some))))
-          credentialsResponse.code must_=== StatusCode.Ok
+          credentialsResponse.code === StatusCode.Ok
           credentialsResponse.body must beValid(beRight(be_===(SignOutResponse(userID, None))))
         }
       }
@@ -174,7 +174,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           response <- UserAPIs.fetchProfile.toTestCall.untupled(None, userID)
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(APIUser.fromDomain(user))))
         }
       }
@@ -209,9 +209,9 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             .eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(UpdateUserResponse(userID))))
-          updatedUser must_=== user
+          updatedUser === user
             .focus(_.data.username)
             .replace(newUsername)
             .focus(_.data.description)
@@ -243,7 +243,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           _ <- usersReads.userReads.deleted(userID).assert("User should be eventually deleted")(identity).eventually()
         } yield {
           // then
-          response.code must_=== StatusCode.Ok
+          response.code === StatusCode.Ok
           response.body must beValid(beRight(be_===(DeleteUserResponse(userID))))
         }
       }

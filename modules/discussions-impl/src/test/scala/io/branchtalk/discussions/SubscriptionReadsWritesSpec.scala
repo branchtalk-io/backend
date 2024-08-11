@@ -1,10 +1,11 @@
 package io.branchtalk.discussions
 
 import io.branchtalk.discussions.model.Subscription
-import io.branchtalk.shared.model.TestUUIDGenerator
+import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import org.specs2.mutable.Specification
 
-final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
+final class SubscriptionReadsWritesSpec extends Specification, DiscussionsIOTest, DiscussionsFixtures {
 
   protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
@@ -15,18 +16,18 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
         // given
         subscriberID <- subscriberIDCreate
         ids <- (0 until 3).toList.traverse { _ =>
-          channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         }
         _ <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
         // when
         _ <- discussionsWrites.subscriptionWrites.subscribe(Subscription.Subscribe(subscriberID, ids.toSet))
         subscription <- discussionsReads.subscriptionReads
           .requireForUser(subscriberID)
-          .assert("Subscriptions should be eventually added")(_.subscriptions === ids.toSet)
+          .assert("Subscriptions should be eventually added")(_.subscriptions eqv ids.toSet)
           .eventually()
       } yield
       // then
-      subscription must_=== Subscription(subscriberID, ids.toSet)
+      subscription === Subscription(subscriberID, ids.toSet)
     }
 
     "remove Subscription and eventually read it" in {
@@ -34,17 +35,17 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
         // given
         subscriberID <- subscriberIDCreate
         idsToKeep <- (0 until 3).toList.traverse { _ =>
-          channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         }
         idsToRemove <- (0 until 3).toList.traverse { _ =>
-          channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+          channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         }
         ids = idsToKeep ++ idsToRemove
         _ <- ids.traverse(discussionsReads.channelReads.requireById(_)).eventually()
         _ <- discussionsWrites.subscriptionWrites.subscribe(Subscription.Subscribe(subscriberID, ids.toSet))
         _ <- discussionsReads.subscriptionReads
           .requireForUser(subscriberID)
-          .assert("Subscriptions should be eventually added")(_.subscriptions === ids.toSet)
+          .assert("Subscriptions should be eventually added")(_.subscriptions eqv ids.toSet)
           .eventually()
         // when
         Subscription.Scheduled(left) <- discussionsWrites.subscriptionWrites.unsubscribe(
@@ -52,12 +53,12 @@ final class SubscriptionReadsWritesSpec extends Specification with DiscussionsIO
         )
         subscription <- discussionsReads.subscriptionReads
           .requireForUser(subscriberID)
-          .assert("Subscriptions should be eventually deleted")(_.subscriptions === idsToKeep.toSet)
+          .assert("Subscriptions should be eventually deleted")(_.subscriptions eqv idsToKeep.toSet)
           .eventually()
       } yield {
         // then
-        left must_=== Subscription(subscriberID, idsToKeep.toSet)
-        subscription must_=== Subscription(subscriberID, idsToKeep.toSet)
+        left === Subscription(subscriberID, idsToKeep.toSet)
+        subscription === Subscription(subscriberID, idsToKeep.toSet)
       }
     }
   }

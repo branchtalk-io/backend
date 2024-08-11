@@ -26,17 +26,14 @@ final class SessionReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Sess
     offset: Paginated.Offset,
     limit:  Paginated.Limit
   ): F[Paginated[Session]] =
-    (commonSelect ++ fr"WHERE user_id = ${user}" ++ orderBy(sortBy))
-      .paginate[SessionDao](offset,
-                            limit,
-                            show"Paginate Users' Session from ${offset} taking ${limit} sorted by ${sortBy}"
-      )
+    (commonSelect ++ fr"WHERE user_id = $user" ++ orderBy(sortBy))
+      .paginate[SessionDao](offset, limit, show"Paginate Users' Session from $offset taking $limit sorted by $sortBy")
       .map(_.map(_.toDomain))
       .transact(transactor)
 
   override def requireById(id: ID[Session]): F[Session] =
-    (commonSelect ++ fr"WHERE id = ${id}")
-      .queryWithLabel[SessionDao](show"Require Users' Session by ID=${id}")
+    (commonSelect ++ fr"WHERE id = $id")
+      .queryWithLabel[SessionDao](show"Require Users' Session by ID=$id")
       .map(_.toDomain)
       .failNotFound("Session", id)
       .transact(transactor)

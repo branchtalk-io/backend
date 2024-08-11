@@ -1,21 +1,14 @@
 package io.branchtalk.users
 
 import cats.effect.{ Async, Resource, Sync }
-import io.branchtalk.shared.infrastructure.{
-  DomainConfig,
-  DomainName,
-  KafkaEventConsumerConfig,
-  TestKafkaEventBusConfig,
-  TestPostgresConfig,
-  TestResources
-}
-import pureconfig.{ ConfigReader, ConfigSource }
+import io.branchtalk.shared.infrastructure.*
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 
 final case class TestUsersConfig(
   database:          TestPostgresConfig,
   publishedEventBus: TestKafkaEventBusConfig,
   internalEventBus:  TestKafkaEventBusConfig,
-  consumers:         Map[String, KafkaEventConsumerConfig]
+  consumers:         Map[String, KafkaEventBus.ConsumerConfig]
 ) derives ConfigReader
 object TestUsersConfig {
 
@@ -26,11 +19,11 @@ object TestUsersConfig {
       )
     )
 
-  def loadDomainConfig[F[_]: Async]: Resource[F, DomainConfig] =
+  def loadDomainConfig[F[_]: Async]: Resource[F, DomainModule.Config] =
     for {
       TestUsersConfig(dbTest, publishedESTest, internalESTest, consumers) <- TestUsersConfig.load[F]
       db <- TestResources.postgresConfigResource[F](dbTest)
       publishedES <- TestResources.kafkaEventBusConfigResource[F](publishedESTest)
       internalES <- TestResources.kafkaEventBusConfigResource[F](internalESTest)
-    } yield DomainConfig(DomainName("discussions-test"), db, db, publishedES, internalES, consumers)
+    } yield DomainModule.Config(DomainModule.Name("discussions-test"), db, db, publishedES, internalES, consumers)
 }

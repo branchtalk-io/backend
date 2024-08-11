@@ -21,7 +21,7 @@ final class BanWritesImpl[F[_]: Sync: MDC](
   override def orderBan(order: Ban.Order): F[Unit] = for {
     correlationID <- CorrelationID.getCurrentOrGenerate[F]
     id = order.bannedUserID
-    _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = ${id}""")
+    _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = $id""")
     now <- CreationTime.now[F]
     command = order
       .into[BanCommandEvent.OrderBan]
@@ -34,7 +34,7 @@ final class BanWritesImpl[F[_]: Sync: MDC](
   override def liftBan(lift: Ban.Lift): F[Unit] = for {
     correlationID <- CorrelationID.getCurrentOrGenerate[F]
     id = lift.bannedUserID
-    _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = ${id}""")
+    _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = $id""")
     now <- ModificationTime.now[F]
     command = lift
       .into[BanCommandEvent.LiftBan]

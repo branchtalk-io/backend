@@ -3,12 +3,12 @@ package io.branchtalk.discussions
 import cats.data.NonEmptySet
 import cats.effect.IO
 import io.branchtalk.discussions.model.{ Channel, Post }
-import io.branchtalk.shared.model.{ ID, TestUUIDGenerator, Updatable }
+import io.branchtalk.shared.model.*
 import org.specs2.mutable.Specification
 
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.*
 
-final class PostReadsWritesSpec extends Specification with DiscussionsIOTest with DiscussionsFixtures {
+final class PostReadsWritesSpec extends Specification, DiscussionsIOTest, DiscussionsFixtures {
 
   protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
@@ -29,12 +29,12 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     "create a Post and eventually read it" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
         // when
         toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         posts <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
         postsOpt <- ids.traverse(discussionsReads.postReads.getById(_)).eventually()
         postsExist <- ids.traverse(discussionsReads.postReads.exists).eventually()
@@ -51,7 +51,7 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     "don't update a Post that doesn't exists" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
         editorID <- editorIDCreate
         creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
@@ -75,12 +75,12 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     "update an existing Post" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
         editorID <- editorIDCreate
         creationData <- (0 until 2).toList.traverse(_ => postCreate(channelID))
         toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         created <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
         updateData = created.zipWithIndex.collect {
           case (Post(id, data), 0) =>
@@ -112,10 +112,10 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
         .collect {
           case ((Post(_, older), Post(_, newer)), 0) =>
             // set case
-            older must_=== newer.copy(lastModifiedAt = None)
+            older === newer.copy(lastModifiedAt = None)
           case ((Post(_, older), Post(_, newer)), 1) =>
             // keep case
-            older must_=== newer
+            older === newer
         }
         .lastOption
         .getOrElse(true must beFalse)
@@ -124,11 +124,11 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     "handle Upvoting and Downvoting of Posts" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
         creationData <- (0 until 4).toList.traverse(_ => postCreate(channelID))
         toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         _ <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
         user0ID <- voterIDCreate
         user1ID <- voterIDCreate
@@ -141,7 +141,7 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
         _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(3), user3ID))
         firstVotes <- ids
           .traverse(discussionsReads.postReads.requireById(_))
-          .assert("Posts should have first Votes applied")(_.forall(_.data.totalScore.toInt =!= 0))
+          .assert("Posts should have first Votes applied")(_.forall(_.data.totalScore.unwrap =!= 0))
           .eventually(delay = 1.second)
         _ <- discussionsWrites.postWrites.downvotePost(Post.Downvote(ids(0), user0ID))
         _ <- discussionsWrites.postWrites.revokePostVote(Post.RevokeVote(ids(1), user1ID))
@@ -161,40 +161,40 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
         thirdsVotes <- ids
           .traverse(discussionsReads.postReads.requireById(_))
           .assert("Posts should have third Votes applied")(
-            _.forall(p => p.data.totalScore.toInt > 0 || p.data.controversialScore.toNonNegativeInt.toInt > 0)
+            _.forall(p => p.data.totalScore.unwrap > 0 || p.data.controversialScore.unwrap > 0)
           )
           .eventually(delay = 1.second)
       } yield {
         // then
-        firstVotes.map(_.data.totalScore) must_=== List(Post.TotalScore(1),
-                                                        Post.TotalScore(1),
-                                                        Post.TotalScore(-1),
-                                                        Post.TotalScore(-1)
+        firstVotes.map(_.data.totalScore) === List(Post.TotalScore(1),
+                                                   Post.TotalScore(1),
+                                                   Post.TotalScore(-1),
+                                                   Post.TotalScore(-1)
         )
-        firstVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(0),
-                                                                Post.ControversialScore(0),
-                                                                Post.ControversialScore(0),
-                                                                Post.ControversialScore(0)
+        firstVotes.map(_.data.controversialScore) === List(Post.ControversialScore(0),
+                                                           Post.ControversialScore(0),
+                                                           Post.ControversialScore(0),
+                                                           Post.ControversialScore(0)
         )
-        secondsVotes.map(_.data.totalScore) must_=== List(Post.TotalScore(-1),
-                                                          Post.TotalScore(0),
-                                                          Post.TotalScore(1),
-                                                          Post.TotalScore(0)
+        secondsVotes.map(_.data.totalScore) === List(Post.TotalScore(-1),
+                                                     Post.TotalScore(0),
+                                                     Post.TotalScore(1),
+                                                     Post.TotalScore(0)
         )
-        secondsVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(0),
-                                                                  Post.ControversialScore(0),
-                                                                  Post.ControversialScore(0),
-                                                                  Post.ControversialScore(0)
+        secondsVotes.map(_.data.controversialScore) === List(Post.ControversialScore(0),
+                                                             Post.ControversialScore(0),
+                                                             Post.ControversialScore(0),
+                                                             Post.ControversialScore(0)
         )
-        thirdsVotes.map(_.data.totalScore) must_=== List(Post.TotalScore(0),
-                                                         Post.TotalScore(1),
-                                                         Post.TotalScore(2),
-                                                         Post.TotalScore(1)
+        thirdsVotes.map(_.data.totalScore) === List(Post.TotalScore(0),
+                                                    Post.TotalScore(1),
+                                                    Post.TotalScore(2),
+                                                    Post.TotalScore(1)
         )
-        thirdsVotes.map(_.data.controversialScore) must_=== List(Post.ControversialScore(1),
-                                                                 Post.ControversialScore(0),
-                                                                 Post.ControversialScore(0),
-                                                                 Post.ControversialScore(0)
+        thirdsVotes.map(_.data.controversialScore) === List(Post.ControversialScore(1),
+                                                            Post.ControversialScore(0),
+                                                            Post.ControversialScore(0),
+                                                            Post.ControversialScore(0)
         )
       }
     }
@@ -202,13 +202,13 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     "allow delete and restore of a created Post" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => postCreate(channelID))
         editorID <- editorIDCreate
         // when
         toCreate <- creationData.traverse(discussionsWrites.postWrites.createPost)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         _ <- ids.traverse(discussionsReads.postReads.requireById(_)).eventually()
         _ <- ids.map(Post.Delete(_, editorID)).traverse(discussionsWrites.postWrites.deletePost)
         _ <- ids
@@ -243,39 +243,47 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
     "paginate newest Posts by Channels" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channel2ID).eventually()
         paginatedData <- (0 until 20).toList.traverse(_ => postCreate(channelID))
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.unwrap))
         nonPaginatedData <- (0 until 20).toList.traverse(_ => postCreate(channel2ID))
-        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.unwrap))
         _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById(_)).eventually()
         channels = NonEmptySet.of(channelID)
         // when
-        pagination <- discussionsReads.postReads.paginate(channels, Post.Sorting.Newest, 0L, 10)
-        pagination2 <- discussionsReads.postReads.paginate(channels, Post.Sorting.Newest, 10L, 10)
+        pagination <- discussionsReads.postReads.paginate(channels,
+                                                          Post.Sorting.Newest,
+                                                          Paginated.Offset(0L),
+                                                          Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.postReads.paginate(channels,
+                                                           Post.Sorting.Newest,
+                                                           Paginated.Offset(10L),
+                                                           Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
 
     "paginate hottest Posts by Channels" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channel2ID).eventually()
         paginatedData <- (0 until 20).toList.traverse(_ => postCreate(channelID))
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.unwrap))
         nonPaginatedData <- (0 until 20).toList.traverse(_ => postCreate(channel2ID))
-        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.unwrap))
         _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById(_)).eventually()
         user1ID <- voterIDCreate
         user2ID <- voterIDCreate
@@ -283,32 +291,40 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
         _ <- paginatedIDs.take(10).traverse(id => discussionsWrites.postWrites.upvotePost(Post.Upvote(id, user2ID)))
         _ <- paginatedIDs
           .traverse(discussionsReads.postReads.requireById(_))
-          .assert("Votes should be eventually applied")(_.forall(_.data.totalScore.toInt > 0))
+          .assert("Votes should be eventually applied")(_.forall(_.data.totalScore.unwrap > 0))
           .eventually(delay = 1.second)
         channels = NonEmptySet.of(channelID)
         // when
-        pagination <- discussionsReads.postReads.paginate(channels, Post.Sorting.Hottest, 0L, 10)
-        pagination2 <- discussionsReads.postReads.paginate(channels, Post.Sorting.Hottest, 10L, 10)
+        pagination <- discussionsReads.postReads.paginate(channels,
+                                                          Post.Sorting.Hottest,
+                                                          Paginated.Offset(0L),
+                                                          Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.postReads.paginate(channels,
+                                                           Post.Sorting.Hottest,
+                                                           Paginated.Offset(10L),
+                                                           Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
 
     "paginate controversial Posts by Channels" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channel2ID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channel2ID).eventually()
         paginatedData <- (0 until 20).toList.traverse(_ => postCreate(channelID))
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.unwrap))
         nonPaginatedData <- (0 until 20).toList.traverse(_ => postCreate(channel2ID))
-        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.id))
+        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.postWrites.createPost).map(_.map(_.unwrap))
         _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.postReads.requireById(_)).eventually()
         user1ID <- voterIDCreate
         user2ID <- voterIDCreate
@@ -317,19 +333,27 @@ final class PostReadsWritesSpec extends Specification with DiscussionsIOTest wit
         _ <- paginatedIDs
           .traverse(discussionsReads.postReads.requireById(_))
           .assert("Votes should be eventually applied")(
-            _.forall(e => e.data.totalScore.toInt > 0 || e.data.controversialScore.toNonNegativeInt.value > 0)
+            _.forall(e => e.data.totalScore.unwrap > 0 || e.data.controversialScore.unwrap > 0)
           )
           .eventually(delay = 1.second)
         channels = NonEmptySet.of(channelID)
         // when
-        pagination <- discussionsReads.postReads.paginate(channels, Post.Sorting.Controversial, 0L, 10)
-        pagination2 <- discussionsReads.postReads.paginate(channels, Post.Sorting.Controversial, 10L, 10)
+        pagination <- discussionsReads.postReads.paginate(channels,
+                                                          Post.Sorting.Controversial,
+                                                          Paginated.Offset(0L),
+                                                          Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.postReads.paginate(channels,
+                                                           Post.Sorting.Controversial,
+                                                           Paginated.Offset(10L),
+                                                           Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
   }

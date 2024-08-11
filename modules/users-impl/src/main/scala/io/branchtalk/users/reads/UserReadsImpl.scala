@@ -32,7 +32,7 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
     case User.Sorting.EmailAlphabetically => fr"ORDER BY email ASC"
   }
 
-  private def idExists(id: ID[User]): Fragment = fr"id = ${id}"
+  private def idExists(id: ID[User]): Fragment = fr"id = $id"
 
   override def authenticate(username: User.Name, password: Password.Raw): F[User] =
     (commonSelect ++ fr"WHERE username = ${username}")
@@ -54,31 +54,28 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
     filters: List[User.Filter] = List.empty
   ): F[Paginated[User]] =
     (commonSelect ++ Fragments.whereAndOpt(filters.map(filtered)) ++ orderBy(sortBy))
-      .paginate[UserDao](offset,
-                         limit,
-                         show"Paginate Users' Session from ${offset} taking ${limit} sorted by ${sortBy}"
-      )
+      .paginate[UserDao](offset, limit, show"Paginate Users' Session from $offset taking $limit sorted by $sortBy")
       .map(_.map(_.toDomain))
       .transact(transactor)
 
   override def exists(id: ID[User]): F[Boolean] =
-    (fr"SELECT 1 FROM users WHERE" ++ idExists(id)).exists(show"Users' User ID=${id} exists").transact(transactor)
+    (fr"SELECT 1 FROM users WHERE" ++ idExists(id)).exists(show"Users' User ID=$id exists").transact(transactor)
 
   override def deleted(id: ID[User]): F[Boolean] =
     (fr"SELECT 1 FROM deleted_users WHERE" ++ idExists(id))
-      .exists(show"Users' User ID=${id} deleted")
+      .exists(show"Users' User ID=$id deleted")
       .transact(transactor)
 
   override def getById(id: ID[User]): F[Option[User]] =
     (commonSelect ++ fr"WHERE" ++ idExists(id))
-      .queryWithLabel[UserDao](show"Get Users' User by ID=${id}")
+      .queryWithLabel[UserDao](show"Get Users' User by ID=$id")
       .map(_.toDomain)
       .option
       .transact(transactor)
 
   override def requireById(id: ID[User]): F[User] =
     (commonSelect ++ fr"WHERE" ++ idExists(id))
-      .queryWithLabel[UserDao](show"Require Users' User by ID=${id}")
+      .queryWithLabel[UserDao](show"Require Users' User by ID=$id")
       .map(_.toDomain)
       .failNotFound("User", id)
       .transact(transactor)

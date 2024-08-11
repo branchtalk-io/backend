@@ -30,9 +30,9 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
     case Comment.Sorting.Controversial => fr"ORDER by controversial_score DESC"
   }
 
-  private def idExists(id: ID[Comment]): Fragment = fr"id = ${id} AND deleted = FALSE"
+  private def idExists(id: ID[Comment]): Fragment = fr"id = $id AND deleted = FALSE"
 
-  private def idDeleted(id: ID[Comment]): Fragment = fr"id = ${id} AND deleted = TRUE"
+  private def idDeleted(id: ID[Comment]): Fragment = fr"id = $id AND deleted = TRUE"
 
   override def paginate(
     post:      ID[Post],
@@ -47,29 +47,29 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
     ) ++ orderBy(sortBy))
       .paginate[Comment](offset,
                          limit,
-                         show"Paginate Discussions' Comment from ${offset} taking ${limit} sorted by ${sortBy}"
+                         show"Paginate Discussions' Comment from $offset taking $limit sorted by $sortBy"
       )
       .transact(transactor)
 
   override def exists(id: ID[Comment]): F[Boolean] =
     (fr"SELECT 1 FROM comments WHERE" ++ idExists(id))
-      .exists(show"Discussions' Comment ID=${id} exists")
+      .exists(show"Discussions' Comment ID=$id exists")
       .transact(transactor)
 
   override def deleted(id: ID[Comment]): F[Boolean] =
     (fr"SELECT 1 FROM comments WHERE" ++ idDeleted(id))
-      .exists(show"Discussions' Comment ID=${id} deleted")
+      .exists(show"Discussions' Comment ID=$id deleted")
       .transact(transactor)
 
   override def getById(id: ID[Comment], isDeleted: Boolean = false): F[Option[Comment]] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .queryWithLabel[Comment](show"Get Discussions' Comment by ID=${id}")
+      .queryWithLabel[Comment](show"Get Discussions' Comment by ID=$id")
       .option
       .transact(transactor)
 
   override def requireById(id: ID[Comment], isDeleted: Boolean = false): F[Comment] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .queryWithLabel[Comment](show"Require Discussions' Comment by ID=${id}")
+      .queryWithLabel[Comment](show"Require Discussions' Comment by ID=$id")
       .failNotFound("Comment", id)
       .transact(transactor)
 }

@@ -2,7 +2,7 @@ package io.branchtalk.discussions
 
 import cats.effect.IO
 import io.branchtalk.discussions.model.{ Comment, Post }
-import io.branchtalk.shared.model.{ ID, TestUUIDGenerator, Updatable }
+import io.branchtalk.shared.model.*
 import org.specs2.mutable.Specification
 
 import scala.concurrent.duration.DurationInt
@@ -28,14 +28,14 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
     "create a Comment and eventually read it" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(postID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => commentCreate(postID))
         // when
         toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         comments <- ids.traverse(discussionsReads.commentReads.requireById(_)).eventually()
         commentsOpt <- ids.traverse(discussionsReads.commentReads.getById(_)).eventually()
         commentsExist <- ids.traverse(discussionsReads.commentReads.exists).eventually()
@@ -52,9 +52,9 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
     "don't update a Comment that doesn't exists" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         editorID <- editorIDCreate
         creationData <- (0 until 3).toList.traverse(_ => commentCreate(postID))
         fakeUpdateData <- creationData.traverse { data =>
@@ -76,14 +76,14 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
     "update an existing Comment" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(postID).eventually()
         editorID <- editorIDCreate
         creationData <- (0 until 2).toList.traverse(_ => commentCreate(postID))
         toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         created <- ids.traverse(discussionsReads.commentReads.requireById(_)).eventually()
         updateData = created.zipWithIndex.collect {
           case (Comment(id, data), 0) =>
@@ -113,10 +113,10 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         .collect {
           case ((Comment(_, older), Comment(_, newer)), 0) =>
             // set case
-            older must_=== newer.copy(lastModifiedAt = None)
+            older === newer.copy(lastModifiedAt = None)
           case ((Comment(_, older), Comment(_, newer)), 1) =>
             // keep case
-            older must_=== newer
+            older === newer
         }
         .lastOption
         .getOrElse(true must beFalse)
@@ -125,15 +125,15 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
     "allow delete and restore of a created Comment" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(postID).eventually()
         creationData <- (0 until 3).toList.traverse(_ => commentCreate(postID))
         editorID <- editorIDCreate
         // when
         toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         _ <- ids.traverse(discussionsReads.commentReads.requireById(_)).eventually()
         _ <- ids.map(Comment.Delete(_, editorID)).traverse(discussionsWrites.commentWrites.deleteComment)
         _ <- ids
@@ -168,13 +168,13 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
     "handle Upvoting and Downvoting of Comments" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(postID).eventually()
         creationData <- (0 until 4).toList.traverse(_ => commentCreate(postID))
         toCreate <- creationData.traverse(discussionsWrites.commentWrites.createComment)
-        ids = toCreate.map(_.id)
+        ids = toCreate.map(_.unwrap)
         _ <- ids.traverse(discussionsReads.commentReads.requireById(_)).eventually()
         user0ID <- voterIDCreate
         user1ID <- voterIDCreate
@@ -187,7 +187,7 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         _ <- discussionsWrites.commentWrites.downvoteComment(Comment.Downvote(ids(3), user3ID))
         firstVotes <- ids
           .traverse(discussionsReads.commentReads.requireById(_))
-          .assert("Comments should have first Votes applied")(_.forall(_.data.totalScore.toInt =!= 0))
+          .assert("Comments should have first Votes applied")(_.forall(_.data.totalScore.unwrap =!= 0))
           .eventually(delay = 1.second)
         _ <- discussionsWrites.commentWrites.downvoteComment(Comment.Downvote(ids(0), user0ID))
         _ <- discussionsWrites.commentWrites.revokeCommentVote(Comment.RevokeVote(ids(1), user1ID))
@@ -207,40 +207,40 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         thirdsVotes <- ids
           .traverse(discussionsReads.commentReads.requireById(_))
           .assert("Comments should have third Votes applied")(
-            _.forall(p => p.data.totalScore.toInt > 0 || p.data.controversialScore.toNonNegativeInt.toInt > 0)
+            _.forall(p => p.data.totalScore.unwrap > 0 || p.data.controversialScore.unwrap > 0)
           )
           .eventually(delay = 1.second)
       } yield {
         // then
-        firstVotes.map(_.data.totalScore) must_=== List(Comment.TotalScore(1),
-                                                        Comment.TotalScore(1),
-                                                        Comment.TotalScore(-1),
-                                                        Comment.TotalScore(-1)
+        firstVotes.map(_.data.totalScore) === List(Comment.TotalScore(1),
+                                                   Comment.TotalScore(1),
+                                                   Comment.TotalScore(-1),
+                                                   Comment.TotalScore(-1)
         )
-        firstVotes.map(_.data.controversialScore) must_=== List(Comment.ControversialScore(0),
-                                                                Comment.ControversialScore(0),
-                                                                Comment.ControversialScore(0),
-                                                                Comment.ControversialScore(0)
+        firstVotes.map(_.data.controversialScore) === List(Comment.ControversialScore(0),
+                                                           Comment.ControversialScore(0),
+                                                           Comment.ControversialScore(0),
+                                                           Comment.ControversialScore(0)
         )
-        secondsVotes.map(_.data.totalScore) must_=== List(Comment.TotalScore(-1),
-                                                          Comment.TotalScore(0),
-                                                          Comment.TotalScore(1),
-                                                          Comment.TotalScore(0)
+        secondsVotes.map(_.data.totalScore) === List(Comment.TotalScore(-1),
+                                                     Comment.TotalScore(0),
+                                                     Comment.TotalScore(1),
+                                                     Comment.TotalScore(0)
         )
-        secondsVotes.map(_.data.controversialScore) must_=== List(Comment.ControversialScore(0),
-                                                                  Comment.ControversialScore(0),
-                                                                  Comment.ControversialScore(0),
-                                                                  Comment.ControversialScore(0)
+        secondsVotes.map(_.data.controversialScore) === List(Comment.ControversialScore(0),
+                                                             Comment.ControversialScore(0),
+                                                             Comment.ControversialScore(0),
+                                                             Comment.ControversialScore(0)
         )
-        thirdsVotes.map(_.data.totalScore) must_=== List(Comment.TotalScore(0),
-                                                         Comment.TotalScore(1),
-                                                         Comment.TotalScore(2),
-                                                         Comment.TotalScore(1)
+        thirdsVotes.map(_.data.totalScore) === List(Comment.TotalScore(0),
+                                                    Comment.TotalScore(1),
+                                                    Comment.TotalScore(2),
+                                                    Comment.TotalScore(1)
         )
-        thirdsVotes.map(_.data.controversialScore) must_=== List(Comment.ControversialScore(1),
-                                                                 Comment.ControversialScore(0),
-                                                                 Comment.ControversialScore(0),
-                                                                 Comment.ControversialScore(0)
+        thirdsVotes.map(_.data.controversialScore) === List(Comment.ControversialScore(1),
+                                                            Comment.ControversialScore(0),
+                                                            Comment.ControversialScore(0),
+                                                            Comment.ControversialScore(0)
         )
       }
     }
@@ -248,67 +248,87 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
     "paginate newest Comments by Posts" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(postID).eventually()
-        post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(post2ID).eventually()
         paginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID))
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.unwrap))
         nonPaginatedData <- (0 until 20).toList.traverse(_ => commentCreate(post2ID))
-        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.unwrap))
         _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
         // when
-        pagination <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Newest, 0L, 10)
-        pagination2 <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Newest, 10L, 10)
+        pagination <- discussionsReads.commentReads.paginate(postID,
+                                                             None,
+                                                             Comment.Sorting.Newest,
+                                                             Paginated.Offset(0L),
+                                                             Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.commentReads.paginate(postID,
+                                                              None,
+                                                              Comment.Sorting.Newest,
+                                                              Paginated.Offset(10L),
+                                                              Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
 
     "paginate newest Comments by Replies" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(postID).eventually()
-        commentID <- commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.id)
+        commentID <- commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.unwrap)
         paginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID).map(_.copy(replyTo = commentID.some)))
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.unwrap))
         nonPaginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID))
-        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.unwrap))
         _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
         // when
-        pagination <- discussionsReads.commentReads.paginate(postID, commentID.some, Comment.Sorting.Newest, 0L, 10)
-        pagination2 <- discussionsReads.commentReads.paginate(postID, commentID.some, Comment.Sorting.Newest, 10L, 10)
+        pagination <- discussionsReads.commentReads.paginate(postID,
+                                                             commentID.some,
+                                                             Comment.Sorting.Newest,
+                                                             Paginated.Offset(0L),
+                                                             Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.commentReads.paginate(postID,
+                                                              commentID.some,
+                                                              Comment.Sorting.Newest,
+                                                              Paginated.Offset(10L),
+                                                              Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
 
     "paginate hottest Comments by Posts" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(postID).eventually()
-        post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(post2ID).eventually()
         paginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID))
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.unwrap))
         nonPaginatedData <- (0 until 20).toList.traverse(_ => commentCreate(post2ID))
-        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.unwrap))
         _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
         user1ID <- voterIDCreate
         user2ID <- voterIDCreate
@@ -319,34 +339,44 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         _ <- paginatedIDs
           .traverse(discussionsReads.commentReads.requireById(_))
           .assert("Votes should be eventually applied")(
-            _.forall(e => e.data.totalScore.toInt > 0 || e.data.controversialScore.toNonNegativeInt.value > 0)
+            _.forall(e => e.data.totalScore.unwrap > 0 || e.data.controversialScore.unwrap > 0)
           )
           .eventually(delay = 1.second)
         // when
-        pagination <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Hottest, 0L, 10)
-        pagination2 <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Hottest, 10L, 10)
+        pagination <- discussionsReads.commentReads.paginate(postID,
+                                                             None,
+                                                             Comment.Sorting.Hottest,
+                                                             Paginated.Offset(0L),
+                                                             Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.commentReads.paginate(postID,
+                                                              None,
+                                                              Comment.Sorting.Hottest,
+                                                              Paginated.Offset(10L),
+                                                              Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
 
     "paginate controversial Comments by Posts" in {
       for {
         // given
-        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+        channelID <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
         _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        postID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(postID).eventually()
-        post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+        post2ID <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
         _ <- discussionsReads.postReads.requireById(post2ID).eventually()
         paginatedData <- (0 until 20).toList.traverse(_ => commentCreate(postID))
-        paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+        paginatedIDs <- paginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.unwrap))
         nonPaginatedData <- (0 until 20).toList.traverse(_ => commentCreate(post2ID))
-        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.id))
+        nonPaginatedIds <- nonPaginatedData.traverse(discussionsWrites.commentWrites.createComment).map(_.map(_.unwrap))
         _ <- (paginatedIDs ++ nonPaginatedIds).traverse(discussionsReads.commentReads.requireById(_)).eventually()
         user1ID <- voterIDCreate
         user2ID <- voterIDCreate
@@ -357,18 +387,28 @@ final class CommentReadsWritesSpec extends Specification, DiscussionsIOTest, Dis
         _ <- paginatedIDs
           .traverse(discussionsReads.commentReads.requireById(_))
           .assert("Votes should be eventually applied")(
-            _.forall(e => e.data.totalScore.toInt > 0 || e.data.controversialScore.toNonNegativeInt.value > 0)
+            _.forall(e => e.data.totalScore.unwrap > 0 || e.data.controversialScore.unwrap > 0)
           )
           .eventually(delay = 1.second)
         // when
-        pagination <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Controversial, 0L, 10)
-        pagination2 <- discussionsReads.commentReads.paginate(postID, None, Comment.Sorting.Controversial, 10L, 10)
+        pagination <- discussionsReads.commentReads.paginate(postID,
+                                                             None,
+                                                             Comment.Sorting.Controversial,
+                                                             Paginated.Offset(0L),
+                                                             Paginated.Limit(10)
+        )
+        pagination2 <- discussionsReads.commentReads.paginate(postID,
+                                                              None,
+                                                              Comment.Sorting.Controversial,
+                                                              Paginated.Offset(10L),
+                                                              Paginated.Limit(10)
+        )
       } yield {
         // then
         pagination.entities must haveSize(10)
-        pagination.nextOffset.map(_.value) must beSome(10L)
+        pagination.nextOffset.map(_.unwrap) must beSome(10L)
         pagination2.entities must haveSize(10)
-        pagination2.nextOffset.map(_.value) must beNone
+        pagination2.nextOffset.map(_.unwrap) must beNone
       }
     }
   }

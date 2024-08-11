@@ -53,7 +53,7 @@ final class ChannelBanServerSpec extends Specification, ServerIOTest, UsersFixtu
       } yield {
         // then
         response.body must beValid(beRight(be_===(BanOrderResponse(bannedUserID))))
-        bans must_=== Set(Ban(bannedUserID, reason, Ban.Scope.ForChannel(channelID)))
+        bans === Set(Ban(bannedUserID, reason, Ban.Scope.ForChannel(channelID)))
       }
     }
 

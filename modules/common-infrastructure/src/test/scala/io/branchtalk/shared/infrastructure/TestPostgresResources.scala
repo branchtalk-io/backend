@@ -23,11 +23,11 @@ trait TestPostgresResources extends TestResourcesHelpers {
       val password = Fragment.const(s"""'${cfg.password.unwrap}'""")
       val schema   = Fragment.const(cfg.schema.unwrap)
 
-      val createUser   = (fr"CREATE USER" ++ username ++ fr"WITH PASSWORD" ++ password).update.run
-      val createSchema = (fr"CREATE SCHEMA" ++ schema ++ fr"AUTHORIZATION" ++ username).update.run
+      val createUser   = sql"CREATE USER $username WITH PASSWORD $password".update.run
+      val createSchema = sql"CREATE SCHEMA $schema AUTHORIZATION $username".update.run
 
-      val dropSchema = (fr"DROP SCHEMA IF EXISTS" ++ schema ++ fr"CASCADE").update.run
-      val dropUser   = (fr"DROP ROLE IF EXISTS" ++ username).update.run
+      val dropSchema = sql"DROP SCHEMA IF EXISTS $schema CASCADE".update.run
+      val dropUser   = sql"DROP ROLE IF EXISTS $username".update.run
 
       Resource.make {
         (createUser >> createSchema >> cfg.pure[ConnectionIO]).transact(schemaCreator)

@@ -21,9 +21,9 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
     case Channel.Sorting.Alphabetically => fr"ORDER BY name ASC"
   }
 
-  private def idExists(id: ID[Channel]): Fragment = fr"id = ${id} AND deleted = FALSE"
+  private def idExists(id: ID[Channel]): Fragment = fr"id = $id AND deleted = FALSE"
 
-  private def idDeleted(id: ID[Channel]): Fragment = fr"id = ${id} AND deleted = TRUE"
+  private def idDeleted(id: ID[Channel]): Fragment = fr"id = $id AND deleted = TRUE"
 
   override def paginate(
     sortBy: Channel.Sorting,
@@ -33,29 +33,29 @@ final class ChannelReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Chan
     (commonSelect ++ Fragments.whereAnd(fr"deleted = FALSE") ++ orderBy(sortBy))
       .paginate[Channel](offset,
                          limit,
-                         show"Paginate Discussions' Channel from ${offset} taking ${limit} sorted by ${sortBy}"
+                         show"Paginate Discussions' Channel from $offset taking $limit sorted by $sortBy"
       )
       .transact(transactor)
 
   override def exists(id: ID[Channel]): F[Boolean] =
     (fr"SELECT 1 FROM channels WHERE" ++ idExists(id))
-      .exists(show"Discussions' Channel ID=${id} exists")
+      .exists(show"Discussions' Channel ID=$id exists")
       .transact(transactor)
 
   override def deleted(id: ID[Channel]): F[Boolean] =
     (fr"SELECT 1 FROM channels WHERE" ++ idDeleted(id))
-      .exists(show"Discussions' Channel ID=${id} deleted")
+      .exists(show"Discussions' Channel ID=$id deleted")
       .transact(transactor)
 
   override def getById(id: ID[Channel], isDeleted: Boolean = false): F[Option[Channel]] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .queryWithLabel[Channel](show"Get Discussions' Channel by ID=${id}")
+      .queryWithLabel[Channel](show"Get Discussions' Channel by ID=$id")
       .option
       .transact(transactor)
 
   override def requireById(id: ID[Channel], isDeleted: Boolean = false): F[Channel] =
     (commonSelect ++ fr"WHERE" ++ (if (isDeleted) idDeleted(id) else idExists(id)))
-      .queryWithLabel[Channel](show"Require Discussions' Channel by ID=${id}")
+      .queryWithLabel[Channel](show"Require Discussions' Channel by ID=$id")
       .failNotFound("User", id)
       .transact(transactor)
 }

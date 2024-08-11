@@ -21,14 +21,14 @@ final class BanReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends BanReads
 
   override def findForUser(userID: ID[User]): F[Set[Ban]] =
     (commonSelect ++ whereAnd(fr"user_id = $userID"))
-      .queryWithLabel[BanDao](show"Require Users' Ban for User=${userID}")
+      .queryWithLabel[BanDao](show"Require Users' Ban for User=$userID")
       .map(_.toDomain)
       .to[Set]
       .transact(transactor)
 
   override def findForChannel(channelID: ID[Channel]): F[Set[Ban]] =
     (commonSelect ++ whereAnd(fr"ban_id = $channelID", fr"ban_type = $channelBan"))
-      .queryWithLabel[BanDao](show"Require Users' Ban for Channel=${channelID}")
+      .queryWithLabel[BanDao](show"Require Users' Ban for Channel=$channelID")
       .map(_.toDomain)
       .to[Set]
       .transact(transactor)

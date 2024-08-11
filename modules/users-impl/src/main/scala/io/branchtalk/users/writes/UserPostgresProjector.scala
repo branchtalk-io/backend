@@ -165,6 +165,8 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
 
   private def findKeys(userID: ID[User]): ConnectionIO[Option[(SensitiveData.Algorithm, SensitiveData.Key)]] =
     sql"""SELECT enc_algorithm, key_value FROM sensitive_data_keys WHERE user_id = $userID"""
-      .query[(SensitiveData.Algorithm, SensitiveData.Key)]
+      .queryWithLabel[(SensitiveData.Algorithm, SensitiveData.Key)](
+        show"Get encryption keys for Users' User ID=$userID"
+      )
       .option
 }
