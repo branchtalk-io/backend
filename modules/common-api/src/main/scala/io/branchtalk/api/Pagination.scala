@@ -18,13 +18,13 @@ object Pagination {
 
   def fromPaginated[Entity](
     paginated: Paginated[Entity],
-    offset:    Offset,
-    limit:     Limit
+    offset:    Paginated.Offset,
+    limit:     Paginated.Limit
   ): Pagination[Entity] =
     paginated
       .into[Pagination[Entity]]
-      .withFieldConst(_.offset, offset)
-      .withFieldConst(_.limit, limit)
+      .withFieldConst(_.offset, Offset.unsafeMake(offset.unwrap))
+      .withFieldConst(_.limit, Limit.unsafeMake(limit.unwrap))
       .withFieldComputed(_.nextOffset, _.nextOffset.map(o => Offset.unsafeMake(o.unwrap)))
       .transform
 
@@ -42,16 +42,16 @@ object Pagination {
   }
 
   type Limit = Limit.Type
-  object Limit extends Newtype[Long] {
+  object Limit extends Newtype[Int] {
 
-    override inline def validate(input: Long): Boolean = input > 0L
+    override inline def validate(input: Int): Boolean = input > 0
 
-    def unapply(limit: Limit): Some[Long] = Some(limit.unwrap)
-    def parse[F[_]: Sync](long: Long): F[Limit] = ParseNewtype[F].parse[Limit](long)
+    def unapply(limit: Limit): Some[Int] = Some(limit.unwrap)
+    def parse[F[_]: Sync](long: Int): F[Limit] = ParseNewtype[F].parse[Limit](long)
 
-    given JsCodec[Limit] = DefaultJsCodec.derived[Long].asNewtypeCodec[Limit]
-    given Param[Limit] = summonParam[Long].mapDecode(l => DecodeResult.fromEitherString(l.toString, make(l)))(_.unwrap)
-    given JsSchema[Limit] = summonSchema[Long].asNewtypeSchema[Limit]
+    given JsCodec[Limit] = DefaultJsCodec.derived[Int].asNewtypeCodec[Limit]
+    given Param[Limit]   = summonParam[Int].mapDecode(l => DecodeResult.fromEitherString(l.toString, make(l)))(_.unwrap)
+    given JsSchema[Limit] = summonSchema[Int].asNewtypeSchema[Limit]
   }
 
   type HasNext = HasNext.Type

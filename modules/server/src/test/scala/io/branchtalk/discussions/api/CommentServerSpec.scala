@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.api
 
-import io.branchtalk.api.{ Authentication, Pagination, Pagination.Limit, Pagination.Offset, ServerIOTest }
+import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.CommentModels.*
 import io.branchtalk.discussions.model.Comment
@@ -54,9 +54,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           response2.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) === comments
-                .map(APIComment.fromDomain)
-                .toSet
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === comments.map(APIComment.fromDomain).toSet
             }
             .getOrElse(pass)
         }

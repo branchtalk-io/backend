@@ -3,12 +3,12 @@ package io.branchtalk.api
 import cats.data.{ Kleisli, OptionT }
 import cats.effect.Sync
 import io.branchtalk.logging.{ CorrelationID, MDC }
-import io.branchtalk.shared.model.UUID.Generator
+import io.branchtalk.shared.model.UUID
 import org.http4s.*
 
-final class CorrelationIDOps[F[_]: Sync: MDC](implicit uuidGenerator: UUID.Generator) {
+final class CorrelationIDOps[F[_]: Sync: MDC](using UUID.Generator) {
 
-  def httpRoutes(service: HttpRoutes[F]): HttpRoutes[F] = Kleisli { req: Request[F] =>
+  def httpRoutes(service: HttpRoutes[F]): HttpRoutes[F] = Kleisli { (req: Request[F]) =>
     for {
       correlationID <- req.headers.get(CorrelationIDOps.correlationIDHeader) match {
         case None            => CorrelationID.generate[OptionT[F, *]]

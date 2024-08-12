@@ -4,6 +4,7 @@ import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.JsoniterSupport.JsCodec
 import io.branchtalk.api.TapirSupport.jsonBody
+import sttp.monad.MonadError
 import sttp.tapir.server.interceptor.decodefailure.{ DecodeFailureHandler, DefaultDecodeFailureHandler }
 import sttp.tapir.server.model.ValuedEndpointOutput
 import sttp.tapir.server.http4s.Http4sServerOptions
@@ -18,23 +19,29 @@ object ServerOptions {
     onMultiple:        () => E,
     onError:           (String, Throwable) => E,
     onMismatch:        (String, String) => E,
-    onValidationError: List[ValidationError[_]] => E
+    onValidationError: List[ValidationError[?]] => E
   )
 
-  def buildErrorHandler[E: JsCodec: Schema](errorHandler: ErrorHandler[E]): DecodeFailureHandler = {
-    case handled if DefaultDecodeFailureHandler.default.respond(handled).isEmpty =>
-      None
-    case DecodeFailureContext(_, _, DecodeResult.Missing, _) =>
-      Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onMissing()))
-    case DecodeFailureContext(_, _, DecodeResult.Multiple(_), _) =>
-      Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onMultiple()))
-    case DecodeFailureContext(_, _, DecodeResult.Error(original, error), _) =>
-      Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onError(original, error)))
-    case DecodeFailureContext(_, _, DecodeResult.Mismatch(expected, actual), _) =>
-      Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onMismatch(expected, actual)))
-    case DecodeFailureContext(_, _, DecodeResult.InvalidValue(errors), _) =>
-      Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onValidationError(errors)))
-  }
+  def buildErrorHandler[F[_], E: JsCodec: Schema](errorHandler: ErrorHandler[E]): DecodeFailureHandler[F] =
+    new DecodeFailureHandler[F] {
+      def apply(ctx: DecodeFailureContext)(implicit monad: MonadError[F]): F[Option[ValuedEndpointOutput[?]]] =
+        monad.unit(
+          ctx match {
+            case handled if DefaultDecodeFailureHandler.respond(handled).isEmpty =>
+              None
+            case DecodeFailureContext(_, _, DecodeResult.Missing, _) =>
+              Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onMissing()))
+            case DecodeFailureContext(_, _, DecodeResult.Multiple(_), _) =>
+              Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onMultiple()))
+            case DecodeFailureContext(_, _, DecodeResult.Error(original, error), _) =>
+              Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onError(original, error)))
+            case DecodeFailureContext(_, _, DecodeResult.Mismatch(expected, actual), _) =>
+              Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onMismatch(expected, actual)))
+            case DecodeFailureContext(_, _, DecodeResult.InvalidValue(errors), _) =>
+              Some(ValuedEndpointOutput(jsonBody[E], errorHandler.onValidationError(errors)))
+          }
+        )
+    }
 
   def create[F[_]: Sync, E: JsCodec: Schema](
     logger:       Logger,
@@ -42,7 +49,7 @@ object ServerOptions {
   ): Http4sServerOptions[F] =
     Http4sServerOptions
       .customiseInterceptors[F]
-      .decodeFailureHandler(buildErrorHandler(errorHandler))
+      .decodeFailureHandler(buildErrorHandler[F, E](errorHandler))
       .serverLog(
         DefaultServerLog[F](
           doLogWhenReceived = msg => Sync[F].delay(logger.debug(msg)),

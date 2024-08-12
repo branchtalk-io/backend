@@ -3,66 +3,64 @@ package io.branchtalk.configs
 import cats.Show
 import enumeratum.*
 import io.branchtalk.api.Pagination
-import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import io.branchtalk.discussions.model.{ Channel, Post }
+import io.branchtalk.users.model.User
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 import io.branchtalk.shared.model.*
 import pureconfig.error.CannotConvert
 import sttp.apispec.openapi.*
 
+import java.net.URI
 import scala.concurrent.duration.FiniteDuration
+
+given ConfigReader[User.Email]      = ConfigReader[String].emapString("User.Email")(User.Email.make)
+given ConfigReader[Post.URL]        = ConfigReader[URI].emapString("Post.URL")(Post.URL.make)
+given ConfigReader[Paginated.Limit] = ConfigReader[Int].emapString("Paginated.Limit")(Paginated.Limit.make)
 
 final case class APIContact(
   name:  String,
-  email: String Refined MatchesRegex["(.+)@(.+)"],
-  url:   String Refined Url
-) derives ConfigReader, ShowPretty {
+  email: User.Email,
+  url:   Post.URL
+) derives ConfigReader,
+      ShowPretty {
 
   def toOpenAPI: Contact = Contact(
     name = name.some,
-    email = email.value.some,
-    url = url.value.some
+    email = email.unwrap.some,
+    url = url.unwrap.toString.some
   )
-}
-object APIContact {
-  implicit private val showEmail: Show[String Refined MatchesRegex["(.+)@(.+)"]] = _.value
-  implicit private val showUrl:   Show[String Refined Url]                       = _.value
 }
 
 final case class APILicense(
   name: String,
-  url:  String Refined Url
-) derives ConfigReader, ShowPretty {
+  url:  Post.URL
+) derives ConfigReader,
+      ShowPretty {
 
   def toOpenAPI: License = License(
     name = name,
-    url = url.value.some
+    url = url.unwrap.toString.some
   )
-}
-object APILicense {
-  implicit private val showUrl: Show[String Refined Url] = _.value
 }
 
 final case class APIInfo(
-  title:          String Refined NonEmpty,
-  version:        String Refined NonEmpty,
-  description:    String Refined NonEmpty,
-  termsOfService: String Refined Url,
+  title:          String, // TODO: refine
+  version:        String, // TODO: refine
+  description:    String, // TODO: refine
+  termsOfService: Post.URL,
   contact:        APIContact,
   license:        APILicense
-) derives ConfigReader, ShowPretty {
+) derives ConfigReader,
+      ShowPretty {
 
   def toOpenAPI: Info = Info(
-    title = title.value,
-    version = version.value,
-    description = description.value.some,
-    termsOfService = termsOfService.value.some,
+    title = title,
+    version = version,
+    description = description.some,
+    termsOfService = termsOfService.unwrap.toString.some,
     contact = contact.toOpenAPI.some,
     license = license.toOpenAPI.some
   )
-}
-object APIInfo {
-  implicit private val showNES: Show[String Refined NonEmpty] = _.value
-  implicit private val showUrl: Show[String Refined Url]      = _.value
 }
 
 final case class APIHttp(
@@ -72,26 +70,26 @@ final case class APIHttp(
   corsAnyOrigin:        Boolean,
   corsAllowCredentials: Boolean,
   corsMaxAge:           FiniteDuration,
-  maxHeaderLineLength:  Int Refined Positive,
-  maxRequestLineLength: Int Refined Positive
-)derives ConfigReader, ShowPretty
-object APIHttp {
-  implicit private val showPositive: Show[Int Refined Positive] = _.value.toString
-}
+  maxHeaderLineLength:  Int, // TODO: refine
+  maxRequestLineLength: Int // TODO: refine
+) derives ConfigReader,
+      ShowPretty
 
 final case class PaginationConfig(
-  defaultLimit: Pagination.Limit,
-  maxLimit:     Pagination.Limit
-) derives ConfigReader, ShowPretty {
+  defaultLimit: Paginated.Limit,
+  maxLimit:     Paginated.Limit
+) derives ConfigReader,
+      ShowPretty {
 
-  def resolveOffset(passedOffset: Option[Pagination.Offset]): Pagination.Offset =
-    passedOffset.getOrElse(Pagination.Offset(0L))
+  def resolveOffset(passedOffset: Option[Pagination.Offset]): Paginated.Offset =
+    passedOffset.fold(Paginated.Offset(0L)) { value =>
+      Paginated.Offset.unsafeMake(value.unwrap)
+    }
 
-  def resolveLimit(passedLimit: Option[Pagination.Limit]): Pagination.Limit =
-    passedLimit.filter(_.positiveInt.value <= maxLimit.positiveInt.value).getOrElse(defaultLimit)
-}
-object PaginationConfig {
-  implicit private val showLimit: Show[Pagination.Limit] = _.positiveInt.value.toString
+  def resolveLimit(passedLimit: Option[Pagination.Limit]): Paginated.Limit =
+    passedLimit.filter(_.unwrap <= maxLimit.unwrap).fold(defaultLimit) { value =>
+      Paginated.Limit.unsafeMake(value.unwrap: Int)
+    }
 }
 
 sealed trait APIPart extends EnumEntry
@@ -123,12 +121,15 @@ final case class APIConfig(
   http:            APIHttp,
   defaultChannels: List[UUID],
   pagination:      Map[APIPart, PaginationConfig]
-) derives ConfigReader, ShowPretty {
+) derives ConfigReader,
+      ShowPretty {
 
   val signedOutSubscriptions: Set[ID[Channel]] = defaultChannels.map(ID[Channel]).toSet
 
   val safePagination: Map[APIPart, PaginationConfig] =
     pagination.withDefaultValue(
-      PaginationConfig(Pagination.Limit(Defaults.defaultPaginationLimit), Pagination.Limit(Defaults.maxPaginationLimit))
+      PaginationConfig(Paginated.Limit.unsafeMake(Defaults.defaultPaginationLimit),
+                       Paginated.Limit.unsafeMake(Defaults.maxPaginationLimit)
+      )
     )
 }

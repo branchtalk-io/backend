@@ -2,7 +2,7 @@ package io.branchtalk.discussions
 
 import cats.effect.{ Async, Resource, Sync }
 import io.branchtalk.shared.infrastructure.*
-import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 
 final case class TestDiscussionsConfig(
   database:          TestPostgresConfig,

@@ -79,10 +79,9 @@ val settings = Seq(
     Dependencies.log4cats,
     Dependencies.log4catsSlf4j,
     Dependencies.magnolia,
-    Dependencies.monocle,
-    Dependencies.monocleMacro,
     Dependencies.neotype,
     Dependencies.scalaLogging,
+    Dependencies.quicklens,
     Dependencies.logback
   ),
   Compile / scalafmtOnCompile := true,
@@ -290,7 +289,6 @@ val discussionsImpl = project
   .settings(settings)
   .settings(integrationTests)
   .settings(
-    libraryDependencies += Dependencies.macwire,
     customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
   .dependsOn(
@@ -351,8 +349,7 @@ val usersImpl = project
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniter,
-      Dependencies.jsoniterMacro,
-      Dependencies.macwire
+      Dependencies.jsoniterMacro
     ),
     customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
@@ -384,8 +381,7 @@ val server = project
       Dependencies.tapirHttp4s,
       Dependencies.tapirOpenAPI,
       Dependencies.tapirSwaggerUI,
-      Dependencies.tapirSTTP % Test,
-      Dependencies.macwire
+      Dependencies.tapirSTTP % Test
     ),
     customPredef("scala.util.chaining", "cats.implicits", "neotype"),
     Compile / resourceGenerators += task[Seq[File]] {

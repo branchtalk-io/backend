@@ -4,13 +4,14 @@ import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.*
-import io.branchtalk.auth.*
+import io.branchtalk.auth.{ *, given }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.CommentModels.*
 import io.branchtalk.discussions.model.{ Channel, Comment, Post }
 import io.branchtalk.discussions.reads.{ CommentReads, PostReads }
 import io.branchtalk.discussions.writes.CommentWrites
 import io.branchtalk.mappings.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CommonError, CreationScheduled, ID }
 import io.branchtalk.users.model.User
 import io.scalaland.chimney.dsl.*
@@ -73,7 +74,7 @@ final class CommentServer[F[_]: Async](
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
     for {
-      paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- commentReads.paginate(postID, optReply, sortBy, offset, limit)
     } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
   }
 
@@ -84,7 +85,7 @@ final class CommentServer[F[_]: Async](
     val offset = paginationConfig.resolveOffset(None)
     val limit  = paginationConfig.resolveLimit(None)
     for {
-      paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- commentReads.paginate(postID, optReply, sortBy, offset, limit)
     } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
   }
 
@@ -95,7 +96,7 @@ final class CommentServer[F[_]: Async](
     val offset = paginationConfig.resolveOffset(None)
     val limit  = paginationConfig.resolveLimit(None)
     for {
-      paginated <- commentReads.paginate(postID, optReply, sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- commentReads.paginate(postID, optReply, sortBy, offset, limit)
     } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
   }
 

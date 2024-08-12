@@ -60,10 +60,7 @@ final class ChannelBanServerListingSpec extends Specification, ServerIOTest, Use
           // then
           response.code === StatusCode.Ok
           response.body must beValid(beRight(anInstanceOf[BansResponse]))
-          response.body.toValidOpt
-            .flatMap(_.toOption)
-            .map(_.bannedIDs.toSet === bannedUserIDs.toSet)
-            .getOrElse(pass)
+          response.body.toValidOpt.flatMap(_.toOption).map(_.bannedIDs.toSet === bannedUserIDs.toSet).getOrElse(pass)
         }
       }
     }

@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.IO
-import io.branchtalk.api.{ Authentication, Pagination, Pagination.Limit, Pagination.Offset, ServerIOTest }
+import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.model.Post

@@ -4,13 +4,14 @@ import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.*
-import io.branchtalk.auth.*
+import io.branchtalk.auth.{ *, given }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.ChannelModels.*
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.discussions.reads.ChannelReads
 import io.branchtalk.discussions.writes.ChannelWrites
 import io.branchtalk.mappings.userIDUsers2Discussions
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CommonError, CreationScheduled }
 import io.branchtalk.users.model.User
 import io.scalaland.chimney.dsl.*
@@ -38,7 +39,7 @@ final class ChannelServer[F[_]: Async](
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
     for {
-      paginated <- channelReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- channelReads.paginate(sortBy, offset, limit)
     } yield Pagination.fromPaginated(paginated.map(APIChannel.fromDomain), offset, limit)
   }
 

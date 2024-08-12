@@ -4,8 +4,9 @@ import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.{ Permission => _, _ }
-import io.branchtalk.auth.*
+import io.branchtalk.auth.{ *, given }
 import io.branchtalk.configs.PaginationConfig
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CommonError, OptionUpdatable, Updatable }
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Permission, User }
@@ -38,7 +39,7 @@ final class ChannelModerationServer[F[_]: Async](
       val limit   = paginationConfig.resolveLimit(optLimit)
       val filters = List(User.Filter.HasPermission(Permission.ModerateChannel(channelID)))
       for {
-        paginated <- userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt, filters)
+        paginated <- userReads.paginate(sortBy, offset, limit, filters)
       } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
     }
 

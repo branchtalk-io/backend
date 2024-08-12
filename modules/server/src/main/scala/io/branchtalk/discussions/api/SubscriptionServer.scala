@@ -4,7 +4,7 @@ import cats.data.{ NonEmptyList, NonEmptySet }
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.*
-import io.branchtalk.auth.*
+import io.branchtalk.auth.{ *, given }
 import io.branchtalk.configs.{ APIConfig, PaginationConfig }
 import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.api.SubscriptionModels.*
@@ -12,6 +12,7 @@ import io.branchtalk.discussions.model.{ Post, Subscription }
 import io.branchtalk.discussions.reads.{ PostReads, SubscriptionReads }
 import io.branchtalk.discussions.writes.SubscriptionWrites
 import io.branchtalk.mappings.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CommonError, Paginated }
 import io.branchtalk.users.model.User
 import org.http4s.*
@@ -49,7 +50,7 @@ final class SubscriptionServer[F[_]: Async](
         subscriptionOpt <- optUser.map(_.id).map(userIDUsers2Discussions.get).traverse(subscriptionReads.requireForUser)
         channelIDS = SortedSet.from(subscriptionOpt.map(_.subscriptions).getOrElse(apiConfig.signedOutSubscriptions))
         paginated <- NonEmptySet.fromSet(channelIDS) match {
-          case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
+          case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset, limit)
           case None             => Paginated.empty[Post].pure[F]
         }
       } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)

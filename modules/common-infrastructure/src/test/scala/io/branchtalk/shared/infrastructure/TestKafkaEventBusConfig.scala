@@ -1,7 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.data.NonEmptyList
-import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 import io.scalaland.chimney.dsl.*
 
 final case class TestKafkaEventBusConfig(

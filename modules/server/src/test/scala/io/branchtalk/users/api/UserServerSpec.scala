@@ -26,10 +26,11 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
       "return newest Sessions" in {
         for {
           // given
-          _ <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, Paginated.Offset(0L), Paginated.Limit(1000)).flatMap {
-            case Paginated(entities, _) =>
+          _ <- usersReads.userReads
+            .paginate(User.Sorting.NameAlphabetically, Paginated.Offset(0L), Paginated.Limit(1000))
+            .flatMap { case Paginated(entities, _) =>
               entities.traverse_(user => usersWrites.userWrites.deleteUser(User.Delete(user.id, None)))
-          }
+            }
           (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
             usersWrites.userWrites.createUser
           )
@@ -57,9 +58,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           response2.body must beValid(beRight(anInstanceOf[Pagination[APISession]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) === sessions
-                .map(APISession.fromDomain)
-                .toSet
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === sessions.map(APISession.fromDomain).toSet
             }
             .getOrElse(pass)
         }

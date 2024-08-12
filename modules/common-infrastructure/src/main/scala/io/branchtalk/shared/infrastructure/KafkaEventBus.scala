@@ -7,7 +7,7 @@ import com.typesafe.scalalogging.Logger
 import fs2.{ Pipe, Stream }
 import fs2.kafka.*
 import io.branchtalk.shared.model.{ ShowPretty, UUID }
-import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
 
 import scala.concurrent.duration.FiniteDuration
