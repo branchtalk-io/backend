@@ -4,13 +4,14 @@ import cats.data.{ NonEmptyList, NonEmptySet }
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.*
-import io.branchtalk.auth.*
+import io.branchtalk.auth.{ *, given }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.discussions.reads.PostReads
 import io.branchtalk.discussions.writes.PostWrites
 import io.branchtalk.mappings.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CommonError, CreationScheduled, ID, Paginated }
 import io.branchtalk.users.model.User
 import io.scalaland.chimney.dsl.*
@@ -53,7 +54,7 @@ final class PostServer[F[_]: Async](
     val channelIDS = SortedSet(channelID)
     for {
       paginated <- NonEmptySet.fromSet(channelIDS) match {
-        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
+        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset, limit)
         case None             => Paginated.empty[Post].pure[F]
       }
     } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
@@ -66,7 +67,7 @@ final class PostServer[F[_]: Async](
     val channelIDS = SortedSet(channelID)
     for {
       paginated <- NonEmptySet.fromSet(channelIDS) match {
-        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
+        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset, limit)
         case None             => Paginated.empty[Post].pure[F]
       }
     } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
@@ -79,7 +80,7 @@ final class PostServer[F[_]: Async](
     val channelIDS = SortedSet(channelID)
     for {
       paginated <- NonEmptySet.fromSet(channelIDS) match {
-        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset.nonNegativeLong, limit.positiveInt)
+        case Some(channelIDs) => postReads.paginate(channelIDs, sortBy, offset, limit)
         case None             => Paginated.empty[Post].pure[F]
       }
     } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)

@@ -2,7 +2,7 @@ package io.branchtalk.configs
 
 import cats.data.NonEmptyList
 import cats.effect.Sync
-import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 
 import java.io.File
 import scala.reflect.ClassTag

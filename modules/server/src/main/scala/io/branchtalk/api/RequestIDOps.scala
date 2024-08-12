@@ -10,7 +10,7 @@ final class RequestIDOps[F[_]: Sync: MDC] {
 
   // reuses RequestId.httpRoutes but adds logging and MDC setup to it
   def httpRoutes(service: HttpRoutes[F]): HttpRoutes[F] = RequestId.httpRoutes(
-    Kleisli { req: Request[F] =>
+    Kleisli { (req: Request[F]) =>
       for {
         _ <- req.headers
           .get(RequestIDOps.requestIdHeader)

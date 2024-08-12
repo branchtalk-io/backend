@@ -1,7 +1,7 @@
 package io.branchtalk.shared.infrastructure
 
 import cats.Show
-import io.branchtalk.shared.infrastructure.PureconfigSupport.*
+import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 
 final case class Server(
   host: Server.Host,

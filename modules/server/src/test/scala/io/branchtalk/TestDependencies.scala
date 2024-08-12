@@ -19,7 +19,6 @@ final case class TestDependencies[F[_]](
 )
 object TestDependencies {
 
-
   def resources[F[_]: Async: MDC](registry: CollectorRegistry)(implicit
     uuidGenerator: UUID.Generator
   ): Resource[F, TestDependencies[F]] =

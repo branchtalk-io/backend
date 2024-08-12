@@ -4,6 +4,7 @@ import cats.ApplicativeError
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.{ api, users }
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.{ CodePosition, CommonError, ID }
 import io.branchtalk.users.reads.{ BanReads, SessionReads, UserReads }
@@ -74,7 +75,7 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
       val allOwnedPermissions = (allowedChannels ++ allowedOwnProfile).foldLeft(user.data.permissions)(_.append(_))
       sessionOpt
         .map(_.data.usage)
-        .collect { case users.model.SessionProperties.Usage.OAuth(permissions) => permissions }
+        .collect { case users.model.Session.Usage.OAuth(permissions) => permissions }
         .fold(allOwnedPermissions)(allOwnedPermissions.intersect)
     }
 

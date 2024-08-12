@@ -4,7 +4,8 @@ import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.{ Permission => _, _ }
-import io.branchtalk.auth.*
+import io.branchtalk.auth.{ *, given }
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.CommonError
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Ban, User }

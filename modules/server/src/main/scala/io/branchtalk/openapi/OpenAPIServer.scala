@@ -8,7 +8,6 @@ import io.branchtalk.api
 import io.branchtalk.api.JsoniterSupport.*
 import io.branchtalk.configs.APIInfo
 import org.http4s.HttpRoutes
-import monocle.macros.syntax.lens.*
 import sttp.apispec.{
   Discriminator,
   ExampleMultipleValue,
@@ -18,14 +17,15 @@ import sttp.apispec.{
   ExternalDocumentation,
   OAuthFlow,
   OAuthFlows,
-  Reference,
-  ReferenceOr,
+  Pattern,
   Schema,
+  SchemaLike,
   SchemaType,
   SecurityRequirement,
   SecurityScheme,
   Tag
 }
+import sttp.apispec.openapi.ReferenceOr
 import sttp.apispec.openapi.*
 import sttp.tapir.docs.openapi.*
 import sttp.tapir.server.ServerEndpoint
@@ -39,16 +39,18 @@ final class OpenAPIServer[F[_]: Sync](
   endpoints: NonEmptyList[ServerEndpoint[Any, F]]
 ) {
 
-  import OpenAPIServer.*
+  import OpenAPIServer.{ *, given }
 
   private val removedName = classOf[api.RequiredPermissions].getName
   private def fixPathItem(pathItem: PathItem) =
-    pathItem.focus(_.parameters).modify(_.filterNot(_.fold(_.$ref.contains(removedName), _.name.contains(removedName))))
+    pathItem.copy(parameters =
+      pathItem.parameters.filterNot(_.fold(_.$ref.contains(removedName), _.name.contains(removedName)))
+    )
 
   def openAPI: OpenAPI = OpenAPIDocsInterpreter(OpenAPIServer.openAPIDocsOptions)
     .toOpenAPI(endpoints.map(_.endpoint).toList, apiInfo.toOpenAPI)
-    .focus(_.paths.pathItems)
-    .modify(_.view.mapValues(fixPathItem).to(ListMap))
+    // TODO: quicklens
+    .pipe(oa => oa.copy(paths = oa.paths.copy(pathItems = oa.paths.pathItems.view.mapValues(fixPathItem).to(ListMap))))
 
   val openAPIJson: String = writeToString(openAPI)
 
@@ -57,7 +59,7 @@ final class OpenAPIServer[F[_]: Sync](
 @SuppressWarnings(Array("org.wartremover.warts.All")) // macros
 object OpenAPIServer {
 
-  implicit private val openAPIDocsOptions: OpenAPIDocsOptions = OpenAPIDocsOptions.default
+  private given openAPIDocsOptions: OpenAPIDocsOptions = OpenAPIDocsOptions.default
 
   // technically, we only need encoder part so we can mock all the rest and call it a day
   trait JsEncoderOnly[T] extends JsCodec[T] {
@@ -69,7 +71,7 @@ object OpenAPIServer {
     def apply[T](f: (T, JsonWriter) => Unit): JsEncoderOnly[T] = (value: T, out: JsonWriter) => f(value, out)
   }
 
-  implicit val encoderReference: JsCodec[Reference] = JsonCodecMaker.make
+  given encoderReference: JsCodec[Reference] = JsonCodecMaker.make
   // apparently Jsoniter cannot find this ...
   def encoderReferenceOr[T: JsCodec]: JsCodec[ReferenceOr[T]] =
     JsEncoderOnly[ReferenceOr[T]] { (x, out) =>
@@ -77,21 +79,21 @@ object OpenAPIServer {
     }
   // so I have to apply this manually
   @nowarn("msg=Implicit resolves to enclosing value") // here this is just because of recursion
-  implicit lazy val encoderReferenceOrSchema:           JsCodec[ReferenceOr[Schema]]      = encoderReferenceOr
-  implicit lazy val encoderReferenceOrParameterCodec:   JsCodec[ReferenceOr[Parameter]]   = encoderReferenceOr
-  implicit lazy val encoderReferenceOrRequestBodyCodec: JsCodec[ReferenceOr[RequestBody]] = encoderReferenceOr
-  implicit lazy val encoderReferenceOrResponseCodec:    JsCodec[ReferenceOr[Response]]    = encoderReferenceOr
-  implicit lazy val encoderReferenceOrExampleCodec:     JsCodec[ReferenceOr[Example]]     = encoderReferenceOr
-  implicit lazy val encoderReferenceOrHeaderCodec:      JsCodec[ReferenceOr[Header]]      = encoderReferenceOr
+  given encoderReferenceOrSchema:           JsCodec[ReferenceOr[Schema]]      = encoderReferenceOr
+  given encoderReferenceOrParameterCodec:   JsCodec[ReferenceOr[Parameter]]   = encoderReferenceOr
+  given encoderReferenceOrRequestBodyCodec: JsCodec[ReferenceOr[RequestBody]] = encoderReferenceOr
+  given encoderReferenceOrResponseCodec:    JsCodec[ReferenceOr[Response]]    = encoderReferenceOr
+  given encoderReferenceOrExampleCodec:     JsCodec[ReferenceOr[Example]]     = encoderReferenceOr
+  given encoderReferenceOrHeaderCodec:      JsCodec[ReferenceOr[Header]]      = encoderReferenceOr
 
   // TODO: support extension at all
-  implicit val extensionValue: JsCodec[ExtensionValue] = JsEncoderOnly[ExtensionValue] { (x, out) =>
+  given extensionValue: JsCodec[ExtensionValue] = JsEncoderOnly[ExtensionValue] { (x, out) =>
     JsonCodecMaker.make[String].encodeValue(x.toString, out)
   }
-  implicit val encoderOAuthFlow:      JsCodec[OAuthFlow]      = JsonCodecMaker.make
-  implicit val encoderOAuthFlows:     JsCodec[OAuthFlows]     = JsonCodecMaker.make
-  implicit val encoderSecurityScheme: JsCodec[SecurityScheme] = JsonCodecMaker.make
-  implicit val encoderExampleSingleValue: JsCodec[ExampleSingleValue] = JsEncoderOnly {
+  given encoderOAuthFlow:      JsCodec[OAuthFlow]      = JsonCodecMaker.make
+  given encoderOAuthFlows:     JsCodec[OAuthFlows]     = JsonCodecMaker.make
+  given encoderSecurityScheme: JsCodec[SecurityScheme] = JsonCodecMaker.make
+  given encoderExampleSingleValue: JsCodec[ExampleSingleValue] = JsEncoderOnly {
     // TODO: handle parse -> encode JSON
     case (ExampleSingleValue(value: String), out)     => JsonCodecMaker.make[String].encodeValue(value, out)
     case (ExampleSingleValue(value: Int), out)        => JsonCodecMaker.make[Int].encodeValue(value, out)
@@ -105,71 +107,72 @@ object OpenAPIServer {
     case (ExampleSingleValue(value), out)             => JsonCodecMaker.make[String].encodeValue(value.toString, out)
   }
   val encodeExampleMultipleValues: JsCodec[ExampleMultipleValue] =
-    summonCodec[List[ExampleSingleValue]](JsonCodecMaker.make).map[ExampleMultipleValue](_ => ???) {
+    JsonCodecMaker.make[List[ExampleSingleValue]].map[ExampleMultipleValue](_ => ???) {
       case ExampleMultipleValue(values) => values.map(ExampleSingleValue)
     }
-  implicit val encodeExampleValue: JsCodec[ExampleValue] = JsEncoderOnly[ExampleValue] {
+  given encodeExampleValue: JsCodec[ExampleValue] = JsEncoderOnly[ExampleValue] {
     case (e: ExampleSingleValue, out)   => encoderExampleSingleValue.encodeValue(e, out)
     case (e: ExampleMultipleValue, out) => encodeExampleMultipleValues.encodeValue(e, out)
   }
-  implicit val encoderSchemaType: JsCodec[SchemaType] = summonCodec[String](JsonCodecMaker.make).map(_ => ???)(_.value)
-  implicit val encoderSchema:     JsCodec[Schema]     = JsonCodecMaker.make
-  implicit val encoderHeader:     JsCodec[Header]     = JsonCodecMaker.make
-  implicit val encoderExample:    JsCodec[Example]    = JsonCodecMaker.make
-  implicit val encoderResponse:   JsCodec[Response]   = JsonCodecMaker.make
-  implicit val encoderLink:       JsCodec[Link]       = JsonCodecMaker.make
-  implicit lazy val encoderCallback: JsCodec[Callback] =
+  given encoderPattern: JsonKeyCodec[Pattern] = new JsonKeyCodec[Pattern] {
+    private val impl = JsonCodecMaker.make[String]
+    override def decodeKey(in: JsonReader):               Pattern = Pattern(impl.decodeValue(in, ""))
+    override def encodeKey(x:  Pattern, out: JsonWriter): Unit    = impl.encodeValue(x.value, out)
+  }
+  given encoderSchemaType: JsCodec[SchemaType] = JsonCodecMaker.make[String].map(_ => ???)(_.value)
+  given encoderSchemaLike: JsCodec[SchemaLike] = JsonCodecMaker.make
+  given encoderSchema:     JsCodec[Schema]     = JsonCodecMaker.makeWithoutDiscriminator
+  given encoderHeader:     JsCodec[Header]     = JsonCodecMaker.make
+  given encoderExample:    JsCodec[Example]    = JsonCodecMaker.make
+  given encoderResponse:   JsCodec[Response]   = JsonCodecMaker.make
+  given encoderLink:       JsCodec[Link]       = JsonCodecMaker.make
+  given encoderCallback: JsCodec[Callback] =
     encodeListMap(encoderReferenceOr[PathItem]).map[Callback](_ => ???)(_.pathItems)
-  implicit val encoderEncoding:    JsCodec[Encoding]    = JsonCodecMaker.make
-  implicit val encoderMediaType:   JsCodec[MediaType]   = JsonCodecMaker.make
-  implicit val encoderRequestBody: JsCodec[RequestBody] = JsonCodecMaker.make
-  implicit val encoderParameterStyle: JsCodec[ParameterStyle] =
-    summonCodec[String](JsonCodecMaker.make).map(_ => ???)(_.value)
-  implicit val encoderParameterIn: JsCodec[ParameterIn] = JsonCodecMaker.make
-  implicit val encoderParameter:   JsCodec[Parameter]   = JsonCodecMaker.make
-  implicit val encoderResponseMap: JsCodec[ListMap[ResponsesKey, ReferenceOr[Response]]] =
-    summonCodec[Map[String, ReferenceOr[Response]]](
-      JsonCodecMaker.make(CodecMakerConfig.withAllowRecursiveTypes(true))
-    ).map[ListMap[ResponsesKey, ReferenceOr[Response]]](_ => ???)(
-      _.map {
-        case (ResponsesDefaultKey, r)      => ("default", r)
-        case (ResponsesCodeKey(code), r)   => (code.toString, r)
-        case (ResponsesRangeKey(range), r) => (s"${range}XX", r)
-      }
-    )
+  given encoderEncoding:       JsCodec[Encoding]       = JsonCodecMaker.make
+  given encoderMediaType:      JsCodec[MediaType]      = JsonCodecMaker.make
+  given encoderRequestBody:    JsCodec[RequestBody]    = JsonCodecMaker.make
+  given encoderParameterStyle: JsCodec[ParameterStyle] = JsonCodecMaker.make[String].map(_ => ???)(_.value)
+  given encoderParameterIn:    JsCodec[ParameterIn]    = JsonCodecMaker.make
+  given encoderParameter:      JsCodec[Parameter]      = JsonCodecMaker.make
+  given encoderResponseMap: JsCodec[ListMap[ResponsesKey, ReferenceOr[Response]]] =
+    JsonCodecMaker
+      .make[Map[String, ReferenceOr[Response]]](CodecMakerConfig.withAllowRecursiveTypes(true))
+      .map[ListMap[ResponsesKey, ReferenceOr[Response]]](_ => ???)(
+        _.map {
+          case (ResponsesDefaultKey, r)      => ("default", r)
+          case (ResponsesCodeKey(code), r)   => (code.toString, r)
+          case (ResponsesRangeKey(range), r) => (s"${range}XX", r)
+        }
+      )
   // TODO: handle extensions one day
-  implicit val encoderResponses: JsCodec[Responses] = encoderResponseMap.map[Responses](_ => ???) {
+  given encoderResponses: JsCodec[Responses] = encoderResponseMap.map[Responses](_ => ???) {
     case Responses(responses, _) => responses
   }
   // this is needed to override the encoding of `security: List[SecurityRequirement]`. An empty security requirement
   // should be represented as an empty object (`{}`), not `null`, which is the default encoding of `ListMap`s.
-  implicit def encodeSecurityRequirement: JsCodec[List[SecurityRequirement]] =
+  given encodeSecurityRequirement: JsCodec[List[SecurityRequirement]] =
     JsonCodecMaker.make(CodecMakerConfig.withAllowRecursiveTypes(true).withTransientEmpty(true))
-  implicit val operationCodec:  JsCodec[Operation] = JsonCodecMaker.make(CodecMakerConfig.withAllowRecursiveTypes(true))
-  implicit val encoderPathItem: JsCodec[PathItem]  = JsonCodecMaker.make
-  implicit val encoderPaths: JsCodec[Paths] =
-    summonCodec[ListMap[String, PathItem]](JsonCodecMaker.make).map(_ => ???) { case Paths(pathItems, _) =>
-      pathItems
-    }
-  implicit val encoderComponents:            JsCodec[Components]            = JsonCodecMaker.make
-  implicit val encoderServerVariable:        JsCodec[ServerVariable]        = JsonCodecMaker.make
-  implicit val encoderServer:                JsCodec[Server]                = JsonCodecMaker.make
-  implicit val encoderExternalDocumentation: JsCodec[ExternalDocumentation] = JsonCodecMaker.make
-  implicit val encoderTag:                   JsCodec[Tag]                   = JsonCodecMaker.make
-  implicit val encoderInfo:                  JsCodec[Info]                  = JsonCodecMaker.make
-  implicit val encoderContact:               JsCodec[Contact]               = JsonCodecMaker.make
-  implicit val encoderLicense:               JsCodec[License]               = JsonCodecMaker.make
-  implicit val encoderOpenAPI: JsCodec[OpenAPI] =
+  given operationCodec:  JsCodec[Operation] = JsonCodecMaker.make(CodecMakerConfig.withAllowRecursiveTypes(true))
+  given encoderPathItem: JsCodec[PathItem]  = JsonCodecMaker.make
+  given encoderPaths: JsCodec[Paths] =
+    JsonCodecMaker.make[ListMap[String, PathItem]].map(_ => ???) { case Paths(pathItems, _) => pathItems }
+  given encoderComponents:            JsCodec[Components]            = JsonCodecMaker.make
+  given encoderServerVariable:        JsCodec[ServerVariable]        = JsonCodecMaker.make
+  given encoderServer:                JsCodec[Server]                = JsonCodecMaker.make
+  given encoderExternalDocumentation: JsCodec[ExternalDocumentation] = JsonCodecMaker.make
+  given encoderTag:                   JsCodec[Tag]                   = JsonCodecMaker.make
+  given encoderInfo:                  JsCodec[Info]                  = JsonCodecMaker.make
+  given encoderContact:               JsCodec[Contact]               = JsonCodecMaker.make
+  given encoderLicense:               JsCodec[License]               = JsonCodecMaker.make
+  given encoderOpenAPI: JsCodec[OpenAPI] =
     JsonCodecMaker.make(CodecMakerConfig.withTransientDefault(false).withTransientNone(true))
-  implicit val encoderDiscriminator: JsCodec[Discriminator] = JsonCodecMaker.make
+  given encoderDiscriminator: JsCodec[Discriminator] = JsonCodecMaker.make
 
-  implicit def encodeList[T: JsCodec]: JsCodec[List[T]] = JsEncoderOnly[List[T]] {
-    case (Nil, out) =>
-      summonCodec[Option[T]](JsonCodecMaker.make(CodecMakerConfig.withTransientNone(false))).encodeValue(None, out)
-    case (list, out) =>
-      summonCodec[Vector[T]](JsonCodecMaker.make).encodeValue(list.toVector, out)
+  given encodeList[T: JsCodec]: JsCodec[List[T]] = JsEncoderOnly[List[T]] {
+    case (Nil, out)  => JsonCodecMaker.make[Option[T]](CodecMakerConfig.withTransientNone(false)).encodeValue(None, out)
+    case (list, out) => JsonCodecMaker.make[Vector[T]].encodeValue(list.toVector, out)
   }
 
-  implicit def encodeListMap[V: JsCodec]: JsCodec[ListMap[String, V]] =
+  given encodeListMap[V: JsCodec]: JsCodec[ListMap[String, V]] =
     JsonCodecMaker.make(CodecMakerConfig.withTransientEmpty(false))
 }

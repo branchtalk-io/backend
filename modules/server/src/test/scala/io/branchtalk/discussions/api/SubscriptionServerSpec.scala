@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.IO
-import io.branchtalk.api.{ Authentication, Pagination, Pagination.Limit, Pagination.Offset, ServerIOTest }
+import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.api.SubscriptionModels.{
@@ -22,7 +22,7 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
 
   private val defaultChannelID = ID[Channel](java.util.UUID.randomUUID())
   implicit protected lazy val uuidGenerator: TestUUIDGenerator =
-    (new TestUUIDGenerator).tap(_.stubNext(defaultChannelID.uuid)) // stub generation in ServerIOTest resources
+    (new TestUUIDGenerator).tap(_.stubNext(defaultChannelID.unwrap)) // stub generation in ServerIOTest resources
 
   "SubscriptionServer-provided endpoints" should {
 
@@ -32,12 +32,12 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
         for {
           // given
           CreationScheduled(channelID) <- channelCreate
-            .flatTap(_ => IO(uuidGenerator.stubNext(defaultChannelID.uuid))) // create Channel with default ID
+            .flatTap(_ => IO(uuidGenerator.stubNext(defaultChannelID.unwrap))) // create Channel with default ID
             .flatMap(discussionsWrites.channelWrites.createChannel) // NOTE: ID generation must come before CID
             .assert("Created Channel should have predefined ID")(_.id === defaultChannelID)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postIDs <- (0 until 10).toList.traverse(_ =>
-            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
           )
           posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when

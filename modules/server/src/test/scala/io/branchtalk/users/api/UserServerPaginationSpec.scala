@@ -79,10 +79,11 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
       "return newest Users" in {
         for {
           // given
-          _ <- usersReads.userReads.paginate(User.Sorting.NameAlphabetically, Paginated.Offset(0L), Paginated.Limit(1000)).flatMap {
-            case Paginated(entities, _) =>
+          _ <- usersReads.userReads
+            .paginate(User.Sorting.NameAlphabetically, Paginated.Offset(0L), Paginated.Limit(1000))
+            .flatMap { case Paginated(entities, _) =>
               entities.traverse_(user => usersWrites.userWrites.deleteUser(User.Delete(user.id, None)))
-          }
+            }
           (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
             usersWrites.userWrites.createUser
           )

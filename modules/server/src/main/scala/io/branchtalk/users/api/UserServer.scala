@@ -4,9 +4,10 @@ import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.*
-import io.branchtalk.auth.*
+import io.branchtalk.auth.{ *, given }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.mappings.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CommonError, ID }
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Password, Session, User }
@@ -41,7 +42,7 @@ final class UserServer[F[_]: Async](
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
     for {
-      paginated <- userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- userReads.paginate(sortBy, offset, limit)
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
@@ -50,7 +51,7 @@ final class UserServer[F[_]: Async](
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
     for {
-      paginated <- userReads.paginate(sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- userReads.paginate(sortBy, offset, limit)
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
@@ -59,7 +60,7 @@ final class UserServer[F[_]: Async](
     val offset = paginationConfig.resolveOffset(optOffset)
     val limit  = paginationConfig.resolveLimit(optLimit)
     for {
-      paginated <- sessionReads.paginate(user.id, sortBy, offset.nonNegativeLong, limit.positiveInt)
+      paginated <- sessionReads.paginate(user.id, sortBy, offset, limit)
     } yield Pagination.fromPaginated(paginated.map(APISession.fromDomain), offset, limit)
   }
 
@@ -69,7 +70,7 @@ final class UserServer[F[_]: Async](
         (user, session) <- userWrites.createUser(
           signup.into[User.Create].withFieldConst(_.password, Password.create(signup.password)).transform
         )
-      } yield SignUpResponse(user.id, session.id)
+      } yield SignUpResponse(user.unwrap, session.unwrap)
     }
   }
 

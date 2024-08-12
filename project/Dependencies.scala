@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   // scala version
-  val scalaVersion      = "3.4.2"
+  val scalaVersion = "3.4.2"
 
   // libraries versions
   val avro4sVersion     = "5.0.13" // https://github.com/sksamuel/avro4s/releases
@@ -17,7 +17,6 @@ object Dependencies {
   val log4catsVersion   = "2.7.0" // https://github.com/ChristopherDavenport/log4cats/releases
   val http4sVersion     = "0.24.7" // https://github.com/http4s/http4s/releases
   val jsoniterVersion   = "2.30.7" // https://github.com/plokhotnyuk/jsoniter-scala/releases
-  val monocleVersion    = "3.2.0" // https://github.com/optics-dev/Monocle/releases
   val neotypeVersion    = "0.3.0" // https://github.com/kitlangton/neotype/releases
   val pureConfigVersion = "0.17.7" // https://github.com/pureconfig/pureconfig/releases
   val specs2Version     = "5.5.3" // https://github.com/etorreborre/specs2/releases
@@ -41,13 +40,13 @@ object Dependencies {
   val fs2IO = "co.fs2" %% "fs2-io" % fs2Version
   val magnolia =
     "com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.7" // https://github.com/softwaremill/magnolia/releases
-  val monocle         = "dev.optics" %% "monocle-core" % monocleVersion
-  val monocleMacro    = "dev.optics" %% "monocle-macro" % monocleVersion
   val neotype         = "io.github.kitlangton" %% "neotype" % neotypeVersion
   val neotypeChimney  = "io.github.kitlangton" %% "neotype-chimney" % neotypeVersion
   val neotypeDoobie   = "io.github.kitlangton" %% "neotype-doobie" % neotypeVersion
   val neotypeJsoniter = "io.github.kitlangton" %% "neotype-jsoniter" % neotypeVersion
   val neotypeTapir    = "io.github.kitlangton" %% "neotype-tapir" % neotypeVersion
+  val quicklens =
+    "com.softwaremill.quicklens" %% "quicklens" % "1.9.7" // https://github.com/softwaremill/quicklens/releases
   // infrastructure
   val avro4s         = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
   val avro4sCats     = "com.sksamuel.avro4s" %% "avro4s-cats" % avro4sVersion
@@ -56,9 +55,7 @@ object Dependencies {
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
   val flyway         = "org.flywaydb" % "flyway-core" % "10.16.0" // https://github.com/flyway/flyway/releases
-  val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "3.5.1" // https://github.com/fd4s/fs2-kafka/releases
-  val macwire =
-    "com.softwaremill.macwire" %% "macros" % "2.5.9" % "provided" // https://github.com/softwaremill/macwire/releases
+  val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "3.5.1" // https://github.com/fd4s/fs2-kafka/releasesreleases
   val redis4cats =
     "dev.profunktor" %% "redis4cats-effects" % "1.7.1" // https://github.com/profunktor/redis4cats/releases
   // API
