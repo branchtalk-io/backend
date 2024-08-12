@@ -9,9 +9,9 @@ import io.branchtalk.api.AppServer
 import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
 import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
-import io.branchtalk.logging.MDC
-import io.branchtalk.shared.infrastructure.{ ConsumerStream, DomainConfig, StreamRunner }
-import io.branchtalk.shared.model.{ Logger, UUID.Generator }
+import io.branchtalk.logging.{ Logger, MDC }
+import io.branchtalk.shared.infrastructure.*
+import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
 import io.prometheus.client.CollectorRegistry
 import org.http4s.metrics.prometheus.Prometheus
@@ -19,17 +19,18 @@ import sun.misc.Signal
 
 object Program {
 
-  implicit protected val uuidGenerator: UUID.Generator = UUID.Generator.FastUUID.Generator
+  protected given UUID.Generator = UUID.FastGenerator
 
   def runApplication[F[_]: Async: MDC](args: List[String]): F[ExitCode] =
     (for {
-      implicit0(logger: Logger[F]) <- Logger.create[F]
+      given Logger[F] <- Logger.create[F]
       env <- Configuration.getEnv[F]
       appArguments <- AppArguments.parse[F](args, env)
-      _ <- logger.info(show"Arguments passed: $appArguments")
+      _ <- summon[Logger[F]].info(show"Arguments passed: $appArguments")
       _ <-
         if (appArguments.isAnythingRun) initializeAndRunModules[F](appArguments)
-        else logger.warn("Nothing to run, see --help for information how to turn on API server and projections")
+        else
+          summon[Logger[F]].warn("Nothing to run, see --help for information how to turn on API server and projections")
     } yield ExitCode.Success).handleError {
       case noConfig @ AppArguments.NoConfig(help) =>
         if (help.errors.nonEmpty) noConfig.printError()
@@ -39,20 +40,21 @@ object Program {
         ExitCode.Error
     }
 
-  def resolveConfigs[F[_]: Sync](implicit logger: Logger[F]): F[(APIConfig, DomainConfig, DomainConfig)] = for {
-    apiConfig <- Configuration.readConfig[F, APIConfig]("api")
-    _ <- logger.info(show"App configs resolved to: ${apiConfig}")
-    usersConfig <- Configuration.readConfig[F, DomainConfig]("users")
-    _ <- logger.info(show"Users configs resolved to: ${usersConfig}")
-    discussionsConfig <- Configuration.readConfig[F, DomainConfig]("discussions")
-    _ <- logger.info(show"Discussions configs resolved to: ${discussionsConfig}")
-  } yield (apiConfig, usersConfig, discussionsConfig)
+  def resolveConfigs[F[_]: Sync](implicit logger: Logger[F]): F[(APIConfig, DomainModule.Config, DomainModule.Config)] =
+    for {
+      apiConfig <- Configuration.readConfig[F, APIConfig]("api")
+      _ <- logger.info(show"App configs resolved to: ${apiConfig}")
+      usersConfig <- Configuration.readConfig[F, DomainModule.Config]("users")
+      _ <- logger.info(show"Users configs resolved to: ${usersConfig}")
+      discussionsConfig <- Configuration.readConfig[F, DomainModule.Config]("discussions")
+      _ <- logger.info(show"Discussions configs resolved to: ${discussionsConfig}")
+    } yield (apiConfig, usersConfig, discussionsConfig)
 
   def initializeAndRunModules[F[_]: Async: MDC](
-    appArguments:    AppArguments
+    appArguments: AppArguments
   )(implicit logger: Logger[F]): F[Unit] = {
     for {
-      implicit0(dispacher: Dispatcher[F]) <- Dispatcher[F]
+      given Dispatcher[F] <- Dispatcher.parallel[F]
       (apiConfig, usersConfig, discussionsConfig) <- Resource.eval(resolveConfigs[F])
       registry <- Prometheus.collectorRegistry[F]
       modules <- Resource.make(logger.info("Initializing services"))(_ => logger.info("Services shut down")) >>
@@ -84,7 +86,7 @@ object Program {
     usersWrites:       UsersWrites[F],
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
-  )(implicit logger:   Logger[F]): F[Unit] = {
+  )(implicit logger: Logger[F]): F[Unit] = {
     (
       AppServer
         .asResource(

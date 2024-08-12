@@ -7,16 +7,16 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
 /** Hack allowing us to:
-  *  - read whole content from `IO.Local` on every call that process user provided function through IOLocalHack
-  *  - put that content into `IOGlobal.threadLocal` so that unsafe functions integrating with no-FP code could
-  *    read it through `IOGlobal.getCurrent(ioLocal)`
+  *   - read whole content from `IO.Local` on every call that process user provided function through IOLocalHack
+  *   - put that content into `IOGlobal.threadLocal` so that unsafe functions integrating with no-FP code could read it
+  *     through `IOGlobal.getCurrent(ioLocal)`
   *
-  *  Requires passing `IOGlobal.configuredStatePropagation` instead of `IO.asyncForIO` into tagless final code.
+  * Requires passing `IOGlobal.configuredStatePropagation` instead of `IO.asyncForIO` into tagless final code.
   */
 object IOGlobal {
 
-  private val threadLocal: ThreadLocal[scala.collection.immutable.Map[IOLocal[_], Any]] =
-    ThreadLocal.withInitial(() => scala.collection.immutable.Map.empty[IOLocal[_], Any])
+  private val threadLocal: ThreadLocal[scala.collection.immutable.Map[IOLocal[?], Any]] =
+    ThreadLocal.withInitial(() => scala.collection.immutable.Map.empty[IOLocal[?], Any])
 
   private def propagateState[A](thunk: => IO[A]): IO[A] =
     IOLocalHack.get.flatMap { state => threadLocal.set(state); thunk }
