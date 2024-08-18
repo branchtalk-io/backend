@@ -14,7 +14,7 @@ final class ChannelServerPaginationSpec extends Specification, ServerIOTest, Use
   // Channel pagination tests cannot be run in parallel to other Channel tests (no parent to filter other tests)
   sequential
 
-  implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelServer-provided pagination endpoints" should {
 

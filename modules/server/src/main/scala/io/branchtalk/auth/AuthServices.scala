@@ -21,7 +21,7 @@ trait AuthServices[F[_]] {
 }
 object AuthServices {
 
-  @inline def apply[F[_]](implicit authServices: AuthServices[F]): AuthServices[F] = authServices
+  inline def apply[F[_]](using authServices: AuthServices[F]): AuthServices[F] = authServices
 }
 
 final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: SessionReads[F], banReads: BanReads[F])

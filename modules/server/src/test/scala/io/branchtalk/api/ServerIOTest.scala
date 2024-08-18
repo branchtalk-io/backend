@@ -54,9 +54,9 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
 
   override protected def testResource: Resource[IO, Unit] = super.testResource >> serverResource
 
-  implicit class ServerTestOps[I, E, O](private val endpoint: Endpoint[Unit, I, E, O, Any]) {
+  extension [I, E, O](endpoint: Endpoint[Unit, I, E, O, Any]) {
 
-    val toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = (input: I) =>
+    def toTestCall: I => IO[Response[DecodeResult[Either[E, O]]]] = (input: I) =>
       SttpClientInterpreter(SttpClientOptions.default)
         .toRequest(
           endpoint,
@@ -67,9 +67,9 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
         .send(client)
   }
 
-  implicit class AuthServerTestOps[A, I, E, O](private val authEndpoint: AuthedEndpoint[A, I, E, O, Any]) {
+  extension [A, I, E, O](authEndpoint: AuthedEndpoint[A, I, E, O, Any]) {
 
-    val toTestCall: (A, I) => IO[Response[DecodeResult[Either[E, O]]]] = (auth: A, input: I) =>
+    def toTestCall: (A, I) => IO[Response[DecodeResult[Either[E, O]]]] = (auth: A, input: I) =>
       SttpClientInterpreter(SttpClientOptions.default)
         .toSecureRequest(
           authEndpoint.endpoint,
@@ -81,9 +81,9 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
         .send(client)
   }
 
-  implicit class AuthOnlyServerTestOps[A, E, O](private val authEndpoint: AuthedEndpoint[A, Unit, E, O, Any]) {
+  extension [A, E, O](authEndpoint: AuthedEndpoint[A, Unit, E, O, Any]) {
 
-    val toTestCall: A => IO[Response[DecodeResult[Either[E, O]]]] = (auth: A) =>
+    def toTestCall: A => IO[Response[DecodeResult[Either[E, O]]]] = (auth: A) =>
       SttpClientInterpreter(SttpClientOptions.default)
         .toSecureRequest(
           authEndpoint.endpoint,
@@ -98,8 +98,8 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
   import ServerIOTest.*
   export ServerIOTest.toValidOpt
 
-  def beValid[T](t:          ValueCheck[T]): ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
-  def beValid[T](implicit p: DummyImplicit): ValidResultMatcher[T]        = ValidResultMatcher[T]()
+  def beValid[T](t: ValueCheck[T]):    ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
+  def beValid[T](using DummyImplicit): ValidResultMatcher[T]        = ValidResultMatcher[T]()
 }
 
 object ServerIOTest {

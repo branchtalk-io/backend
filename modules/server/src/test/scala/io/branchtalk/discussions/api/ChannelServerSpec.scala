@@ -17,7 +17,7 @@ import sttp.model.StatusCode
 
 final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
-  implicit protected lazy val uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
+  protected given uuidGenerator: TestUUIDGenerator = new TestUUIDGenerator
 
   "ChannelServer-provided endpoints" should {
 

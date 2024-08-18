@@ -33,9 +33,9 @@ final class UserServer[F[_]: Async](
 
   private val sessionExpiresInDays = 7L // make it configurable
 
-  private val serverOptions: Http4sServerOptions[F] = UserServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = UserServer.serverOptions[F](logger)
 
-  implicit private val errorHandler: ServerErrorHandler[F, UserError] = UserServer.errorHandler[F].apply(logger)
+  private given errorHandler: ServerErrorHandler[F, UserError] = UserServer.errorHandler[F](logger)
 
   private val paginate = UserAPIs.paginate.serverLogic[F, User] { case (optOffset, optLimit) =>
     val sortBy = User.Sorting.NameAlphabetically
@@ -154,7 +154,7 @@ final class UserServer[F[_]: Async](
 }
 object UserServer {
 
-  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
+  def serverOptions[F[_]](using Sync[F]): Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
     _,
     ServerOptions.ErrorHandler[UserError](
       () => UserError.ValidationFailed(NonEmptyList.one("Data missing")),
@@ -170,7 +170,7 @@ object UserServer {
     )
   )
 
-  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, UserError] =
+  def errorHandler[F[_]](using Sync[F]): Logger => ServerErrorHandler[F, UserError] =
     ServerErrorHandler.handleCommonErrors[F, UserError] {
       case CommonError.InvalidCredentials(_) =>
         UserError.BadCredentials("Invalid credentials")

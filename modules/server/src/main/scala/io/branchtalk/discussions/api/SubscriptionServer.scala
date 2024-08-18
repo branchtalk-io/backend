@@ -34,12 +34,11 @@ final class SubscriptionServer[F[_]: Async](
 
   private val logger = Logger(getClass)
 
-  private val serverOptions: Http4sServerOptions[F] = SubscriptionServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = SubscriptionServer.serverOptions[F](logger)
 
-  implicit private val postErrorHandler: ServerErrorHandler[F, PostError] = PostServer.errorHandler[F].apply(logger)
+  private given postErrorHandler: ServerErrorHandler[F, PostError] = PostServer.errorHandler[F](logger)
 
-  implicit private val errorHandler: ServerErrorHandler[F, SubscriptionError] =
-    SubscriptionServer.errorHandler[F].apply(logger)
+  private given errorHandler: ServerErrorHandler[F, SubscriptionError] = SubscriptionServer.errorHandler[F](logger)
 
   private val newest =
     SubscriptionAPIs.newest.serverLogic[F, Option[User]].withUser { case (optUser, (optOffset, optLimit)) =>
@@ -89,7 +88,7 @@ final class SubscriptionServer[F[_]: Async](
 }
 object SubscriptionServer {
 
-  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] =
+  def serverOptions[F[_]](using Sync[F]): Logger => Http4sServerOptions[F] =
     ServerOptions.create[F, SubscriptionError](
       _,
       ServerOptions.ErrorHandler[SubscriptionError](
@@ -107,7 +106,7 @@ object SubscriptionServer {
       )
     )
 
-  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, SubscriptionError] =
+  def errorHandler[F[_]](using Sync[F]): Logger => ServerErrorHandler[F, SubscriptionError] =
     ServerErrorHandler.handleCommonErrors[F, SubscriptionError] {
       case CommonError.InvalidCredentials(_) =>
         SubscriptionError.BadCredentials("Invalid credentials")

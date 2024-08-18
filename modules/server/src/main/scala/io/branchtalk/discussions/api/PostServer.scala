@@ -32,9 +32,9 @@ final class PostServer[F[_]: Async](
 
   private val logger = Logger(getClass)
 
-  private val serverOptions: Http4sServerOptions[F] = PostServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = PostServer.serverOptions[F](logger)
 
-  implicit private val errorHandler: ServerErrorHandler[F, PostError] = PostServer.errorHandler[F].apply(logger)
+  private given errorHandler: ServerErrorHandler[F, PostError] = PostServer.errorHandler[F](logger)
 
   private def testOwnership(channelID: ID[Channel], postID: ID[Post], isDeleted: Boolean = false) = postReads
     .requireById(postID, isDeleted)
@@ -200,7 +200,7 @@ final class PostServer[F[_]: Async](
 }
 object PostServer {
 
-  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, PostError](
+  def serverOptions[F[_]](using Sync[F]): Logger => Http4sServerOptions[F] = ServerOptions.create[F, PostError](
     _,
     ServerOptions.ErrorHandler[PostError](
       () => PostError.ValidationFailed(NonEmptyList.one("Data missing")),
@@ -216,7 +216,7 @@ object PostServer {
     )
   )
 
-  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, PostError] =
+  def errorHandler[F[_]](using Sync[F]): Logger => ServerErrorHandler[F, PostError] =
     ServerErrorHandler.handleCommonErrors[F, PostError] {
       case CommonError.InvalidCredentials(_) =>
         PostError.BadCredentials("Invalid credentials")

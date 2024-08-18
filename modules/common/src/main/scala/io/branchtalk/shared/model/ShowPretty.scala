@@ -44,6 +44,6 @@ object ShowPretty extends Derivation[ShowPretty], ShowPrettyLowLevel {
 @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
 trait ShowPrettyLowLevel { self: ShowPretty.type =>
 
-  implicit def liftShow[T](implicit normalShow: Show[T]): ShowPretty[T] =
+  given liftShow[T](using normalShow: Show[T]): ShowPretty[T] =
     (t: T, sb: StringBuilder, _: String, _: Int) => sb.append(normalShow.show(t))
 }

@@ -11,7 +11,7 @@ trait Authorize[F[_], Auth, Out] {
 }
 object Authorize {
 
-  implicit def functor[F[_]: Functor, Auth]: Functor[Authorize[F, Auth, *]] = new Functor[Authorize[F, Auth, *]] {
+  given functor[F[_]: Functor, Auth]: Functor[Authorize[F, Auth, *]] = new Functor[Authorize[F, Auth, *]] {
     override def map[A, B](fa: Authorize[F, Auth, A])(f: A => B): Authorize[F, Auth, B] =
       (auth: Auth, requiredPermissions: RequiredPermissions) => fa.authorize(auth, requiredPermissions).map(f)
   }
@@ -23,7 +23,7 @@ trait AuthorizeWithOwnership[F[_], Auth, Owner, Out] {
 }
 object AuthorizeWithOwnership {
 
-  implicit def functor[F[_]: Functor, Auth, Owner]: Functor[AuthorizeWithOwnership[F, Auth, Owner, *]] =
+  given functor[F[_]: Functor, Auth, Owner]: Functor[AuthorizeWithOwnership[F, Auth, Owner, *]] =
     new Functor[AuthorizeWithOwnership[F, Auth, Owner, *]] {
       override def map[A, B](
         fa: AuthorizeWithOwnership[F, Auth, Owner, A]
@@ -55,36 +55,28 @@ object AuthedEndpoint {
   ) {
     def apply(
       logic: I => F[O]
-    )(implicit
-      F:            Monad[F],
-      errorHandler: ServerErrorHandler[F, E],
-      authorize:    Authorize[F, A, U]
-    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+    )(using Monad[F], ServerErrorHandler[F, E], Authorize[F, A, U]): ServerEndpoint.Full[A, A, I, E, O, R, F] =
       buildServerEndpoint((i, _, _) => i, logic)
 
     def withUser(
       logic: (U, I) => F[O]
-    )(implicit
-      F:            Monad[F],
-      errorHandler: ServerErrorHandler[F, E],
-      authorize:    Authorize[F, A, U]
-    ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
+    )(using Monad[F], ServerErrorHandler[F, E], Authorize[F, A, U]): ServerEndpoint.Full[A, A, I, E, O, R, F] =
       buildServerEndpoint((i, _, u) => (u, i), logic.tupled)
 
     def justUser(
       logic: U => F[O]
-    )(implicit
-      F:            Monad[F],
-      errorHandler: ServerErrorHandler[F, E],
-      authorize:    Authorize[F, A, U],
-      ev:           I =:= Unit
+    )(using
+      Monad[F],
+      ServerErrorHandler[F, E],
+      Authorize[F, A, U],
+      I =:= Unit
     ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
       buildServerEndpoint((_, _, u) => u, logic)
 
     private def buildServerEndpoint[In](
       input: (I, A, U) => In,
       logic: In => F[O]
-    )(implicit
+    )(using
       F:            Monad[F],
       errorHandler: ServerErrorHandler[F, E],
       authorize:    Authorize[F, A, U]
@@ -105,32 +97,32 @@ object AuthedEndpoint {
   ) {
     def apply(
       logic: I => F[O]
-    )(implicit
-      F:            MonadError[F, Throwable],
-      errorHandler: ServerErrorHandler[F, E],
-      authorize:    AuthorizeWithOwnership[F, A, Owner, U],
-      codePosition: CodePosition
+    )(using
+      MonadError[F, Throwable],
+      ServerErrorHandler[F, E],
+      AuthorizeWithOwnership[F, A, Owner, U],
+      CodePosition
     ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
       buildServerEndpoint((i, _, _) => i, logic)
 
     def withUser(
       logic: (U, I) => F[O]
-    )(implicit
-      F:            MonadError[F, Throwable],
-      errorHandler: ServerErrorHandler[F, E],
-      authorize:    AuthorizeWithOwnership[F, A, Owner, U],
-      codePosition: CodePosition
+    )(using
+      MonadError[F, Throwable],
+      ServerErrorHandler[F, E],
+      AuthorizeWithOwnership[F, A, Owner, U],
+      CodePosition
     ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
       buildServerEndpoint((i, _, u) => (u, i), logic.tupled)
 
     def justUser(
       logic: U => F[O]
-    )(implicit
-      F:            MonadError[F, Throwable],
-      errorHandler: ServerErrorHandler[F, E],
-      authorize:    AuthorizeWithOwnership[F, A, Owner, U],
-      codePosition: CodePosition,
-      ev:           I =:= Unit
+    )(using
+      MonadError[F, Throwable],
+      ServerErrorHandler[F, E],
+      AuthorizeWithOwnership[F, A, Owner, U],
+      CodePosition,
+      I =:= Unit
     ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
       buildServerEndpoint((_, _, u) => u, logic)
 

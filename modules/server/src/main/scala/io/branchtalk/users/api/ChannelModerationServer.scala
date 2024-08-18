@@ -27,10 +27,9 @@ final class ChannelModerationServer[F[_]: Async](
 
   private val logger = Logger(getClass)
 
-  private val serverOptions: Http4sServerOptions[F] = ChannelModerationServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = ChannelModerationServer.serverOptions[F](logger)
 
-  implicit private val errorHandler: ServerErrorHandler[F, UserError] =
-    ChannelModerationServer.errorHandler[F].apply(logger)
+  private given errorHandler: ServerErrorHandler[F, UserError] = ChannelModerationServer.errorHandler[F](logger)
 
   private val paginate =
     ChannelModerationAPIs.paginate.serverLogic[F, User] { case (channelID, optOffset, optLimit) =>
@@ -84,7 +83,7 @@ final class ChannelModerationServer[F[_]: Async](
 
 object ChannelModerationServer {
 
-  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
+  def serverOptions[F[_]](using Sync[F]): Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
     _,
     ServerOptions.ErrorHandler[UserError](
       () => UserError.ValidationFailed(NonEmptyList.one("Data missing")),
@@ -100,7 +99,7 @@ object ChannelModerationServer {
     )
   )
 
-  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, UserError] =
+  def errorHandler[F[_]](using Sync[F]): Logger => ServerErrorHandler[F, UserError] =
     ServerErrorHandler.handleCommonErrors[F, UserError] {
       case CommonError.InvalidCredentials(_) =>
         UserError.BadCredentials("Invalid credentials")
