@@ -26,8 +26,8 @@ object Updatable {
       case _                => Keep
     }
   }
-  private val traverse:     Traverse[Updatable]            = cats.derived.semiauto.traverse[Updatable]
-  implicit val appTraverse: ApplicativeTraverse[Updatable] = ApplicativeTraverse.derived(applicative, traverse)
+  private val traverse: Traverse[Updatable] = cats.derived.semiauto.traverse[Updatable]
+  given ApplicativeTraverse[Updatable] = ApplicativeTraverse.derived(applicative, traverse)
 }
 
 // Express the intent that something should be updated, erased or kept better than Option[Either[Unit, *]].

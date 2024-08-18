@@ -24,7 +24,7 @@ object ServerOptions {
 
   def buildErrorHandler[F[_], E: JsCodec: Schema](errorHandler: ErrorHandler[E]): DecodeFailureHandler[F] =
     new DecodeFailureHandler[F] {
-      def apply(ctx: DecodeFailureContext)(implicit monad: MonadError[F]): F[Option[ValuedEndpointOutput[?]]] =
+      def apply(ctx: DecodeFailureContext)(using monad: MonadError[F]): F[Option[ValuedEndpointOutput[?]]] =
         monad.unit(
           ctx match {
             case handled if DefaultDecodeFailureHandler.respond(handled).isEmpty =>

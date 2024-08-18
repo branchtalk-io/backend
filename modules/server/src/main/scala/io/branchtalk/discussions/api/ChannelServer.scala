@@ -30,9 +30,9 @@ final class ChannelServer[F[_]: Async](
 
   private val logger = Logger(getClass)
 
-  implicit val serverOptions: Http4sServerOptions[F] = ChannelServer.serverOptions[F].apply(logger)
+  private given serverOptions: Http4sServerOptions[F] = ChannelServer.serverOptions[F](logger)
 
-  implicit private val errorHandler: ServerErrorHandler[F, ChannelError] = ChannelServer.errorHandler[F].apply(logger)
+  private given errorHandler: ServerErrorHandler[F, ChannelError] = ChannelServer.errorHandler[F](logger)
 
   private val paginate = ChannelAPIs.paginate.serverLogic[F, Option[User]] { case (optOffset, optLimit) =>
     val sortBy = Channel.Sorting.Newest
@@ -99,7 +99,7 @@ final class ChannelServer[F[_]: Async](
 }
 object ChannelServer {
 
-  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, ChannelError](
+  def serverOptions[F[_]](using Sync[F]): Logger => Http4sServerOptions[F] = ServerOptions.create[F, ChannelError](
     _,
     ServerOptions.ErrorHandler[ChannelError](
       () => ChannelError.ValidationFailed(NonEmptyList.one("Data missing")),
@@ -115,7 +115,7 @@ object ChannelServer {
     )
   )
 
-  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, ChannelError] =
+  def errorHandler[F[_]](using Sync[F]): Logger => ServerErrorHandler[F, ChannelError] =
     ServerErrorHandler.handleCommonErrors[F, ChannelError] {
       case CommonError.InvalidCredentials(_) =>
         ChannelError.BadCredentials("Invalid credentials")

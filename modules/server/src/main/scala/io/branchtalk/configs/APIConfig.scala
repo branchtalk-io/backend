@@ -102,7 +102,7 @@ object APIPart extends Enum[APIPart] {
   val values: IndexedSeq[APIPart] = findValues
 
   // NOTE: there is no derivation for Map[A, B] ConfigReader, only Map[String, A]
-  implicit def asMapKey[A](implicit mapReader: ConfigReader[Map[String, A]]): ConfigReader[Map[APIPart, A]] =
+  given asMapKey[A](using mapReader: ConfigReader[Map[String, A]]): ConfigReader[Map[APIPart, A]] =
     mapReader.emap { map =>
       map.toList
         .traverse { case (key, value) =>
@@ -113,7 +113,7 @@ object APIPart extends Enum[APIPart] {
         }
         .map(_.toMap)
     }
-  implicit val show: Show[APIPart] = _.entryName
+  given Show[APIPart] = _.entryName
 }
 
 final case class APIConfig(

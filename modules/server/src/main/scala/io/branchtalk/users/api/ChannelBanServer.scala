@@ -25,10 +25,10 @@ final class ChannelBanServer[F[_]: Async](
 
   private val logger = Logger(getClass)
 
-  private val serverOptions: Http4sServerOptions[F] = ChannelBanServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = ChannelBanServer.serverOptions[F](logger)
 
-  implicit private val errorHandler: ServerErrorHandler[F, UserError] =
-    ChannelBanServer.errorHandler[F].apply(logger)
+  private given errorHandler: ServerErrorHandler[F, UserError] =
+    ChannelBanServer.errorHandler[F](logger)
 
   private val list = ChannelBanAPIs.list.serverLogic[F, User] { channelID =>
     for {
@@ -63,7 +63,7 @@ final class ChannelBanServer[F[_]: Async](
 }
 object ChannelBanServer {
 
-  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
+  def serverOptions[F[_]](using Sync[F]): Logger => Http4sServerOptions[F] = ServerOptions.create[F, UserError](
     _,
     ServerOptions.ErrorHandler[UserError](
       () => UserError.ValidationFailed(NonEmptyList.one("Data missing")),
@@ -79,7 +79,7 @@ object ChannelBanServer {
     )
   )
 
-  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, UserError] =
+  def errorHandler[F[_]](using Sync[F]): Logger => ServerErrorHandler[F, UserError] =
     ServerErrorHandler.handleCommonErrors[F, UserError] {
       case CommonError.InvalidCredentials(_) =>
         UserError.BadCredentials("Invalid credentials")

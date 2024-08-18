@@ -22,7 +22,7 @@ final class UserWritesImpl[F[_]: Sync: MDC](
 
   private val userCheck = new EntityCheck("User", transactor)
 
-  private def reserveEmail(email: User.Email, id: Option[ID[User]] = None)(implicit pos: CodePosition): F[Unit] = {
+  private def reserveEmail(email: User.Email, id: Option[ID[User]] = None)(using CodePosition): F[Unit] = {
     for {
       isReserved <- sql"""SELECT 1 FROM users WHERE email = $email AND id <> $id
                          |UNION
@@ -30,9 +30,7 @@ final class UserWritesImpl[F[_]: Sync: MDC](
                          |""".stripMargin.exists(show"Check if Users' Email=$email is reserved for ID=$id")
       _ <-
         if (isReserved) {
-          CommonError
-            .ValidationFailed(NonEmptyList.one(show"Email $email already exists"), pos)
-            .raiseError[ConnectionIO, Unit]
+          CommonError.validationFailed(show"Email $email already exists").raiseError[ConnectionIO, Unit]
         } else
           sql"""INSERT INTO reserved_emails (email) VALUES ($email)"""
             .updateWithLabel(show"Reserve Users' Email=$email for ID=$id")
@@ -41,7 +39,7 @@ final class UserWritesImpl[F[_]: Sync: MDC](
     } yield ()
   }.transact(transactor)
 
-  private def reserveUsername(name: User.Name, id: Option[ID[User]] = None)(implicit pos: CodePosition): F[Unit] = {
+  private def reserveUsername(name: User.Name, id: Option[ID[User]] = None)(using CodePosition): F[Unit] = {
     for {
       isReserved <- sql"""SELECT 1 FROM users WHERE username = $name AND id <> $id
                          |UNION
@@ -49,9 +47,7 @@ final class UserWritesImpl[F[_]: Sync: MDC](
                          |""".stripMargin.exists(show"Check if Users' Name=$name is reserved for ID=$id")
       _ <-
         if (isReserved) {
-          CommonError
-            .ValidationFailed(NonEmptyList.one(show"Username $name already exists"), pos)
-            .raiseError[ConnectionIO, Unit]
+          CommonError.validationFailed(show"Username $name already exists").raiseError[ConnectionIO, Unit]
         } else
           sql"""INSERT INTO reserved_usernames (username) VALUES ($name)"""
             .updateWithLabel(show"Reserve Users' Name=$name for ID=$id")

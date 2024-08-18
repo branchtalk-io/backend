@@ -17,10 +17,9 @@ final case class AppArguments(
 }
 object AppArguments {
 
-  implicit private class BoolOps[A](private val opts: Opts[A]) extends AnyVal {
+  extension [A](opts: Opts[A]) {
 
-    def orBool(bool: Boolean)(implicit isUnit: A <:< Unit): Opts[Boolean] =
-      if (bool) opts.orTrue else opts.orFalse
+    private def orBool(bool: Boolean)(using A <:< Unit): Opts[Boolean] = if (bool) opts.orTrue else opts.orFalse
   }
 
   final case class NoConfig(help: Help) extends Exception {

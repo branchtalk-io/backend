@@ -22,7 +22,7 @@ import sttp.model.StatusCode
 final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFixtures, DiscussionsFixtures {
 
   private val defaultChannelID = ID[Channel](java.util.UUID.randomUUID())
-  implicit protected lazy val uuidGenerator: TestUUIDGenerator =
+  protected given uuidGenerator: TestUUIDGenerator =
     (new TestUUIDGenerator).tap(_.stubNext(defaultChannelID.unwrap)) // stub generation in ServerIOTest resources
 
   "SubscriptionServer-provided endpoints" should {

@@ -16,7 +16,7 @@ trait IOTest {
   val pass: Result = true must beTrue
 
   // we don't rely on MDC in tests
-  implicit protected val noopMDC: MDC[IO] = new MDC[IO] {
+  protected given noopMDC: MDC[IO] = new MDC[IO] {
     override def ctx: IO[Ctx] = IO.pure(Map.empty)
 
     override def get(key: String): IO[Option[String]] = IO.pure(None)
@@ -24,7 +24,7 @@ trait IOTest {
     override def set(key: String, value: String): IO[Unit] = IO.unit
   }
 
-  implicit class IOTestOps[T](private val io: IO[T]) {
+  extension [T](io: IO[T]) {
 
     def eventually(retry: Int = 50, delay: FiniteDuration = 250.millis, timeout: FiniteDuration = 15.seconds)(using
       codePosition: CodePosition
@@ -42,7 +42,7 @@ trait IOTest {
       io.flatTap(current => IO(scala.Predef.assert(condition(current), msg)))
   }
 
-  implicit protected def ioAsTest[T: AsExecution]: AsExecution[IO[T]] = new AsExecution[IO[T]] {
+  protected given ioAsTest[T: AsExecution]: AsExecution[IO[T]] = new AsExecution[IO[T]] {
     override def execute(t: => IO[T]): Execution = AsExecution[T].execute(t.unsafeRunSync())
   }
 }

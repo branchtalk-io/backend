@@ -31,9 +31,9 @@ final class CommentServer[F[_]: Async](
 
   private val logger = Logger(getClass)
 
-  private val serverOptions: Http4sServerOptions[F] = CommentServer.serverOptions[F].apply(logger)
+  private val serverOptions: Http4sServerOptions[F] = CommentServer.serverOptions[F](logger)
 
-  implicit private val errorHandler: ServerErrorHandler[F, CommentError] = CommentServer.errorHandler[F].apply(logger)
+  private given errorHandler: ServerErrorHandler[F, CommentError] = CommentServer.errorHandler[F](logger)
 
   private def testOwnership(channelID: ID[Channel], postID: ID[Post]) = postReads
     .requireById(postID)
@@ -218,7 +218,7 @@ final class CommentServer[F[_]: Async](
 }
 object CommentServer {
 
-  def serverOptions[F[_]: Sync]: Logger => Http4sServerOptions[F] = ServerOptions.create[F, CommentError](
+  def serverOptions[F[_]](using Sync[F]): Logger => Http4sServerOptions[F] = ServerOptions.create[F, CommentError](
     _,
     ServerOptions.ErrorHandler[CommentError](
       () => CommentError.ValidationFailed(NonEmptyList.one("Data missing")),
@@ -234,7 +234,7 @@ object CommentServer {
     )
   )
 
-  def errorHandler[F[_]: Sync]: Logger => ServerErrorHandler[F, CommentError] =
+  def errorHandler[F[_]](using Sync[F]): Logger => ServerErrorHandler[F, CommentError] =
     ServerErrorHandler.handleCommonErrors[F, CommentError] {
       case CommonError.InvalidCredentials(_) =>
         CommentError.BadCredentials("Invalid credentials")

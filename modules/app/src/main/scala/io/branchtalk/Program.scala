@@ -9,7 +9,7 @@ import io.branchtalk.api.AppServer
 import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
 import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
-import io.branchtalk.logging.{ Logger, MDC }
+import io.branchtalk.logging.*
 import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
@@ -26,11 +26,10 @@ object Program {
       given Logger[F] <- Logger.create[F]
       env <- Configuration.getEnv[F]
       appArguments <- AppArguments.parse[F](args, env)
-      _ <- summon[Logger[F]].info(show"Arguments passed: $appArguments")
+      _ <- Logger[F].info(show"Arguments passed: $appArguments")
       _ <-
         if (appArguments.isAnythingRun) initializeAndRunModules[F](appArguments)
-        else
-          summon[Logger[F]].warn("Nothing to run, see --help for information how to turn on API server and projections")
+        else Logger[F].warn("Nothing to run, see --help for information how to turn on API server and projections")
     } yield ExitCode.Success).handleError {
       case noConfig @ AppArguments.NoConfig(help) =>
         if (help.errors.nonEmpty) noConfig.printError()
@@ -40,24 +39,22 @@ object Program {
         ExitCode.Error
     }
 
-  def resolveConfigs[F[_]: Sync](implicit logger: Logger[F]): F[(APIConfig, DomainModule.Config, DomainModule.Config)] =
+  def resolveConfigs[F[_]: Sync: Logger]: F[(APIConfig, DomainModule.Config, DomainModule.Config)] =
     for {
       apiConfig <- Configuration.readConfig[F, APIConfig]("api")
-      _ <- logger.info(show"App configs resolved to: ${apiConfig}")
+      _ <- Logger[F].info(show"App configs resolved to: ${apiConfig}")
       usersConfig <- Configuration.readConfig[F, DomainModule.Config]("users")
-      _ <- logger.info(show"Users configs resolved to: ${usersConfig}")
+      _ <- Logger[F].info(show"Users configs resolved to: ${usersConfig}")
       discussionsConfig <- Configuration.readConfig[F, DomainModule.Config]("discussions")
-      _ <- logger.info(show"Discussions configs resolved to: ${discussionsConfig}")
+      _ <- Logger[F].info(show"Discussions configs resolved to: ${discussionsConfig}")
     } yield (apiConfig, usersConfig, discussionsConfig)
 
-  def initializeAndRunModules[F[_]: Async: MDC](
-    appArguments: AppArguments
-  )(implicit logger: Logger[F]): F[Unit] = {
+  def initializeAndRunModules[F[_]: Async: MDC: Logger](appArguments: AppArguments): F[Unit] = {
     for {
       given Dispatcher[F] <- Dispatcher.parallel[F]
       (apiConfig, usersConfig, discussionsConfig) <- Resource.eval(resolveConfigs[F])
       registry <- Prometheus.collectorRegistry[F]
-      modules <- Resource.make(logger.info("Initializing services"))(_ => logger.info("Services shut down")) >>
+      modules <- Resource.make(Logger[F].info("Initializing services"))(_ => Logger[F].info("Services shut down")) >>
         (
           registry.pure[Resource[F, *]],
           UsersModule.reads[F](usersConfig, registry),
@@ -72,7 +69,7 @@ object Program {
     run.tupled(modules)
   }
 
-  def runModules[F[_]: Async: MDC](
+  def runModules[F[_]: Async: MDC: Logger](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
     terminationSignal: F[Unit],
@@ -86,7 +83,7 @@ object Program {
     usersWrites:       UsersWrites[F],
     discussionsReads:  DiscussionsReads[F],
     discussionsWrites: DiscussionsWrites[F]
-  )(implicit logger: Logger[F]): F[Unit] = {
+  ): F[Unit] = {
     (
       AppServer
         .asResource(
@@ -132,16 +129,16 @@ object Program {
     handleSignal("INT").race(handleSignal("TERM")).void
   }
 
-  private def logBeforeAfter[F[_]: Functor](before: String, after: String)(implicit logger: Logger[F]) =
-    Resource.make(logger.info(before))(_ => logger.info(after))
+  private def logBeforeAfter[F[_]: Functor](before: String, after: String)(using logger: Logger[F]) =
+    Resource.make(Logger[F].info(before))(_ => logger.info(after))
 
-  implicit class ResourceOps[F[_]](private val resource: Resource[F, Unit]) extends AnyVal {
+  extension [F[_]: Monad: Logger](resource: Resource[F, Unit]) {
 
-    def conditionally(name: String, condition: Boolean)(implicit F: Monad[F], logger: Logger[F]): Resource[F, Unit] =
+    def conditionally(name: String, condition: Boolean): Resource[F, Unit] =
       if (condition) {
         logBeforeAfter[F](s"Starting $name", s"$name shutdown completed") >>
           resource >>
           logBeforeAfter[F](s"$name start completed", s"Shutting down $name")
-      } else Resource.eval(logger.info(s"$name disabled - omitting"))
+      } else Resource.eval(Logger[F].info(s"$name disabled - omitting"))
   }
 }

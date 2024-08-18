@@ -18,9 +18,7 @@ final case class TestDependencies[F[_]](
 )
 object TestDependencies {
 
-  def resources[F[_]: Async: MDC](registry: CollectorRegistry)(implicit
-    uuidGenerator: UUID.Generator
-  ): Resource[F, TestDependencies[F]] =
+  def resources[F[_]: Async: MDC](registry: CollectorRegistry)(using UUID.Generator): Resource[F, TestDependencies[F]] =
     for {
       given Dispatcher[F] <- Dispatcher.parallel[F]
       usersConfig <- TestUsersConfig.loadDomainConfig[F]

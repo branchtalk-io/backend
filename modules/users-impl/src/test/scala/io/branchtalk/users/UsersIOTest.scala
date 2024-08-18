@@ -7,7 +7,7 @@ import io.branchtalk.shared.model.UUID
 
 trait UsersIOTest extends IOTest, ResourcefulTest {
 
-  implicit protected def uuidGenerator: UUID.Generator
+  protected given uuidGenerator: UUID.Generator
 
   // populated by resources
   protected var usersCfg:    DomainModule.Config = _
