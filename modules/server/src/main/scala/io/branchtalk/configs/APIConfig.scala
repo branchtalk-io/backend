@@ -27,7 +27,7 @@ final case class APIContact(
   def toOpenAPI: Contact = Contact(
     name = name.some,
     email = email.unwrap.some,
-    url = url.unwrap.toString.some
+    url = url.show.some
   )
 }
 
@@ -39,7 +39,7 @@ final case class APILicense(
 
   def toOpenAPI: License = License(
     name = name,
-    url = url.unwrap.toString.some
+    url = url.show.some
   )
 }
 
@@ -57,7 +57,7 @@ final case class APIInfo(
     title = title,
     version = version,
     description = description.some,
-    termsOfService = termsOfService.unwrap.toString.some,
+    termsOfService = termsOfService.show.some,
     contact = contact.toOpenAPI.some,
     license = license.toOpenAPI.some
   )

@@ -1,6 +1,6 @@
 package io.branchtalk.users.infrastructure
 
-import cats.Id
+import cats.{ Id, Show }
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.github.plokhotnyuk.jsoniter_scala.macros.*
 import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
@@ -13,14 +13,15 @@ import scala.collection.compat.immutable.ArraySeq
 
 object DoobieExtensions {
 
+  private given [A: Show]: Show[Array[A]] = _.map(_.show).mkString(", ")
+
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   given banScopeTypeMeta: Meta[Ban.Scope.Type] = pgEnumString(
     "user_ban_type",
     name =>
       Ban.Scope.Type.values
         .find(_.entryName.equalsIgnoreCase(name))
-        .getOrElse(
-          throw new NoSuchElementException(s"$name is not a member of Enum (${Ban.Scope.Type.values.mkString(", ")})")
-        ),
+        .getOrElse(throw new NoSuchElementException(show"$name is not a member of Enum (${Ban.Scope.Type.values})")),
     _.entryName.toLowerCase(branchtalkLocale)
   )
 
@@ -34,21 +35,21 @@ object DoobieExtensions {
 
   given passwordSaltMeta: Meta[Password.Salt] = Password.Salt.unsafeMakeF(Meta.apply)
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   given sessionUsageTypeMeta: Meta[Session.Usage.Type] = pgEnumString(
     "session_usage_type",
     name =>
       Session.Usage.Type.values
         .find(_.entryName.equalsIgnoreCase(name))
         .getOrElse(
-          throw new NoSuchElementException(
-            s"$name is not a member of Enum (${Session.Usage.Type.values.mkString(", ")})"
-          )
+          throw new NoSuchElementException(show"$name is not a member of Enum (${Session.Usage.Type.values})")
         ),
     _.entryName.toLowerCase(branchtalkLocale)
   )
 
   given sessionExpirationTime: Meta[Session.ExpirationTime] = Session.ExpirationTime.unsafeMakeF(Meta.apply)
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   given sensitiveDataAlgorithmTypeMeta: Meta[SensitiveData.Algorithm] =
     pgEnumString(
       "data_encryption_algorithm",
@@ -56,9 +57,7 @@ object DoobieExtensions {
         SensitiveData.Algorithm.values
           .find(_.entryName.equalsIgnoreCase(name))
           .getOrElse(
-            throw new NoSuchElementException(
-              s"$name is not a member of Enum (${SensitiveData.Algorithm.values.mkString(", ")})"
-            )
+            throw new NoSuchElementException(show"$name is not a member of Enum (${SensitiveData.Algorithm.values})")
           ),
       _.entryName.toLowerCase(branchtalkLocale)
     )

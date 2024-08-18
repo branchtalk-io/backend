@@ -3,6 +3,7 @@ package io.branchtalk.api
 import cats.arrow.FunctionK
 import cats.data.NonEmptyList
 import cats.effect.{ Async, Resource }
+import fs2.compression.Compression
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfig }
 import io.branchtalk.discussions.api.{ ChannelServer, CommentServer, PostServer, SubscriptionServer }
@@ -62,6 +63,8 @@ final class AppServer[F[_]: Async: MDC](
     fk = FunctionK.id,
     logAction = ((s: String) => logger.info(s)).some
   )(_)
+
+  private given Compression[F] = Compression.forSync[F]
 
   val routes: HttpApp[F] =
     NonEmptyList
