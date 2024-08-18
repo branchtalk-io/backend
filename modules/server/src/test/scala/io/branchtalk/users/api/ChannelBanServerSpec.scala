@@ -1,9 +1,10 @@
 package io.branchtalk.users.api
 
-import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
+import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, * }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Ban, Permission, User }
@@ -52,7 +53,7 @@ final class ChannelBanServerSpec extends Specification, ServerIOTest, UsersFixtu
           .eventually()
       } yield {
         // then
-        response.body must beValid(beRight(be_===(BanOrderResponse(bannedUserID))))
+        response.body must beValid(beRight(be_==(BanOrderResponse(bannedUserID))))
         bans === Set(Ban(bannedUserID, reason, Ban.Scope.ForChannel(channelID)))
       }
     }
@@ -99,7 +100,7 @@ final class ChannelBanServerSpec extends Specification, ServerIOTest, UsersFixtu
           .eventually()
       } yield
       // then
-      response.body must beValid(beRight(be_===(BanLiftResponse(bannedUserID))))
+      response.body must beValid(beRight(be_==(BanLiftResponse(bannedUserID))))
     }
   }
 }

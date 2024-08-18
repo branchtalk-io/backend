@@ -10,6 +10,7 @@ import scala.jdk.CollectionConverters.*
 // Based on solution described by OlegPy in https://olegpy.com/better-logging-monix-1/
 // Using experimental hack: https://gist.github.com/MateuszKubuszok/d506706ee3c9b4c2291d47279f619523
 final class IOMDCAdapter(local: IOLocal[MDC.Ctx]) extends MDCAdapter {
+  // TODO: IOLocal[Map[String, List]]
 
   private def getMDC:                          MDC.Ctx = IOGlobal.getCurrent(local).getOrElse(Map.empty[String, String])
   private def setMDC(mdc: MDC.Ctx):            Unit    = IOGlobal.setTemporarily(local, mdc)

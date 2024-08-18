@@ -4,6 +4,7 @@ import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.ChannelModels.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
@@ -23,7 +24,7 @@ final class ChannelServerPaginationSpec extends Specification, ServerIOTest, Use
         for {
           // given
           channelIDs <- (0 until 10).toList.traverse(_ =>
-            channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.id)
+            channelCreate.flatMap(discussionsWrites.channelWrites.createChannel).map(_.unwrap)
           )
           channels <- channelIDs.traverse(discussionsReads.channelReads.requireById(_)).eventually()
           // when
@@ -35,9 +36,9 @@ final class ChannelServerPaginationSpec extends Specification, ServerIOTest, Use
         } yield {
           // then
           response1.code === StatusCode.Ok
-          response1.body must beValid(beRight(anInstanceOf[Pagination[APIChannel]]))
+          response1.body must beValid(beRight(beAnInstanceOf[Pagination[APIChannel]]))
           response2.code === StatusCode.Ok
-          response2.body must beValid(beRight(anInstanceOf[Pagination[APIChannel]]))
+          response2.body must beValid(beRight(beAnInstanceOf[Pagination[APIChannel]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
               (pagination1.entities.toSet ++ pagination2.entities.toSet) === channels.map(APIChannel.fromDomain).toSet

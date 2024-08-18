@@ -3,6 +3,7 @@ package io.branchtalk.api
 import cats.effect.{ IO, Resource }
 import io.branchtalk.discussions.DiscussionsIOTest
 import io.branchtalk.users.{ UsersIOTest, UsersModule }
+import io.branchtalk.shared.infrastructure.*
 import org.http4s.server.Server
 import org.specs2.matcher.{ OptionLikeCheckedMatcher, OptionLikeMatcher, ValueCheck }
 import sttp.client3.{ Response, SttpBackend }
@@ -95,18 +96,15 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
   }
 
   import ServerIOTest.*
+  export ServerIOTest.toValidOpt
 
-  implicit def toDecoderResultOps[A](result: DecodeResult[A]): DecodeResultOps[A] = new DecodeResultOps[A](result)
-
-  import org.specs2.control.ImplicitParameters.*
-  def beValid[T](t: ValueCheck[T]): ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
-  def beValid[T](implicit p: ImplicitParam = implicitParameter): ValidResultMatcher[T] = use(p)(ValidResultMatcher[T]())
+  def beValid[T](t:          ValueCheck[T]): ValidResultCheckedMatcher[T] = ValidResultCheckedMatcher(t)
+  def beValid[T](implicit p: DummyImplicit): ValidResultMatcher[T]        = ValidResultMatcher[T]()
 }
 
 object ServerIOTest {
 
-  implicit class DecodeResultOps[A](private val result: DecodeResult[A]) extends AnyVal {
-
+  extension [A](result: DecodeResult[A]) {
     def toValidOpt: Option[A] = result match {
       case DecodeResult.Value(t) => t.some
       case _                     => none[A]
@@ -114,8 +112,8 @@ object ServerIOTest {
   }
 
   final case class ValidResultMatcher[T]()
-      extends OptionLikeMatcher[DecodeResult, T, T]("DecodeResult.Value", (_: DecodeResult[T]).toValidOpt)
+      extends OptionLikeMatcher[DecodeResult[T], T]("DecodeResult.Value", (_: DecodeResult[T]).toValidOpt)
 
   final case class ValidResultCheckedMatcher[T](check: ValueCheck[T])
-      extends OptionLikeCheckedMatcher[DecodeResult, T, T]("DecodeResult.Value", (_: DecodeResult[T]).toValidOpt, check)
+      extends OptionLikeCheckedMatcher[DecodeResult[T], T]("DecodeResult.Value", (_: DecodeResult[T]).toValidOpt, check)
 }

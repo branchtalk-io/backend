@@ -1,15 +1,16 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.IO
+import com.softwaremill.quicklens.*
 import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.scalaland.chimney.dsl.*
-import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
@@ -27,7 +28,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postIDs <- (0 until 10).toList.traverse(_ =>
-            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
           )
           posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when
@@ -40,9 +41,9 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response1.code === StatusCode.Ok
-          response1.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+          response1.body must beValid(beRight(beAnInstanceOf[Pagination[APIPost]]))
           response2.code === StatusCode.Ok
-          response2.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+          response2.body must beValid(beRight(beAnInstanceOf[Pagination[APIPost]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
               (pagination1.entities.toSet ++ pagination2.entities.toSet) === posts.map(APIPost.fromDomain).toSet
@@ -60,7 +61,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postIDs <- (0 until 10).toList.traverse(_ =>
-            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
           )
           posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when
@@ -68,7 +69,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+          response.body must beValid(beRight(beAnInstanceOf[Pagination[APIPost]]))
           response.body.toValidOpt
             .flatMap(_.toOption)
             .map(pagination => pagination.entities.toSet === posts.map(APIPost.fromDomain).toSet)
@@ -85,7 +86,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postIDs <- (0 until 10).toList.traverse(_ =>
-            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
           )
           posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when
@@ -93,7 +94,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+          response.body must beValid(beRight(beAnInstanceOf[Pagination[APIPost]]))
           response.body.toValidOpt
             .flatMap(_.toOption)
             .map(_.entities.toSet === posts.map(APIPost.fromDomain).toSet)
@@ -125,7 +126,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[CreatePostResponse]))
+          response.body must beValid(beRight(beAnInstanceOf[CreatePostResponse]))
         }
       }
     }
@@ -153,7 +154,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(APIPost.fromDomain(post))))
+          response.body must beValid(beRight(be_==(APIPost.fromDomain(post))))
         }
       }
     }
@@ -171,10 +172,10 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           CreationScheduled(postID) <- postCreate(channelID)
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Post
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // to own the Post
             .flatMap(discussionsWrites.postWrites.createPost)
           post <- discussionsReads.postReads.requireById(postID).eventually()
-          newTitle <- Post.Title.parse[IO]("new title")
+          newTitle <- ParseNewtype[IO].parse[Post.Title]("new title")
           newContent = Post.Content.Text(Post.Text("lorem ipsum"))
           // when
           response <- PostAPIs.update.toTestCall.untupled(
@@ -193,16 +194,16 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(UpdatePostResponse(postID))))
+          response.body must beValid(beRight(be_==(UpdatePostResponse(postID))))
           updatedPost === post
-            .focus(_.data.title)
-            .replace(newTitle)
-            .focus(_.data.content)
-            .replace(newContent)
-            .focus(_.data.urlTitle)
-            .replace(Post.UrlTitle("new-title"))
-            .focus(_.data.lastModifiedAt)
-            .replace(updatedPost.data.lastModifiedAt)
+            .modify(_.data.title)
+            .setTo(newTitle)
+            .modify(_.data.content)
+            .setTo(newContent)
+            .modify(_.data.urlTitle)
+            .setTo(Post.UrlTitle("new-title"))
+            .modify(_.data.lastModifiedAt)
+            .setTo(updatedPost.data.lastModifiedAt)
         }
       }
     }
@@ -220,7 +221,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           CreationScheduled(postID) <- postCreate(channelID)
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Post
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // to own the Post
             .flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           // when
@@ -236,7 +237,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(DeletePostResponse(postID))))
+          response.body must beValid(beRight(be_==(DeletePostResponse(postID))))
         }
       }
     }
@@ -254,7 +255,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           CreationScheduled(postID) <- postCreate(channelID)
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Post
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // to own the Post
             .flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           _ <- discussionsWrites.postWrites.deletePost(Post.Delete(postID, userIDUsers2Discussions.get(userID)))
@@ -272,7 +273,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(RestorePostResponse(postID))))
+          response.body must beValid(beRight(be_==(RestorePostResponse(postID))))
         }
       }
     }
@@ -299,7 +300,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
           _ <- discussionsReads.postReads
             .requireById(postID)
-            .assert("Upvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+            .assert("Upvoted entity should have changed score")(_.data.totalScore.unwrap =!= 0)
             .eventually()
         } yield
         // then
@@ -329,7 +330,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
           _ <- discussionsReads.postReads
             .requireById(postID)
-            .assert("Downvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+            .assert("Downvoted entity should have changed score")(_.data.totalScore.unwrap =!= 0)
             .eventually()
         } yield
         // then
@@ -355,7 +356,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           _ <- discussionsWrites.postWrites.upvotePost(Post.Upvote(postID, userIDUsers2Discussions.get(userID)))
           _ <- discussionsReads.postReads
             .requireById(postID)
-            .assert("Upvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+            .assert("Upvoted entity should have changed score")(_.data.totalScore.unwrap =!= 0)
             .eventually()
           // when
           response <- PostAPIs.revokeVote.toTestCall.untupled(
@@ -365,7 +366,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
           _ <- discussionsReads.postReads
             .requireById(postID)
-            .assert("Revoked-vote entity should have changed score")(_.data.totalScore.toInt === 0)
+            .assert("Revoked-vote entity should have changed score")(_.data.totalScore.unwrap eqv 0)
             .eventually()
         } yield
         // then

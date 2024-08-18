@@ -1,9 +1,10 @@
 package io.branchtalk.users.api
 
-import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
+import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, * }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Permission, RequiredPermissions, User }
@@ -39,7 +40,7 @@ final class UserModerationServerPaginationSpec extends Specification, ServerIOTe
             )
           )
           userIDs <- (0 until 9).toList
-            .traverse(_ => userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id))
+            .traverse(_ => userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.unwrap))
             .map(_ :+ userID)
           _ <- userIDs.traverse(usersReads.userReads.requireById(_)).eventually()
           permission = Permission.ModerateUsers
@@ -75,9 +76,9 @@ final class UserModerationServerPaginationSpec extends Specification, ServerIOTe
         } yield {
           // then
           response1.code === StatusCode.Ok
-          response1.body must beValid(beRight(anInstanceOf[Pagination[APIUser]]))
+          response1.body must beValid(beRight(beAnInstanceOf[Pagination[APIUser]]))
           response2.code === StatusCode.Ok
-          response2.body must beValid(beRight(anInstanceOf[Pagination[APIUser]]))
+          response2.body must beValid(beRight(beAnInstanceOf[Pagination[APIUser]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
               (pagination1.entities.toSet ++ pagination2.entities.toSet) === users.map(APIUser.fromDomain).toSet
