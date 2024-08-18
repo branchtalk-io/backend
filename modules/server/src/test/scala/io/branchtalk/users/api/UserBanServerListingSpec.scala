@@ -4,6 +4,7 @@ import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Ban, Permission, User }
@@ -39,7 +40,7 @@ final class UserBanServerListingSpec extends Specification, ServerIOTest, UsersF
             )
           )
           bannedUserIDs <- (0 until 9).toList.traverse(_ =>
-            userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.id)
+            userCreate.flatMap(usersWrites.userWrites.createUser).map(_._1.unwrap)
           )
           _ <- bannedUserIDs.traverse(usersReads.userReads.requireById(_)).eventually()
           reason = Ban.Reason("test")
@@ -47,7 +48,7 @@ final class UserBanServerListingSpec extends Specification, ServerIOTest, UsersF
             .map(Ban.Order(_, reason, Ban.Scope.Globally, userID.some))
             .traverse(usersWrites.banWrites.orderBan)
           _ <- usersReads.banReads.findGlobally
-            .assert("All Users should be Banned")(_.map(_.bannedUserID).toSet === bannedUserIDs.toSet)
+            .assert("All Users should be Banned")(_.map(_.bannedUserID).toSet eqv bannedUserIDs.toSet)
             .eventually()
           // when
           response <- UserBanAPIs.list.toTestCall(
@@ -56,7 +57,7 @@ final class UserBanServerListingSpec extends Specification, ServerIOTest, UsersF
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[BansResponse]))
+          response.body must beValid(beRight(beAnInstanceOf[BansResponse]))
           response.body.toValidOpt.flatMap(_.toOption).map(_.bannedIDs.toSet === bannedUserIDs.toSet).getOrElse(pass)
         }
       }

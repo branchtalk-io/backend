@@ -1,16 +1,17 @@
 package io.branchtalk.discussions.api
 
 import cats.effect.IO
-import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
+import com.softwaremill.quicklens.*
+import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, * }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.ChannelModels.*
 import io.branchtalk.discussions.model.Channel
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.model.{ Permission, RequiredPermissions }
 import io.scalaland.chimney.dsl.*
-import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
@@ -42,7 +43,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[CreateChannelResponse]))
+          response.body must beValid(beRight(beAnInstanceOf[CreateChannelResponse]))
         }
       }
     }
@@ -67,7 +68,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(APIChannel.fromDomain(channel))))
+          response.body must beValid(beRight(be_==(APIChannel.fromDomain(channel))))
         }
       }
     }
@@ -83,7 +84,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
           _ <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
           CreationScheduled(channelID) <- channelCreate
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // make User Channels' owner
             .flatMap(discussionsWrites.channelWrites.createChannel)
           channel <- discussionsReads.channelReads.requireById(channelID).eventually()
           _ <- usersReads.userReads
@@ -94,9 +95,9 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
               )
             )
             .eventually()
-          newUrlName <- Channel.UrlName.parse[IO]("new-name")
-          newName <- Channel.Name.parse[IO]("new name")
-          newDescription <- Channel.Description.parse[IO]("lorem ipsum")
+          newUrlName <- ParseNewtype[IO].parse[Channel.UrlName]("new-name")
+          newName <- ParseNewtype[IO].parse[Channel.Name]("new name")
+          newDescription <- ParseNewtype[IO].parse[Channel.Description]("lorem ipsum")
           // when
           response <- ChannelAPIs.update.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
@@ -114,16 +115,16 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(UpdateChannelResponse(channelID))))
+          response.body must beValid(beRight(be_==(UpdateChannelResponse(channelID))))
           updatedChannel === channel
-            .focus(_.data.urlName)
-            .replace(newUrlName)
-            .focus(_.data.name)
-            .replace(newName)
-            .focus(_.data.description)
-            .replace(newDescription.some)
-            .focus(_.data.lastModifiedAt)
-            .replace(updatedChannel.data.lastModifiedAt)
+            .modify(_.data.urlName)
+            .setTo(newUrlName)
+            .modify(_.data.name)
+            .setTo(newName)
+            .modify(_.data.description)
+            .setTo(newDescription.some)
+            .modify(_.data.lastModifiedAt)
+            .setTo(updatedChannel.data.lastModifiedAt)
         }
       }
     }
@@ -139,7 +140,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
           _ <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
           CreationScheduled(channelID) <- channelCreate
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // make User Channels' owner
             .flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           _ <- usersReads.userReads
@@ -162,7 +163,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(DeleteChannelResponse(channelID))))
+          response.body must beValid(beRight(be_==(DeleteChannelResponse(channelID))))
         }
       }
     }
@@ -178,7 +179,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
           _ <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
           CreationScheduled(channelID) <- channelCreate
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // make User Channels' owner
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // make User Channels' owner
             .flatMap(discussionsWrites.channelWrites.createChannel)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           _ <- usersReads.userReads
@@ -205,7 +206,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(RestoreChannelResponse(channelID))))
+          response.body must beValid(beRight(be_==(RestoreChannelResponse(channelID))))
         }
       }
     }

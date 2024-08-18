@@ -27,7 +27,7 @@ final class UserServer[F[_]: Async](
   paginationConfig: PaginationConfig
 ) {
 
-  implicit private val as: AuthServices[F] = authServices
+  private given AuthServices[F] = authServices
 
   private val logger = Logger(getClass)
 

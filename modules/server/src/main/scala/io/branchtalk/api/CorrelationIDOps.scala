@@ -24,5 +24,5 @@ object CorrelationIDOps {
 
   private val correlationIDHeader = org.typelevel.ci.CIString("X-Correlation-ID")
 
-  def apply[F[_]: Sync: MDC](implicit uuidGenerator: UUID.Generator): CorrelationIDOps[F] = new CorrelationIDOps[F]
+  def apply[F[_]: Sync: MDC](using UUID.Generator): CorrelationIDOps[F] = new CorrelationIDOps[F]
 }

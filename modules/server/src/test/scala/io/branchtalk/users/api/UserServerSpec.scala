@@ -1,15 +1,16 @@
 package io.branchtalk.users.api
 
 import cats.effect.IO
-import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
+import com.softwaremill.quicklens.*
+import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, * }
 import io.branchtalk.api.TapirSupport.*
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Password, Session, User }
-import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
@@ -53,9 +54,9 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response1.code === StatusCode.Ok
-          response1.body must beValid(beRight(anInstanceOf[Pagination[APISession]]))
+          response1.body must beValid(beRight(beAnInstanceOf[Pagination[APISession]]))
           response2.code === StatusCode.Ok
-          response2.body must beValid(beRight(anInstanceOf[Pagination[APISession]]))
+          response2.body must beValid(beRight(beAnInstanceOf[Pagination[APISession]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
               (pagination1.entities.toSet ++ pagination2.entities.toSet) === sessions.map(APISession.fromDomain).toSet
@@ -70,7 +71,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
       "schedule User and Session creation on valid JSON" in {
         for {
           // given
-          password <- Password.Raw.parse[IO]("password".getBytes)
+          password <- ParseNewtype[IO].parse[Password.Raw]("password".getBytes)
           creationData <- userCreate
           // when
           response <- UserAPIs.signUp.toTestCall(
@@ -87,9 +88,9 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[SignUpResponse]))
-          user must beSome(anInstanceOf[User])
-          session must beSome(anInstanceOf[Session])
+          response.body must beValid(beRight(beAnInstanceOf[SignUpResponse]))
+          user must beSome(beAnInstanceOf[User])
+          session must beSome(beAnInstanceOf[Session])
           (user, session, response.body.toOption.flatMap(_.toOption))
             .mapN((u, s, r) => r === SignUpResponse(u.id, s.id))
             .getOrElse(pass)
@@ -102,7 +103,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
       "log User in on valid credentials" in {
         for {
           // given
-          password <- Password.Raw.parse[IO]("password".getBytes)
+          password <- ParseNewtype[IO].parse[Password.Raw]("password".getBytes)
           (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate
             .map(_.copy(password = Password.create(password)))
             .flatMap(usersWrites.userWrites.createUser)
@@ -121,9 +122,9 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           sessionResponse.code === StatusCode.Ok
-          sessionResponse.body must beValid(beRight(anInstanceOf[SignInResponse]))
+          sessionResponse.body must beValid(beRight(beAnInstanceOf[SignInResponse]))
           credentialsResponse.code === StatusCode.Ok
-          credentialsResponse.body must beValid(beRight(anInstanceOf[SignInResponse]))
+          credentialsResponse.body must beValid(beRight(beAnInstanceOf[SignInResponse]))
         }
       }
     }
@@ -133,7 +134,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
       "log out User" in {
         for {
           // given
-          password <- Password.Raw.parse[IO]("password".getBytes)
+          password <- ParseNewtype[IO].parse[Password.Raw]("password".getBytes)
           (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate
             .map(_.copy(password = Password.create(password)))
             .flatMap(usersWrites.userWrites.createUser)
@@ -152,9 +153,9 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           sessionResponse.code === StatusCode.Ok
-          sessionResponse.body must beValid(beRight(be_===(SignOutResponse(userID, sessionID.some))))
+          sessionResponse.body must beValid(beRight(be_==(SignOutResponse(userID, sessionID.some))))
           credentialsResponse.code === StatusCode.Ok
-          credentialsResponse.body must beValid(beRight(be_===(SignOutResponse(userID, None))))
+          credentialsResponse.body must beValid(beRight(be_==(SignOutResponse(userID, None))))
         }
       }
     }
@@ -174,7 +175,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(APIUser.fromDomain(user))))
+          response.body must beValid(beRight(be_==(APIUser.fromDomain(user))))
         }
       }
     }
@@ -189,9 +190,9 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
           user <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
-          newUsername <- User.Name.parse[IO]("new test name")
+          newUsername <- ParseNewtype[IO].parse[User.Name]("new test name")
           newDescription = User.Description("new test description")
-          newPassword <- Password.Raw.parse[IO]("new password".getBytes)
+          newPassword <- ParseNewtype[IO].parse[Password.Raw]("new password".getBytes)
           // when
           response <- UserAPIs.updateProfile.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
@@ -209,16 +210,16 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(UpdateUserResponse(userID))))
+          response.body must beValid(beRight(be_==(UpdateUserResponse(userID))))
           updatedUser === user
-            .focus(_.data.username)
-            .replace(newUsername)
-            .focus(_.data.description)
-            .replace(newDescription.some)
-            .focus(_.data.password)
-            .replace(updatedUser.data.password) // updated Password might have a different salt...
-            .focus(_.data.lastModifiedAt)
-            .replace(updatedUser.data.lastModifiedAt)
+            .modify(_.data.username)
+            .setTo(newUsername)
+            .modify(_.data.description)
+            .setTo(newDescription.some)
+            .modify(_.data.password)
+            .setTo(updatedUser.data.password) // updated Password might have a different salt...
+            .modify(_.data.lastModifiedAt)
+            .setTo(updatedUser.data.lastModifiedAt)
           updatedUser.data.password.verify(newPassword) must beTrue // ...which is why we test it separately
         }
       }
@@ -243,7 +244,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(DeleteUserResponse(userID))))
+          response.body must beValid(beRight(be_==(DeleteUserResponse(userID))))
         }
       }
     }

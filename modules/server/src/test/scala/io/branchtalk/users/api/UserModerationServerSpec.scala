@@ -1,9 +1,10 @@
 package io.branchtalk.users.api
 
-import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, _ }
+import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, * }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Permission, RequiredPermissions, User }
@@ -52,7 +53,7 @@ final class UserModerationServerSpec extends Specification, ServerIOTest, UsersF
           .eventually()
       } yield
       // then
-      response.body must beValid(beRight(be_===(GrantModerationResponse(updatedUserID))))
+      response.body must beValid(beRight(be_==(GrantModerationResponse(updatedUserID))))
     }
 
     "on DELETE /users/moderation" in {
@@ -106,7 +107,7 @@ final class UserModerationServerSpec extends Specification, ServerIOTest, UsersF
           .eventually()
       } yield
       // then
-      response.body must beValid(beRight(be_===(RevokeModerationResponse(updatedUserID))))
+      response.body must beValid(beRight(be_==(RevokeModerationResponse(updatedUserID))))
     }
   }
 }

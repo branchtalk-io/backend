@@ -3,7 +3,7 @@ package io.branchtalk.users.api
 import cats.data.NonEmptyList
 import cats.effect.{ Async, Sync }
 import com.typesafe.scalalogging.Logger
-import io.branchtalk.api.{ Permission => _, _ }
+import io.branchtalk.api.{ Permission => _, * }
 import io.branchtalk.auth.{ *, given }
 import io.branchtalk.configs.PaginationConfig
 import io.branchtalk.shared.infrastructure.*
@@ -23,7 +23,7 @@ final class UserModerationServer[F[_]: Async](
   paginationConfig: PaginationConfig
 ) {
 
-  implicit private val as: AuthServices[F] = authServices
+  private given AuthServices[F] = authServices
 
   private val logger = Logger(getClass)
 

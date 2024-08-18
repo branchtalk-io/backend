@@ -14,6 +14,7 @@ import io.branchtalk.discussions.api.SubscriptionModels.{
 import io.branchtalk.discussions.model.{ Channel, Subscription }
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
@@ -34,7 +35,7 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
           CreationScheduled(channelID) <- channelCreate
             .flatTap(_ => IO(uuidGenerator.stubNext(defaultChannelID.unwrap))) // create Channel with default ID
             .flatMap(discussionsWrites.channelWrites.createChannel) // NOTE: ID generation must come before CID
-            .assert("Created Channel should have predefined ID")(_.id === defaultChannelID)
+            .assert("Created Channel should have predefined ID")(_.unwrap eqv defaultChannelID)
           _ <- discussionsReads.channelReads.requireById(channelID).eventually()
           postIDs <- (0 until 10).toList.traverse(_ =>
             postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
@@ -49,9 +50,9 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
         } yield {
           // then
           response1.code === StatusCode.Ok
-          response1.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+          response1.body must beValid(beRight(beAnInstanceOf[Pagination[APIPost]]))
           response2.code === StatusCode.Ok
-          response2.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+          response2.body must beValid(beRight(beAnInstanceOf[Pagination[APIPost]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
               (pagination1.entities.toSet ++ pagination2.entities.toSet) === posts.map(APIPost.fromDomain).toSet
@@ -79,7 +80,7 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
             .assert("Subscriptions should contain added Channel ID")(_.subscriptions(channelID))
             .eventually()
           postIDs <- (0 until 10).toList.traverse(_ =>
-            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.id)
+            postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost).map(_.unwrap)
           )
           posts <- postIDs.traverse(discussionsReads.postReads.requireById(_)).eventually()
           // when
@@ -96,9 +97,9 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
         } yield {
           // then
           response1.code === StatusCode.Ok
-          response1.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+          response1.body must beValid(beRight(beAnInstanceOf[Pagination[APIPost]]))
           response2.code === StatusCode.Ok
-          response2.body must beValid(beRight(anInstanceOf[Pagination[APIPost]]))
+          response2.body must beValid(beRight(beAnInstanceOf[Pagination[APIPost]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
               (pagination1.entities.toSet ++ pagination2.entities.toSet) === posts.map(APIPost.fromDomain).toSet
@@ -135,7 +136,7 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[APISubscriptions]))
+          response.body must beValid(beRight(beAnInstanceOf[APISubscriptions]))
           response.body.toValidOpt
             .flatMap(_.toOption)
             .map(subscriptions => subscriptions === APISubscriptions(List(channelID)))
@@ -169,7 +170,7 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[SubscribeResponse]))
+          response.body must beValid(beRight(beAnInstanceOf[SubscribeResponse]))
           response.body.toValidOpt
             .flatMap(_.toOption)
             .map(subscribed => subscribed.channels === List(channelID))
@@ -211,7 +212,7 @@ final class SubscriptionServerSpec extends Specification, ServerIOTest, UsersFix
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[UnsubscribeResponse]))
+          response.body must beValid(beRight(beAnInstanceOf[UnsubscribeResponse]))
           response.body.toValidOpt
             .flatMap(_.toOption)
             .map(unsubscribed => unsubscribed === UnsubscribeResponse(List()))

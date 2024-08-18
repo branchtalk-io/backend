@@ -1,14 +1,15 @@
 package io.branchtalk.discussions.api
 
+import com.softwaremill.quicklens.*
 import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.CommentModels.*
 import io.branchtalk.discussions.model.Comment
 import io.branchtalk.mappings.*
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.scalaland.chimney.dsl.*
-import monocle.macros.syntax.lens.*
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
@@ -28,7 +29,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           commentIDs <- (0 until 10).toList.traverse(_ =>
-            commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.id)
+            commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.unwrap)
           )
           comments <- commentIDs.traverse(discussionsReads.commentReads.requireById(_)).eventually()
           // when
@@ -49,9 +50,9 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response1.code === StatusCode.Ok
-          response1.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
+          response1.body must beValid(beRight(beAnInstanceOf[Pagination[APIComment]]))
           response2.code === StatusCode.Ok
-          response2.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
+          response2.body must beValid(beRight(beAnInstanceOf[Pagination[APIComment]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
               (pagination1.entities.toSet ++ pagination2.entities.toSet) === comments.map(APIComment.fromDomain).toSet
@@ -71,7 +72,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           commentIDs <- (0 until 10).toList.traverse(_ =>
-            commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.id)
+            commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.unwrap)
           )
           comments <- commentIDs.traverse(discussionsReads.commentReads.requireById(_)).eventually()
           // when
@@ -79,7 +80,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
+          response.body must beValid(beRight(beAnInstanceOf[Pagination[APIComment]]))
           response.body.toValidOpt
             .flatMap(_.toOption)
             .map { pagination =>
@@ -100,7 +101,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           commentIDs <- (0 until 10).toList.traverse(_ =>
-            commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.id)
+            commentCreate(postID).flatMap(discussionsWrites.commentWrites.createComment).map(_.unwrap)
           )
           comments <- commentIDs.traverse(discussionsReads.commentReads.requireById(_)).eventually()
           // when
@@ -108,7 +109,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[Pagination[APIComment]]))
+          response.body must beValid(beRight(beAnInstanceOf[Pagination[APIComment]]))
           response.body.toValidOpt
             .flatMap(_.toOption)
             .map(_.entities.toSet === comments.map(APIComment.fromDomain).toSet)
@@ -143,7 +144,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(anInstanceOf[CreateCommentResponse]))
+          response.body must beValid(beRight(beAnInstanceOf[CreateCommentResponse]))
         }
       }
     }
@@ -176,7 +177,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(APIComment.fromDomain(comment))))
+          response.body must beValid(beRight(be_==(APIComment.fromDomain(comment))))
         }
       }
     }
@@ -196,7 +197,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           CreationScheduled(commentID) <- commentCreate(postID)
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Comment
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // to own the Comment
             .flatMap(discussionsWrites.commentWrites.createComment)
           comment <- discussionsReads.commentReads.requireById(commentID).eventually()
           newContent = Comment.Content("lorem ipsum")
@@ -217,12 +218,12 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(UpdateCommentResponse(commentID))))
+          response.body must beValid(beRight(be_==(UpdateCommentResponse(commentID))))
           updatedComment === comment
-            .focus(_.data.content)
-            .replace(newContent)
-            .focus(_.data.lastModifiedAt)
-            .replace(updatedComment.data.lastModifiedAt)
+            .modify(_.data.content)
+            .setTo(newContent)
+            .modify(_.data.lastModifiedAt)
+            .setTo(updatedComment.data.lastModifiedAt)
         }
       }
     }
@@ -242,7 +243,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           CreationScheduled(commentID) <- commentCreate(postID)
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Comment
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // to own the Comment
             .flatMap(discussionsWrites.commentWrites.createComment)
           _ <- discussionsReads.commentReads.requireById(commentID).eventually()
           // when
@@ -259,7 +260,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(DeleteCommentResponse(commentID))))
+          response.body must beValid(beRight(be_==(DeleteCommentResponse(commentID))))
         }
       }
     }
@@ -279,7 +280,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
           _ <- discussionsReads.postReads.requireById(postID).eventually()
           CreationScheduled(commentID) <- commentCreate(postID)
-            .map(_.focus(_.authorID).replace(userIDUsers2Discussions.get(userID))) // to own the Comment
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(userID))) // to own the Comment
             .flatMap(discussionsWrites.commentWrites.createComment)
           _ <- discussionsReads.commentReads.requireById(commentID).eventually()
           _ <- discussionsWrites.commentWrites.deleteComment(
@@ -300,7 +301,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield {
           // then
           response.code === StatusCode.Ok
-          response.body must beValid(beRight(be_===(RestoreCommentResponse(commentID))))
+          response.body must beValid(beRight(be_==(RestoreCommentResponse(commentID))))
         }
       }
     }
@@ -330,7 +331,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
           _ <- discussionsReads.commentReads
             .requireById(commentID)
-            .assert("Upvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+            .assert("Upvoted entity should have changed score")(_.data.totalScore.unwrap =!= 0)
             .eventually()
         } yield
         // then
@@ -363,7 +364,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
           _ <- discussionsReads.commentReads
             .requireById(commentID)
-            .assert("Downvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+            .assert("Downvoted entity should have changed score")(_.data.totalScore.unwrap =!= 0)
             .eventually()
         } yield
         // then
@@ -392,7 +393,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
           _ <- discussionsReads.commentReads
             .requireById(commentID)
-            .assert("Upvoted entity should have changed score")(_.data.totalScore.toInt =!= 0)
+            .assert("Upvoted entity should have changed score")(_.data.totalScore.unwrap =!= 0)
             .eventually()
           // when
           response <- CommentAPIs.revokeVote.toTestCall.untupled(
@@ -403,7 +404,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
           _ <- discussionsReads.commentReads
             .requireById(commentID)
-            .assert("Revoked-vote entity should have changed score")(_.data.totalScore.toInt === 0)
+            .assert("Revoked-vote entity should have changed score")(_.data.totalScore.unwrap eqv 0)
             .eventually()
         } yield
         // then

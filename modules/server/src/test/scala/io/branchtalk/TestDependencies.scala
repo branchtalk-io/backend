@@ -2,7 +2,6 @@ package io.branchtalk
 
 import cats.effect.std.Dispatcher
 import cats.effect.{ Async, Resource }
-import com.softwaremill.macwire.wire
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites, TestDiscussionsConfig }
 import io.branchtalk.logging.MDC
 import io.branchtalk.shared.model.UUID
@@ -30,5 +29,5 @@ object TestDependencies {
       discussionsConfig <- TestDiscussionsConfig.loadDomainConfig[F]
       discussionsReads <- DiscussionsModule.reads[F](discussionsConfig, registry)
       discussionsWrites <- DiscussionsModule.writes[F](discussionsConfig, registry)
-    } yield wire[TestDependencies[F]]
+    } yield TestDependencies[F](usersReads, usersWrites, discussionsReads, discussionsWrites)
 }

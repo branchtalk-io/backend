@@ -2,7 +2,6 @@ import sbt.*
 import commandmatrix.extra.*
 import com.typesafe.sbt.SbtNativePackager.Docker
 import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
-import sbt.TestFrameworks.Specs2
 
 Global / excludeLintKeys ++= Set(
   dockerExposedPorts,
@@ -40,6 +39,7 @@ val settings = Seq(
     // format: off
     "-Xmax-inlines", "64",
     // format: on
+    "-Wconf:msg=The method `apply` is inserted:s",
     "-Wnonunit-statement",
     "-Wvalue-discard",
     // "-Xfatal-warnings",
@@ -96,6 +96,11 @@ val settings = Seq(
     Wart.NonUnitStatements,
     Wart.Nothing
   ),
+  // used A LOT in Specs2
+  Test / scalacOptions ++= Seq(
+    "-Wconf:msg=unused value of type:s",
+    "-language:implicitConversions"
+  ),
   // don't publish
   publish / skip := true,
   publishArtifact := false
@@ -110,7 +115,7 @@ val tests = Seq(
 ) ++ inConfig(Test)(
   Seq(
     scalafmtOnCompile := true,
-    testFrameworks := Seq(Specs2),
+    testFrameworks := Seq(TestFrameworks.Specs2),
     libraryDependencies ++= Seq(
       Dependencies.catsLaws % Test,
       Dependencies.spec2Core % Test,
