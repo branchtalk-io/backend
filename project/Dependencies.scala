@@ -55,6 +55,7 @@ object Dependencies {
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
   val flyway         = "org.flywaydb" % "flyway-core" % "10.16.0" // https://github.com/flyway/flyway/releases
+  val flywayPostgres = "org.flywaydb" % "flyway-database-postgresql" % "10.16.0" // https://github.com/flyway/flyway/releases
   val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "3.5.1" // https://github.com/fd4s/fs2-kafka/releasesreleases
   val redis4cats =
     "dev.profunktor" %% "redis4cats-effects" % "1.7.1" // https://github.com/profunktor/redis4cats/releases

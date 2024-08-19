@@ -233,6 +233,7 @@ val commonInfrastructure = project
       Dependencies.doobiePostgres,
       Dependencies.enumeratumDoobie,
       Dependencies.flyway,
+      Dependencies.flywayPostgres,
       Dependencies.fs2,
       Dependencies.fs2IO,
       Dependencies.fs2Kafka,

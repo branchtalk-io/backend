@@ -1,17 +1,19 @@
 package io.branchtalk.shared
 
 import cats.effect.IO
-import com.devskiller.jfairy.Fairy
-import com.devskiller.jfairy.producer.{ BaseProducer, DateProducer }
-import com.devskiller.jfairy.producer.company.{ Company, CompanyProperties }
-import com.devskiller.jfairy.producer.net.NetworkProducer
-import com.devskiller.jfairy.producer.payment.CreditCard
-import com.devskiller.jfairy.producer.person.{ Person, PersonProperties }
-import com.devskiller.jfairy.producer.text.TextProducer
+import com.devskiller.jfairy.*
+import com.devskiller.jfairy.data.*
+import com.devskiller.jfairy.producer
+import com.devskiller.jfairy.producer.*
+import com.devskiller.jfairy.producer.company.*
+import com.devskiller.jfairy.producer.net.*
+import com.devskiller.jfairy.producer.payment.*
+import com.devskiller.jfairy.producer.person.*
+import com.devskiller.jfairy.producer.text.*
 
 object Fixtures {
 
-  private val fairy = Fairy.create().pure[IO]
+  private val fairy = makeFairy("en").pure[IO]
 
   val baseProducer: IO[BaseProducer] = fairy.map(_.baseProducer)
   def company(companyProperties: CompanyProperties.CompanyProperty*): IO[Company] =
