@@ -1,6 +1,6 @@
 package io.branchtalk.shared.model
 
-import cats.{ Applicative, Traverse }
+import cats.{ Applicative, Eval, Traverse }
 
 // Express the intent that something should be updated or not better than Option.
 enum Updatable[+A] derives ShowPretty, FastEq {
@@ -26,7 +26,21 @@ object Updatable {
       case _                => Keep
     }
   }
-  private val traverse: Traverse[Updatable] = cats.derived.semiauto.traverse[Updatable]
+  // hand-written: Kindlings' Traverse derivation does not support the singleton `Keep` case
+  private val traverse: Traverse[Updatable] = new Traverse[Updatable] {
+    override def traverse[G[_]: Applicative, A, B](fa: Updatable[A])(f: A => G[B]): G[Updatable[B]] = fa match {
+      case Set(value) => f(value).map(Set(_))
+      case Keep       => Applicative[G].pure[Updatable[B]](Keep)
+    }
+    override def foldLeft[A, B](fa: Updatable[A], b: B)(f: (B, A) => B): B = fa match {
+      case Set(value) => f(b, value)
+      case Keep       => b
+    }
+    override def foldRight[A, B](fa: Updatable[A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] = fa match {
+      case Set(value) => f(value, lb)
+      case Keep       => lb
+    }
+  }
   given ApplicativeTraverse[Updatable] = ApplicativeTraverse.derived(applicative, traverse)
 }
 
@@ -61,6 +75,22 @@ object OptionUpdatable {
       case _                => Keep
     }
   }
-  private val traverse: Traverse[OptionUpdatable] = cats.derived.semiauto.traverse[OptionUpdatable]
+  // hand-written: Kindlings' Traverse derivation does not support the singleton `Erase`/`Keep` cases
+  private val traverse: Traverse[OptionUpdatable] = new Traverse[OptionUpdatable] {
+    override def traverse[G[_]: Applicative, A, B](fa: OptionUpdatable[A])(f: A => G[B]): G[OptionUpdatable[B]] =
+      fa match {
+        case Set(value) => f(value).map(Set(_))
+        case Erase      => Applicative[G].pure[OptionUpdatable[B]](Erase)
+        case Keep       => Applicative[G].pure[OptionUpdatable[B]](Keep)
+      }
+    override def foldLeft[A, B](fa: OptionUpdatable[A], b: B)(f: (B, A) => B): B = fa match {
+      case Set(value)   => f(b, value)
+      case Erase | Keep => b
+    }
+    override def foldRight[A, B](fa: OptionUpdatable[A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] = fa match {
+      case Set(value)   => f(value, lb)
+      case Erase | Keep => lb
+    }
+  }
   given ApplicativeTraverse[OptionUpdatable] = ApplicativeTraverse.derived(applicative, traverse)
 }

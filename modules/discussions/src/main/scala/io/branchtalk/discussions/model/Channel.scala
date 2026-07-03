@@ -50,6 +50,7 @@ object Channel {
 
   type UrlName = UrlName.Type
   object UrlName extends Newtype[String] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     private val pattern = "[A-Za-z0-9_-]+".r
 
@@ -63,6 +64,7 @@ object Channel {
 
   type Name = Name.Type
   object Name extends Newtype[String] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: String): Boolean = input.nonEmpty
 
@@ -74,6 +76,7 @@ object Channel {
 
   type Description = Description.Type
   object Description extends Newtype[String] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: String): Boolean = input.nonEmpty
 

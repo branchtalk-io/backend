@@ -1,23 +1,21 @@
 package io.branchtalk.shared.model
 
-import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 import java.net.URI
-import java.util
-import cats.{ Eq, Id, Show }
+import java.time.OffsetDateTime
+import cats.{ Eq, Show }
 import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptyVector }
-import cats.effect.{ Resource, Sync, SyncIO }
-import com.sksamuel.avro4s.*
+import cats.effect.Sync
+import hearth.kindlings.avroderivation.{ AvroConfig, AvroDecoder, AvroEncoder, AvroIO, AvroSchemaFor }
 import io.scalaland.chimney.partial
 import org.apache.avro.Schema
 import neotype.*
 
-import scala.collection.compat.Factory
 import scala.jdk.CollectionConverters.*
-import scala.util.{ Failure, Success }
+import scala.util.Try
 import scala.util.control.NoStackTrace
-import org.apache.avro.Schema
 
-import scala.language.implicitConversions
+// Default Avro derivation config, in scope wherever the model is imported so `derives AvroEncoder, AvroDecoder` works.
+given AvroConfig = AvroConfig.default
 
 // Missing helpers for serializations and deserialization with some API saner than byte array streams.
 enum DeserializationError extends Throwable, NoStackTrace derives FastEq, ShowPretty {
@@ -41,134 +39,134 @@ object AvroSerialization {
 
   type DeserializationResult[+A] = Either[DeserializationError, A]
 
-  def serialize[F[_]: Sync, A: Encoder: SchemaFor](value: A): F[Array[Byte]] =
-    Resource.fromAutoCloseable(Sync[F].delay(new ByteArrayOutputStream())).use { baos =>
-      Sync[F].delay {
-        val aos = AvroOutputStream.json[A].to(baos).build()
-        aos.write(value)
-        aos.close()
-        aos.flush()
-        baos.toByteArray
-      }
+  def serialize[F[_]: Sync, A: AvroEncoder](value: A): F[Array[Byte]] =
+    Sync[F].delay(AvroIO.toBinary(value))
+
+  def deserialize[F[_]: Sync, A: AvroDecoder](arr: Array[Byte]): F[DeserializationResult[A]] =
+    Sync[F].delay(AvroIO.fromBinary[A](arr).asRight[DeserializationError]).handleError { (error: Throwable) =>
+      logger.error(s"Avro deserialization error for '${new String(arr, branchtalkCharset)}'", error)
+      DeserializationError.DecodingError(new String(arr, branchtalkCharset), error).asLeft[A]
     }
 
-  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf", "org.wartremover.warts.Throw"))
-  def deserialize[F[_]: Sync, A: Decoder: SchemaFor](arr: Array[Byte]): F[DeserializationResult[A]] =
-    Resource.fromAutoCloseable(Sync[F].delay(new ByteArrayInputStream(arr))).use { bais =>
-      Sync[F]
-        .delay {
-          AvroInputStream
-            .json[A]
-            .from(bais)
-            .build(SchemaFor[A].schema)
-            .asInstanceOf[AvroJsonInputStream[A]]
-            .singleEntity match {
-            case Success(value) =>
-              value.asRight[DeserializationError]
-            case Failure(error) =>
-              DeserializationError.DecodingError("Failed to extract Avro message", error).asLeft[A]
-          }
-        }
-        .handleError { (error: Throwable) =>
-          logger.error(s"Avro deserialization error for '${new String(arr, branchtalkCharset)}'", error)
-          DeserializationError.DecodingError(new String(arr, branchtalkCharset), error).asLeft[A]
-        }
-    }
+  def serializeUnsafe[A: AvroEncoder](value: A): Array[Byte] =
+    AvroIO.toBinary(value)
 
-  def serializeUnsafe[A: Encoder: SchemaFor](value: A): Array[Byte] =
-    serialize[SyncIO, A](value).unsafeRunSync()
+  def deserializeUnsafe[A: AvroDecoder](arr: Array[Byte]): DeserializationResult[A] =
+    Try(AvroIO.fromBinary[A](arr)).toEither.left
+      .map(DeserializationError.DecodingError(new String(arr, branchtalkCharset), _))
+}
 
-  def deserializeUnsafe[A: Decoder: SchemaFor](arr: Array[Byte]): DeserializationResult[A] =
-    deserialize[SyncIO, A](arr).unsafeRunSync()
+// A combined codec: AvroEncoder and AvroDecoder both extend AvroSchemaFor, so providing them as SEPARATE givens makes
+// `summon[AvroSchemaFor[T]]` ambiguous (both qualify). One AvroCodec given per supported "leaf" type means each of the
+// three summons (encoder / decoder / schema) resolves to exactly one instance.
+trait AvroCodec[A] extends AvroEncoder[A], AvroDecoder[A]
+
+// Base-type codecs Kindlings doesn't provide out of the box (encoded as ISO / canonical strings). Top-level so they
+// are in scope wherever `io.branchtalk.shared.model.*` is imported (e.g. newtype companions building `newtypeCodec`).
+
+@SuppressWarnings(Array("org.wartremover.warts.ToString")) // false warning - URI overrides toString
+given AvroCodec[URI] with {
+  private val E = summon[AvroEncoder[String]]
+  private val D = summon[AvroDecoder[String]]
+  def schema:             Schema = E.schema
+  def encode(value: URI): Any    = E.encode(value.toString)
+  def decode(value: Any): URI    = URI.create(D.decode(value))
+}
+
+given AvroCodec[UUID] with {
+  private val E = summon[AvroEncoder[String]]
+  private val D = summon[AvroDecoder[String]]
+  def schema:              Schema = E.schema
+  def encode(value: UUID): Any    = E.encode(value.toString)
+  def decode(value: Any):  UUID   = java.util.UUID.fromString(D.decode(value))
+}
+
+given AvroCodec[OffsetDateTime] with {
+  private val E = summon[AvroEncoder[String]]
+  private val D = summon[AvroDecoder[String]]
+  def schema:                        Schema         = E.schema
+  def encode(value: OffsetDateTime): Any            = E.encode(value.toString)
+  def decode(value: Any):            OffsetDateTime = OffsetDateTime.parse(D.decode(value))
+}
+
+given AvroCodec[Array[Byte]] with {
+  private val E = summon[AvroEncoder[scala.collection.immutable.ArraySeq[Byte]]]
+  private val D = summon[AvroDecoder[scala.collection.immutable.ArraySeq[Byte]]]
+  def schema:                     Schema      = E.schema
+  def encode(value: Array[Byte]): Any         = E.encode(scala.collection.immutable.ArraySeq.unsafeWrapArray(value))
+  def decode(value: Any):         Array[Byte] = D.decode(value).toArray
 }
 
 object AvroSupport {
 
-  // newtype - order of implicits is necessary (swapping them would break derivations, so we can't use typeclass syntax)
+  private def arraySchema(elem: Schema): Schema = Schema.createArray(elem)
 
+  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
+  private def decodeArray[T](decoder: AvroDecoder[T], value: Any): List[T] = value match {
+    case array: Array[?]                => array.toList.map(decoder.decode)
+    case list:  java.util.Collection[?] => list.asScala.map(decoder.decode).toList
+    case other => sys.error(s"Unsupported type $other")
+  }
+
+  // newtype - wrap the underlying type's instances.
+  // For newtypes defined in the SAME module as the derived event, Kindlings' derivation macro cannot summon the
+  // generic given below (its `Newtype.WithType` evidence is a same-run transparent-inline given the macro can't see),
+  // so such newtypes must expose a concrete `given AvroCodec[X] = AvroSupport.newtypeCodec` in their companion.
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-  given [A, B](using A: Newtype.WithType[B, A], B: Decoder[B]): Decoder[A] =
-    B.map[A](b => A.make(b).fold[A](str => throw Avro4sDecodingException(str, b), identity[A]))
-  given [A, B](using A: Newtype.WithType[B, A], B: Encoder[B]):   Encoder[A]   = B.contramap[A](A.unwrap)
-  given [A, B](using A: Newtype.WithType[B, A], B: SchemaFor[B]): SchemaFor[A] = B.forType[A]
+  def newtypeCodec[B, A](using A: Newtype.WithType[B, A], E: AvroEncoder[B], D: AvroDecoder[B]): AvroCodec[A] =
+    new AvroCodec[A] {
+      def schema:           Schema = E.schema
+      def encode(value: A): Any    = E.encode(A.unwrap(value))
+      def decode(value: Any): A =
+        A.make(D.decode(value)).fold[A](str => throw new IllegalArgumentException(str), identity[A])
+    }
 
-  // cats - copy pased because:
-  // Implementation restriction: package com.sksamuel.avro4s.cats is not a valid prefix for a wildcard export, as it is a package
+  given [A, B](using Newtype.WithType[B, A], AvroEncoder[B], AvroDecoder[B]): AvroCodec[A] = newtypeCodec[B, A]
 
-  import scala.jdk.CollectionConverters.*
-
-  given [T](using schemaFor: SchemaFor[T]): SchemaFor[NonEmptyList[T]] = SchemaFor(Schema.createArray(schemaFor.schema))
-  given [T](using schemaFor: SchemaFor[T]): SchemaFor[NonEmptyVector[T]] = SchemaFor(
-    Schema.createArray(schemaFor.schema)
-  )
-  given [T](using schemaFor: SchemaFor[T]): SchemaFor[NonEmptyChain[T]] = SchemaFor(
-    Schema.createArray(schemaFor.schema)
-  )
-
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
-  given [T](using encoder: Encoder[T]): Encoder[NonEmptyList[T]] = (schema: Schema) => {
-    require(schema.getType == Schema.Type.ARRAY)
-    val encode = encoder.encode(schema)
-    (value: NonEmptyList[T]) => value.map(encode).toList.asJava
+  // Combine an encoder + decoder into a single AvroCodec (so `summon[AvroSchemaFor[A]]` stays unambiguous). Useful to
+  // give a concrete instance to a type - e.g. an enum used inside `Updatable[...]` - via `avroCodec(using
+  // AvroEncoder.derived, AvroDecoder.derived)`.
+  def avroCodec[A](using E: AvroEncoder[A], D: AvroDecoder[A]): AvroCodec[A] = new AvroCodec[A] {
+    def schema:             Schema = E.schema
+    def encode(value: A):   Any    = E.encode(value)
+    def decode(value: Any): A      = D.decode(value)
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
-  given [T](using encoder: Encoder[T]): Encoder[NonEmptyVector[T]] = (schema: Schema) => {
-    require(schema.getType == Schema.Type.ARRAY)
-    val encode = encoder.encode(schema)
-    (value: NonEmptyVector[T]) => value.map(encode).toVector.asJava
+  // Updatable: Kindlings' structural avro derivation mis-names the generic-enum union records (encoder writes
+  // `Set__Type`, decoder expects `Set`) when the enum is the sole such field of a record, so events fail to
+  // round-trip. Encode as the isomorphic Avro union [null, A] (Set(a) -> a, Keep -> null) built directly from the
+  // element codec, sidestepping the buggy derivation.
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
+  given [A](using E: AvroEncoder[A], D: AvroDecoder[A]): AvroCodec[Updatable[A]] with {
+    def schema: Schema = Schema.createUnion(Schema.create(Schema.Type.NULL), E.schema)
+    def encode(value: Updatable[A]): Any = value match {
+      case Updatable.Set(a) => E.encode(a)
+      case Updatable.Keep   => null
+    }
+    def decode(value: Any): Updatable[A] = value match {
+      case null => Updatable.Keep
+      case v    => Updatable.Set(D.decode(v))
+    }
   }
 
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
-  given [T](using encoder: Encoder[T]): Encoder[NonEmptyChain[T]] = (schema: Schema) => {
-    require(schema.getType == Schema.Type.ARRAY)
-    val encode = encoder.encode(schema)
-    (value: NonEmptyChain[T]) => value.map(encode).toNonEmptyList.toList.asJava
-  }
+  // cats - non-empty collections encoded as Avro arrays
 
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
-  given [T](using decoder: Decoder[T]): Decoder[NonEmptyList[T]] = (schema: Schema) => {
-    require(schema.getType == Schema.Type.ARRAY)
-    val decode = decoder.decode(schema)
-    (value: Any) =>
-      value match {
-        case array: Array[?] if array.nonEmpty => NonEmptyList.fromListUnsafe(array.toList.map(decode))
-        case list:  java.util.Collection[?] if !list.isEmpty =>
-          NonEmptyList.fromListUnsafe(list.asScala.map(decode).toList)
-        case other => sys.error(s"Unsupported type $other")
-      }
+  given [T](using E: AvroEncoder[T], D: AvroDecoder[T]): AvroCodec[NonEmptyList[T]] with {
+    def schema:                         Schema          = arraySchema(E.schema)
+    def encode(value: NonEmptyList[T]): Any             = value.map(E.encode).toList.asJava
+    def decode(value: Any):             NonEmptyList[T] = NonEmptyList.fromListUnsafe(decodeArray(D, value))
   }
-
-  @SuppressWarnings(Array("org.wartremover.warts.Equals"))
-  given [T](using decoder: Decoder[T]): Decoder[NonEmptyVector[T]] = (schema: Schema) => {
-    require(schema.getType == Schema.Type.ARRAY)
-    val decode = decoder.decode(schema)
-    (value: Any) =>
-      value match {
-        case array: Array[?] if array.nonEmpty => NonEmptyVector.fromVectorUnsafe(array.toVector.map(decode))
-        case list:  java.util.Collection[?] if !list.isEmpty =>
-          NonEmptyVector.fromVectorUnsafe(list.asScala.map(decode).toVector)
-        case other => sys.error(s"Unsupported type $other") // A
-      }
+  given [T](using E: AvroEncoder[T], D: AvroDecoder[T]): AvroCodec[NonEmptyVector[T]] with {
+    def schema:                           Schema = arraySchema(E.schema)
+    def encode(value: NonEmptyVector[T]): Any    = value.map(E.encode).toVector.asJava
+    def decode(value: Any): NonEmptyVector[T] = NonEmptyVector.fromVectorUnsafe(decodeArray(D, value).toVector)
   }
-
-  @SuppressWarnings(Array("org.wartremover.warts.Equals", "org.wartremover.warts.OptionPartial"))
-  given [T](using decoder: Decoder[T]): Decoder[NonEmptyChain[T]] = (schema: Schema) => {
-    require(schema.getType == Schema.Type.ARRAY)
-    val decode = decoder.decode(schema)
-    (value: Any) =>
-      value match {
-        case array: Array[?] if array.nonEmpty => NonEmptyChain.fromChainUnsafe(Chain.fromSeq(array.toSeq).map(decode))
-        case list:  java.util.Collection[?] if !list.isEmpty =>
-          NonEmptyChain.fromChainUnsafe(Chain.fromSeq(list.asScala.toSeq).map(decode))
-        case other => sys.error(s"Unsupported type $other")
-      }
+  given [T](using E: AvroEncoder[T], D: AvroDecoder[T]): AvroCodec[NonEmptyChain[T]] with {
+    def schema:                          Schema = arraySchema(E.schema)
+    def encode(value: NonEmptyChain[T]): Any    = value.map(E.encode).toNonEmptyList.toList.asJava
+    def decode(value: Any): NonEmptyChain[T] = NonEmptyChain.fromChainUnsafe(Chain.fromSeq(decodeArray(D, value)))
   }
 
   // custom types
 
-  given Decoder[URI] = Decoder[String].map(URI.create)
-  @SuppressWarnings(Array("org.wartremover.warts.ToString")) // false warning - URI overrides toString
-  given Encoder[URI]   = Encoder[String].contramap[URI](_.toString)
-  given SchemaFor[URI] = SchemaFor[String].forType[URI]
 }

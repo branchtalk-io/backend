@@ -1,12 +1,12 @@
 package io.branchtalk.discussions.events
 
-import com.sksamuel.avro4s.*
+import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import io.branchtalk.discussions.model.{ Channel, Post, User }
 import io.branchtalk.logging.CorrelationID
 import io.branchtalk.shared.model.*
 import io.branchtalk.shared.model.AvroSupport.{ *, given }
 
-sealed trait PostCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+sealed trait PostCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 object PostCommandEvent {
 
   final case class Create(
@@ -18,7 +18,7 @@ object PostCommandEvent {
     content:       Post.Content,
     createdAt:     CreationTime,
     correlationID: CorrelationID
-  ) extends PostCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends PostCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 
   final case class Update(
     id:            ID[Post],
@@ -28,35 +28,35 @@ object PostCommandEvent {
     newContent:    Updatable[Post.Content],
     modifiedAt:    ModificationTime,
     correlationID: CorrelationID
-  ) extends PostCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends PostCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 
   final case class Delete(
     id:            ID[Post],
     editorID:      ID[User],
     correlationID: CorrelationID
-  ) extends PostCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends PostCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 
   final case class Restore(
     id:            ID[Post],
     editorID:      ID[User],
     correlationID: CorrelationID
-  ) extends PostCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends PostCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 
   final case class Upvote(
     id:            ID[Post],
     voterID:       ID[User],
     correlationID: CorrelationID
-  ) extends PostCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends PostCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 
   final case class Downvote(
     id:            ID[Post],
     voterID:       ID[User],
     correlationID: CorrelationID
-  ) extends PostCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends PostCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 
   final case class RevokeVote(
     id:            ID[Post],
     voterID:       ID[User],
     correlationID: CorrelationID
-  ) extends PostCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends PostCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 }

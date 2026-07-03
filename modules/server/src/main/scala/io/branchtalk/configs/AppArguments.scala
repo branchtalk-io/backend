@@ -2,7 +2,7 @@ package io.branchtalk.configs
 
 import cats.effect.{ ExitCode, Sync }
 import com.monovore.decline.*
-import com.typesafe.config.{ Config, ConfigRenderOptions }
+import org.ekrich.config.{ Config, ConfigRenderOptions }
 import io.branchtalk.shared.model.ShowPretty
 
 final case class AppArguments(
@@ -99,7 +99,7 @@ object AppArguments {
     .mkString("\n")
 
   private val configRenderOptions =
-    ConfigRenderOptions.defaults().setOriginComments(false).setFormatted(true).setJson(false)
+    ConfigRenderOptions.defaults.setOriginComments(false).setFormatted(true).setJson(false)
 
   private def additionalInfo(config: Config): String =
     s"""

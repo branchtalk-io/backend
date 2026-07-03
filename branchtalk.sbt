@@ -1,5 +1,4 @@
 import sbt.*
-import commandmatrix.extra.*
 import com.typesafe.sbt.SbtNativePackager.Docker
 import org.scalafmt.sbt.ScalafmtPlugin.scalafmtConfigSettings
 
@@ -16,11 +15,6 @@ Global / excludeLintKeys ++= Set(
 
 // Common settings:
 
-val only1VersionInIDE = Seq(
-  MatrixAction.ForPlatform(VirtualAxis.jvm).Configure(_.settings(ideSkipProject := false, bspEnabled := true)),
-  MatrixAction.ForPlatform(VirtualAxis.js).Configure(_.settings(ideSkipProject := true, bspEnabled := false))
-)
-
 val settings = Seq(
   organization := "io.branchtalk",
   scalaVersion := Dependencies.scalaVersion,
@@ -28,7 +22,6 @@ val settings = Seq(
     // standard settings
     // format: off
     "-encoding", "UTF-8",
-    "-rewrite",
     "-source", "3.3-migration",
     // format: on
     "-unchecked",
@@ -71,14 +64,15 @@ val settings = Seq(
     Dependencies.catsFree,
     Dependencies.catsEffect,
     Dependencies.alleycats,
-    Dependencies.kittens,
+    Dependencies.kindlingsCats,
+    Dependencies.kindlingsCatsInterop,
+    Dependencies.kindlingsShowPretty,
     Dependencies.chimney,
     Dependencies.enumeratum,
     Dependencies.fastuuid,
     Dependencies.uuidGenerator,
     Dependencies.log4cats,
     Dependencies.log4catsSlf4j,
-    Dependencies.magnolia,
     Dependencies.neotype,
     Dependencies.scalaLogging,
     Dependencies.quicklens,
@@ -129,7 +123,14 @@ val integrationTests = tests ++ Seq(
 )
 
 def customPredef(imports: String*): Def.Setting[Task[Seq[String]]] =
-  scalacOptions += s"-Yimports:${(Seq("java.lang", "scala", "scala.Predef") ++ imports).mkString(",")}"
+  scalacOptions += s"-Yimports:${(Seq(
+      "java.lang",
+      "scala",
+      "scala.Predef",
+      // Kindlings cats derivation: brings `.derived` extensions onto cats type class companions
+      // (Eq, Show, Order, Traverse, ...) so `derives Eq`/`ShowPretty`/... resolve everywhere.
+      "hearth.kindlings.catsderivation.extensions"
+    ) ++ imports).mkString(",")}"
 
 // modules
 
@@ -151,29 +152,11 @@ lazy val root = project
   .aggregate(usersImpl)
   .aggregate(server, application)
 
-lazy val scalaJsArtifacts = project
-  .in(file("scala-js"))
-  .enablePlugins(GitVersioning, GitBranchPrompt)
-  .settings(
-    name := "scala-js-artifacts",
-    description := "aggregates all Scala.js modules to publish"
-  )
-  .settings(settings *)
-  .aggregate(
-    common.js(Dependencies.scalaVersion),
-    commonApi.js(Dependencies.scalaVersion),
-    discussions.js(Dependencies.scalaVersion),
-    discussionsApi.js(Dependencies.scalaVersion),
-    users.js(Dependencies.scalaVersion),
-    usersApi.js(Dependencies.scalaVersion)
-  )
-
 // commons
 
 val common = projectMatrix
   .in(file("modules/common"))
-  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
-  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
+  .jvmPlatform(List(Dependencies.scalaVersion))
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "common",
@@ -183,9 +166,8 @@ val common = projectMatrix
   .settings(tests *)
   .settings(
     libraryDependencies ++= Seq(
-      Dependencies.avro4s,
-      Dependencies.avro4sCats,
-      Dependencies.sourcecode,
+      Dependencies.hearth,
+      Dependencies.kindlingsAvro,
       Dependencies.jfairy % Test,
       Dependencies.guice % Test, // required by jfairy on JDK 15+
       Dependencies.guiceAssisted % Test // required by jfairy on JDK 15+
@@ -194,10 +176,9 @@ val common = projectMatrix
   )
 
 val commonApi = projectMatrix
-  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
-  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
   .in(file("modules/common-api"))
+  .jvmPlatform(List(Dependencies.scalaVersion))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "common-api",
     description := "Infrastructure-dependent implementations"
@@ -207,7 +188,7 @@ val commonApi = projectMatrix
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniter,
-      Dependencies.jsoniterMacro,
+      Dependencies.kindlingsJsoniter,
       Dependencies.neotypeTapir,
       Dependencies.neotypeJsoniter,
       Dependencies.tapir,
@@ -239,9 +220,8 @@ val commonInfrastructure = project
       Dependencies.fs2Kafka,
       Dependencies.neotypeDoobie,
       Dependencies.prometheus,
-      Dependencies.pureConfig,
-      Dependencies.pureConfigCats,
-      Dependencies.pureConfigEnumeratum,
+      Dependencies.kindlingsSconfig,
+      Dependencies.sconfig,
       Dependencies.redis4cats
     ),
     customPredef("scala.util.chaining", "cats.implicits", "neotype")
@@ -251,10 +231,9 @@ val commonInfrastructure = project
 // discussions
 
 val discussions = projectMatrix
-  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
-  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
   .in(file("modules/discussions"))
+  .jvmPlatform(List(Dependencies.scalaVersion))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "discussions",
     description := "Discussions' published language"
@@ -267,10 +246,9 @@ val discussions = projectMatrix
   .dependsOn(common)
 
 val discussionsApi = projectMatrix
-  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
-  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
-  .enablePlugins(GitVersioning, GitBranchPrompt)
   .in(file("modules/discussions-api"))
+  .jvmPlatform(List(Dependencies.scalaVersion))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "discussions-api",
     description := "Discussions' HTTP API"
@@ -279,7 +257,7 @@ val discussionsApi = projectMatrix
   .settings(tests)
   .settings(
     libraryDependencies ++= Seq(
-      Dependencies.jsoniterMacro
+      Dependencies.kindlingsJsoniter
     ),
     customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
@@ -307,8 +285,7 @@ val discussionsImpl = project
 
 val users = projectMatrix
   .in(file("modules/users"))
-  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
-  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
+  .jvmPlatform(List(Dependencies.scalaVersion))
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "users",
@@ -326,8 +303,7 @@ val users = projectMatrix
 
 val usersApi = projectMatrix
   .in(file("modules/users-api"))
-  .someVariations(List(Dependencies.scalaVersion), List(VirtualAxis.jvm, VirtualAxis.js))(only1VersionInIDE *)
-  .defaultAxes(VirtualAxis.scalaABIVersion(Dependencies.scalaVersion), VirtualAxis.jvm)
+  .jvmPlatform(List(Dependencies.scalaVersion))
   .enablePlugins(GitVersioning, GitBranchPrompt)
   .settings(
     name := "users-api",
@@ -337,7 +313,7 @@ val usersApi = projectMatrix
   .settings(tests)
   .settings(
     libraryDependencies ++= Seq(
-      Dependencies.jsoniterMacro
+      Dependencies.kindlingsJsoniter
     ),
     customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
@@ -355,7 +331,7 @@ val usersImpl = project
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.jsoniter,
-      Dependencies.jsoniterMacro
+      Dependencies.kindlingsJsoniter
     ),
     customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
@@ -380,7 +356,9 @@ val server = project
   .settings(
     libraryDependencies ++= Seq(
       Dependencies.decline,
-      Dependencies.jsoniterMacro,
+      Dependencies.kindlingsJsoniter,
+      Dependencies.kindlingsSconfig,
+      Dependencies.kindlingsTapirOpenAPI,
       Dependencies.sttpCats % Test,
       Dependencies.http4sBlaze,
       Dependencies.http4sPrometheus,

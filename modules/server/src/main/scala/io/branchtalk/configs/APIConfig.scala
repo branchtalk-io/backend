@@ -7,15 +7,14 @@ import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.users.model.User
 import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 import io.branchtalk.shared.model.*
-import pureconfig.error.CannotConvert
 import sttp.apispec.openapi.*
 
 import java.net.URI
 import scala.concurrent.duration.FiniteDuration
 
-given ConfigReader[User.Email]      = ConfigReader[String].emapString("User.Email")(User.Email.make)
-given ConfigReader[Post.URL]        = ConfigReader[URI].emapString("Post.URL")(Post.URL.make)
-given ConfigReader[Paginated.Limit] = ConfigReader[Int].emapString("Paginated.Limit")(Paginated.Limit.make)
+given ConfigReader[User.Email]      = summon[ConfigReader[String]].emapString("User.Email")(User.Email.make)
+given ConfigReader[Post.URL]        = summon[ConfigReader[URI]].emapString("Post.URL")(Post.URL.make)
+given ConfigReader[Paginated.Limit] = summon[ConfigReader[Int]].emapString("Paginated.Limit")(Paginated.Limit.make)
 
 final case class APIContact(
   name:  String,
@@ -101,19 +100,21 @@ object APIPart extends Enum[APIPart] {
 
   val values: IndexedSeq[APIPart] = findValues
 
-  // NOTE: there is no derivation for Map[A, B] ConfigReader, only Map[String, A]
-  given asMapKey[A](using mapReader: ConfigReader[Map[String, A]]): ConfigReader[Map[APIPart, A]] =
+  // NOTE: there is no derivation for Map[A, B] ConfigReader, only Map[String, A].
+  // A concrete given (not a generic one) is required so Kindlings' same-run derivation macro can resolve it.
+  def asMapKey[A](using mapReader: ConfigReader[Map[String, A]]): ConfigReader[Map[APIPart, A]] =
     mapReader.emap { map =>
       map.toList
         .traverse { case (key, value) =>
           withNameInsensitiveEither(key)
             .map(_ -> value)
             .left
-            .map(error => CannotConvert(key, "APIPart", error.getMessage()))
+            .map(error => s"Cannot convert '$key' to APIPart: ${error.getMessage()}")
         }
         .map(_.toMap)
     }
-  given Show[APIPart] = _.entryName
+  given ConfigReader[Map[APIPart, PaginationConfig]] = asMapKey
+  given Show[APIPart]                                = _.entryName
 }
 
 final case class APIConfig(

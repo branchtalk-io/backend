@@ -3,6 +3,7 @@ package io.branchtalk.discussions
 import cats.effect.{ Async, Resource, Sync }
 import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
+import org.ekrich.config.ConfigFactory
 
 final case class TestDiscussionsConfig(
   database:          TestPostgresConfig,
@@ -12,11 +13,15 @@ final case class TestDiscussionsConfig(
 ) derives ConfigReader
 object TestDiscussionsConfig {
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def load[F[_]: Sync]: Resource[F, TestDiscussionsConfig] =
     Resource.eval(
-      Sync[F].delay(
-        ConfigSource.resources("discussions-test.conf").at("discussions-test").loadOrThrow[TestDiscussionsConfig]
-      )
+      Sync[F].delay {
+        val config = ConfigFactory.parseResources("discussions-test.conf").resolve()
+        summon[ConfigReader[TestDiscussionsConfig]]
+          .from(config.getValue("discussions-test"))
+          .fold(error => throw error, identity)
+      }
     )
 
   def loadDomainConfig[F[_]: Async]: Resource[F, DomainModule.Config] =

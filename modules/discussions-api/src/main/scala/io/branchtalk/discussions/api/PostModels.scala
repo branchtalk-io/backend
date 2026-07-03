@@ -3,7 +3,6 @@ package io.branchtalk.discussions.api
 import java.net.URI
 
 import cats.data.NonEmptyList
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
 import io.branchtalk.api.JsoniterSupport.{ *, given }
 import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.discussions.model.*
@@ -28,7 +27,7 @@ object PostModels {
       .asNewtypeCodec[Post.URL]
   given JsCodec[Post.Text] = newtypeCodec
   given JsCodec[Post.Content] = {
-    inline given CodecMakerConfig = CodecMakerConfig.withAdtLeafClassNameMapper(adtDiscriminatorNameMapper)
+    inline given JsCodecConfig = JsCodecConfig().withAdtLeafClassNameMapper(adtDiscriminatorNameMapper)
     DefaultJsCodec.derived[Post.Content]
   }
   given JsCodec[Post.CommentsNr] = newtypeCodec

@@ -1,6 +1,6 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s.*
+import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import io.branchtalk.logging.*
 import io.branchtalk.shared.model.*
 import io.branchtalk.shared.model.AvroSupport.{ *, given }
@@ -10,7 +10,7 @@ import io.scalaland.chimney.dsl.*
 import io.scalaland.chimney.partial.syntax.*
 
 // user events doesn't store any data as they can be sensitive data
-sealed trait UserEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+sealed trait UserEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 object UserEvent {
 
   final case class Created(
@@ -48,7 +48,7 @@ object UserEvent {
       sessionExpiresAt: Session.ExpirationTime,
       createdAt:        CreationTime,
       correlationID:    CorrelationID
-    ) extends UserEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor {
+    ) extends UserEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty {
 
       def decrypt(
         algorithm: SensitiveData.Algorithm,
@@ -96,7 +96,7 @@ object UserEvent {
       updatePermissions: List[Permission.Update],
       modifiedAt:        ModificationTime,
       correlationID:     CorrelationID
-    ) extends UserEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor {
+    ) extends UserEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty {
 
       def decrypt(
         algorithm: SensitiveData.Algorithm,
@@ -116,5 +116,5 @@ object UserEvent {
     moderatorID:   Option[ID[User]],
     deletedAt:     ModificationTime,
     correlationID: CorrelationID
-  ) extends UserEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends UserEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 }
