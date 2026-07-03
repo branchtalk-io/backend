@@ -2,7 +2,9 @@ package io.branchtalk.logging
 
 import cats.{ Order, Show }
 import cats.effect.Sync
-import io.branchtalk.shared.model.UUID
+import hearth.kindlings.avroderivation.AvroConfig
+import io.branchtalk.shared.model.{ AvroCodec, AvroSupport, UUID }
+import io.branchtalk.shared.model.given
 import neotype.*
 
 type CorrelationID = CorrelationID.Type
@@ -20,6 +22,7 @@ object CorrelationID extends Newtype[String] {
 
   extension (cid: CorrelationID) def updateMDC[F[_]: MDC]: F[Unit] = MDC[F].set(key, cid.unwrap)
 
-  given Show[CorrelationID]  = unsafeMakeF[Show](Show[String])
-  given Order[CorrelationID] = unsafeMakeF[Order](Order[String])
+  given Show[CorrelationID]      = unsafeMakeF[Show](Show[String])
+  given Order[CorrelationID]     = unsafeMakeF[Order](Order[String])
+  given AvroCodec[CorrelationID] = AvroSupport.newtypeCodec
 }

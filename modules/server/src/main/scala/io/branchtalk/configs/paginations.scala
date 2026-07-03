@@ -4,4 +4,4 @@ import io.branchtalk.api.Pagination
 import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 
 given paginationLimitReader: ConfigReader[Pagination.Limit] =
-  ConfigReader[Int].emapString("Pagination.Limit")(Pagination.Limit.make)
+  summon[ConfigReader[Int]].emapString("Pagination.Limit")(Pagination.Limit.make)

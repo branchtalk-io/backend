@@ -16,7 +16,7 @@ object Server {
 
     def unapply(host: Host): Some[String] = Some(host.unwrap)
 
-    given ConfigReader[Host] = ConfigReader[String].emapString("Host")(make)
+    given ConfigReader[Host] = summon[ConfigReader[String]].emapString("Host")(make)
     given Show[Host]         = unsafeMakeF[Show](Show[String])
   }
 
@@ -27,7 +27,7 @@ object Server {
 
     def unapply(port: Port): Some[Int] = Some(port.unwrap)
 
-    given ConfigReader[Port] = ConfigReader[Int].emapString("Port")(make)
+    given ConfigReader[Port] = summon[ConfigReader[Int]].emapString("Port")(make)
     given Show[Port]         = unsafeMakeF[Show](Show[Int])
   }
 

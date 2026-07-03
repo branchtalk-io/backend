@@ -8,6 +8,7 @@ import cats.effect.Clock
 import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
 import io.branchtalk.shared.model.*
+import io.branchtalk.shared.model.given // top-level AvroCodec[OffsetDateTime] for ExpirationTime
 
 final case class Session(
   id:   ID[Session],
@@ -37,6 +38,7 @@ object Session {
 
   type ExpirationTime = ExpirationTime.Type
   object ExpirationTime extends Newtype[OffsetDateTime] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     def unapply(expirationTime: ExpirationTime): Some[OffsetDateTime] = Some(expirationTime.unwrap)
 

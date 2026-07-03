@@ -3,7 +3,7 @@ package io.branchtalk.api
 import cats.{ Id, Order }
 import cats.data.{ Chain, NonEmptyChain, NonEmptyList, NonEmptySet }
 import com.github.plokhotnyuk.jsoniter_scala.core.*
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import hearth.kindlings.jsoniterderivation.{ JsoniterConfig, KindlingsJsonValueCodec }
 import io.branchtalk.shared.model.*
 
 // Provides (missing :/) support for .map, .mapDecode,.asNewtype for Jsoniter Scala codecs.
@@ -12,10 +12,11 @@ object JsoniterSupport extends JsoniterSupportImplicits {
   // for shortening
 
   type JsCodec[A] = JsonValueCodec[A]
-  export com.github.plokhotnyuk.jsoniter_scala.macros.{
-    CodecMakerConfig as JsCodecConfig,
-    ConfiguredJsonValueCodec as DefaultJsCodec
-  }
+
+  // Kindlings' Hearth-based derivation replaces jsoniter-scala's JsonCodecMaker.
+  type DefaultJsCodec[A] = KindlingsJsonValueCodec[A]
+  val DefaultJsCodec = KindlingsJsonValueCodec
+  export hearth.kindlings.jsoniterderivation.JsoniterConfig as JsCodecConfig
 
   // utilities
 
@@ -68,14 +69,18 @@ object JsoniterSupport extends JsoniterSupportImplicits {
   given [A]: JsCodec[ID[A]] = DefaultJsCodec.derived[UUID].asNewtypeCodec[ID[A]]
 
   given [A](using JsCodec[A]): JsCodec[Updatable[A]] = {
-    inline given CodecMakerConfig =
-      CodecMakerConfig.withAdtLeafClassNameMapper(adtDiscriminatorNameMapper).withDiscriminatorFieldName(Some("action"))
+    inline given JsoniterConfig =
+      JsCodecConfig()
+        .withAdtLeafClassNameMapper(adtDiscriminatorNameMapper)
+        .copy(discriminatorFieldName = Some("action"))
     DefaultJsCodec.derived[Updatable[A]]
   }
 
   given [A](using JsCodec[A]): JsCodec[OptionUpdatable[A]] = {
-    inline given CodecMakerConfig =
-      CodecMakerConfig.withAdtLeafClassNameMapper(adtDiscriminatorNameMapper).withDiscriminatorFieldName(Some("action"))
+    inline given JsoniterConfig =
+      JsCodecConfig()
+        .withAdtLeafClassNameMapper(adtDiscriminatorNameMapper)
+        .copy(discriminatorFieldName = Some("action"))
     DefaultJsCodec.derived[OptionUpdatable[A]]
   }
 
@@ -107,5 +112,5 @@ object JsoniterSupport extends JsoniterSupportImplicits {
 }
 private[api] trait JsoniterSupportImplicits { self: JsoniterSupport.type =>
 
-  inline given CodecMakerConfig = CodecMakerConfig
+  inline given JsoniterConfig = JsoniterConfig()
 }

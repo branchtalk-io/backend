@@ -3,6 +3,7 @@ package io.branchtalk.users
 import cats.effect.{ Async, Resource, Sync }
 import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
+import org.ekrich.config.ConfigFactory
 
 final case class TestUsersConfig(
   database:          TestPostgresConfig,
@@ -12,11 +13,13 @@ final case class TestUsersConfig(
 ) derives ConfigReader
 object TestUsersConfig {
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   def load[F[_]: Sync]: Resource[F, TestUsersConfig] =
     Resource.eval(
-      Sync[F].delay(
-        ConfigSource.resources("users-test.conf").at("users-test").loadOrThrow[TestUsersConfig]
-      )
+      Sync[F].delay {
+        val config = ConfigFactory.parseResources("users-test.conf").resolve()
+        summon[ConfigReader[TestUsersConfig]].from(config.getValue("users-test")).fold(error => throw error, identity)
+      }
     )
 
   def loadDomainConfig[F[_]: Async]: Resource[F, DomainModule.Config] =

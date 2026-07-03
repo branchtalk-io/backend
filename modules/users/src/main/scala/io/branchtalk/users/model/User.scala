@@ -54,6 +54,7 @@ object User {
 
   type Email = Email.Type
   object Email extends Newtype[String] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     private val pattern = "(.+)@(.+)".r
 
@@ -67,6 +68,7 @@ object User {
 
   type Name = Name.Type
   object Name extends Newtype[String] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: String): Boolean = input.nonEmpty
 
@@ -78,6 +80,7 @@ object User {
 
   type Description = Description.Type
   object Description extends Newtype[String] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: String): Boolean = input.nonEmpty
 

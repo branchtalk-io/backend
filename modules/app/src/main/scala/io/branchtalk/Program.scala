@@ -4,7 +4,7 @@ import cats.{ Functor, Monad }
 import cats.effect.{ Async, ExitCode, Resource, Sync }
 import cats.effect.implicits.*
 import cats.effect.std.Dispatcher
-import com.typesafe.config.ConfigFactory
+import org.ekrich.config.ConfigFactory
 import io.branchtalk.api.AppServer
 import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
 import io.branchtalk.discussions.events.DiscussionEvent

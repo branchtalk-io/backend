@@ -3,7 +3,7 @@ package io.branchtalk.shared.infrastructure
 import cats.Show
 import cats.effect.std.Dispatcher
 import cats.effect.{ Async, Resource }
-import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
+import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import doobie.util.transactor.Transactor
 import io.branchtalk.logging.Logger
 import io.branchtalk.shared.infrastructure.KafkaSerialization.{ *, given }
@@ -13,7 +13,7 @@ import io.prometheus.client.CollectorRegistry
 
 // Utilities for connecting to database and events buses through Resources.
 
-final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor] {
+final class DomainModule[Event: AvroEncoder: AvroDecoder, InternalEvent: AvroEncoder: AvroDecoder] {
 
   def setupReads[F[_]: Async](
     domainConfig: DomainModule.Config,
@@ -48,7 +48,7 @@ final class DomainModule[Event: Encoder: Decoder: SchemaFor, InternalEvent: Enco
 }
 object DomainModule {
 
-  def apply[Event: Encoder: Decoder: SchemaFor, InternalEvent: Encoder: Decoder: SchemaFor]: DomainModule[
+  def apply[Event: AvroEncoder: AvroDecoder, InternalEvent: AvroEncoder: AvroDecoder]: DomainModule[
     Event,
     InternalEvent
   ] = new DomainModule[Event, InternalEvent]
@@ -60,7 +60,7 @@ object DomainModule {
 
     def unapply(domainName: Name): Some[String] = Some(domainName.unwrap)
 
-    given ConfigReader[Name] = ConfigReader[String].emapString("Name")(make)
+    given ConfigReader[Name] = summon[ConfigReader[String]].emapString("Name")(make)
     given Show[Name]         = unsafeMakeF[Show](Show[String])
   }
 

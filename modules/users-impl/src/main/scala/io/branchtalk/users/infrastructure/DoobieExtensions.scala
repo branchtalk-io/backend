@@ -2,16 +2,18 @@ package io.branchtalk.users.infrastructure
 
 import cats.{ Id, Show }
 import com.github.plokhotnyuk.jsoniter_scala.core.*
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import hearth.kindlings.jsoniterderivation.{ JsoniterConfig, KindlingsJsonValueCodec }
 import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.*
 import io.branchtalk.users.model.*
 import org.postgresql.util.PGobject
 
-import scala.annotation.nowarn
+import java.time.OffsetDateTime
 import scala.collection.compat.immutable.ArraySeq
 
 object DoobieExtensions {
+
+  private given JsoniterConfig = JsoniterConfig()
 
   private given [A: Show]: Show[Array[A]] = _.map(_.show).mkString(", ")
 
@@ -31,9 +33,9 @@ object DoobieExtensions {
     _.entryName.toLowerCase(branchtalkLocale)
   )
 
-  given passwordHashMeta: Meta[Password.Hash] = Password.Hash.unsafeMakeF(Meta.apply)
+  given passwordHashMeta: Meta[Password.Hash] = Password.Hash.unsafeMakeF(Meta.apply[Array[Byte]])
 
-  given passwordSaltMeta: Meta[Password.Salt] = Password.Salt.unsafeMakeF(Meta.apply)
+  given passwordSaltMeta: Meta[Password.Salt] = Password.Salt.unsafeMakeF(Meta.apply[Array[Byte]])
 
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   given sessionUsageTypeMeta: Meta[Session.Usage.Type] = pgEnumString(
@@ -47,7 +49,8 @@ object DoobieExtensions {
     _.entryName.toLowerCase(branchtalkLocale)
   )
 
-  given sessionExpirationTime: Meta[Session.ExpirationTime] = Session.ExpirationTime.unsafeMakeF(Meta.apply)
+  given sessionExpirationTime: Meta[Session.ExpirationTime] =
+    Session.ExpirationTime.unsafeMakeF(Meta.apply[OffsetDateTime])
 
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   given sensitiveDataAlgorithmTypeMeta: Meta[SensitiveData.Algorithm] =
@@ -66,11 +69,11 @@ object DoobieExtensions {
     SensitiveData.Key.unsafeMakeF[Meta](Meta[Array[Byte]].timap[ArraySeq[Byte]](ArraySeq.from(_))(a => a.toArray))
 
   private given JsonValueCodec[Permission] = {
-    given [A]: JsonValueCodec[ID[A]] = ID.unsafeMakeF[JsonValueCodec, A](JsonCodecMaker.make[UUID])
-    JsonCodecMaker.make[Permission]
+    given [A]: JsonValueCodec[ID[A]] = ID.unsafeMakeF[JsonValueCodec, A](KindlingsJsonValueCodec.derived[UUID])
+    KindlingsJsonValueCodec.derived[Permission]
   }
   private given JsonValueCodec[Permissions] =
-    Permissions.unsafeMakeF[JsonValueCodec](JsonCodecMaker.make[Set[Permission]])
+    Permissions.unsafeMakeF[JsonValueCodec](KindlingsJsonValueCodec.derived[Set[Permission]])
 
   private val jsonType = "jsonb"
 

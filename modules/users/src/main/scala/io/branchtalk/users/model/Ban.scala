@@ -31,6 +31,7 @@ object Ban {
 
   type Reason = Reason.Type
   object Reason extends Newtype[String] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: String): Boolean = input.nonEmpty
 

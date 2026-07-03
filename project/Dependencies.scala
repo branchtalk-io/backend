@@ -3,31 +3,43 @@ import sbt._
 object Dependencies {
 
   // scala version
-  val scalaVersion = "3.4.2"
+  val scalaVersion = "3.8.4"
 
   // libraries versions
-  val avro4sVersion     = "5.0.13" // https://github.com/sksamuel/avro4s/releases
-  val catsVersion       = "2.12.0" // https://github.com/typelevel/cats/releases
+  val catsVersion       = "2.13.0" // https://github.com/typelevel/cats/releases
   val catsEffectVersion = "3.5.0" // https://github.com/typelevel/cats-effect/releases
   val declineVersion    = "2.4.1" // https://github.com/bkirwi/decline/releases
   val doobieVersion     = "1.0.0-RC5" // https://github.com/tpolecat/doobie/releases
   val drosteVersion     = "0.9.0" // https://github.com/higherkindness/droste/releases
   val enumeratumVersion = "1.7.4" // https://github.com/lloydmeta/enumeratum/releases
   val fs2Version        = "3.10.2" // https://github.com/typelevel/fs2/releases
+  val hearthVersion     = "0.4.0" // https://github.com/kubuszok/hearth/releases
+  val kindlingsVersion  = "0.3.0" // https://github.com/kubuszok/kindlings/releases
   val log4catsVersion   = "2.7.0" // https://github.com/ChristopherDavenport/log4cats/releases
   val http4sVersion     = "0.24.7" // https://github.com/http4s/http4s/releases
-  val jsoniterVersion   = "2.30.7" // https://github.com/plokhotnyuk/jsoniter-scala/releases
+  val jsoniterVersion   = "2.38.16" // https://github.com/plokhotnyuk/jsoniter-scala/releases
   val neotypeVersion    = "0.3.0" // https://github.com/kitlangton/neotype/releases
-  val pureConfigVersion = "0.17.7" // https://github.com/pureconfig/pureconfig/releases
   val specs2Version     = "5.5.3" // https://github.com/etorreborre/specs2/releases
-  val tapirVersion      = "1.10.14" // https://github.com/softwaremill/tapir/releases
+  val tapirVersion      = "1.13.23" // https://github.com/softwaremill/tapir/releases
+
+  // Kindlings / Hearth (github.com/kubuszok) - type class derivation built on Hearth macros
+  val hearth              = "com.kubuszok" %% "hearth" % hearthVersion
+  val kindlingsCats       = "com.kubuszok" %% "kindlings-cats-derivation" % kindlingsVersion
+  // Hearth StandardExtension (service-loader): teaches ALL Kindlings derivations to treat cats collections
+  // (NonEmptyList, ...) as collections rather than structurally as products.
+  val kindlingsCatsInterop = "com.kubuszok" %% "kindlings-cats-integration" % kindlingsVersion
+  val kindlingsShowPretty = "com.kubuszok" %% "kindlings-fast-show-pretty" % kindlingsVersion
+  val kindlingsJsoniter   = "com.kubuszok" %% "kindlings-jsoniter-derivation" % kindlingsVersion
+  val kindlingsAvro       = "com.kubuszok" %% "kindlings-avro-derivation" % kindlingsVersion
+  val kindlingsSconfig    = "com.kubuszok" %% "kindlings-sconfig-derivation" % kindlingsVersion
+  val kindlingsTapirSchema  = "com.kubuszok" %% "kindlings-tapir-schema-derivation" % kindlingsVersion
+  val kindlingsTapirOpenAPI = "com.kubuszok" %% "kindlings-tapir-openapi-jsoniter" % kindlingsVersion
 
   // functional libraries
   val cats             = "org.typelevel" %% "cats-core" % catsVersion
   val catsFree         = "org.typelevel" %% "cats-free" % catsVersion
   val catsEffect       = "org.typelevel" %% "cats-effect" % catsEffectVersion
   val alleycats        = "org.typelevel" %% "alleycats-core" % catsVersion
-  val kittens          = "org.typelevel" %% "kittens" % "3.3.0" // https://github.com/typelevel/kittens/releases
   val catsLaws         = "org.typelevel" %% "cats-laws" % catsVersion
   val chimney          = "io.scalaland" %% "chimney" % "1.3.0" // https://github.com/scalalandio/chimney/releases
   val droste           = "io.higherkindness" %% "droste-core" % drosteVersion
@@ -36,10 +48,8 @@ object Dependencies {
   val fastuuid         = "com.eatthepath" % "fast-uuid" % "0.2.0" // https://github.com/jchambers/fast-uuid/releases
   val uuidGenerator =
     "com.fasterxml.uuid" % "java-uuid-generator" % "5.1.0" // https://github.com/cowtowncoder/java-uuid-generator/releases
-  val fs2   = "co.fs2" %% "fs2-core" % fs2Version
-  val fs2IO = "co.fs2" %% "fs2-io" % fs2Version
-  val magnolia =
-    "com.softwaremill.magnolia1_3" %% "magnolia" % "1.3.7" // https://github.com/softwaremill/magnolia/releases
+  val fs2             = "co.fs2" %% "fs2-core" % fs2Version
+  val fs2IO           = "co.fs2" %% "fs2-io" % fs2Version
   val neotype         = "io.github.kitlangton" %% "neotype" % neotypeVersion
   val neotypeChimney  = "io.github.kitlangton" %% "neotype-chimney" % neotypeVersion
   val neotypeDoobie   = "io.github.kitlangton" %% "neotype-doobie" % neotypeVersion
@@ -48,8 +58,6 @@ object Dependencies {
   val quicklens =
     "com.softwaremill.quicklens" %% "quicklens" % "1.9.7" // https://github.com/softwaremill/quicklens/releases
   // infrastructure
-  val avro4s         = "com.sksamuel.avro4s" %% "avro4s-core" % avro4sVersion
-  val avro4sCats     = "com.sksamuel.avro4s" %% "avro4s-cats" % avro4sVersion
   val doobie         = "org.tpolecat" %% "doobie-core" % doobieVersion
   val doobieHikari   = "org.tpolecat" %% "doobie-hikari" % doobieVersion
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
@@ -72,14 +80,9 @@ object Dependencies {
   val tapirSwaggerUI   = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-http4s" % "0.19.0-M4" // tapirVersion
   val tapirSTTP        = "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion
   val jsoniter         = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion
-  val jsoniterMacro =
-    "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % jsoniterVersion // % "compile-internal"
   // config
-  val decline              = "com.monovore" %% "decline" % declineVersion
-  val scalaConfig          = "com.typesafe" % "config" % "1.4.3" // https://github.com/lightbend/config/releases
-  val pureConfig           = "com.github.pureconfig" %% "pureconfig-core" % pureConfigVersion
-  val pureConfigCats       = "com.github.pureconfig" %% "pureconfig-cats" % pureConfigVersion
-  val pureConfigEnumeratum = "com.github.pureconfig" %% "pureconfig-enumeratum" % pureConfigVersion
+  val decline   = "com.monovore" %% "decline" % declineVersion
+  val sconfig   = "org.ekrich" %% "sconfig" % "2.0.0" // https://github.com/ekrich/sconfig/releases
   // security
   val bcrypt = "at.favre.lib" % "bcrypt" % "0.10.2"
   // logging
@@ -89,7 +92,6 @@ object Dependencies {
   val logback            = "ch.qos.logback" % "logback-classic" % "1.5.6" // https://github.com/qos-ch/logback/releases
   val logbackJackson     = "ch.qos.logback.contrib" % "logback-jackson" % "0.1.5" // see MVN
   val logbackJsonClassic = "ch.qos.logback.contrib" % "logback-json-classic" % "0.1.5" // see MVN
-  val sourcecode         = "com.lihaoyi" %% "sourcecode" % "0.4.2" // https://github.com/lihaoyi/sourcecode/releases
   val prometheus = "io.prometheus" % "simpleclient" % "0.16.0" // https://github.com/prometheus/client_java/releases
   // testing
   val jfairy = "com.devskiller" % "jfairy" % "0.6.5" // https://github.com/Devskiller/jfairy/releases

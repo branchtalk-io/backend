@@ -1,24 +1,23 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s.*
+import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import io.branchtalk.shared.model.*
 import io.branchtalk.shared.model.AvroSupport.{ *, given }
 
-sealed trait UsersEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+sealed trait UsersEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 object UsersEvent {
 
   final case class ForUser(
     user: UserEvent
-  ) extends UsersEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends UsersEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 
   final case class ForSession(session: SessionEvent) extends UsersEvent
-      derives Decoder,
-        Encoder,
+      derives AvroEncoder,
+        AvroDecoder,
         FastEq,
-        ShowPretty,
-        SchemaFor
+        ShowPretty
 
   final case class ForBan(
     ban: BanEvent
-  ) extends UsersEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends UsersEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 }

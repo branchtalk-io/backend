@@ -79,6 +79,7 @@ object Comment {
 
   type Content = Content.Type
   object Content extends Newtype[String] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
     def unapply(content: Content): Some[String] = Some(content.unwrap)
 
     given Show[Content]  = unsafeMakeF[Show](Show[String])
@@ -87,6 +88,7 @@ object Comment {
 
   type NestingLevel = NestingLevel.Type
   object NestingLevel extends Newtype[Int] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 
@@ -98,6 +100,7 @@ object Comment {
 
   type RepliesNr = RepliesNr.Type
   object RepliesNr extends Newtype[Int] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 
@@ -109,6 +112,7 @@ object Comment {
 
   type Upvotes = Upvotes.Type
   object Upvotes extends Newtype[Int] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 
@@ -120,6 +124,7 @@ object Comment {
 
   type Downvotes = Downvotes.Type
   object Downvotes extends Newtype[Int] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 
@@ -131,6 +136,7 @@ object Comment {
 
   type TotalScore = TotalScore.Type
   object TotalScore extends Newtype[Int] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
     def unapply(content: TotalScore): Some[Int] = Some(content.unwrap)
 
     given Show[TotalScore]  = unsafeMakeF[Show](Show[Int])
@@ -139,6 +145,7 @@ object Comment {
 
   type ControversialScore = ControversialScore.Type
   object ControversialScore extends Newtype[Int] {
+    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 

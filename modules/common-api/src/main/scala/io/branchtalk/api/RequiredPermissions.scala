@@ -1,10 +1,9 @@
 package io.branchtalk.api
 
 import cats.Eq
-import cats.data.{ NonEmptyList, NonEmptySet }
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
+import cats.data.NonEmptySet
 import io.branchtalk.api.JsoniterSupport.{ *, given }
-import io.branchtalk.shared.model.{ FastEq, ShowPretty, void }
+import io.branchtalk.shared.model.{ FastEq, ShowPretty }
 
 import scala.annotation.targetName
 
@@ -29,30 +28,23 @@ object RequiredPermissions {
   def allOf(head:     Permission, tail: Permission*): RequiredPermissions = AllOf(NonEmptySet.of(head, tail: _*))
   def anyOf(head:     Permission, tail: Permission*): RequiredPermissions = AnyOf(NonEmptySet.of(head, tail: _*))
 
-  given JsCodec[RequiredPermissions] = {
-    transparent inline given CodecMakerConfig = CodecMakerConfig.withAllowRecursiveTypes(true)
-    DefaultJsCodec.derived[RequiredPermissions]
-  }
+  // Kindlings' jsoniter derivation supports recursive types out of the box.
+  given JsCodec[RequiredPermissions] = DefaultJsCodec.derived[RequiredPermissions]
 
   given Eq[NonEmptySet[Permission]] = (x: NonEmptySet[Permission], y: NonEmptySet[Permission]) =>
     x.toSortedSet === y.toSortedSet
 
-  @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
-  given ShowPretty[NonEmptySet[Permission]] = {
-    (t: NonEmptySet[Permission], sb: StringBuilder, indentWith: String, indentLevel: Int) =>
-      val nextIndent = indentLevel + 1
-      void(sb.append(indentWith * indentLevel).append("NonEmptySet(\n"))
-      t.toNonEmptyList match {
-        case NonEmptyList(head, tail) =>
-          sb.append(indentWith * nextIndent)
-          void(summon[ShowPretty[Permission]].showPretty(head, sb, indentWith, nextIndent))
-          tail.foreach { elem =>
-            sb.append(",\n")
-            sb.append(indentWith * nextIndent)
-            summon[ShowPretty[Permission]].showPretty(elem, sb, indentWith, nextIndent)
-          }
-          sb.append("\n)")
+  given ShowPretty[NonEmptySet[Permission]] with {
+    def showLines(t: NonEmptySet[Permission]): List[String] = {
+      val perm  = summon[ShowPretty[Permission]]
+      val elems = t.toNonEmptyList.toList
+      val inner = elems.zipWithIndex.flatMap { case (permission, index) =>
+        val lines = perm.showLines(permission)
+        val withComma =
+          if (index < elems.size - 1) lines.init :+ (lines.lastOption.getOrElse("") + ",") else lines
+        withComma.map("  " + _)
       }
-      sb
+      "NonEmptySet(" :: inner ::: List(")")
+    }
   }
 }

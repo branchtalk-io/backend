@@ -72,7 +72,7 @@ object PostgresDatabase {
 
     def unapply(url: URL): Some[String] = Some(url.unwrap)
 
-    given ConfigReader[URL] = ConfigReader[String].emapString("URL")(make)
+    given ConfigReader[URL] = summon[ConfigReader[String]].emapString("URL")(make)
     given Show[URL]         = unsafeMakeF[Show](Show[String])
   }
 
@@ -83,7 +83,7 @@ object PostgresDatabase {
 
     def unapply(username: Username): Some[String] = Some(username.unwrap)
 
-    given ConfigReader[Username] = ConfigReader[String].emapString("Username")(make)
+    given ConfigReader[Username] = summon[ConfigReader[String]].emapString("Username")(make)
     given Show[Username]         = unsafeMakeF[Show](Show[String])
   }
 
@@ -95,7 +95,7 @@ object PostgresDatabase {
     def parse(string: String): Either[String, Password] =
       if string.nonEmpty then Right(Password(string)) else Left("Password cannot be empty")
 
-    given ConfigReader[Password] = ConfigReader[String].emapString("Password")(parse)
+    given ConfigReader[Password] = summon[ConfigReader[String]].emapString("Password")(parse)
     given Show[Password]         = _ => "PASSWORD"
   }
 
@@ -106,7 +106,7 @@ object PostgresDatabase {
 
     def unapply(domainName: Schema): Some[String] = Some(domainName.unwrap)
 
-    given ConfigReader[Schema] = ConfigReader[String].emapString("Schema")(make)
+    given ConfigReader[Schema] = summon[ConfigReader[String]].emapString("Schema")(make)
     given Show[Schema]         = unsafeMakeF[Show](Show[String])
   }
 
@@ -117,7 +117,7 @@ object PostgresDatabase {
 
     def unapply(domain: Domain): Some[String] = Some(domain.unwrap)
 
-    given ConfigReader[Domain] = ConfigReader[String].emapString("Domain")(make)
+    given ConfigReader[Domain] = summon[ConfigReader[String]].emapString("Domain")(make)
     given Show[Domain]         = unsafeMakeF[Show](Show[String])
   }
 
@@ -128,7 +128,7 @@ object PostgresDatabase {
 
     def unapply(connectionPool: ConnectionPool): Some[Int] = Some(connectionPool.unwrap)
 
-    given ConfigReader[ConnectionPool] = ConfigReader[Int].emapString("ConnectionPool")(make)
+    given ConfigReader[ConnectionPool] = summon[ConfigReader[Int]].emapString("ConnectionPool")(make)
     given Show[ConnectionPool]         = unsafeMakeF[Show](Show[Int])
   }
 
@@ -137,7 +137,7 @@ object PostgresDatabase {
 
     def unapply(migrationOnStart: MigrationOnStart): Some[Boolean] = Some(migrationOnStart.unwrap)
 
-    given ConfigReader[MigrationOnStart] = unsafeMakeF[ConfigReader](ConfigReader[Boolean])
+    given ConfigReader[MigrationOnStart] = unsafeMakeF[ConfigReader](summon[ConfigReader[Boolean]])
     given Show[MigrationOnStart]         = unsafeMakeF[Show](Show[Boolean])
   }
 

@@ -1,6 +1,6 @@
 package io.branchtalk.users.events
 
-import com.sksamuel.avro4s.*
+import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import io.branchtalk.logging.CorrelationID
 import io.branchtalk.shared.model.*
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
@@ -9,7 +9,7 @@ import io.branchtalk.users.model.{ Password, Permission, Session, User }
 import io.scalaland.chimney.dsl.*
 import io.scalaland.chimney.partial.syntax.*
 
-sealed trait UserCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+sealed trait UserCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 object UserCommandEvent {
 
   final case class Create(
@@ -47,7 +47,7 @@ object UserCommandEvent {
       sessionID:        ID[Session],
       sessionExpiresAt: Session.ExpirationTime,
       correlationID:    CorrelationID
-    ) extends UserCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor {
+    ) extends UserCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty {
 
       def decrypt(
         algorithm: SensitiveData.Algorithm,
@@ -95,7 +95,7 @@ object UserCommandEvent {
       updatePermissions: List[Permission.Update],
       modifiedAt:        ModificationTime,
       correlationID:     CorrelationID
-    ) extends UserCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor {
+    ) extends UserCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty {
 
       def decrypt(
         algorithm: SensitiveData.Algorithm,
@@ -115,5 +115,5 @@ object UserCommandEvent {
     moderatorID:   Option[ID[User]],
     deletedAt:     ModificationTime,
     correlationID: CorrelationID
-  ) extends UserCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends UserCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 }

@@ -1,33 +1,29 @@
 package io.branchtalk.discussions.events
 
-import com.sksamuel.avro4s.*
+import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import io.branchtalk.shared.model.*
 import io.branchtalk.shared.model.AvroSupport.{ *, given }
 
-sealed trait DiscussionsCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+sealed trait DiscussionsCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 object DiscussionsCommandEvent {
   final case class ForChannel(channel: ChannelCommandEvent) extends DiscussionsCommandEvent
-      derives Decoder,
-        Encoder,
+      derives AvroEncoder,
+        AvroDecoder,
         FastEq,
-        ShowPretty,
-        SchemaFor
+        ShowPretty
   final case class ForComment(comment: CommentCommandEvent) extends DiscussionsCommandEvent
-      derives Decoder,
-        Encoder,
+      derives AvroEncoder,
+        AvroDecoder,
         FastEq,
-        ShowPretty,
-        SchemaFor
+        ShowPretty
   final case class ForPost(post: PostCommandEvent) extends DiscussionsCommandEvent
-      derives Decoder,
-        Encoder,
+      derives AvroEncoder,
+        AvroDecoder,
         FastEq,
-        ShowPretty,
-        SchemaFor
+        ShowPretty
   final case class ForSubscription(subscription: SubscriptionCommandEvent) extends DiscussionsCommandEvent
-      derives Decoder,
-        Encoder,
+      derives AvroEncoder,
+        AvroDecoder,
         FastEq,
-        ShowPretty,
-        SchemaFor
+        ShowPretty
 }

@@ -12,6 +12,7 @@ object ID extends NewtypeT[UUID] {
   def parse[F[_]: Sync, Entity](string: String)(using UUID.Generator): F[ID[Entity]] =
     UUID.parse[F](string).map(unsafeMake[Entity])
 
-  given [Entity]: Show[ID[Entity]]  = unsafeMakeF[Show, Entity](Show[UUID])
-  given [Entity]: Order[ID[Entity]] = unsafeMakeF[Order, Entity](Order[UUID])
+  given [Entity]: Show[ID[Entity]]        = unsafeMakeF[Show, Entity](Show[UUID])
+  given [Entity]: Order[ID[Entity]]       = unsafeMakeF[Order, Entity](Order[UUID])
+  given [Entity]: AvroCodec[Type[Entity]] = AvroSupport.newtypeCodec
 }

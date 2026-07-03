@@ -62,7 +62,7 @@ object KafkaEventBus {
 
     def unapply(topic: Topic): Some[String] = Some(topic.unwrap)
 
-    given ConfigReader[Topic] = ConfigReader[String].emapString("Topic")(make)
+    given ConfigReader[Topic] = summon[ConfigReader[String]].emapString("Topic")(make)
     given Show[Topic]         = unsafeMakeF[Show](Show[String])
   }
 
@@ -73,7 +73,7 @@ object KafkaEventBus {
 
     def unapply(consumerGroup: ConsumerGroup): Some[String] = Some(consumerGroup.unwrap)
 
-    given ConfigReader[ConsumerGroup] = ConfigReader[String].emapString("ConsumerGroup")(make)
+    given ConfigReader[ConsumerGroup] = summon[ConfigReader[String]].emapString("ConsumerGroup")(make)
     given Show[ConsumerGroup]         = unsafeMakeF[Show](Show[String])
   }
 
@@ -84,7 +84,7 @@ object KafkaEventBus {
 
     def unapply(domainName: MaxCommitSize): Some[Int] = Some(domainName.unwrap)
 
-    given ConfigReader[MaxCommitSize] = ConfigReader[Int].emapString("MaxCommitSize")(make)
+    given ConfigReader[MaxCommitSize] = summon[ConfigReader[Int]].emapString("MaxCommitSize")(make)
     given Show[MaxCommitSize]         = unsafeMakeF[Show](Show[Int])
   }
 
@@ -93,7 +93,7 @@ object KafkaEventBus {
 
     def unapply(maxCommitTime: MaxCommitTime): Some[FiniteDuration] = Some(maxCommitTime.unwrap)
 
-    given ConfigReader[MaxCommitTime] = unsafeMakeF[ConfigReader](ConfigReader[FiniteDuration])
+    given ConfigReader[MaxCommitTime] = unsafeMakeF[ConfigReader](summon[ConfigReader[FiniteDuration]])
     given Show[MaxCommitTime]         = unsafeMakeF[Show](Show[FiniteDuration])
   }
 

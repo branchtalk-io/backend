@@ -2,7 +2,6 @@ package io.branchtalk.users.api
 
 import java.time.OffsetDateTime
 import cats.data.NonEmptyList
-import com.github.plokhotnyuk.jsoniter_scala.macros.*
 import io.branchtalk.api.JsoniterSupport.{ *, given }
 import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.shared.model.*

@@ -1,5 +1,7 @@
 package io.branchtalk.shared.model
 
+import hearth.source.{ FileName, Line, MethodName }
+
 // Useful for generating the position in source code for debugging.
 final case class CodePosition(
   file:    String,
@@ -9,14 +11,16 @@ final case class CodePosition(
       ShowPretty
 object CodePosition {
 
+  // Hearth's source utilities (replacing lihaoyi sourcecode): FileName is the bare file name,
+  // Line the line number, MethodName the enclosing method/definition.
   given providePosition(using
-    file:      sourcecode.File,
-    line:      sourcecode.Line,
-    enclosing: sourcecode.Enclosing.Machine
+    fileName: FileName,
+    lineNo:   Line,
+    method:   MethodName
   ): CodePosition =
     CodePosition(
-      file = new java.io.File(file.value).getName,
-      line = line.value,
-      context = enclosing.value
+      file = fileName,
+      line = lineNo,
+      context = method
     )
 }

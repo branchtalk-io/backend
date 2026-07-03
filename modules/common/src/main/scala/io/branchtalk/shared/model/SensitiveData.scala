@@ -1,7 +1,7 @@
 package io.branchtalk.shared.model
 
 import cats.{ Eq, Show }
-import com.sksamuel.avro4s.{ Decoder, Encoder, SchemaFor }
+import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import enumeratum.*
 import io.branchtalk.shared.model.AvroSerialization.DeserializationResult
 import javax.crypto.Cipher
@@ -12,12 +12,12 @@ import scala.collection.compat.immutable.ArraySeq
 import scala.util.{ Random, Try }
 
 // Express intent that some data should not be stored as unencrypted format.
-final case class SensitiveData[A](value: A) derives FastEq, Decoder, Encoder, SchemaFor {
+final case class SensitiveData[A](value: A) derives FastEq, AvroEncoder, AvroDecoder {
 
   def encrypt(
     algorithm: SensitiveData.Algorithm,
     key:       SensitiveData.Key
-  )(using Encoder[A], SchemaFor[A]): SensitiveData.Encrypted[A] = algorithm.encrypt[A](this, key)
+  )(using AvroEncoder[A]): SensitiveData.Encrypted[A] = algorithm.encrypt[A](this, key)
 
   override def toString: String = "SENSITIVE DATA"
 }
@@ -30,14 +30,17 @@ object SensitiveData {
       def decrypt(
         algorithm: SensitiveData.Algorithm,
         key:       SensitiveData.Key
-      )(using Decoder[A], SchemaFor[A]): DeserializationResult[SensitiveData[A]] =
+      )(using AvroDecoder[A]): DeserializationResult[SensitiveData[A]] =
         algorithm.decrypt[A](enc, key)
     }
 
-    given [A]: Decoder[Encrypted[A]] = unsafeMakeF[Decoder, A](Decoder[Array[Byte]].map(ArraySeq.from))
-    given [A]: Encoder[Encrypted[A]] =
-      unsafeMakeF[Encoder, A](Encoder[Array[Byte]].contramap[ArraySeq[Byte]](_.toArray))
-    given [A]: SchemaFor[Encrypted[A]] = SchemaFor[Array[Byte]].forType[Encrypted[A]]
+    given [A]: AvroCodec[Encrypted[A]] with {
+      private val E = summon[AvroEncoder[ArraySeq[Byte]]]
+      private val D = summon[AvroDecoder[ArraySeq[Byte]]]
+      def schema:                      org.apache.avro.Schema = E.schema
+      def encode(value: Encrypted[A]): Any                    = E.encode(value.unwrap)
+      def decode(value: Any):          Encrypted[A]           = Encrypted(D.decode(value))
+    }
 
     given [A]: Show[Encrypted[A]] = _ => "ENCRYPTED"
     given [A]: Eq[Encrypted[A]]   = Eq.by(_.unwrap)
@@ -59,15 +62,15 @@ object SensitiveData {
       case Blowfish => Key(ArraySeq.from(Random.nextBytes(defaultKeySize)))
     }
 
-    // Avro4s fails to correctly serialize-then-deserialize primitives so we have to use wrapper (GenericRecord schema)
+    // Avro fails to correctly serialize-then-deserialize primitives so we have to use wrapper (record schema)
 
-    final def encrypt[A: Encoder: SchemaFor](value: SensitiveData[A], key: Key): Encrypted[A] = this match {
+    final def encrypt[A: AvroEncoder](value: SensitiveData[A], key: Key): Encrypted[A] = this match {
       case Blowfish =>
         val cipher = blowfishCipher(key, Cipher.ENCRYPT_MODE)
         AvroSerialization.serializeUnsafe(value).pipe(cipher.doFinal).pipe(ArraySeq.from(_)).pipe(Encrypted(_))
     }
 
-    final def decrypt[A: Decoder: SchemaFor](
+    final def decrypt[A: AvroDecoder](
       encrypted: Encrypted[A],
       key:       Key
     ): DeserializationResult[SensitiveData[A]] = this match {

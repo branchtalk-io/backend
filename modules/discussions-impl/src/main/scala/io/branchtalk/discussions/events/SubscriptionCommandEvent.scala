@@ -1,12 +1,12 @@
 package io.branchtalk.discussions.events
 
-import com.sksamuel.avro4s.*
+import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import io.branchtalk.discussions.model.*
 import io.branchtalk.logging.CorrelationID
 import io.branchtalk.shared.model.*
 import io.branchtalk.shared.model.AvroSupport.{ *, given }
 
-sealed trait SubscriptionCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+sealed trait SubscriptionCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 object SubscriptionCommandEvent {
 
   final case class Subscribe(
@@ -14,12 +14,12 @@ object SubscriptionCommandEvent {
     subscriptions: Set[ID[Channel]],
     modifiedAt:    ModificationTime,
     correlationID: CorrelationID
-  ) extends SubscriptionCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends SubscriptionCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 
   final case class Unsubscribe(
     subscriberID:  ID[User],
     subscriptions: Set[ID[Channel]],
     modifiedAt:    ModificationTime,
     correlationID: CorrelationID
-  ) extends SubscriptionCommandEvent derives Decoder, Encoder, FastEq, ShowPretty, SchemaFor
+  ) extends SubscriptionCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 }
