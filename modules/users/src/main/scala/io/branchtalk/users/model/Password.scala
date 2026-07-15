@@ -7,7 +7,6 @@ import cats.effect.{ Sync, SyncIO }
 import enumeratum.{ Enum, EnumEntry }
 import enumeratum.EnumEntry.Hyphencase
 import io.branchtalk.shared.model.*
-import io.branchtalk.shared.model.given // top-level AvroCodec[Array[Byte]] for the byte-array newtypes
 
 final case class Password(
   algorithm: Password.Algorithm,
@@ -71,18 +70,16 @@ object Password {
   object Hash extends Newtype[Array[Byte]] {
     def unapply(hash: Hash): Some[Array[Byte]] = Some(hash.unwrap)
 
-    given Show[Hash]      = _ => "EDITED OUT"
-    given Eq[Hash]        = unsafeMakeF[Eq](arrayEq)
-    given AvroCodec[Hash] = AvroSupport.newtypeCodec
+    given Show[Hash] = _ => "EDITED OUT"
+    given Eq[Hash]   = unsafeMakeF[Eq](arrayEq)
   }
 
   type Salt = Salt.Type
   object Salt extends Newtype[Array[Byte]] {
     def unapply(salt: Salt): Some[Array[Byte]] = Some(salt.unwrap)
 
-    given Show[Salt]      = _ => "EDITED OUT"
-    given Eq[Salt]        = unsafeMakeF[Eq](arrayEq)
-    given AvroCodec[Salt] = AvroSupport.newtypeCodec
+    given Show[Salt] = _ => "EDITED OUT"
+    given Eq[Salt]   = unsafeMakeF[Eq](arrayEq)
   }
 
   type Raw = Raw.Type
