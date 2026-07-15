@@ -13,8 +13,8 @@ object Dependencies {
   val drosteVersion     = "0.9.0" // https://github.com/higherkindness/droste/releases
   val enumeratumVersion = "1.7.4" // https://github.com/lloydmeta/enumeratum/releases
   val fs2Version        = "3.10.2" // https://github.com/typelevel/fs2/releases
-  val hearthVersion     = "0.4.0" // https://github.com/kubuszok/hearth/releases
-  val kindlingsVersion  = "0.3.0" // https://github.com/kubuszok/kindlings/releases
+  val hearthVersion     = "0.4.1" // https://github.com/kubuszok/hearth/releases
+  val kindlingsVersion  = "0.3.1" // https://github.com/kubuszok/kindlings/releases
   val log4catsVersion   = "2.7.0" // https://github.com/ChristopherDavenport/log4cats/releases
   val http4sVersion     = "0.24.7" // https://github.com/http4s/http4s/releases
   val jsoniterVersion   = "2.38.16" // https://github.com/plokhotnyuk/jsoniter-scala/releases
@@ -23,15 +23,18 @@ object Dependencies {
   val tapirVersion      = "1.13.23" // https://github.com/softwaremill/tapir/releases
 
   // Kindlings / Hearth (github.com/kubuszok) - type class derivation built on Hearth macros
-  val hearth              = "com.kubuszok" %% "hearth" % hearthVersion
-  val kindlingsCats       = "com.kubuszok" %% "kindlings-cats-derivation" % kindlingsVersion
+  val hearth = "com.kubuszok" %% "hearth" % hearthVersion
+  // Compiler plugin enabling Hearth's Expr.quote/Expr.splice DSL - needed only to author macro extensions
+  // (the neotype-kindlings IsValueType provider), not to use derivation.
+  val hearthCrossQuotes = "com.kubuszok" %% "hearth-cross-quotes" % hearthVersion
+  val kindlingsCats     = "com.kubuszok" %% "kindlings-cats-derivation" % kindlingsVersion
   // Hearth StandardExtension (service-loader): teaches ALL Kindlings derivations to treat cats collections
   // (NonEmptyList, ...) as collections rather than structurally as products.
-  val kindlingsCatsInterop = "com.kubuszok" %% "kindlings-cats-integration" % kindlingsVersion
-  val kindlingsShowPretty = "com.kubuszok" %% "kindlings-fast-show-pretty" % kindlingsVersion
-  val kindlingsJsoniter   = "com.kubuszok" %% "kindlings-jsoniter-derivation" % kindlingsVersion
-  val kindlingsAvro       = "com.kubuszok" %% "kindlings-avro-derivation" % kindlingsVersion
-  val kindlingsSconfig    = "com.kubuszok" %% "kindlings-sconfig-derivation" % kindlingsVersion
+  val kindlingsCatsInterop  = "com.kubuszok" %% "kindlings-cats-integration" % kindlingsVersion
+  val kindlingsShowPretty   = "com.kubuszok" %% "kindlings-fast-show-pretty" % kindlingsVersion
+  val kindlingsJsoniter     = "com.kubuszok" %% "kindlings-jsoniter-derivation" % kindlingsVersion
+  val kindlingsAvro         = "com.kubuszok" %% "kindlings-avro-derivation" % kindlingsVersion
+  val kindlingsSconfig      = "com.kubuszok" %% "kindlings-sconfig-derivation" % kindlingsVersion
   val kindlingsTapirSchema  = "com.kubuszok" %% "kindlings-tapir-schema-derivation" % kindlingsVersion
   val kindlingsTapirOpenAPI = "com.kubuszok" %% "kindlings-tapir-openapi-jsoniter" % kindlingsVersion
 
@@ -63,8 +66,9 @@ object Dependencies {
   val doobiePostgres = "org.tpolecat" %% "doobie-postgres" % doobieVersion
   val doobieSpecs2   = "org.tpolecat" %% "doobie-specs2" % doobieVersion
   val flyway         = "org.flywaydb" % "flyway-core" % "10.16.0" // https://github.com/flyway/flyway/releases
-  val flywayPostgres = "org.flywaydb" % "flyway-database-postgresql" % "10.16.0" // https://github.com/flyway/flyway/releases
-  val fs2Kafka       = "com.github.fd4s" %% "fs2-kafka" % "3.5.1" // https://github.com/fd4s/fs2-kafka/releasesreleases
+  val flywayPostgres =
+    "org.flywaydb" % "flyway-database-postgresql" % "10.16.0" // https://github.com/flyway/flyway/releases
+  val fs2Kafka = "com.github.fd4s" %% "fs2-kafka" % "3.5.1" // https://github.com/fd4s/fs2-kafka/releasesreleases
   val redis4cats =
     "dev.profunktor" %% "redis4cats-effects" % "1.7.1" // https://github.com/profunktor/redis4cats/releases
   // API
@@ -81,8 +85,8 @@ object Dependencies {
   val tapirSTTP        = "com.softwaremill.sttp.tapir" %% "tapir-sttp-client" % tapirVersion
   val jsoniter         = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-core" % jsoniterVersion
   // config
-  val decline   = "com.monovore" %% "decline" % declineVersion
-  val sconfig   = "org.ekrich" %% "sconfig" % "2.0.0" // https://github.com/ekrich/sconfig/releases
+  val decline = "com.monovore" %% "decline" % declineVersion
+  val sconfig = "org.ekrich" %% "sconfig" % "2.0.0" // https://github.com/ekrich/sconfig/releases
   // security
   val bcrypt = "at.favre.lib" % "bcrypt" % "0.10.2"
   // logging

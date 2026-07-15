@@ -6,9 +6,7 @@ import cats.effect.Sync
 import cats.{ Order, Show }
 import enumeratum.*
 import enumeratum.EnumEntry.Hyphencase
-import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
 import io.branchtalk.shared.model.*
-import io.branchtalk.shared.model.given // top-level AvroCodec[URI] etc. for newtype codecs
 
 final case class Post(
   id:   ID[Post],
@@ -81,7 +79,6 @@ object Post {
 
   type UrlTitle = UrlTitle.Type
   object UrlTitle extends Newtype[String] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: String): Boolean = input.nonEmpty
 
@@ -93,7 +90,6 @@ object Post {
 
   type Title = Title.Type
   object Title extends Newtype[String] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: String): Boolean = input.nonEmpty
 
@@ -105,7 +101,6 @@ object Post {
 
   type URL = URL.Type
   object URL extends Newtype[URI] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
     def unapply(name: URL): Some[URI] = Some(name.unwrap)
 
     @SuppressWarnings(Array("org.wartremover.warts.ToString")) // false warning - URI overrides toString
@@ -115,7 +110,6 @@ object Post {
 
   type Text = Text.Type
   object Text extends Newtype[String] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
     def unapply(name: Text): Some[String] = Some(name.unwrap)
 
     given Show[Text]  = unsafeMakeF[Show](Show[String]) // without wrapper because it lives only within Context.Text
@@ -128,10 +122,6 @@ object Post {
   }
   object Content {
 
-    // concrete single instance (so `Updatable[Post.Content]` resolves an AvroEncoder/Decoder and avoids Kindlings'
-    // buggy structural derivation of the generic Updatable enum)
-    given AvroCodec[Content] = AvroSupport.avroCodec(using AvroEncoder.derived, AvroDecoder.derived)
-
     enum Type extends EnumEntry, Hyphencase derives FastEq, ShowPretty {
       case Url
       case Text
@@ -139,7 +129,6 @@ object Post {
 
     type Raw = Raw.Type
     object Raw extends Newtype[String] {
-      given AvroCodec[Raw.Type] = AvroSupport.newtypeCodec
       def unapply(name: Raw): Some[String] = Some(name.unwrap)
 
       given Show[Raw]  = unsafeMakeF[Show](Show[String])
@@ -164,7 +153,6 @@ object Post {
 
   type CommentsNr = CommentsNr.Type
   object CommentsNr extends Newtype[Int] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 
@@ -176,7 +164,6 @@ object Post {
 
   type Upvotes = Upvotes.Type
   object Upvotes extends Newtype[Int] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 
@@ -188,7 +175,6 @@ object Post {
 
   type Downvotes = Downvotes.Type
   object Downvotes extends Newtype[Int] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 
@@ -200,7 +186,6 @@ object Post {
 
   type TotalScore = TotalScore.Type
   object TotalScore extends Newtype[Int] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
     def unapply(content: TotalScore): Some[Int] = Some(content.unwrap)
 
     given Show[TotalScore]  = unsafeMakeF[Show](Show[Int])
@@ -209,7 +194,6 @@ object Post {
 
   type ControversialScore = ControversialScore.Type
   object ControversialScore extends Newtype[Int] {
-    given AvroCodec[Type] = AvroSupport.newtypeCodec
 
     override inline def validate(input: Int): Boolean = input >= 0
 

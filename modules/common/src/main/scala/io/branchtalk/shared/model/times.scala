@@ -12,9 +12,8 @@ object CreationTime extends Newtype[OffsetDateTime] {
   def now[F[_]: Functor: Clock]: F[CreationTime] =
     Clock[F].realTimeInstant.map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault())).map(unsafeMake)
 
-  given Show[CreationTime]      = unsafeMakeF[Show](_.pipe(DateTimeFormatter.ISO_INSTANT.format))
-  given Order[CreationTime]     = unsafeMakeF[Order](Order.fromComparable)
-  given AvroCodec[CreationTime] = AvroSupport.newtypeCodec
+  given Show[CreationTime]  = unsafeMakeF[Show](_.pipe(DateTimeFormatter.ISO_INSTANT.format))
+  given Order[CreationTime] = unsafeMakeF[Order](Order.fromComparable)
 }
 
 type ModificationTime = ModificationTime.Type
@@ -23,7 +22,6 @@ object ModificationTime extends Newtype[OffsetDateTime] {
   def now[F[_]: Functor: Clock]: F[ModificationTime] =
     Clock[F].realTimeInstant.map(OffsetDateTime.ofInstant(_, ZoneId.systemDefault())).map(unsafeMake)
 
-  given Show[ModificationTime]      = unsafeMakeF[Show](_.pipe(DateTimeFormatter.ISO_INSTANT.format))
-  given Order[ModificationTime]     = unsafeMakeF[Order](Order.fromComparable)
-  given AvroCodec[ModificationTime] = AvroSupport.newtypeCodec
+  given Show[ModificationTime]  = unsafeMakeF[Show](_.pipe(DateTimeFormatter.ISO_INSTANT.format))
+  given Order[ModificationTime] = unsafeMakeF[Order](Order.fromComparable)
 }

@@ -8,7 +8,6 @@ import cats.effect.Sync
 import hearth.kindlings.avroderivation.{ AvroConfig, AvroDecoder, AvroEncoder, AvroIO, AvroSchemaFor }
 import io.scalaland.chimney.partial
 import org.apache.avro.Schema
-import neotype.*
 
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
@@ -61,43 +60,45 @@ object AvroSerialization {
 // three summons (encoder / decoder / schema) resolves to exactly one instance.
 trait AvroCodec[A] extends AvroEncoder[A], AvroDecoder[A]
 
-// Base-type codecs Kindlings doesn't provide out of the box (encoded as ISO / canonical strings). Top-level so they
-// are in scope wherever `io.branchtalk.shared.model.*` is imported (e.g. newtype companions building `newtypeCodec`).
-
-@SuppressWarnings(Array("org.wartremover.warts.ToString")) // false warning - URI overrides toString
-given AvroCodec[URI] with {
-  private val E = summon[AvroEncoder[String]]
-  private val D = summon[AvroDecoder[String]]
-  def schema:             Schema = E.schema
-  def encode(value: URI): Any    = E.encode(value.toString)
-  def decode(value: Any): URI    = URI.create(D.decode(value))
-}
-
-given AvroCodec[UUID] with {
-  private val E = summon[AvroEncoder[String]]
-  private val D = summon[AvroDecoder[String]]
-  def schema:              Schema = E.schema
-  def encode(value: UUID): Any    = E.encode(value.toString)
-  def decode(value: Any):  UUID   = java.util.UUID.fromString(D.decode(value))
-}
-
-given AvroCodec[OffsetDateTime] with {
-  private val E = summon[AvroEncoder[String]]
-  private val D = summon[AvroDecoder[String]]
-  def schema:                        Schema         = E.schema
-  def encode(value: OffsetDateTime): Any            = E.encode(value.toString)
-  def decode(value: Any):            OffsetDateTime = OffsetDateTime.parse(D.decode(value))
-}
-
-given AvroCodec[Array[Byte]] with {
-  private val E = summon[AvroEncoder[scala.collection.immutable.ArraySeq[Byte]]]
-  private val D = summon[AvroDecoder[scala.collection.immutable.ArraySeq[Byte]]]
-  def schema:                     Schema      = E.schema
-  def encode(value: Array[Byte]): Any         = E.encode(scala.collection.immutable.ArraySeq.unsafeWrapArray(value))
-  def decode(value: Any):         Array[Byte] = D.decode(value).toArray
-}
-
 object AvroSupport {
+
+  // Base-type codecs Kindlings doesn't provide out of the box (encoded as ISO / canonical strings). They live here (not
+  // top-level) so that the `import AvroSupport.{ *, given }` present at every avro-derivation site brings them into
+  // scope - a bare `import io.branchtalk.shared.model.*` does NOT import givens under `-source 3.3-migration`, and the
+  // newtype fields that need them are now unwrapped to their underlying at the derivation site by the neotype provider.
+
+  @SuppressWarnings(Array("org.wartremover.warts.ToString")) // false warning - URI overrides toString
+  given AvroCodec[URI] with {
+    private val E = summon[AvroEncoder[String]]
+    private val D = summon[AvroDecoder[String]]
+    def schema:             Schema = E.schema
+    def encode(value: URI): Any    = E.encode(value.toString)
+    def decode(value: Any): URI    = URI.create(D.decode(value))
+  }
+
+  given AvroCodec[UUID] with {
+    private val E = summon[AvroEncoder[String]]
+    private val D = summon[AvroDecoder[String]]
+    def schema:              Schema = E.schema
+    def encode(value: UUID): Any    = E.encode(value.toString)
+    def decode(value: Any):  UUID   = java.util.UUID.fromString(D.decode(value))
+  }
+
+  given AvroCodec[OffsetDateTime] with {
+    private val E = summon[AvroEncoder[String]]
+    private val D = summon[AvroDecoder[String]]
+    def schema:                        Schema         = E.schema
+    def encode(value: OffsetDateTime): Any            = E.encode(value.toString)
+    def decode(value: Any):            OffsetDateTime = OffsetDateTime.parse(D.decode(value))
+  }
+
+  given AvroCodec[Array[Byte]] with {
+    private val E = summon[AvroEncoder[scala.collection.immutable.ArraySeq[Byte]]]
+    private val D = summon[AvroDecoder[scala.collection.immutable.ArraySeq[Byte]]]
+    def schema:                     Schema      = E.schema
+    def encode(value: Array[Byte]): Any         = E.encode(scala.collection.immutable.ArraySeq.unsafeWrapArray(value))
+    def decode(value: Any):         Array[Byte] = D.decode(value).toArray
+  }
 
   private def arraySchema(elem: Schema): Schema = Schema.createArray(elem)
 
@@ -108,46 +109,15 @@ object AvroSupport {
     case other => sys.error(s"Unsupported type $other")
   }
 
-  // newtype - wrap the underlying type's instances.
-  // For newtypes defined in the SAME module as the derived event, Kindlings' derivation macro cannot summon the
-  // generic given below (its `Newtype.WithType` evidence is a same-run transparent-inline given the macro can't see),
-  // so such newtypes must expose a concrete `given AvroCodec[X] = AvroSupport.newtypeCodec` in their companion.
-  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
-  def newtypeCodec[B, A](using A: Newtype.WithType[B, A], E: AvroEncoder[B], D: AvroDecoder[B]): AvroCodec[A] =
-    new AvroCodec[A] {
-      def schema:           Schema = E.schema
-      def encode(value: A): Any    = E.encode(A.unwrap(value))
-      def decode(value: Any): A =
-        A.make(D.decode(value)).fold[A](str => throw new IllegalArgumentException(str), identity[A])
-    }
+  // neotype `Newtype`/`Subtype` opaque types are handled by the `IsValueTypeProviderForNeotype` macro extension
+  // (module `neotype-kindlings`, on the compile classpath): every Kindlings derivation unwraps them to their underlying
+  // type automatically, so companions no longer need a per-type `given AvroCodec[X]`. (The generic
+  // `Newtype.WithType`-based given that used to live here could never resolve inside the derivation macro anyway - see
+  // that provider's docs.)
 
-  given [A, B](using Newtype.WithType[B, A], AvroEncoder[B], AvroDecoder[B]): AvroCodec[A] = newtypeCodec[B, A]
-
-  // Combine an encoder + decoder into a single AvroCodec (so `summon[AvroSchemaFor[A]]` stays unambiguous). Useful to
-  // give a concrete instance to a type - e.g. an enum used inside `Updatable[...]` - via `avroCodec(using
-  // AvroEncoder.derived, AvroDecoder.derived)`.
-  def avroCodec[A](using E: AvroEncoder[A], D: AvroDecoder[A]): AvroCodec[A] = new AvroCodec[A] {
-    def schema:             Schema = E.schema
-    def encode(value: A):   Any    = E.encode(value)
-    def decode(value: Any): A      = D.decode(value)
-  }
-
-  // Updatable: Kindlings' structural avro derivation mis-names the generic-enum union records (encoder writes
-  // `Set__Type`, decoder expects `Set`) when the enum is the sole such field of a record, so events fail to
-  // round-trip. Encode as the isomorphic Avro union [null, A] (Set(a) -> a, Keep -> null) built directly from the
-  // element codec, sidestepping the buggy derivation.
-  @SuppressWarnings(Array("org.wartremover.warts.Null"))
-  given [A](using E: AvroEncoder[A], D: AvroDecoder[A]): AvroCodec[Updatable[A]] with {
-    def schema: Schema = Schema.createUnion(Schema.create(Schema.Type.NULL), E.schema)
-    def encode(value: Updatable[A]): Any = value match {
-      case Updatable.Set(a) => E.encode(a)
-      case Updatable.Keep   => null
-    }
-    def decode(value: Any): Updatable[A] = value match {
-      case null => Updatable.Keep
-      case v    => Updatable.Set(D.decode(v))
-    }
-  }
+  // `Updatable[A]` / `OptionUpdatable[A]` no longer need a hand-written codec: the enclosing event records derive them
+  // structurally (inline). Older Kindlings mis-named the generic-enum union records (encoder wrote `Set__Type`, decoder
+  // expected `Set`), silently dropping events; fixed in Kindlings 0.3.1.
 
   // cats - non-empty collections encoded as Avro arrays
 

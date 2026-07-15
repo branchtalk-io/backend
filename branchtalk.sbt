@@ -142,6 +142,7 @@ lazy val root = project
     description := "branchtalk build"
   )
   .settings(settings *)
+  .aggregate(neotypeKindlings.projectRefs *)
   .aggregate(common.projectRefs *)
   .aggregate(commonApi.projectRefs *)
   .aggregate(commonInfrastructure)
@@ -153,6 +154,38 @@ lazy val root = project
   .aggregate(server, application)
 
 // commons
+
+// Low-level macro support, below `common` in the dependency graph: a Hearth `StandardMacroExtension` (loaded via
+// ServiceLoader at macro-expansion) that teaches every Kindlings derivation to treat neotype `Newtype`/`Subtype`
+// opaque types as value types, unwrapping to the underlying. This removes the per-companion
+// `given AvroCodec[X] = AvroSupport.newtypeCodec` boilerplate. It must be compiled before, and sit on the macro
+// classpath of, any module deriving codecs for neotypes - so `common` (and thus everything else) depends on it.
+// Deliberately does NOT use the shared `settings` (no wartremover / customPredef / cats deps) - it is plain macro code.
+val neotypeKindlings = projectMatrix
+  .in(file("modules/neotype-kindlings"))
+  .jvmPlatform(List(Dependencies.scalaVersion))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "neotype-kindlings",
+    description := "Neotype support for Kindlings derivations (Hearth IsValueType provider)",
+    organization := "io.branchtalk",
+    scalaVersion := Dependencies.scalaVersion,
+    scalacOptions ++= Seq(
+      // format: off
+      "-encoding", "UTF-8",
+      // format: on
+      "-no-indent",
+      "-Ykind-projector:underscores"
+    ),
+    libraryDependencies ++= Seq(
+      Dependencies.hearth,
+      Dependencies.neotype,
+      compilerPlugin(Dependencies.hearthCrossQuotes)
+    ),
+    Compile / scalafmtOnCompile := true,
+    publish / skip := true,
+    publishArtifact := false
+  )
 
 val common = projectMatrix
   .in(file("modules/common"))
@@ -174,6 +207,7 @@ val common = projectMatrix
     ),
     customPredef("scala.util.chaining", "cats.implicits")
   )
+  .dependsOn(neotypeKindlings)
 
 val commonApi = projectMatrix
   .in(file("modules/common-api"))
