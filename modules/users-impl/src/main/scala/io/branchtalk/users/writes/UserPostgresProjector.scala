@@ -21,9 +21,9 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     in.collect { case UsersEvent.ForUser(event) =>
       event
     }.evalMap[F, Option[(UUID, UserEvent)]] {
-      case event: UserEvent.Created.Encrypted => toCreate(event).widen
-      case event: UserEvent.Updated.Encrypted => toUpdate(event).widen
-      case event: UserEvent.Deleted           => toDelete(event).widen
+      case event: UserEvent.CreatedEncrypted => toCreate(event).widen
+      case event: UserEvent.UpdatedEncrypted => toUpdate(event).widen
+      case event: UserEvent.Deleted          => toDelete(event).widen
     }.flatMap {
       case Some((key, value)) => Stream(key -> UsersEvent.ForUser(value))
       case None               => Stream.empty
@@ -32,7 +32,7 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
       Stream.empty
     }
 
-  def toCreate(encrypted: UserEvent.Created.Encrypted): F[Option[(UUID, UserEvent.Created.Encrypted)]] =
+  def toCreate(encrypted: UserEvent.CreatedEncrypted): F[Option[(UUID, UserEvent.CreatedEncrypted)]] =
     withCorrelationID(encrypted.correlationID) {
       findKeys(encrypted.id)
         .flatMap(
@@ -93,7 +93,7 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         .transact(transactor)
     }
 
-  def toUpdate(encrypted: UserEvent.Updated.Encrypted): F[Option[(UUID, UserEvent.Updated.Encrypted)]] =
+  def toUpdate(encrypted: UserEvent.UpdatedEncrypted): F[Option[(UUID, UserEvent.UpdatedEncrypted)]] =
     withCorrelationID(encrypted.correlationID) {
       findKeys(encrypted.id)
         .flatMap(

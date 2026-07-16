@@ -16,9 +16,9 @@ final class UserCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEven
     in.collect { case UsersCommandEvent.ForUser(command) =>
       command
     }.evalMap[F, (UUID, UserEvent)] {
-      case command: UserCommandEvent.Create.Encrypted => toCreate(command).widen
-      case command: UserCommandEvent.Update.Encrypted => toUpdate(command).widen
-      case command: UserCommandEvent.Delete           => toDelete(command).widen
+      case command: UserCommandEvent.CreateEncrypted => toCreate(command).widen
+      case command: UserCommandEvent.UpdateEncrypted => toUpdate(command).widen
+      case command: UserCommandEvent.Delete          => toDelete(command).widen
     }.map { case (key, value) =>
       key -> UsersEvent.ForUser(value)
     }.handleErrorWith { error =>
@@ -26,11 +26,11 @@ final class UserCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEven
       Stream.empty
     }
 
-  def toCreate(command: UserCommandEvent.Create.Encrypted): F[(UUID, UserEvent.Created.Encrypted)] =
-    (command.id.unwrap -> command.transformInto[UserEvent.Created.Encrypted]).pure[F]
+  def toCreate(command: UserCommandEvent.CreateEncrypted): F[(UUID, UserEvent.CreatedEncrypted)] =
+    (command.id.unwrap -> command.transformInto[UserEvent.CreatedEncrypted]).pure[F]
 
-  def toUpdate(command: UserCommandEvent.Update.Encrypted): F[(UUID, UserEvent.Updated.Encrypted)] =
-    (command.id.unwrap -> command.transformInto[UserEvent.Updated.Encrypted]).pure[F]
+  def toUpdate(command: UserCommandEvent.UpdateEncrypted): F[(UUID, UserEvent.UpdatedEncrypted)] =
+    (command.id.unwrap -> command.transformInto[UserEvent.UpdatedEncrypted]).pure[F]
 
   def toDelete(command: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
     (command.id.unwrap -> command.transformInto[UserEvent.Deleted]).pure[F]
