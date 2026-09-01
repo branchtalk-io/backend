@@ -68,15 +68,21 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                |  ${nestingLevel},
                |  ${event.createdAt}
                |)
-               |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run >>
+               |ON CONFLICT (id) DO NOTHING""".stripMargin
+            .updateWithLabel(show"Create Discussions' Comment ID=${event.id}")
+            .run >>
             sql"""UPDATE posts
                  |SET comments_nr = comments_nr + 1
                  |WHERE id = ${event.postID}
-                 |""".stripMargin.update.run >>
+                 |""".stripMargin
+              .updateWithLabel(show"Increment Discussions' Post comments count for Post=${event.postID}")
+              .run >>
             sql"""UPDATE comments
                  |SET replies_nr = replies_nr + 1
                  |WHERE id = ${event.replyTo}
-                 |""".stripMargin.update.run
+                 |""".stripMargin
+              .updateWithLabel(show"Increment Discussions' Comment replies count for Comment=${event.replyTo}")
+              .run
         }
         .as(event.id.unwrap -> event)
         .transact(transactor)
@@ -92,7 +98,7 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         case Some(updates) =>
           (fr"UPDATE comments SET" ++
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
-            fr"WHERE id = ${event.id}").update.run.void
+            fr"WHERE id = ${event.id}").updateWithLabel(show"Update Discussions' Comment ID=${event.id}").run.void
         case None =>
           Sync[ConnectionIO].delay(
             logger.warn(show"Comment update ignored as it doesn't contain any modification:\n$event")
@@ -102,32 +108,44 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
 
   def toDelete(event: CommentEvent.Deleted): F[(UUID, CommentEvent.Deleted)] =
     withCorrelationID(event.correlationID) {
-      (sql"UPDATE comments SET deleted = TRUE WHERE id = ${event.id}".update.run >>
+      (sql"UPDATE comments SET deleted = TRUE WHERE id = ${event.id}"
+        .updateWithLabel(show"Delete Discussions' Comment ID=${event.id}")
+        .run >>
         sql"""UPDATE posts
              |SET comments_nr = comments_nr - 1
              |FROM (SELECT post_id FROM comments WHERE id = ${event.id}) as subquery
              |WHERE id = subquery.post_id
-             |""".stripMargin.update.run >>
+             |""".stripMargin
+          .updateWithLabel(show"Decrement Discussions' Post comments count for deleted Comment=${event.id}")
+          .run >>
         sql"""UPDATE comments
              |SET replies_nr = replies_nr - 1
              |FROM (SELECT reply_to FROM comments WHERE id = ${event.id}) as subquery
              |WHERE id = subquery.reply_to
-             |""".stripMargin.update.run).as(event.id.unwrap -> event).transact(transactor)
+             |""".stripMargin
+          .updateWithLabel(show"Decrement Discussions' Comment replies count for deleted Comment=${event.id}")
+          .run).as(event.id.unwrap -> event).transact(transactor)
     }
 
   def toRestore(event: CommentEvent.Restored): F[(UUID, CommentEvent.Restored)] =
     withCorrelationID(event.correlationID) {
-      (sql"UPDATE comments SET deleted = FALSE WHERE id = ${event.id}".update.run >>
+      (sql"UPDATE comments SET deleted = FALSE WHERE id = ${event.id}"
+        .updateWithLabel(show"Restore Discussions' Comment ID=${event.id}")
+        .run >>
         sql"""UPDATE posts
              |SET comments_nr = comments_nr + 1
              |FROM (SELECT post_id FROM comments WHERE id = ${event.id}) as subquery
              |WHERE id = subquery.post_id
-             |""".stripMargin.update.run >>
+             |""".stripMargin
+          .updateWithLabel(show"Increment Discussions' Post comments count for restored Comment=${event.id}")
+          .run >>
         sql"""UPDATE comments
              |SET replies_nr = replies_nr + 1
              |FROM (SELECT reply_to FROM comments WHERE id = ${event.id}) as subquery
              |WHERE id = subquery.reply_to
-             |""".stripMargin.update.run).as(event.id.unwrap -> event).transact(transactor)
+             |""".stripMargin
+          .updateWithLabel(show"Increment Discussions' Comment replies count for restored Comment=${event.id}")
+          .run).as(event.id.unwrap -> event).transact(transactor)
     }
 
   private def fetchVote(commentID: ID[Comment], voterID: ID[User]) =
@@ -145,7 +163,9 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           |    total_score         = nw.upvotes - nw.downvotes,
           |    controversial_score = LEAST(nw.upvotes, nw.downvotes)
           |FROM nw
-          |WHERE id = $commentID""".stripMargin).update.run
+          |WHERE id = $commentID""".stripMargin)
+      .updateWithLabel(show"Update Discussions' Comment vote counts for Comment=$commentID")
+      .run
 
   def toUpvote(event: CommentEvent.Upvoted): F[(UUID, CommentEvent.Upvoted)] =
     withCorrelationID(event.correlationID) {
@@ -159,7 +179,11 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             sql"""UPDATE comment_votes
                  |SET vote = ${Vote.Type.upvote}
                  |WHERE comment_id = ${event.id}
-                 |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+                 |  AND voter_id = ${event.voterID}""".stripMargin
+              .updateWithLabel(
+                show"Swap Discussions' Vote to Upvote for Comment=${event.id} AND Voter=${event.voterID}"
+              )
+              .run >>
               updateCommentVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr - 1").void
           case None =>
             // create new upvote
@@ -171,7 +195,9 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |  ${event.id},
                  |  ${event.voterID},
                  |  ${Vote.Type.upvote}
-                 |)""".stripMargin.update.run >>
+                 |)""".stripMargin
+              .updateWithLabel(show"Upvote Discussions' Comment=${event.id} by Voter=${event.voterID}")
+              .run >>
               updateCommentVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr").void
         }
         .as(event.id.unwrap -> event)
@@ -187,7 +213,11 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             sql"""UPDATE comment_votes
                  |SET vote = ${Vote.Type.downvote}
                  |WHERE comment_id = ${event.id}
-                 |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+                 |  AND voter_id = ${event.voterID}""".stripMargin
+              .updateWithLabel(
+                show"Swap Discussions' Vote to Downvote for Comment=${event.id} AND Voter=${event.voterID}"
+              )
+              .run >>
               updateCommentVotes(event.id, fr"upvotes_nr - 1", fr"downvotes_nr + 1").void
           case Some(Vote.Type.Downvote) =>
             // do nothing - downvote already exists
@@ -202,7 +232,9 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |  ${event.id},
                  |  ${event.voterID},
                  |  ${Vote.Type.downvote}
-                 |)""".stripMargin.update.run >>
+                 |)""".stripMargin
+              .updateWithLabel(show"Downvote Discussions' Comment=${event.id} by Voter=${event.voterID}")
+              .run >>
               updateCommentVotes(event.id, fr"upvotes_nr", fr"downvotes_nr + 1").void
         }
         .as(event.id.unwrap -> event)
@@ -217,13 +249,17 @@ final class CommentPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             // delete upvote
             sql"""DELETE FROM comment_votes
                  |WHERE comment_id = ${event.id}
-                 |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+                 |  AND voter_id = ${event.voterID}""".stripMargin
+              .updateWithLabel(show"Revoke Discussions' Upvote for Comment=${event.id} AND Voter=${event.voterID}")
+              .run >>
               updateCommentVotes(event.id, fr"upvotes_nr - 1", fr"downvotes_nr").void
           case Some(Vote.Type.Downvote) =>
             // delete downvote
             sql"""DELETE FROM comment_votes
                  |WHERE comment_id = ${event.id}
-                 |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+                 |  AND voter_id = ${event.voterID}""".stripMargin
+              .updateWithLabel(show"Revoke Discussions' Downvote for Comment=${event.id} AND Voter=${event.voterID}")
+              .run >>
               updateCommentVotes(event.id, fr"upvotes_nr", fr"downvotes_nr - 1").void
           case None =>
             // do nothing - vote doesn't exist

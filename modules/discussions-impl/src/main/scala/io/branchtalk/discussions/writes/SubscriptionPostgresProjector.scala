@@ -40,14 +40,20 @@ final class SubscriptionPostgresProjector[F[_]: Sync: MDC](transactor: Transacto
            |ON CONFLICT (subscriber_id) DO
            |UPDATE
            |SET subscriptions_ids = array_distinct(subscriptions.subscriptions_ids || ${event.subscriptions})""" //
-        .stripMargin.update.run.as(event.subscriberID.unwrap -> event).transact(transactor)
+        .stripMargin
+        .updateWithLabel(show"Subscribe Discussions' Subscriber ID=${event.subscriberID}")
+        .run
+        .as(event.subscriberID.unwrap -> event)
+        .transact(transactor)
     }
 
   def toUnsubscribe(event: SubscriptionEvent.Unsubscribed): F[(UUID, SubscriptionEvent.Unsubscribed)] =
     withCorrelationID(event.correlationID) {
       sql"""UPDATE subscriptions
            |SET subscriptions_ids = array_diff(subscriptions.subscriptions_ids, ${event.subscriptions})
-           |WHERE subscriber_id = ${event.subscriberID}""".stripMargin.update.run
+           |WHERE subscriber_id = ${event.subscriberID}""".stripMargin
+        .updateWithLabel(show"Unsubscribe Discussions' Subscriber ID=${event.subscriberID}")
+        .run
         .as(event.subscriberID.unwrap -> event)
         .transact(transactor)
     }

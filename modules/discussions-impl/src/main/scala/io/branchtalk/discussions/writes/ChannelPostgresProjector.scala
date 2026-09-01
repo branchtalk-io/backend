@@ -46,7 +46,11 @@ final class ChannelPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |  ${event.description},
            |  ${event.createdAt}
            |)
-           |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.as(event.id.unwrap -> event).transact(transactor)
+           |ON CONFLICT (id) DO NOTHING""".stripMargin
+        .updateWithLabel(show"Create Discussions' Channel ID=${event.id}")
+        .run
+        .as(event.id.unwrap -> event)
+        .transact(transactor)
     }
 
   def toUpdate(event: ChannelEvent.Updated): F[(UUID, ChannelEvent.Updated)] =
@@ -65,7 +69,7 @@ final class ChannelPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         )(updates =>
           (fr"UPDATE channels SET" ++
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
-            fr"WHERE id = ${event.id}").update.run.void
+            fr"WHERE id = ${event.id}").updateWithLabel(show"Update Discussions' Channel ID=${event.id}").run.void
         )
         .as(event.id.unwrap -> event)
         .transact(transactor)
@@ -73,14 +77,18 @@ final class ChannelPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
 
   def toDelete(event: ChannelEvent.Deleted): F[(UUID, ChannelEvent.Deleted)] =
     withCorrelationID(event.correlationID) {
-      sql"UPDATE channels SET deleted = TRUE WHERE id = ${event.id}".update.run
+      sql"UPDATE channels SET deleted = TRUE WHERE id = ${event.id}"
+        .updateWithLabel(show"Delete Discussions' Channel ID=${event.id}")
+        .run
         .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
   def toRestore(event: ChannelEvent.Restored): F[(UUID, ChannelEvent.Restored)] =
     withCorrelationID(event.correlationID) {
-      sql"UPDATE channels SET deleted = FALSE WHERE id = ${event.id}".update.run
+      sql"UPDATE channels SET deleted = FALSE WHERE id = ${event.id}"
+        .updateWithLabel(show"Restore Discussions' Channel ID=${event.id}")
+        .run
         .as(event.id.unwrap -> event)
         .transact(transactor)
     }
