@@ -69,10 +69,12 @@ final class AppServer[F[_]: Async: MDC](
   val routes: HttpApp[F] =
     NonEmptyList
       .of(
-        userServer.routes,
+        // The literal /users/moderation and /users/bans routes must come before userServer's /users/{userID}, otherwise
+        // the path-param route matches "moderation"/"bans" and fails to parse them as a UUID (routes are tried in order).
         userModerationServer.routes,
-        channelModerationServer.routes,
         userBanServer.routes,
+        userServer.routes,
+        channelModerationServer.routes,
         channelBanServer.routes,
         channelServer.routes,
         postServer.routes,
