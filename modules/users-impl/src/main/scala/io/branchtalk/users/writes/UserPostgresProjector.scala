@@ -86,7 +86,9 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                    |  ${sessionType},
                    |  ${sessionPermissions},
                    |  ${event.sessionExpiresAt}
-                   |)""".stripMargin.update.run
+                   |)""".stripMargin
+                .updateWithLabel(show"Create Users' Session ID=${event.sessionID} for User=${event.id}")
+                .run
           }
         )
         .as((encrypted.id.unwrap -> encrypted).some)
@@ -140,7 +142,7 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                 case Some(updates) =>
                   (fr"UPDATE users SET" ++
                     (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
-                    fr"WHERE id = ${event.id}").update.run.void
+                    fr"WHERE id = ${event.id}").updateWithLabel(show"Update Users' User ID=${event.id}").run.void
                 case None =>
                   Sync[ConnectionIO].delay(
                     logger.warn(show"User update ignored as it doesn't contain any modification:\n$event")
@@ -156,10 +158,12 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
   def toDelete(event: UserEvent.Deleted): F[Option[(UUID, UserEvent.Deleted)]] =
     withCorrelationID(event.correlationID) {
       {
-        sql"DELETE FROM users WHERE id = ${event.id}".update.run >>
+        sql"DELETE FROM users WHERE id = ${event.id}".updateWithLabel(show"Delete Users' User ID=${event.id}").run >>
           sql"""INSERT INTO deleted_users (id, deleted_at)
                |VALUES (${event.id}, ${event.deletedAt})
-             ON CONFLICT (id) DO NOTHING""".stripMargin.update.run
+             ON CONFLICT (id) DO NOTHING""".stripMargin
+            .updateWithLabel(show"Record Users' deleted User ID=${event.id}")
+            .run
       }.as((event.id.unwrap -> event).some).transact(transactor)
     }
 

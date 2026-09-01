@@ -59,7 +59,11 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |  ${contentRaw},
            |  ${event.createdAt}
            |)
-           |ON CONFLICT (id) DO NOTHING""".stripMargin.update.run.as(event.id.unwrap -> event).transact(transactor)
+           |ON CONFLICT (id) DO NOTHING""".stripMargin
+        .updateWithLabel(show"Create Discussions' Post ID=${event.id}")
+        .run
+        .as(event.id.unwrap -> event)
+        .transact(transactor)
     }
 
   def toUpdate(event: PostEvent.Updated): F[(UUID, PostEvent.Updated)] =
@@ -76,7 +80,7 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
         case Some(updates) =>
           (fr"UPDATE posts SET" ++
             (updates :+ fr"last_modified_at = ${event.modifiedAt}").intercalate(fr",") ++
-            fr"WHERE id = ${event.id}").update.run.void
+            fr"WHERE id = ${event.id}").updateWithLabel(show"Update Discussions' Post ID=${event.id}").run.void
         case None =>
           Sync[ConnectionIO].delay(
             logger.warn(show"Post update ignored as it doesn't contain any modification:\n$event")
@@ -86,14 +90,18 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
 
   def toDelete(event: PostEvent.Deleted): F[(UUID, PostEvent.Deleted)] =
     withCorrelationID(event.correlationID) {
-      sql"UPDATE posts SET deleted = TRUE WHERE id = ${event.id}".update.run
+      sql"UPDATE posts SET deleted = TRUE WHERE id = ${event.id}"
+        .updateWithLabel(show"Delete Discussions' Post ID=${event.id}")
+        .run
         .as(event.id.unwrap -> event)
         .transact(transactor)
     }
 
   def toRestore(event: PostEvent.Restored): F[(UUID, PostEvent.Restored)] =
     withCorrelationID(event.correlationID) {
-      sql"UPDATE posts SET deleted = FALSE WHERE id = ${event.id}".update.run
+      sql"UPDATE posts SET deleted = FALSE WHERE id = ${event.id}"
+        .updateWithLabel(show"Restore Discussions' Post ID=${event.id}")
+        .run
         .as(event.id.unwrap -> event)
         .transact(transactor)
     }
@@ -113,7 +121,9 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           |    total_score         = nw.upvotes - nw.downvotes,
           |    controversial_score = LEAST(nw.upvotes, nw.downvotes)
           |FROM nw
-          |WHERE id = $postID""".stripMargin).update.run
+          |WHERE id = $postID""".stripMargin)
+      .updateWithLabel(show"Update Discussions' Post vote counts for Post=$postID")
+      .run
 
   def toUpvote(event: PostEvent.Upvoted): F[(UUID, PostEvent.Upvoted)] =
     withCorrelationID(event.correlationID) {
@@ -127,7 +137,9 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             sql"""UPDATE post_votes
                  |SET vote = ${Vote.Type.upvote}
                  |WHERE post_id = ${event.id}
-                 |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+                 |  AND voter_id = ${event.voterID}""".stripMargin
+              .updateWithLabel(show"Swap Discussions' Vote to Upvote for Post=${event.id} AND Voter=${event.voterID}")
+              .run >>
               updatePostVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr - 1").void
           case None =>
             // create new upvote
@@ -139,7 +151,9 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |  ${event.id},
                  |  ${event.voterID},
                  |  ${Vote.Type.upvote}
-                 |)""".stripMargin.update.run >>
+                 |)""".stripMargin
+              .updateWithLabel(show"Upvote Discussions' Post=${event.id} by Voter=${event.voterID}")
+              .run >>
               updatePostVotes(event.id, fr"upvotes_nr + 1", fr"downvotes_nr").void
         }
         .as(event.id.unwrap -> event)
@@ -155,7 +169,9 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             sql"""UPDATE post_votes
                  |SET vote = ${Vote.Type.downvote}
                  |WHERE post_id = ${event.id}
-                 |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+                 |  AND voter_id = ${event.voterID}""".stripMargin
+              .updateWithLabel(show"Swap Discussions' Vote to Downvote for Post=${event.id} AND Voter=${event.voterID}")
+              .run >>
               updatePostVotes(event.id, fr"upvotes_nr - 1", fr"downvotes_nr + 1").void
           case Some(Vote.Type.Downvote) =>
             // do nothing - downvote already exists
@@ -170,7 +186,9 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
                  |  ${event.id},
                  |  ${event.voterID},
                  |  ${Vote.Type.downvote}
-                 |)""".stripMargin.update.run >>
+                 |)""".stripMargin
+              .updateWithLabel(show"Downvote Discussions' Post=${event.id} by Voter=${event.voterID}")
+              .run >>
               updatePostVotes(event.id, fr"upvotes_nr", fr"downvotes_nr + 1").void
         }
         .as(event.id.unwrap -> event)
@@ -185,13 +203,17 @@ final class PostPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             // delete upvote
             sql"""DELETE FROM post_votes
                  |WHERE post_id = ${event.id}
-                 |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+                 |  AND voter_id = ${event.voterID}""".stripMargin
+              .updateWithLabel(show"Revoke Discussions' Upvote for Post=${event.id} AND Voter=${event.voterID}")
+              .run >>
               updatePostVotes(event.id, fr"upvotes_nr - 1", fr"downvotes_nr").void
           case Some(Vote.Type.Downvote) =>
             // delete downvote
             sql"""DELETE FROM post_votes
                  |WHERE post_id = ${event.id}
-                 |  AND voter_id = ${event.voterID}""".stripMargin.update.run >>
+                 |  AND voter_id = ${event.voterID}""".stripMargin
+              .updateWithLabel(show"Revoke Discussions' Downvote for Post=${event.id} AND Voter=${event.voterID}")
+              .run >>
               updatePostVotes(event.id, fr"upvotes_nr", fr"downvotes_nr - 1").void
           case None =>
             // do nothing - vote doesn't exist

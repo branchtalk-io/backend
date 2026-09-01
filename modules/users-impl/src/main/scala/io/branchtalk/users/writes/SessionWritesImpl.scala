@@ -42,7 +42,7 @@ final class SessionWritesImpl[F[_]: Sync: MDC](
                 |  ${sessionDao.usageType},
                 |  ${sessionDao.usagePermissions},
                 |  ${sessionDao.expiresAt}
-                |)""".stripMargin.update.run.transact(transactor)
+                |)""".stripMargin.updateWithLabel(show"Create Users' Session ID=$id").run.transact(transactor)
       event = session.data
         .into[SessionEvent.LoggedIn]
         .withFieldConst(_.id, id)
@@ -59,7 +59,10 @@ final class SessionWritesImpl[F[_]: Sync: MDC](
         for {
           correlationID <- CorrelationID.getCurrentOrGenerate[F]
           id = session.id
-          _ <- sql"""DELETE FROM sessions WHERE id = ${deletedSession.id}""".update.run.transact(transactor)
+          _ <- sql"""DELETE FROM sessions WHERE id = ${deletedSession.id}"""
+            .updateWithLabel(show"Delete Users' Session ID=${deletedSession.id}")
+            .run
+            .transact(transactor)
           event = session.data
             .into[SessionEvent.LoggedOut]
             .withFieldConst(_.id, id)

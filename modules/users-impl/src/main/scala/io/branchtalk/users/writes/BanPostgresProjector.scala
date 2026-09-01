@@ -43,7 +43,11 @@ final class BanPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
            |  ${banType},
            |  ${banID},
            |  ${event.reason}
-           |)""".stripMargin.update.run.as(event.bannedUserID.unwrap -> event).transact(transactor)
+           |)""".stripMargin
+        .updateWithLabel(show"Ban Users' User ID=${event.bannedUserID}")
+        .run
+        .as(event.bannedUserID.unwrap -> event)
+        .transact(transactor)
 
     }
 
@@ -60,6 +64,9 @@ final class BanPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
           sql"""DELETE FROM bans
                |WHERE user_id  = ${event.bannedUserID}
                |  AND ban_type = $banType""".stripMargin
-      }).update.run.as(event.bannedUserID.unwrap -> event).transact(transactor)
+      }).updateWithLabel(show"Unban Users' User ID=${event.bannedUserID}")
+        .run
+        .as(event.bannedUserID.unwrap -> event)
+        .transact(transactor)
     }
 }
