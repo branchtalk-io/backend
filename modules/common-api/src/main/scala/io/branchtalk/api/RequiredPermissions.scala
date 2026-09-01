@@ -39,9 +39,12 @@ object RequiredPermissions {
       val perm  = summon[ShowPretty[Permission]]
       val elems = t.toNonEmptyList.toList
       val inner = elems.zipWithIndex.flatMap { case (permission, index) =>
-        val lines = perm.showLines(permission)
+        val lines       = perm.showLines(permission)
+        val lastLineIdx = lines.size - 1
         val withComma =
-          if (index < elems.size - 1) lines.init :+ (lines.lastOption.getOrElse("") + ",") else lines
+          if (index < elems.size - 1)
+            lines.zipWithIndex.map { case (line, lineIdx) => if (lineIdx === lastLineIdx) line + "," else line }
+          else lines
         withComma.map("  " + _)
       }
       "NonEmptySet(" :: inner ::: List(")")

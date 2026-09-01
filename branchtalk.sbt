@@ -33,10 +33,13 @@ val settings = Seq(
     "-Xmax-inlines", "64",
     // format: on
     "-Wconf:msg=The method `apply` is inserted:s",
+    // http4s' RequestId middleware summons cats-effect's deprecated UUIDGen.fromSync; avoiding it would need an
+    // effectfully-acquired SecureRandom, so we accept and silence that single deprecation.
+    "-Wconf:msg=fromSync in trait UUIDGenCompanionPlatformLowPriority is deprecated:s",
     "-Wnonunit-statement",
     "-Wvalue-discard",
     // "-Xfatal-warnings",
-    "-Ykind-projector:underscores"
+    "-Xkind-projector:underscores"
   ),
   console / scalacOptions --= Seq(
     // warnings
@@ -176,7 +179,7 @@ val neotypeKindlings = projectMatrix
       "-encoding", "UTF-8",
       // format: on
       "-no-indent",
-      "-Ykind-projector:underscores"
+      "-Xkind-projector:underscores"
     ),
     libraryDependencies ++= Seq(
       Dependencies.hearth,
@@ -437,6 +440,9 @@ val application = project
     Compile / run / mainClass := Some("io.branchtalk.Main"),
     Compile / run / fork := true,
     Compile / runMain / fork := true,
+    // The MDC integration relies on cats-effect's IOLocal->thread-local propagation (IOMDCAdapter), which is opt-in.
+    // For sbt run; the packaged app gets it via JAVA_OPTS (see docker-compose/monolith-app.yml).
+    Compile / run / javaOptions += "-Dcats.effect.ioLocalPropagation=true",
     dockerUpdateLatest := true,
     Docker / packageName := "branchtalk-server",
     Docker / dockerExposedPorts := Seq(8080),

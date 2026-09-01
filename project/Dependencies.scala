@@ -7,7 +7,7 @@ object Dependencies {
 
   // libraries versions
   val catsVersion       = "2.13.0" // https://github.com/typelevel/cats/releases
-  val catsEffectVersion = "3.5.0" // https://github.com/typelevel/cats-effect/releases
+  val catsEffectVersion = "3.6.4" // https://github.com/typelevel/cats-effect/releases
   val declineVersion    = "2.4.1" // https://github.com/bkirwi/decline/releases
   val doobieVersion     = "1.0.0-RC5" // https://github.com/tpolecat/doobie/releases
   val drosteVersion     = "0.9.0" // https://github.com/higherkindness/droste/releases

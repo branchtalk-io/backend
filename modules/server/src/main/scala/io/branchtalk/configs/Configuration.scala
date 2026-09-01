@@ -34,5 +34,8 @@ object Configuration {
       if overrideFilesList.nonEmpty
     } yield overrideFilesList.map(ConfigFactory.parseFile)).getOrElse(List.empty)
 
-  private def finalConfig: Config = (configOverrides ::: defaultConfigs).reduceLeft(_.withFallback(_))
+  private def finalConfig: Config =
+    (configOverrides ::: defaultConfigs)
+      .reduceLeftOption(_.withFallback(_))
+      .getOrElse(ConfigFactory.empty("branchtalk"))
 }
