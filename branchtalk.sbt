@@ -67,6 +67,7 @@ val settings = Seq(
     Dependencies.kindlingsCats,
     Dependencies.kindlingsCatsInterop,
     Dependencies.kindlingsShowPretty,
+    Dependencies.kindlingsTapirSchema,
     Dependencies.chimney,
     Dependencies.enumeratum,
     Dependencies.fastuuid,
@@ -221,11 +222,9 @@ val commonApi = projectMatrix
   .settings(tests *)
   .settings(
     libraryDependencies ++= Seq(
-      Dependencies.jsoniter,
+      // jsoniter-scala-core comes transitively from kindlings-jsoniter-derivation; tapir-core from kindlings-tapir-schema
+      // (in the shared settings). Newtypes are handled by macro-extensions, so no neotype-jsoniter/neotype-tapir here.
       Dependencies.kindlingsJsoniter,
-      Dependencies.neotypeTapir,
-      Dependencies.neotypeJsoniter,
-      Dependencies.tapir,
       Dependencies.tapirJsoniter
     ),
     customPredef("scala.util.chaining", "cats.implicits", "neotype")

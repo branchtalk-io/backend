@@ -8,35 +8,31 @@ import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.discussions.model.*
 import io.branchtalk.shared.model.*
 import io.scalaland.chimney.dsl.*
-import sttp.tapir.Schema
-import sttp.tapir.generic.Configuration
 
-import scala.annotation.unused
 import scala.util.Try
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object PostModels {
 
-  // properties codecs
-  given JsCodec[Post.UrlTitle] = newtypeCodec
-  given JsCodec[Post.Title]    = newtypeCodec
+  // Post.UrlTitle/Title/Text/CommentsNr are plain neotype newtypes handled uniformly by the Kindlings IsValueType
+  // macro-extension. Only Post.URL needs an explicit codec (custom String<->URI representation), and Post.Content
+  // needs the kebab-case ADT leaf-name mapper.
   given JsCodec[Post.URL] =
     DefaultJsCodec
       .derived[String]
       .mapDecode[URI](s => Try(URI.create(s)).fold(_ => Left(s"Invalid URI: $s"), Right(_)))(_.toString)
       .asNewtypeCodec[Post.URL]
-  given JsCodec[Post.Text] = newtypeCodec
+  // Post.Content uses kebab-case ADT leaf names. Both the codec and the Kindlings tapir-schema read the same locally
+  // scoped JsoniterConfig, so the OpenAPI schema stays in sync with the JSON automatically - no separate tapir config.
   given JsCodec[Post.Content] = {
-    inline given JsCodecConfig = JsCodecConfig().withAdtLeafClassNameMapper(adtDiscriminatorNameMapper)
+    inline given JsCodecConfig =
+      JsCodecConfig().withAdtLeafClassNameMapper(adtDiscriminatorNameMapper).withDiscriminator("type")
     DefaultJsCodec.derived[Post.Content]
   }
-  given JsCodec[Post.CommentsNr] = newtypeCodec
-
-  // properties schemas
   given JsSchema[Post.Content] = {
-    // used in macros
-    @unused given Configuration = Configuration.default.copy(toEncodedName = adtDiscriminatorNameMapper)
-    Schema.derived[Post.Content]
+    inline given JsCodecConfig =
+      JsCodecConfig().withAdtLeafClassNameMapper(adtDiscriminatorNameMapper).withDiscriminator("type")
+    summon[hearth.kindlings.tapirschemaderivation.KindlingsSchema[Post.Content]].schema
   }
 
   sealed trait PostError derives DefaultJsCodec, JsSchema
