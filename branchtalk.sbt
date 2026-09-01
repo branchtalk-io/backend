@@ -430,7 +430,7 @@ val server = project
 
 val application = project
   .in(file("modules/app"))
-  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .enablePlugins(GitVersioning, GitBranchPrompt, JavaAppPackaging, DockerPlugin)
   .settings(
     name := "app",
     description := "Branchtalk backend application"
@@ -440,9 +440,11 @@ val application = project
     Compile / run / mainClass := Some("io.branchtalk.Main"),
     Compile / run / fork := true,
     Compile / runMain / fork := true,
-    // The MDC integration relies on cats-effect's IOLocal->thread-local propagation (IOMDCAdapter), which is opt-in.
-    // For sbt run; the packaged app gets it via JAVA_OPTS (see docker-compose/monolith-app.yml).
-    Compile / run / javaOptions += "-Dcats.effect.ioLocalPropagation=true",
+    // The MDC integration relies on cats-effect's IOLocal->thread-local propagation (IOMDCAdapter), which is opt-in via
+    // the cats.effect.trackFiberContext system property. For `sbt run`; the packaged app bakes it into its start script
+    // (bashScriptExtraDefines below).
+    Compile / run / javaOptions += "-Dcats.effect.trackFiberContext=true",
+    bashScriptExtraDefines += """addJava "-Dcats.effect.trackFiberContext=true"""",
     dockerUpdateLatest := true,
     Docker / packageName := "branchtalk-server",
     Docker / dockerExposedPorts := Seq(8080),

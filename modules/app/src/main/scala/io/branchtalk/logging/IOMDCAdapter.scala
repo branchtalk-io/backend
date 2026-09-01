@@ -8,7 +8,7 @@ import org.slf4j.spi.MDCAdapter
 import scala.jdk.CollectionConverters.*
 
 // Bridges SLF4J's synchronous MDCAdapter API to a cats-effect IOLocal via IOLocal#unsafeThreadLocal (cats-effect 3.6+,
-// enabled by -Dcats.effect.ioLocalPropagation=true), so a log statement running inside a fiber observes that fiber's
+// enabled by -Dcats.effect.trackFiberContext=true), so a log statement running inside a fiber observes that fiber's
 // context. Replaces the previous IOGlobal/IOLocalHack thread-local propagation hack (cats-effect now propagates the
 // IOLocal to the running carrier thread itself).
 @SuppressWarnings(Array("org.wartremover.warts.Null")) // talking to a Java interface that uses null as "absent"
