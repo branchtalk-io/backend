@@ -3,7 +3,7 @@ package io.branchtalk.users.api
 import io.branchtalk.api.*
 import io.branchtalk.api.AuthenticationSupport.{ *, given }
 import io.branchtalk.api.TapirSupport.{ *, given }
-import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
+import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable, branchtalkCharset }
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.Password.{ Raw => RawPassword }
 import io.branchtalk.users.model.User
@@ -143,7 +143,7 @@ object UserAPIs {
               UpdateUserRequest(
                 newUsername = Updatable.Set(User.Name("example")),
                 newDescription = OptionUpdatable.Set(User.Description("example")),
-                newPassword = Updatable.Set(RawPassword.unsafeMake("example".getBytes))
+                newPassword = Updatable.Set(RawPassword.unsafeMake("example".getBytes(branchtalkCharset)))
               ),
               name = "Set all".some,
               summary = "Assigns new value to all fields".some
