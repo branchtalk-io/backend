@@ -9,9 +9,8 @@ import io.scalaland.chimney.dsl.*
 
 object CommentModels {
 
-  // properties codecs
-  given JsCodec[Comment.Content]   = newtypeCodec
-  given JsCodec[Comment.RepliesNr] = newtypeCodec
+  // Comment.Content/RepliesNr are plain neotype newtypes handled uniformly by the Kindlings IsValueType
+  // macro-extension (neotype-kindlings) - no per-companion codecs needed.
 
   sealed trait CommentError derives DefaultJsCodec, JsSchema
   object CommentError {

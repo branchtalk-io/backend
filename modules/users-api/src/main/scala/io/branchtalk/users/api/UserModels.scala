@@ -1,34 +1,31 @@
 package io.branchtalk.users.api
 
-import java.time.OffsetDateTime
 import cats.data.NonEmptyList
 import io.branchtalk.api.JsoniterSupport.{ *, given }
 import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.shared.model.*
 import io.branchtalk.users.model.*
 import io.scalaland.chimney.dsl.*
-import sttp.tapir.Schema
 
 @SuppressWarnings(Array("org.wartremover.warts.All")) // for macros
 object UserModels {
 
   // properties codecs
-  given JsCodec[User.Email]       = newtypeCodec
-  given JsCodec[User.Name]        = newtypeCodec
-  given JsCodec[User.Description] = newtypeCodec
+  // Plain neotype newtypes (User.Email/Name/Description, Session.ExpirationTime, Ban.Reason, Permissions) are handled
+  // uniformly by the Kindlings IsValueType macro-extension (neotype-kindlings) - no per-companion codec needed.
+  // Only Password.Raw needs an explicit codec because it uses a custom String<->Array[Byte] representation.
   // I wanted to avoid that but the result is ugly :/
   // I'll try to revisit that someday and e.g. use Base64 here?
   given JsCodec[Password.Raw] =
     DefaultJsCodec.derived[String].map[Array[Byte]](_.getBytes)(new String(_)).asNewtypeCodec
-  given JsCodec[Permissions]            = newtypeCodec
-  given JsCodec[Session.ExpirationTime] = newtypeCodec
-  given JsCodec[Ban.Reason]             = newtypeCodec
 
   // properties schemas
-  given JsSchema[Permission]  = JsSchema.derived
-  given JsSchema[Permissions] = summonSchema[List[Permission]].as[Set[Permission]].asNewtypeSchema[Permissions]
+  // Permission (ADT) needs an explicit Kindlings schema because it's a domain enum without a `derives` clause; from it
+  // the Permissions (Set newtype) schema follows via the generic newtype schema given. Password.Raw needs an explicit
+  // schema because its JSON representation is a custom String (not Array[Byte]).
+  given JsSchema[Permission] = JsSchema.derived
   given JsSchema[Password.Raw] =
-    summonSchema[String].map[Array[Byte]](_.getBytes.some)(new String(_)).asNewtypeSchema[Password.Raw]
+    JsSchema.schemaForString.map[Array[Byte]](_.getBytes.some)(new String(_)).asNewtypeSchema[Password.Raw]
 
   sealed trait UserError derives DefaultJsCodec, JsSchema
   object UserError {

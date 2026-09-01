@@ -64,6 +64,13 @@ object JsoniterSupport extends JsoniterSupportImplicits {
       newtype.unsafeMakeF[JsCodec](codec)
   }
 
+  // NOTE: we deliberately do NOT `export neotype.interop.jsoniter.{ newtypeCodec, subtypeCodec }`.
+  // That inline given wraps jsoniter-scala's JsonCodecMaker, which decodes an empty JSON array `[]` to the passed
+  // `default` value; Kindlings hands `null` as the default for fields, so collection-backed newtypes (e.g. Permissions
+  // over Set) decoded empty collections to `null`. Kindlings' own derivation handles `[]` correctly, so we let the
+  // neotype-kindlings IsValueType macro-extension treat all neotype newtypes as value types uniformly across every
+  // Kindlings macro (jsoniter, avro, tapir-schema). Use `.asNewtypeCodec` only when a custom representation is needed.
+
   // domain instances
 
   given [A]: JsCodec[ID[A]] = DefaultJsCodec.derived[UUID].asNewtypeCodec[ID[A]]
@@ -84,33 +91,13 @@ object JsoniterSupport extends JsoniterSupportImplicits {
     DefaultJsCodec.derived[OptionUpdatable[A]]
   }
 
-  // Cats instances
-
-  given [A: JsCodec]: JsCodec[Chain[A]] = DefaultJsCodec.derived[List[A]].map(Chain.fromSeq)(_.toList)
-  given [A: JsCodec]: JsCodec[NonEmptyChain[A]] = DefaultJsCodec
-    .derived[List[A]]
-    .mapDecode {
-      case head :: tail => NonEmptyChain(head, tail: _*).asRight[String]
-      case _            => "Expected non-empty list".asLeft[NonEmptyChain[A]]
-    }(_.toList)
-  given [A: JsCodec]: JsCodec[NonEmptyList[A]] = DefaultJsCodec
-    .derived[List[A]]
-    .mapDecode {
-      case head :: tail => NonEmptyList(head, tail).asRight[String]
-      case _            => "Expected non-empty list".asLeft[NonEmptyList[A]]
-    }(_.toList)
-  given [A: JsCodec: Order]: JsCodec[NonEmptySet[A]] = DefaultJsCodec
-    .derived[List[A]]
-    .mapDecode {
-      case head :: tail => NonEmptySet.of(head, tail: _*).asRight[String]
-      case _            => "Expected non-empty list".asLeft[NonEmptySet[A]]
-    }(_.toList)
-
-  // Neotype
-
-  export neotype.interop.jsoniter.{ newtypeCodec, subtypeCodec }
+  // Cats collections (Chain, NonEmptyList, NonEmptyChain, NonEmptySet) are handled uniformly by the
+  // kindlings-cats-integration macro-extension (on the classpath via the shared settings), so no manual codecs here.
 }
 private[api] trait JsoniterSupportImplicits { self: JsoniterSupport.type =>
 
-  inline given JsoniterConfig = JsoniterConfig()
+  // Match the pre-Kindlings API contract: ADTs are encoded with a "type" discriminator field
+  // (e.g. {"type":"Administrate"}), not Kindlings' default wrapper form ({"Administrate":{}}).
+  // Updatable/OptionUpdatable override this with the "action" discriminator (see above).
+  inline given JsoniterConfig = JsoniterConfig().withDiscriminator("type")
 }

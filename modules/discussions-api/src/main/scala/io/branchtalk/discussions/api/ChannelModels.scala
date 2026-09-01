@@ -9,10 +9,8 @@ import io.scalaland.chimney.dsl.*
 
 object ChannelModels {
 
-  // properties codecs
-  given JsCodec[Channel.UrlName]     = newtypeCodec
-  given JsCodec[Channel.Name]        = newtypeCodec
-  given JsCodec[Channel.Description] = newtypeCodec
+  // Channel.UrlName/Name/Description are plain neotype newtypes handled uniformly by the Kindlings IsValueType
+  // macro-extension (neotype-kindlings) - no per-companion codecs needed.
 
   sealed trait ChannelError derives DefaultJsCodec, JsSchema
   object ChannelError {
