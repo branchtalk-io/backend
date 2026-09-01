@@ -13,8 +13,8 @@ object Dependencies {
   val drosteVersion     = "0.9.0" // https://github.com/higherkindness/droste/releases
   val enumeratumVersion = "1.7.4" // https://github.com/lloydmeta/enumeratum/releases
   val fs2Version        = "3.10.2" // https://github.com/typelevel/fs2/releases
-  val hearthVersion     = "0.4.1" // https://github.com/kubuszok/hearth/releases
-  val kindlingsVersion  = "0.3.1" // https://github.com/kubuszok/kindlings/releases
+  val hearthVersion     = "0.4.2" // https://github.com/kubuszok/hearth/releases
+  val kindlingsVersion  = "0.3.2" // https://github.com/kubuszok/kindlings/releases
   val log4catsVersion   = "2.7.0" // https://github.com/ChristopherDavenport/log4cats/releases
   val http4sVersion     = "0.24.7" // https://github.com/http4s/http4s/releases
   val jsoniterVersion   = "2.38.16" // https://github.com/plokhotnyuk/jsoniter-scala/releases
