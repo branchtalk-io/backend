@@ -2,7 +2,7 @@ package io.branchtalk.discussions.api
 
 import cats.effect.IO
 import com.softwaremill.quicklens.*
-import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest }
+import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest, SessionID }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.PostModels.*
 import io.branchtalk.discussions.model.Post
@@ -122,7 +122,13 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             channelID,
             creationData.transformInto[CreatePostRequest]
           )
-          // TODO: check that this creates a new post eventually!
+          createdPostID = response.body.toValidOpt.flatMap(_.toOption).map(_.id)
+          _ <- createdPostID.traverse(postID =>
+            discussionsReads.postReads
+              .requireById(postID)
+              .assert("Created Post should eventually appear on the read side")(_.data.title eqv creationData.title)
+              .eventually()
+          )
         } yield {
           // then
           response.code === StatusCode.Ok
@@ -371,6 +377,122 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         } yield
         // then
         response.code === StatusCode.Ok
+      }
+    }
+
+    // Negative-path tests
+
+    "on POST /discussions/channels/{channelID}/posts with invalid session" in {
+
+      "return 401 Unauthorized for a non-existent session" in {
+        for {
+          // given
+          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          creationData <- postCreate(channelID)
+          fakeSessionID = SessionID(java.util.UUID.randomUUID())
+          // when
+          response <- PostAPIs.create.toTestCall.untupled(
+            Authentication.Session(sessionID = fakeSessionID),
+            channelID,
+            creationData.transformInto[CreatePostRequest]
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[PostError.BadCredentials]))
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID}/posts/{postID} by non-owner" in {
+
+      "return 401 when User is not the Post's Author and has no moderator permission" in {
+        for {
+          // given
+          (CreationScheduled(ownerID), CreationScheduled(_)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(ownerID).eventually()
+          (CreationScheduled(otherUserID), CreationScheduled(otherSessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(otherUserID).eventually()
+          _ <- usersReads.sessionReads.requireById(otherSessionID).eventually()
+          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          CreationScheduled(postID) <- postCreate(channelID)
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(ownerID))) // owned by ownerID
+            .flatMap(discussionsWrites.postWrites.createPost)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          newTitle <- ParseNewtype[IO].parse[Post.Title]("unauthorized update")
+          // when
+          response <- PostAPIs.update.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(otherSessionID)),
+            channelID,
+            postID,
+            UpdatePostRequest(
+              newTitle = Updatable.Set(newTitle),
+              newContent = Updatable.Keep
+            )
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[PostError.NoPermission]))
+        }
+      }
+    }
+
+    "on GET /discussions/channels/{channelID}/posts/{postID} for non-existent Post" in {
+
+      "return 404 Not Found" in {
+        for {
+          // given
+          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          fakePostID = ID[Post](java.util.UUID.randomUUID())
+          // when
+          response <- PostAPIs.read.toTestCall.untupled(None, channelID, fakePostID)
+        } yield {
+          // then
+          response.code === StatusCode.NotFound
+          response.body must beValid(beLeft(beAnInstanceOf[PostError.NotFound]))
+        }
+      }
+    }
+
+    "on DELETE /discussions/channels/{channelID}/posts/{postID} by non-owner" in {
+
+      "return 401 when User is not the Post's Author and has no moderator permission" in {
+        for {
+          // given
+          (CreationScheduled(ownerID), CreationScheduled(_)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(ownerID).eventually()
+          (CreationScheduled(otherUserID), CreationScheduled(otherSessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(otherUserID).eventually()
+          _ <- usersReads.sessionReads.requireById(otherSessionID).eventually()
+          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          CreationScheduled(postID) <- postCreate(channelID)
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(ownerID))) // owned by ownerID
+            .flatMap(discussionsWrites.postWrites.createPost)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          // when
+          response <- PostAPIs.delete.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(otherSessionID)),
+            channelID,
+            postID
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[PostError.NoPermission]))
+        }
       }
     }
   }
