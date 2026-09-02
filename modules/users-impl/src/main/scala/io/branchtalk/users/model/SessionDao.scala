@@ -8,12 +8,17 @@ final case class SessionDao(
   userID:           ID[User],
   usageType:        Session.Usage.Type,
   usagePermissions: Permissions,
-  expiresAt:        Session.ExpirationTime
+  expiresAt:        Session.ExpirationTime,
+  ipAddress:        Option[Session.IpAddress],
+  userAgent:        Option[Session.UserAgent]
 ) {
 
   def toDomain: Session = Session(
     id = id,
-    data = this.into[Session.Data].withFieldConst(_.usage, Session.Usage.Tupled(usageType, usagePermissions)).transform
+    data = this
+      .into[Session.Data]
+      .withFieldConst(_.usage, Session.Usage.Tupled(usageType, usagePermissions))
+      .transform
   )
 }
 object SessionDao {

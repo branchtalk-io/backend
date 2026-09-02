@@ -12,6 +12,9 @@ final case class UserDao(
   passwordHash:      Password.Hash,
   passwordSalt:      Password.Salt,
   permissions:       Permissions,
+  emailStatus:       User.EmailStatus,
+  pendingEmail:      Option[User.Email],
+  confirmationToken: Option[User.EmailConfirmationToken],
   createdAt:         CreationTime,
   lastModifiedAt:    Option[ModificationTime]
 ) {

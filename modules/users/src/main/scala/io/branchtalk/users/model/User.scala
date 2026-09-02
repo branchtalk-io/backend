@@ -12,13 +12,16 @@ final case class User(
 object User {
 
   final case class Data(
-    email:          User.Email, // validate email
-    username:       User.Name,
-    description:    Option[User.Description],
-    password:       Password,
-    permissions:    Permissions,
-    createdAt:      CreationTime,
-    lastModifiedAt: Option[ModificationTime]
+    email:             User.Email, // validate email
+    username:          User.Name,
+    description:       Option[User.Description],
+    password:          Password,
+    permissions:       Permissions,
+    emailStatus:       User.EmailStatus,
+    pendingEmail:      Option[User.Email],
+    confirmationToken: Option[User.EmailConfirmationToken],
+    createdAt:         CreationTime,
+    lastModifiedAt:    Option[ModificationTime]
   ) derives FastEq,
         ShowPretty
 
@@ -37,6 +40,18 @@ object User {
     newDescription:    OptionUpdatable[User.Description],
     newPassword:       Updatable[Password],
     updatePermissions: List[Permission.Update]
+  ) derives FastEq,
+        ShowPretty
+
+  final case class RequestEmailUpdate(
+    id:       ID[User],
+    newEmail: User.Email
+  ) derives FastEq,
+        ShowPretty
+
+  final case class ConfirmEmail(
+    id:    ID[User],
+    token: User.EmailConfirmationToken
   ) derives FastEq,
         ShowPretty
 
@@ -63,6 +78,20 @@ object User {
 
     given Show[Email]  = unsafeMakeF[Show](Show[String])
     given Order[Email] = unsafeMakeF[Order](Order[String])
+  }
+
+  enum EmailStatus derives FastEq, ShowPretty {
+    case New
+    case Confirmed
+  }
+
+  type EmailConfirmationToken = EmailConfirmationToken.Type
+  object EmailConfirmationToken extends Newtype[String] {
+
+    def unapply(token: EmailConfirmationToken): Some[String] = Some(token.unwrap)
+
+    given Show[EmailConfirmationToken]  = unsafeMakeF[Show](Show[String])
+    given Order[EmailConfirmationToken] = unsafeMakeF[Order](Order[String])
   }
 
   type Name = Name.Type

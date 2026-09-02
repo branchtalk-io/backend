@@ -16,9 +16,11 @@ final class UserCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEven
     in.collect { case UsersCommandEvent.ForUser(command) =>
       command
     }.evalMap[F, (UUID, UserEvent)] {
-      case command: UserCommandEvent.CreateEncrypted => toCreate(command).widen
-      case command: UserCommandEvent.UpdateEncrypted => toUpdate(command).widen
-      case command: UserCommandEvent.Delete          => toDelete(command).widen
+      case command: UserCommandEvent.CreateEncrypted              => toCreate(command).widen
+      case command: UserCommandEvent.UpdateEncrypted              => toUpdate(command).widen
+      case command: UserCommandEvent.Delete                       => toDelete(command).widen
+      case command: UserCommandEvent.RequestEmailUpdateEncrypted  => toRequestEmailUpdate(command).widen
+      case command: UserCommandEvent.ConfirmEmail                 => toConfirmEmail(command).widen
     }.map { case (key, value) =>
       key -> UsersEvent.ForUser(value)
     }.handleErrorWith { error =>
@@ -34,4 +36,12 @@ final class UserCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEven
 
   def toDelete(command: UserCommandEvent.Delete): F[(UUID, UserEvent.Deleted)] =
     (command.id.unwrap -> command.transformInto[UserEvent.Deleted]).pure[F]
+
+  def toRequestEmailUpdate(
+    command: UserCommandEvent.RequestEmailUpdateEncrypted
+  ): F[(UUID, UserEvent.EmailUpdateRequestedEncrypted)] =
+    (command.id.unwrap -> command.transformInto[UserEvent.EmailUpdateRequestedEncrypted]).pure[F]
+
+  def toConfirmEmail(command: UserCommandEvent.ConfirmEmail): F[(UUID, UserEvent.EmailConfirmed)] =
+    (command.id.unwrap -> command.transformInto[UserEvent.EmailConfirmed]).pure[F]
 }

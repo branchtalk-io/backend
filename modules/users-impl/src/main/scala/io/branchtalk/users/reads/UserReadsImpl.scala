@@ -17,6 +17,9 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
         |       passwd_hash,
         |       passwd_salt,
         |       permissions,
+        |       email_status,
+        |       pending_email,
+        |       confirmation_token,
         |       created_at,
         |       last_modified_at
         |FROM users""".stripMargin

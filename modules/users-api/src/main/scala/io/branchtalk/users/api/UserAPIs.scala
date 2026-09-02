@@ -6,7 +6,7 @@ import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable, branchtalkCharset }
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.Password.{ Raw => RawPassword }
-import io.branchtalk.users.model.User
+import io.branchtalk.users.model.{ Session, User }
 import sttp.model.StatusCode
 
 object UserAPIs {
@@ -80,7 +80,7 @@ object UserAPIs {
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val signUp: Endpoint[Unit, SignUpRequest, UserError, SignUpResponse, Any] = endpoint
+  val signUp: Endpoint[Unit, (SignUpRequest, Option[String]), UserError, SignUpResponse, Any] = endpoint
     .name("Sign up")
     .summary("Allows creation of User's account")
     .description("Schedules User creation and returns future User's ID as well as future Session's handler")
@@ -88,10 +88,11 @@ object UserAPIs {
     .post
     .in(prefix)
     .in(jsonBody[SignUpRequest])
+    .in(header[Option[String]]("User-Agent"))
     .out(jsonBody[SignUpResponse])
     .errorOut(errorMapping)
 
-  val signIn: AuthedEndpoint[Authentication, Unit, UserError, SignInResponse, Any] = endpoint
+  val signIn: AuthedEndpoint[Authentication, Option[String], UserError, SignInResponse, Any] = endpoint
     .name("Sign in")
     .summary("Allows logging into existing User's account")
     .description("Returns Session's handler")
@@ -99,6 +100,7 @@ object UserAPIs {
     .post
     .securityIn(authHeader)
     .in(prefix / "session")
+    .in(header[Option[String]]("User-Agent"))
     .out(jsonBody[SignInResponse])
     .errorOut(errorMapping)
     .notRequiringPermissions
@@ -184,4 +186,50 @@ object UserAPIs {
     .out(jsonBody[DeleteUserResponse])
     .errorOut(errorMapping)
     .requiringPermissions(_ => RequiredPermissions.anyOf(Permission.IsOwner, Permission.ModerateUsers))
+
+  // Issue #7: Remote sign-out - delete a specific session by ID
+  val deleteSession: AuthedEndpoint[Authentication, ID[Session], UserError, DeleteSessionResponse, Any] = endpoint
+    .name("Delete session")
+    .summary("Deletes a specific Session by ID (remote sign-out)")
+    .description("Deletes one of the caller's own sessions by ID, verifying ownership")
+    .tags(List(UsersTags.domain, UsersTags.sessions))
+    .delete
+    .securityIn(authHeader)
+    .in(prefix / "sessions" / path[ID[Session]].name("sessionID"))
+    .out(jsonBody[DeleteSessionResponse])
+    .errorOut(errorMapping)
+    .notRequiringPermissions
+
+  // Issue #8: Request email update
+  val requestEmailUpdate
+    : AuthedEndpoint[Authentication, (ID[User], RequestEmailUpdateRequest), UserError, RequestEmailUpdateResponse, Any] =
+    endpoint
+      .name("Request email update")
+      .summary("Requests an email address change")
+      .description(
+        "Sets a pending email and generates a confirmation token. The actual email is promoted when the token is confirmed."
+      )
+      .tags(List(UsersTags.domain, UsersTags.users))
+      .post
+      .securityIn(authHeader)
+      .in(prefix / path[ID[User]].name("userID") / "email")
+      .in(jsonBody[RequestEmailUpdateRequest])
+      .out(jsonBody[RequestEmailUpdateResponse])
+      .errorOut(errorMapping)
+      .requiringPermissions(_ => RequiredPermissions.one(Permission.IsOwner))
+
+  // Issue #8: Confirm email update
+  val confirmEmail: AuthedEndpoint[Authentication, (ID[User], ConfirmEmailRequest), UserError, ConfirmEmailResponse, Any] =
+    endpoint
+      .name("Confirm email")
+      .summary("Confirms an email address change")
+      .description("Promotes the pending email to the user's primary email when the correct token is provided.")
+      .tags(List(UsersTags.domain, UsersTags.users))
+      .post
+      .securityIn(authHeader)
+      .in(prefix / path[ID[User]].name("userID") / "email" / "confirm")
+      .in(jsonBody[ConfirmEmailRequest])
+      .out(jsonBody[ConfirmEmailResponse])
+      .errorOut(errorMapping)
+      .requiringPermissions(_ => RequiredPermissions.one(Permission.IsOwner))
 }

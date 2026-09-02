@@ -13,7 +13,9 @@ final class SessionReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Sess
         |       user_id,
         |       usage_type,
         |       permissions,
-        |       expires_at
+        |       expires_at,
+        |       ip_address,
+        |       user_agent
         |FROM sessions""".stripMargin
 
   private val orderBy: Session.Sorting => Fragment = { case Session.Sorting.ClosestToExpiry =>
