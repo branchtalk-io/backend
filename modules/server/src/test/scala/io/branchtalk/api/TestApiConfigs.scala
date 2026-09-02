@@ -59,7 +59,6 @@ object TestApiConfigs {
         http = APIHttp(
           logHeaders = true,
           logBody = true,
-          http2Enabled = true,
           corsAnyOrigin = true,
           corsAllowCredentials = true,
           corsMaxAge = 1.day,

@@ -65,7 +65,6 @@ final case class APIInfo(
 final case class APIHttp(
   logHeaders:           Boolean,
   logBody:              Boolean,
-  http2Enabled:         Boolean,
   corsAnyOrigin:        Boolean,
   corsAllowCredentials: Boolean,
   corsMaxAge:           FiniteDuration,

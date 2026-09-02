@@ -191,7 +191,6 @@ object AppServer {
 
       Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
         BlazeServerBuilder[F]
-          .enableHttp2(apiConfig.http.http2Enabled)
           .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength,
                             maxHeadersLen = apiConfig.http.maxHeaderLineLength
           )
