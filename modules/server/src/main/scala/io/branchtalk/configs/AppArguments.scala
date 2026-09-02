@@ -6,14 +6,16 @@ import org.ekrich.config.{ Config, ConfigRenderOptions }
 import io.branchtalk.shared.model.ShowPretty
 
 final case class AppArguments(
-  host:                      String = Defaults.host,
-  port:                      Int = Defaults.port,
-  runAPI:                    Boolean = Defaults.runAPI,
-  runUsersProjections:       Boolean = Defaults.runUsersProjections,
-  runDiscussionsProjections: Boolean = Defaults.runDiscussionsProjections
+  host:                        String = Defaults.host,
+  port:                        Int = Defaults.port,
+  runAPI:                      Boolean = Defaults.runAPI,
+  runUsersProjections:         Boolean = Defaults.runUsersProjections,
+  runDiscussionsProjections:   Boolean = Defaults.runDiscussionsProjections,
+  runNotificationsProjections: Boolean = Defaults.runNotificationsProjections
 ) derives ShowPretty {
 
-  def isAnythingRun: Boolean = runAPI || runUsersProjections || runDiscussionsProjections
+  def isAnythingRun: Boolean =
+    runAPI || runUsersProjections || runDiscussionsProjections || runNotificationsProjections
 }
 object AppArguments {
 
@@ -48,7 +50,7 @@ object AppArguments {
   private val monolith =
     Opts
       .flag(long = "monolith", short = "M", help = "Have this instance run as monolith (all services enabled)")
-      .map(_ => (true, true, true))
+      .map(_ => (true, true, true, true))
   private val runApi =
     Opts.flag(long = "api", short = "a", help = "Have this instance run application HTTP API").orBool(Defaults.runAPI)
   private val runUsersProjections =
@@ -62,19 +64,30 @@ object AppArguments {
             help = "Have this instance run Discussions write model projections"
       )
       .orBool(Defaults.runDiscussionsProjections)
+  private val runNotificationsProjections =
+    Opts
+      .flag(long = "notifications-projections",
+            short = "n",
+            help = "Have this instance run Notifications write model projections"
+      )
+      .orBool(Defaults.runNotificationsProjections)
 
   def parse[F[_]: Sync](args: List[String], env: Map[String, String]): F[AppArguments] =
     Sync[F]
       .delay {
         Command(name = "branchtalk", header = "Starts backend server with selected services running") {
-          (host, port, monolith orElse (runApi, runUsersProjections, runDiscussionsProjections).tupled).mapN {
-            case (host, port, (runApi, runUsersProjections, runDiscussionsProjections)) =>
+          (host,
+           port,
+           monolith orElse (runApi, runUsersProjections, runDiscussionsProjections, runNotificationsProjections).tupled
+          ).mapN {
+            case (host, port, (runApi, runUsersProjections, runDiscussionsProjections, runNotificationsProjections)) =>
               AppArguments(
                 host = host,
                 port = port,
                 runAPI = runApi,
                 runUsersProjections = runUsersProjections,
-                runDiscussionsProjections = runDiscussionsProjections
+                runDiscussionsProjections = runDiscussionsProjections,
+                runNotificationsProjections = runNotificationsProjections
               )
           } orElse help
         }.parse(args, env)

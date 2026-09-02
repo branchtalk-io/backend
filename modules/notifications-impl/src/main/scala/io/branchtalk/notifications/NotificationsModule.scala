@@ -16,14 +16,14 @@ import io.prometheus.client.CollectorRegistry
 import scala.annotation.nowarn
 
 final case class NotificationsReads[F[_]](
-  notificationReads:        NotificationReads[F],
+  notificationReads:         NotificationReads[F],
   notificationEventConsumer: ConsumerStream.Factory[F, NotificationEvent]
 )
 
 final case class NotificationsWrites[F[_]](
-  notificationWrites:          NotificationWrites[F],
-  runProjections:              StreamRunner[F],
-  runDiscussionsConsumer:      StreamRunner.FromConsumerStream[F, DiscussionEvent]
+  notificationWrites:     NotificationWrites[F],
+  runProjections:         StreamRunner[F],
+  runDiscussionsConsumer: StreamRunner.FromConsumerStream[F, DiscussionEvent]
 )
 
 object NotificationsModule {
@@ -53,7 +53,8 @@ object NotificationsModule {
   def writes[F[_]: Async: Dispatcher: MDC](
     domainConfig:            DomainModule.Config,
     discussionsDomainConfig: DomainModule.Config,
-    registry:                CollectorRegistry
+    registry:                CollectorRegistry,
+    notificationTopic:       NotificationTopic[F]
   )(using UUID.Generator): Resource[F, NotificationsWrites[F]] =
     for {
       logger <- Resource.eval(Logger.create[F])
@@ -82,7 +83,7 @@ object NotificationsModule {
         .reduce
       val postgresProjector: Projector[F, NotificationEvent, (UUID, NotificationEvent)] = NonEmptyList
         .of(
-          NotificationPostgresProjector[F](transactor)
+          NotificationPostgresProjector[F](transactor, notificationTopic)
         )
         .reduce
       val runProjections: StreamRunner[F] = {

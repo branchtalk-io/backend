@@ -13,7 +13,10 @@ services:
              (psql --host postgres --username postgres --command=\"CREATE SCHEMA users AUTHORIZATION users\" users || true) &&
              (psql --host postgres --username postgres --command=\"CREATE DATABASE discussions\" || true) &&
              (psql --host postgres --username postgres --command=\"CREATE USER discussions WITH PASSWORD 'password'\" discussions || true) &&
-             (psql --host postgres --username postgres --command=\"CREATE SCHEMA discussions AUTHORIZATION discussions\" discussions || true)"
+             (psql --host postgres --username postgres --command=\"CREATE SCHEMA discussions AUTHORIZATION discussions\" discussions || true) &&
+             (psql --host postgres --username postgres --command=\"CREATE DATABASE notifications\" || true) &&
+             (psql --host postgres --username postgres --command=\"CREATE USER notifications WITH PASSWORD 'password'\" notifications || true) &&
+             (psql --host postgres --username postgres --command=\"CREATE SCHEMA notifications AUTHORIZATION notifications\" notifications || true)"
     environment:
       PGPASSWORD: password # for psql
     depends_on:
@@ -28,7 +31,9 @@ services:
       sh -c '/opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9094 --partitions 1 --replication-factor 1 --topic users &&
              /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9094 --partitions 1 --replication-factor 1 --topic users-internal &&
              /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9094 --partitions 1 --replication-factor 1 --topic discussions &&
-             /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9094 --partitions 1 --replication-factor 1 --topic discussions-internal'
+             /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9094 --partitions 1 --replication-factor 1 --topic discussions-internal &&
+             /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9094 --partitions 1 --replication-factor 1 --topic notifications &&
+             /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --bootstrap-server kafka:9094 --partitions 1 --replication-factor 1 --topic notifications-internal'
     depends_on:
       kafka:
         condition: service_healthy

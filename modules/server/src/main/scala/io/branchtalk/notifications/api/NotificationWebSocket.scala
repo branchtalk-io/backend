@@ -22,34 +22,33 @@ final class NotificationWebSocket[F[_]: Async](
   notificationTopic: NotificationTopic[F]
 ) extends Http4sDsl[F] {
 
-  def routes(wsb: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] { case req @ GET -> Root / "notifications" / "ws" =>
-    // Extract auth from query parameter or Authorization header
-    val authOpt: Option[String] =
-      req.params.get("token").orElse(req.headers.get[headers.Authorization].map(_.value))
-    authOpt match {
-      case None =>
-        Forbidden("Authentication required")
-      case Some(authValue) =>
-        val decoded = AuthenticationSupport.authHeaderMapping.decode(authValue)
-        decoded match {
-          case sttp.tapir.DecodeResult.Value(auth) =>
-            Async[F].handleErrorWith(
-              authServices.authenticateUser(auth).flatMap { case (user, _) =>
-                val recipientID = ID[NotifUser](user.id.unwrap)
-                val send = notificationTopic
-                  .subscribe(recipientID)
-                  .map { notification =>
+  def routes(wsb: WebSocketBuilder2[F]): HttpRoutes[F] = HttpRoutes.of[F] {
+    case req @ GET -> Root / "notifications" / "ws" =>
+      // Extract auth from query parameter or Authorization header
+      val authOpt: Option[String] =
+        req.params.get("token").orElse(req.headers.get[headers.Authorization].map(_.value))
+      authOpt match {
+        case None =>
+          Forbidden("Authentication required")
+        case Some(authValue) =>
+          val decoded = AuthenticationSupport.authHeaderMapping.decode(authValue)
+          decoded match {
+            case sttp.tapir.DecodeResult.Value(auth) =>
+              Async[F].handleErrorWith(
+                authServices.authenticateUser(auth).flatMap { case (user, _) =>
+                  val recipientID = ID[NotifUser](user.id.unwrap)
+                  val send = notificationTopic.subscribe(recipientID).map { notification =>
                     val apiNotif = APINotification.fromDomain(notification)
                     val json     = writeToString(apiNotif)
                     WebSocketFrame.Text(json)
                   }
-                val receive: fs2.Pipe[F, WebSocketFrame, Unit] = _.drain
-                wsb.build(send, receive)
-              }
-            )(_ => Forbidden("Invalid credentials"))
-          case _ =>
-            Forbidden("Invalid authentication format")
-        }
-    }
+                  val receive: fs2.Pipe[F, WebSocketFrame, Unit] = _.drain
+                  wsb.build(send, receive)
+                }
+              )(_ => Forbidden("Invalid credentials"))
+            case _ =>
+              Forbidden("Invalid authentication format")
+          }
+      }
   }
 }

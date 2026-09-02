@@ -1,7 +1,7 @@
 package io.branchtalk.api
 
 import cats.arrow.FunctionK
-import cats.data.NonEmptyList
+import cats.data.{ Kleisli, NonEmptyList }
 import cats.effect.{ Async, Resource }
 import fs2.compression.Compression
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
@@ -10,6 +10,9 @@ import io.branchtalk.discussions.api.{ ChannelServer, CommentServer, PostServer,
 import io.branchtalk.discussions.reads.*
 import io.branchtalk.discussions.writes.*
 import io.branchtalk.logging.MDC
+import io.branchtalk.notifications.api.{ NotificationServer, NotificationWebSocket }
+import io.branchtalk.notifications.reads.NotificationReads
+import io.branchtalk.notifications.writes.{ NotificationTopic, NotificationWrites }
 import io.branchtalk.openapi.OpenAPIServer
 import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.api.{
@@ -46,6 +49,7 @@ final class AppServer[F[_]: Async: MDC](
   postServer:              PostServer[F],
   commentServer:           CommentServer[F],
   subscriptionServer:      SubscriptionServer[F],
+  notificationServer:      NotificationServer[F],
   openAPIServer:           OpenAPIServer[F],
   metricsOps:              MetricsOps[F],
   correlationIDOps:        CorrelationIDOps[F],
@@ -89,6 +93,7 @@ final class AppServer[F[_]: Async: MDC](
         postServer.routes,
         commentServer.routes,
         subscriptionServer.routes,
+        notificationServer.routes,
         openAPIServer.routes
       )
       .reduceK
@@ -120,7 +125,10 @@ object AppServer {
     commentWrites:      CommentWrites[F],
     postWrites:         PostWrites[F],
     channelWrites:      ChannelWrites[F],
-    subscriptionWrites: SubscriptionWrites[F]
+    subscriptionWrites: SubscriptionWrites[F],
+    notificationReads:  NotificationReads[F],
+    notificationWrites: NotificationWrites[F],
+    notificationTopic:  NotificationTopic[F]
   )(using UUID.Generator): Resource[F, Server] =
     Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
       val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
@@ -162,6 +170,13 @@ object AppServer {
         apiConfig,
         apiConfig.safePagination(APIPart.Posts)
       )
+      val notificationServer: NotificationServer[F] = NotificationServer[F](
+        authServices,
+        notificationReads,
+        notificationWrites,
+        apiConfig.safePagination(APIPart.Notifications)
+      )
+      val notificationWebSocket: NotificationWebSocket[F] = NotificationWebSocket[F](authServices, notificationTopic)
       val openAPIServer: OpenAPIServer[F] = OpenAPIServer[F](
         apiConfig.info,
         NonEmptyList
@@ -174,7 +189,8 @@ object AppServer {
             channelServer.endpoints,
             postServer.endpoints,
             commentServer.endpoints,
-            subscriptionServer.endpoints
+            subscriptionServer.endpoints,
+            notificationServer.endpoints
           )
           .reduceK
       )
@@ -189,6 +205,7 @@ object AppServer {
         postServer,
         commentServer,
         subscriptionServer,
+        notificationServer,
         openAPIServer,
         metricsOps,
         correlationIDOps,
@@ -220,7 +237,12 @@ object AppServer {
                               maxHeadersLen = apiConfig.http.maxHeaderLineLength
             )
             .bindHttp(port = appArguments.port, host = appArguments.host)
-            .withHttpApp(appServer.routes)
+            .withHttpWebSocketApp { wsb =>
+              // websocket route is kept OUTSIDE the tapir/GZip/metrics pipeline; it falls through to the REST app
+              Kleisli { (req: Request[F]) =>
+                notificationWebSocket.routes(wsb).run(req).getOrElseF(appServer.routes.run(req))
+              }
+            }
             .resource
             .flatTap { server =>
               Resource.eval(logger.info(s"API server started at ${server.address.toString}"))

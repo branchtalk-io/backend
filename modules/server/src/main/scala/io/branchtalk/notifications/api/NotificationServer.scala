@@ -19,10 +19,10 @@ import sttp.tapir.server.http4s.*
 import sttp.tapir.server.ServerEndpoint
 
 final class NotificationServer[F[_]: Async](
-  authServices:      AuthServices[F],
-  notificationReads: NotificationReads[F],
+  authServices:       AuthServices[F],
+  notificationReads:  NotificationReads[F],
   notificationWrites: NotificationWrites[F],
-  paginationConfig:  PaginationConfig
+  paginationConfig:   PaginationConfig
 ) {
 
   private given AuthServices[F] = authServices
@@ -33,8 +33,8 @@ final class NotificationServer[F[_]: Async](
 
   private given errorHandler: ServerErrorHandler[F, NotificationError] = NotificationServer.errorHandler[F](logger)
 
-  private val list = NotificationAPIs.list.serverLogic[F, User]
-    .withUser { case (user, (optOffset, optLimit, optUnreadOnly)) =>
+  private val list =
+    NotificationAPIs.list.serverLogic[F, User].withUser { case (user, (optOffset, optLimit, optUnreadOnly)) =>
       val recipientID = ID[NotifUser](user.id.unwrap)
       val sorting     = Notification.Sorting.Newest
       val offset      = paginationConfig.resolveOffset(optOffset)
@@ -45,26 +45,24 @@ final class NotificationServer[F[_]: Async](
       } yield Pagination.fromPaginated(paginated.map(APINotification.fromDomain), offset, limit)
     }
 
-  private val markRead = NotificationAPIs.markRead.serverLogic[F, User]
-    .withUser { case (user, notificationID) =>
-      val command = Notification.MarkRead(
-        id = notificationID,
-        userID = ID[NotifUser](user.id.unwrap)
-      )
-      for {
-        _ <- notificationWrites.markRead(command)
-      } yield MarkReadResponse(notificationID)
-    }
+  private val markRead = NotificationAPIs.markRead.serverLogic[F, User].withUser { case (user, notificationID) =>
+    val command = Notification.MarkRead(
+      id = notificationID,
+      userID = ID[NotifUser](user.id.unwrap)
+    )
+    for {
+      _ <- notificationWrites.markRead(command)
+    } yield MarkReadResponse(notificationID)
+  }
 
-  private val markAllRead = NotificationAPIs.markAllRead.serverLogic[F, User]
-    .justUser { user =>
-      val command = Notification.MarkAllRead(
-        recipientID = ID[NotifUser](user.id.unwrap)
-      )
-      for {
-        _ <- notificationWrites.markAllRead(command)
-      } yield MarkAllReadResponse(0L) // count is not tracked in async flow
-    }
+  private val markAllRead = NotificationAPIs.markAllRead.serverLogic[F, User].justUser { user =>
+    val command = Notification.MarkAllRead(
+      recipientID = ID[NotifUser](user.id.unwrap)
+    )
+    for {
+      _ <- notificationWrites.markAllRead(command)
+    } yield MarkAllReadResponse(0L) // count is not tracked in async flow
+  }
 
   def endpoints: NonEmptyList[ServerEndpoint[Any, F]] = NonEmptyList.of[ServerEndpoint[Any, F]](
     list,

@@ -6,7 +6,9 @@ import io.branchtalk.shared.model.branchtalkLocale
 
 object DoobieExtensions {
 
-  @SuppressWarnings(Array("org.wartremover.warts.Throw", "org.wartremover.warts.ToString", "org.wartremover.warts.Equals"))
+  @SuppressWarnings(
+    Array("org.wartremover.warts.Throw", "org.wartremover.warts.ToString", "org.wartremover.warts.Equals")
+  )
   given notificationKindMeta: Meta[Notification.Kind] = pgEnumString(
     "notification_kind",
     name =>

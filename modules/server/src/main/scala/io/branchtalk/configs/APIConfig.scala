@@ -97,6 +97,7 @@ object APIPart extends Enum[APIPart] {
   case object Channels extends APIPart
   case object Posts extends APIPart
   case object Comments extends APIPart
+  case object Notifications extends APIPart
 
   val values: IndexedSeq[APIPart] = findValues
 

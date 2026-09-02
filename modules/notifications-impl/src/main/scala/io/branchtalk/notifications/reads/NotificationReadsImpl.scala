@@ -37,9 +37,7 @@ final class NotificationReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends
   }
 
   override def exists(id: ID[Notification]): F[Boolean] =
-    (fr"SELECT 1 FROM notifications WHERE id = $id")
-      .exists(show"Notifications ID=$id exists")
-      .transact(transactor)
+    fr"SELECT 1 FROM notifications WHERE id = $id".exists(show"Notifications ID=$id exists").transact(transactor)
 
   override def getById(id: ID[Notification]): F[Option[Notification]] =
     (commonSelect ++ fr"WHERE id = $id")

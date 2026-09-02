@@ -13,14 +13,14 @@ final case class Notification(
 object Notification {
 
   final case class Data(
-    recipientID: ID[User],
-    kind:        Notification.Kind,
+    recipientID:     ID[User],
+    kind:            Notification.Kind,
     sourcePostID:    Option[ID[Post]],
     sourceCommentID: Option[ID[Comment]],
     sourceUserID:    Option[ID[User]],
-    message:     Notification.Message,
-    createdAt:   CreationTime,
-    readAt:      Option[ModificationTime]
+    message:         Notification.Message,
+    createdAt:       CreationTime,
+    readAt:          Option[ModificationTime]
   ) derives FastEq,
         ShowPretty
 

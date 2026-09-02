@@ -10,10 +10,12 @@ object NotificationModels {
 
   // Notification.Kind is a Scala 3 enum -- provide JSON codec and Tapir schema manually.
   @SuppressWarnings(Array("org.wartremover.warts.ToString", "org.wartremover.warts.Equals"))
-  given JsCodec[Notification.Kind] = DefaultJsCodec.derived[String].mapDecode[Notification.Kind] { s =>
-    try Right(Notification.Kind.fromString(s))
-    catch { case _: NoSuchElementException => Left(s"Unknown notification kind: $s") }
-  }(_.toString.toLowerCase(branchtalkLocale))
+  given JsCodec[Notification.Kind] = DefaultJsCodec
+    .derived[String]
+    .mapDecode[Notification.Kind] { s =>
+      try Right(Notification.Kind.fromString(s))
+      catch { case _: NoSuchElementException => Left(s"Unknown notification kind: $s") }
+    }(_.toString.toLowerCase(branchtalkLocale))
 
   @SuppressWarnings(Array("org.wartremover.warts.ToString", "org.wartremover.warts.Equals"))
   given JsSchema[Notification.Kind] = JsSchema.schemaForString.map[Notification.Kind] { s =>
