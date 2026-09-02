@@ -2,6 +2,8 @@ package io.branchtalk.api
 
 import cats.effect.{ IO, Resource }
 import io.branchtalk.discussions.DiscussionsIOTest
+import io.branchtalk.notifications.{ NotificationsModule, TestNotificationsConfig }
+import io.branchtalk.notifications.writes.NotificationTopic
 import io.branchtalk.users.{ UsersIOTest, UsersModule }
 import io.branchtalk.shared.infrastructure.*
 import org.http4s.server.Server
@@ -27,6 +29,16 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
     _ <- UsersModule
       .listenToUsers(usersCfg)(discussionsReads.discussionEventConsumer, usersWrites.runDiscussionsConsumer)
       .asResource
+    notificationsCfg <- TestNotificationsConfig.loadDomainConfig[IO]
+    notificationTopic <- NotificationTopic.create[IO]
+    notificationsReads <- NotificationsModule.reads[IO](notificationsCfg, registry)
+    notificationsWrites <- NotificationsModule.writes[IO](notificationsCfg, discussionsCfg, registry, notificationTopic)
+    _ <- notificationsWrites.runProjections.asResource
+    _ <- NotificationsModule
+      .listenToDiscussions(notificationsCfg)(discussionsReads.discussionEventConsumer,
+                                             notificationsWrites.runDiscussionsConsumer
+      )
+      .asResource
     (appArguments, apiConfig) <- TestApiConfigs.asResource[IO]
     _ <- AppServer
       .asResource[IO](
@@ -46,7 +58,10 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
         commentWrites = discussionsWrites.commentWrites,
         postWrites = discussionsWrites.postWrites,
         channelWrites = discussionsWrites.channelWrites,
-        subscriptionWrites = discussionsWrites.subscriptionWrites
+        subscriptionWrites = discussionsWrites.subscriptionWrites,
+        notificationReads = notificationsReads.notificationReads,
+        notificationWrites = notificationsWrites.notificationWrites,
+        notificationTopic = notificationTopic
       )
       .map(server = _)
     _ <- AsyncHttpClientCatsBackend.resource[IO]().map(client = _)
