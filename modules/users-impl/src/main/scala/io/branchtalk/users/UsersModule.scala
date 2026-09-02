@@ -8,11 +8,14 @@ import io.branchtalk.logging.*
 import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.events.{ UsersCommandEvent, UsersEvent }
+import io.branchtalk.users.model.Password
 import io.branchtalk.users.reads.*
 import io.branchtalk.users.writes.*
 import io.prometheus.client.CollectorRegistry
+import org.ekrich.config.ConfigFactory
 
 import scala.annotation.nowarn
+import scala.util.Try
 
 final case class UsersReads[F[_]](
   userReads:    UserReads[F],
@@ -69,7 +72,16 @@ object UsersModule {
                                  cache
       ) <- module.setupWrites[F](domainConfig, logger, registry)
     } yield {
-      val userWrites:    UserWrites[F]    = UserWritesImpl[F](internalProducer, transactor)
+      val appConfig = Try(ConfigFactory.defaultApplication().resolve()).toOption
+      val passwordConfig = Password.Config(
+        algorithm = appConfig.flatMap(c => Try(c.getString("users.password.algorithm")).toOption).getOrElse("bcrypt"),
+        bcryptCost = appConfig.flatMap(c => Try(c.getInt("users.password.bcrypt-cost")).toOption).getOrElse(10)
+      )
+      val sessionExpiresInDays: Long =
+        appConfig.flatMap(c => Try(c.getLong("users.session-expires-in-days")).toOption).getOrElse(7L)
+
+      val userWrites: UserWrites[F] =
+        UserWritesImpl[F](internalProducer, transactor, passwordConfig, sessionExpiresInDays)
       val sessionWrites: SessionWrites[F] = SessionWritesImpl[F](producer, transactor)
       val banWrites:     BanWrites[F]     = BanWritesImpl[F](internalProducer, transactor)
 

@@ -117,12 +117,12 @@ When app receives `SIGTERM` or `SIGINT` signal, it should gracefully exit.
 Monolith-mode can be demonstrated by running:
 
 ```bash
-> ./sbt application/docker:publishLocal
+> sbt application/docker:publishLocal
 > just local-up
 ```
 or
 ```bash
-> ./sbt application/docker:publishLocal
+> sbt application/docker:publishLocal
 > just local-bg
 > LOGS=application just local-logs
 ```
@@ -134,9 +134,9 @@ and then accessing
 Start dependencies in Docker and then run sbt shell
 ```bash
 > just dev-bg
-> ./sbt
+> sbt
 ```
-Then will be able to run IT tests locally (`it:test`) or start application
+Then will be able to run IT tests locally (`fullTest`) or start application
 from build tool (`run [arguments]`, e.g. `run --help` or `run --monolith`).
 
 ## More options
@@ -144,5 +144,5 @@ from build tool (`run [arguments]`, e.g. `run --help` or `run --monolith`).
 More options are available. Please consult `--help` to learn about them.
 
 ```bash
-> ./sbt application/run --help
+> sbt application/run --help
 ```

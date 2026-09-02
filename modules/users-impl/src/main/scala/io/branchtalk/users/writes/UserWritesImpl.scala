@@ -8,17 +8,17 @@ import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.model.*
 import io.branchtalk.users.events.{ UserCommandEvent, UsersCommandEvent }
 import io.branchtalk.users.infrastructure.DoobieExtensions.{ *, given }
-import io.branchtalk.users.model.{ Session, User }
+import io.branchtalk.users.model.{ Password, Session, User }
 import io.scalaland.chimney.dsl.*
 
 final class UserWritesImpl[F[_]: Sync: MDC](
-  producer:   KafkaEventBus.Producer[F, UsersCommandEvent],
-  transactor: Transactor[F]
+  producer:             KafkaEventBus.Producer[F, UsersCommandEvent],
+  transactor:           Transactor[F],
+  passwordConfig:       Password.Config = Password.Config(),
+  sessionExpiresInDays: Long = 7L
 )(using UUID.Generator)
     extends Writes[F, User, UsersCommandEvent](producer),
       UserWrites[F] {
-
-  private val sessionExpiresInDays = 7L // TODO: make it configurable
 
   private val userCheck = new EntityCheck("User", transactor)
 

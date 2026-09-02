@@ -37,12 +37,13 @@ final class UserServer[F[_]: Async](
 
   private given errorHandler: ServerErrorHandler[F, UserError] = UserServer.errorHandler[F](logger)
 
-  private val paginate = UserAPIs.paginate.serverLogic[F, User] { case (optOffset, optLimit) =>
-    val sortBy = User.Sorting.NameAlphabetically
-    val offset = paginationConfig.resolveOffset(optOffset)
-    val limit  = paginationConfig.resolveLimit(optLimit)
+  private val paginate = UserAPIs.paginate.serverLogic[F, User] { case (optOffset, optLimit, nameContains) =>
+    val sortBy  = User.Sorting.NameAlphabetically
+    val offset  = paginationConfig.resolveOffset(optOffset)
+    val limit   = paginationConfig.resolveLimit(optLimit)
+    val filters = nameContains.map(User.Filter.NameContains(_)).toList
     for {
-      paginated <- userReads.paginate(sortBy, offset, limit)
+      paginated <- userReads.paginate(sortBy, offset, limit, filters)
     } yield Pagination.fromPaginated(paginated.map(APIUser.fromDomain), offset, limit)
   }
 
@@ -119,7 +120,7 @@ final class UserServer[F[_]: Async](
         .into[User.Update]
         .withFieldConst(_.id, userID)
         .withFieldConst(_.moderatorID, moderatorID)
-        .withFieldConst(_.newPassword, update.newPassword.map(Password.create))
+        .withFieldConst(_.newPassword, update.newPassword.map(raw => Password.create(raw)))
         .withFieldConst(_.updatePermissions, List.empty)
         .transform
       for {

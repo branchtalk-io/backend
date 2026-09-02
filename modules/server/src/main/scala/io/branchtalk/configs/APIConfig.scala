@@ -66,6 +66,7 @@ final case class APIHttp(
   logHeaders:           Boolean,
   logBody:              Boolean,
   corsAnyOrigin:        Boolean,
+  corsAllowedOrigins:   List[String] = List.empty,
   corsAllowCredentials: Boolean,
   corsMaxAge:           FiniteDuration,
   maxHeaderLineLength:  Int, // TODO: refine

@@ -53,12 +53,14 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
           response1 <- UserAPIs.paginate.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             None,
-            Pagination.Limit(5).some
+            Pagination.Limit(5).some,
+            None
           )
           response2 <- UserAPIs.paginate.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             Pagination.Offset(5L).some,
-            Pagination.Limit(5).some
+            Pagination.Limit(5).some,
+            None
           )
         } yield {
           // then

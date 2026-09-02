@@ -60,6 +60,7 @@ object TestApiConfigs {
           logHeaders = true,
           logBody = true,
           corsAnyOrigin = true,
+          corsAllowedOrigins = List.empty,
           corsAllowCredentials = true,
           corsMaxAge = 1.day,
           maxHeaderLineLength = 512,
