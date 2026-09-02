@@ -485,5 +485,8 @@ val application = project
 // aliases
 
 addCommandAlias("fmt", "scalafmt ; Test/scalafmt")
-addCommandAlias("fullTest", "test")
-addCommandAlias("fullCoverageTest", "coverage ; test ; coverageReport ; coverageAggregate")
+// `test` delegates to `testQuick`, and sbt 2.x caches its result in a global store (~/.cache/sbt) that survives
+// `clean`, so on unchanged sources it reports "No tests to run" and skips the whole (effectful, DB-backed) suite.
+// `testOnly *` runs every matching spec unconditionally on every invocation, so a full run really executes.
+addCommandAlias("fullTest", "testOnly * ")
+addCommandAlias("fullCoverageTest", "coverage ; testOnly * ; coverageReport ; coverageAggregate")
