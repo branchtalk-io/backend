@@ -5,6 +5,7 @@ import enumeratum.*
 import io.branchtalk.api.Pagination
 import io.branchtalk.discussions.model.{ Channel, Post }
 import io.branchtalk.users.model.User
+import io.branchtalk.shared.infrastructure.Server
 import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
 import io.branchtalk.shared.model.*
 import sttp.apispec.openapi.*
@@ -73,6 +74,15 @@ final case class APIHttp(
 ) derives ConfigReader,
       ShowPretty
 
+// Controls the HTTP-layer idempotency middleware that caches responses for repeated state-modifying requests
+// (POST/PUT/PATCH/DELETE) keyed by the X-Request-ID header.
+final case class APIIdempotency(
+  enabled: Boolean,
+  ttl:     FiniteDuration,
+  redis:   Server
+) derives ConfigReader,
+      ShowPretty
+
 final case class PaginationConfig(
   defaultLimit: Paginated.Limit,
   maxLimit:     Paginated.Limit
@@ -119,6 +129,7 @@ object APIPart extends Enum[APIPart] {
 final case class APIConfig(
   info:            APIInfo,
   http:            APIHttp,
+  idempotency:     APIIdempotency,
   defaultChannels: List[UUID],
   pagination:      Map[APIPart, PaginationConfig]
 ) derives ConfigReader,
