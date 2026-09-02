@@ -139,6 +139,41 @@ Start dependencies in Docker and then run sbt shell
 Then will be able to run IT tests locally (`fullTest`) or start application
 from build tool (`run [arguments]`, e.g. `run --help` or `run --monolith`).
 
+## Monitoring stack (optional)
+
+An opt-in monitoring and log-aggregation stack is provided in
+`docker-compose/monolith-monitoring.yml`. It adds:
+
+| Service         | URL                          | Purpose                          |
+|-----------------|------------------------------|----------------------------------|
+| Prometheus      | http://localhost:9090        | Scrapes `/metrics` from the app  |
+| Grafana         | http://localhost:3000        | Dashboards (admin / admin)       |
+| Elasticsearch   | http://localhost:9200        | Log storage                      |
+| Kibana          | http://localhost:5601        | Log exploration                  |
+| Filebeat        | (sidecar)                    | Ships app container logs to ES   |
+
+Start the full stack (dependencies + monitoring):
+
+```bash
+docker compose \
+  -f docker-compose/monolith-deps.yml \
+  -f docker-compose/monolith-setup.yml \
+  -f docker-compose/monolith-monitoring.yml \
+  up -d
+```
+
+The application exposes a Prometheus-compatible `GET /metrics` endpoint (text
+format 0.0.4) outside the authentication and GZip middleware so that scrapers
+can read it directly. When the app runs inside Docker Compose, Prometheus
+discovers it as `application:8080`; when the app runs on the host via sbt,
+edit `docker-compose/prometheus.yml` to point at `host.docker.internal:8080`.
+
+**Log shipping**: Filebeat picks up JSON stdout from the `branchtalk-server`
+Docker container and forwards it to Elasticsearch. If you prefer direct TCP
+shipping from the JVM, see the commented-out `LogstashTcpSocketAppender` in
+`modules/app/src/main/resources/logback.xml` (requires adding the
+`logstash-logback-encoder` dependency to `branchtalk.sbt`).
+
 ## More options
 
 More options are available. Please consult `--help` to learn about them.

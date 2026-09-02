@@ -1,0 +1,15 @@
+# Prometheus scrape configuration for branchtalk monitoring stack.
+# Mounted into the prometheus container by monolith-monitoring.yml.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "branchtalk"
+    # The application exposes GET /metrics (Prometheus text format 0.0.4).
+    # When running inside Docker, "application" resolves via the compose network;
+    # when scraping a host-local app, use host.docker.internal:8080 instead.
+    static_configs:
+      - targets: ["application:8080"]
+    metrics_path: "/metrics"

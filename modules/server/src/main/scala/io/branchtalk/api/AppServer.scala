@@ -28,6 +28,8 @@ import io.prometheus.client.CollectorRegistry
 import dev.profunktor.redis4cats.RedisCommands
 import org.http4s.*
 import org.http4s.blaze.server.BlazeServerBuilder
+import org.http4s.dsl.Http4sDsl
+import io.prometheus.client.exporter.common.TextFormat
 import org.http4s.implicits.*
 import org.http4s.metrics.MetricsOps
 import org.http4s.metrics.prometheus.Prometheus
@@ -57,6 +59,7 @@ final class AppServer[F[_]: Async: MDC](
   correlationIDOps:        CorrelationIDOps[F],
   requestIDOps:            RequestIDOps[F],
   idempotencyMiddleware:   Option[HttpRoutes[F] => HttpRoutes[F]],
+  registry:                CollectorRegistry,
   apiConfig:               APIConfig
 ) {
 
@@ -82,35 +85,53 @@ final class AppServer[F[_]: Async: MDC](
 
   private given Compression[F] = Compression.forSync[F]
 
-  val routes: HttpApp[F] =
-    NonEmptyList
-      .of(
-        // The literal /users/moderation and /users/bans routes must come before userServer's /users/{userID}, otherwise
-        // the path-param route matches "moderation"/"bans" and fails to parse them as a UUID (routes are tried in order).
-        userModerationServer.routes,
-        userBanServer.routes,
-        userServer.routes,
-        channelModerationServer.routes,
-        channelBanServer.routes,
-        channelServer.routes,
-        postServer.routes,
-        commentServer.routes,
-        subscriptionServer.routes,
-        searchServer.routes,
-        notificationServer.routes,
-        openAPIServer.routes
-      )
-      .reduceK
-      // Idempotency sits closest to the app routes: outer layers (GZip, CORS, Metrics, correlation/request-id) still
-      // wrap the replayed response, so it picks up the same encoding and headers as a fresh response would.
-      .pipe(r => idempotencyMiddleware.fold(r)(_(r)))
-      .pipe(GZip(_))
-      .pipe(corsConfig(_))
-      .pipe(Metrics[F](metricsOps))
-      .pipe(correlationIDOps.httpRoutes)
-      .pipe(requestIDOps.httpRoutes)
-      .orNotFound
+  private val metricsDsl = new Http4sDsl[F] {}
+
+  // Prometheus scrape endpoint. Served OUTSIDE the middleware pipeline (below) so scrapers get raw text/plain and the
+  // endpoint neither measures nor gzips itself.
+  private val metricsRoute: HttpRoutes[F] = {
+    import metricsDsl.*
+    HttpRoutes.of[F] { case GET -> Root / "metrics" =>
+      Async[F].delay {
+        val writer = new java.io.StringWriter()
+        TextFormat.write004(writer, registry.metricFamilySamples())
+        writer.toString
+      }.flatMap(Ok(_))
+    }
+  }
+
+  val routes: HttpApp[F] = {
+    val mainRoutes: HttpRoutes[F] =
+      NonEmptyList
+        .of(
+          // The literal /users/moderation and /users/bans routes must come before userServer's /users/{userID},
+          // otherwise the path-param route matches "moderation"/"bans" and fails to parse them as a UUID (routes are
+          // tried in order).
+          userModerationServer.routes,
+          userBanServer.routes,
+          userServer.routes,
+          channelModerationServer.routes,
+          channelBanServer.routes,
+          channelServer.routes,
+          postServer.routes,
+          commentServer.routes,
+          subscriptionServer.routes,
+          searchServer.routes,
+          notificationServer.routes,
+          openAPIServer.routes
+        )
+        .reduceK
+        // Idempotency sits closest to the app routes: outer layers (GZip, CORS, Metrics, correlation/request-id) still
+        // wrap the replayed response, so it picks up the same encoding and headers as a fresh response would.
+        .pipe(r => idempotencyMiddleware.fold(r)(_(r)))
+        .pipe(GZip(_))
+        .pipe(corsConfig(_))
+        .pipe(Metrics[F](metricsOps))
+        .pipe(correlationIDOps.httpRoutes)
+        .pipe(requestIDOps.httpRoutes)
+    (metricsRoute <+> mainRoutes).orNotFound
       .pipe(logRoutes)
+  }
 }
 object AppServer {
 
@@ -233,6 +254,7 @@ object AppServer {
           correlationIDOps,
           requestIDOps,
           idempotencyMiddleware,
+          registry,
           apiConfig
         )
 
