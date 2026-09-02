@@ -1,0 +1,128 @@
+# Opt-in monitoring and log-aggregation stack for local development.
+#
+# Start alongside the app dependencies:
+#
+#   docker compose \
+#     -f docker-compose/monolith-deps.yml \
+#     -f docker-compose/monolith-setup.yml \
+#     -f docker-compose/monolith-monitoring.yml \
+#     up -d
+#
+# Then (optionally) the app itself:
+#
+#   docker compose -f docker-compose/monolith-app.yml up -d
+#
+# Or run the app via sbt and point Prometheus at host.docker.internal:8080.
+#
+# UIs:
+#   Prometheus  — http://localhost:9090
+#   Grafana     — http://localhost:3000  (admin / admin)
+#   Kibana      — http://localhost:5601
+#
+# Log shipping:
+#   The Filebeat sidecar reads the application container's JSON stdout logs
+#   and forwards them to Elasticsearch. If you run the app outside Docker
+#   (e.g. via sbt), pipe its output to a file and mount that file into the
+#   filebeat container, or configure a LogstashTcpSocketAppender in logback.xml
+#   (requires adding the logstash-logback-encoder dependency — see the
+#   commented-out appender in modules/app/src/main/resources/logback.xml).
+
+networks:
+  branchtalk-monolith:
+    driver: bridge
+
+services:
+
+  # ---------- Metrics ----------
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    networks:
+      - branchtalk-monolith
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - branchtalk-monolith
+
+  # ---------- Log aggregation ----------
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"          # dev-only — no auth
+      xpack.security.http.ssl.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - branchtalk-monolith
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - branchtalk-monolith
+
+  # Filebeat reads the application container's stdout (JSON) and ships to ES.
+  # If the application container is not running, Filebeat idles harmlessly.
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.14.1
+    restart: unless-stopped
+    user: root                                  # needs access to docker socket / log files
+    volumes:
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - filebeat_data:/usr/share/filebeat/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - branchtalk-monolith
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  es_data:
+    driver: local
+  filebeat_data:
+    driver: local

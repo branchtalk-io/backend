@@ -1,0 +1,36 @@
+# Filebeat configuration — ships Docker container logs to Elasticsearch.
+# Mounted into the filebeat container by monolith-monitoring.yml.
+#
+# The application's logback already emits JSON to stdout, so Filebeat only
+# needs to pick up the container log files and forward them.
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      # Only collect logs from the branchtalk application container.
+      templates:
+        - condition:
+            contains:
+              docker.container.image: "branchtalk-server"
+          config:
+            - type: container
+              paths:
+                - "/var/lib/docker/containers/${data.docker.container.id}/*.log"
+              # The app writes JSON; Docker wraps each line in its own JSON
+              # envelope.  Decode the Docker layer, then parse the inner JSON
+              # that logback produced.
+              processors:
+                - decode_json_fields:
+                    fields: ["message"]
+                    target: "app"
+                    overwrite_keys: true
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  indices:
+    - index: "branchtalk-logs-%{+yyyy.MM.dd}"
+
+setup.ilm.enabled: false
+setup.template.name: "branchtalk-logs"
+setup.template.pattern: "branchtalk-logs-*"

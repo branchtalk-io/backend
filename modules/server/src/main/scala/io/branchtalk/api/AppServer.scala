@@ -22,6 +22,7 @@ import io.branchtalk.users.api.{
 import io.branchtalk.users.reads.*
 import io.branchtalk.users.writes.*
 import io.prometheus.client.CollectorRegistry
+import io.prometheus.client.exporter.common.TextFormat
 import org.http4s.*
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits.*
@@ -31,6 +32,7 @@ import org.http4s.server.Server
 import org.http4s.server.middleware.*
 import sttp.tapir.server.ServerEndpoint
 
+import java.io.StringWriter
 import scala.annotation.nowarn
 
 final class AppServer[F[_]: Async: MDC](
@@ -47,7 +49,8 @@ final class AppServer[F[_]: Async: MDC](
   metricsOps:              MetricsOps[F],
   correlationIDOps:        CorrelationIDOps[F],
   requestIDOps:            RequestIDOps[F],
-  apiConfig:               APIConfig
+  apiConfig:               APIConfig,
+  registry:                CollectorRegistry
 ) {
 
   private val corsConfig = CORS.policy
@@ -66,30 +69,49 @@ final class AppServer[F[_]: Async: MDC](
 
   private given Compression[F] = Compression.forSync[F]
 
-  val routes: HttpApp[F] =
-    NonEmptyList
-      .of(
-        // The literal /users/moderation and /users/bans routes must come before userServer's /users/{userID}, otherwise
-        // the path-param route matches "moderation"/"bans" and fails to parse them as a UUID (routes are tried in order).
-        userModerationServer.routes,
-        userBanServer.routes,
-        userServer.routes,
-        channelModerationServer.routes,
-        channelBanServer.routes,
-        channelServer.routes,
-        postServer.routes,
-        commentServer.routes,
-        subscriptionServer.routes,
-        openAPIServer.routes
-      )
-      .reduceK
-      .pipe(GZip(_))
-      .pipe(corsConfig(_))
-      .pipe(Metrics[F](metricsOps))
-      .pipe(correlationIDOps.httpRoutes)
-      .pipe(requestIDOps.httpRoutes)
+  // Prometheus scrape endpoint — mounted outside all middleware (no auth, no GZip, no metrics tracking)
+  // so that scrapers receive raw text/plain exposition and the endpoint does not measure itself.
+  private val metricsRoute: HttpRoutes[F] = {
+    val dsl = org.http4s.dsl.Http4sDsl[F]
+    import dsl.*
+    HttpRoutes.of[F] { case GET -> Root / "metrics" =>
+      Async[F].delay {
+        val writer = new StringWriter()
+        TextFormat.write004(writer, registry.metricFamilySamples())
+        writer.toString
+      }.flatMap(Ok(_))
+    }
+  }
+
+  val routes: HttpApp[F] = {
+    val mainRoutes =
+      NonEmptyList
+        .of(
+          // The literal /users/moderation and /users/bans routes must come before userServer's /users/{userID}, otherwise
+          // the path-param route matches "moderation"/"bans" and fails to parse them as a UUID (routes are tried in order).
+          userModerationServer.routes,
+          userBanServer.routes,
+          userServer.routes,
+          channelModerationServer.routes,
+          channelBanServer.routes,
+          channelServer.routes,
+          postServer.routes,
+          commentServer.routes,
+          subscriptionServer.routes,
+          openAPIServer.routes
+        )
+        .reduceK
+        .pipe(GZip(_))
+        .pipe(corsConfig(_))
+        .pipe(Metrics[F](metricsOps))
+        .pipe(correlationIDOps.httpRoutes)
+        .pipe(requestIDOps.httpRoutes)
+
+    import cats.syntax.semigroupk.*
+    (metricsRoute <+> mainRoutes)
       .orNotFound
       .pipe(logRoutes)
+  }
 }
 object AppServer {
 
@@ -184,7 +206,8 @@ object AppServer {
         metricsOps,
         correlationIDOps,
         requestIDOps,
-        apiConfig
+        apiConfig,
+        registry
       )
 
       val logger = io.branchtalk.logging.Logger.getLogger[F]
