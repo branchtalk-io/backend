@@ -1,6 +1,6 @@
 # common variables
 
-set shell := ["zsh", "--login", "-c"]
+set shell := ["bash", "-c"]
 
 network-prefix := `basename "$PWD"`
 config-dir     := justfile_directory() + "/docker-compose"
@@ -19,7 +19,7 @@ dev-up:
 dev-stop:
   docker compose --project-directory . {{dev-configs}} stop
 dev-down:
-  docker-compose --project-directory . {{dev-configs}} down --remove-orphans || \
+  docker compose --project-directory . {{dev-configs}} down --remove-orphans || \
   (docker container rm {{network-prefix}}_kafka_1 {{network-prefix}}_postgres_1 -f && \
    docker network disconnect {{network-prefix}}_branchtalk-monolith {{network-prefix}}_kafka_1 -f && \
    docker network disconnect {{network-prefix}}_branchtalk-monolith {{network-prefix}}_postgres_1 -f && \
