@@ -25,6 +25,7 @@ import io.branchtalk.users.api.{
 import io.branchtalk.users.reads.*
 import io.branchtalk.users.writes.*
 import io.prometheus.client.CollectorRegistry
+import dev.profunktor.redis4cats.RedisCommands
 import org.http4s.*
 import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.implicits.*
@@ -54,6 +55,7 @@ final class AppServer[F[_]: Async: MDC](
   metricsOps:              MetricsOps[F],
   correlationIDOps:        CorrelationIDOps[F],
   requestIDOps:            RequestIDOps[F],
+  idempotencyMiddleware:   Option[HttpRoutes[F] => HttpRoutes[F]],
   apiConfig:               APIConfig
 ) {
 
@@ -97,6 +99,9 @@ final class AppServer[F[_]: Async: MDC](
         openAPIServer.routes
       )
       .reduceK
+      // Idempotency sits closest to the app routes: outer layers (GZip, CORS, Metrics, correlation/request-id) still
+      // wrap the replayed response, so it picks up the same encoding and headers as a fresh response would.
+      .pipe(r => idempotencyMiddleware.fold(r)(_(r)))
       .pipe(GZip(_))
       .pipe(corsConfig(_))
       .pipe(Metrics[F](metricsOps))
@@ -131,6 +136,17 @@ object AppServer {
     notificationTopic:  NotificationTopic[F]
   )(using UUID.Generator): Resource[F, Server] =
     Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
+      // When idempotency is enabled, create a Redis connection for the response cache.
+      val idempotencyRedis: Resource[F, Option[RedisCommands[F, String, String]]] =
+        if (apiConfig.idempotency.enabled) IdempotencyMiddleware.redisResource[F](apiConfig.idempotency).map(_.some)
+        else Resource.pure(none)
+
+      idempotencyRedis.flatMap { redisOpt =>
+      val idempotencyMiddleware: Option[HttpRoutes[F] => HttpRoutes[F]] =
+        redisOpt.map[HttpRoutes[F] => HttpRoutes[F]](redis =>
+          routes => IdempotencyMiddleware(redis, apiConfig.idempotency.ttl)(routes)
+        )
+
       val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
 
       val requestIDOps: RequestIDOps[F] = RequestIDOps[F]
@@ -210,6 +226,7 @@ object AppServer {
         metricsOps,
         correlationIDOps,
         requestIDOps,
+        idempotencyMiddleware,
         apiConfig
       )
 
@@ -248,5 +265,6 @@ object AppServer {
               Resource.eval(logger.info(s"API server started at ${server.address.toString}"))
             }
         }
+      } // idempotencyRedis.flatMap
     }
 }

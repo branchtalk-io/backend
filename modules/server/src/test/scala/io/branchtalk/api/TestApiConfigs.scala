@@ -2,7 +2,8 @@ package io.branchtalk.api
 
 import java.net.URI
 import cats.effect.{ Async, Resource, Sync }
-import io.branchtalk.configs.{ APIConfig, APIContact, APIHttp, APIInfo, APILicense, AppArguments }
+import io.branchtalk.configs.{ APIConfig, APIContact, APIHttp, APIIdempotency, APIInfo, APILicense, AppArguments }
+import io.branchtalk.shared.infrastructure.Server
 import io.branchtalk.discussions.model.Post
 import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.model.User
@@ -65,6 +66,12 @@ object TestApiConfigs {
           corsMaxAge = 1.day,
           maxHeaderLineLength = 512,
           maxRequestLineLength = 1024
+        ),
+        // Disabled in tests: no Redis instance is guaranteed in the test harness, and the middleware is not under test.
+        idempotency = APIIdempotency(
+          enabled = false,
+          ttl = 5.minutes,
+          redis = Server(Server.Host.unsafeMake("127.0.0.1"), Server.Port.unsafeMake(6379))
         ),
         defaultChannels = List(defaultChannelID),
         pagination = Map.empty

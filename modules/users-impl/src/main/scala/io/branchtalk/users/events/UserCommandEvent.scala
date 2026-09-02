@@ -128,10 +128,8 @@ object UserCommandEvent {
     def encrypt(
       algorithm: SensitiveData.Algorithm,
       key:       SensitiveData.Key
-    ): RequestEmailUpdateEncrypted = this
-      .into[RequestEmailUpdateEncrypted]
-      .withFieldComputed(_.newEmail, _.newEmail.encrypt(algorithm, key))
-      .transform
+    ): RequestEmailUpdateEncrypted =
+      this.into[RequestEmailUpdateEncrypted].withFieldComputed(_.newEmail, _.newEmail.encrypt(algorithm, key)).transform
   }
 
   final case class RequestEmailUpdateEncrypted(

@@ -15,10 +15,7 @@ final case class SessionDao(
 
   def toDomain: Session = Session(
     id = id,
-    data = this
-      .into[Session.Data]
-      .withFieldConst(_.usage, Session.Usage.Tupled(usageType, usagePermissions))
-      .transform
+    data = this.into[Session.Data].withFieldConst(_.usage, Session.Usage.Tupled(usageType, usagePermissions)).transform
   )
 }
 object SessionDao {

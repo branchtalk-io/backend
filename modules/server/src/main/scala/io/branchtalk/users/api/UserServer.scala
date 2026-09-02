@@ -78,8 +78,8 @@ final class UserServer[F[_]: Async](
     }
   }
 
-  private val signIn = UserAPIs.signIn.serverLogic[F, (User, Option[Session])].withUser {
-    case ((user, sessionOpt), userAgentHeader) =>
+  private val signIn =
+    UserAPIs.signIn.serverLogic[F, (User, Option[Session])].withUser { case ((user, sessionOpt), userAgentHeader) =>
       // TODO: extract client IP from request when infrastructure supports it
       val userAgent = userAgentHeader.map(Session.UserAgent(_))
       for {
@@ -101,7 +101,7 @@ final class UserServer[F[_]: Async](
             } yield session
         }
       } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
-  }
+    }
 
   private val signOut = UserAPIs.signOut.serverLogic[F, (User, Option[Session])].justUser { case (user, sessionOpt) =>
     for {

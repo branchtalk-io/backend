@@ -205,8 +205,12 @@ object UserAPIs {
     .notRequiringPermissions
 
   // Issue #8: Request email update
-  val requestEmailUpdate
-    : AuthedEndpoint[Authentication, (ID[User], RequestEmailUpdateRequest), UserError, RequestEmailUpdateResponse, Any] =
+  val requestEmailUpdate: AuthedEndpoint[Authentication,
+                                         (ID[User], RequestEmailUpdateRequest),
+                                         UserError,
+                                         RequestEmailUpdateResponse,
+                                         Any
+  ] =
     endpoint
       .name("Request email update")
       .summary("Requests an email address change")
@@ -223,7 +227,12 @@ object UserAPIs {
       .requiringPermissions(_ => RequiredPermissions.one(Permission.IsOwner))
 
   // Issue #8: Confirm email update
-  val confirmEmail: AuthedEndpoint[Authentication, (ID[User], ConfirmEmailRequest), UserError, ConfirmEmailResponse, Any] =
+  val confirmEmail: AuthedEndpoint[Authentication,
+                                   (ID[User], ConfirmEmailRequest),
+                                   UserError,
+                                   ConfirmEmailResponse,
+                                   Any
+  ] =
     endpoint
       .name("Confirm email")
       .summary("Confirms an email address change")

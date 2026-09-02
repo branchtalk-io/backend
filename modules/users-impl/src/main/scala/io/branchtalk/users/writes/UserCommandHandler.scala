@@ -16,11 +16,11 @@ final class UserCommandHandler[F[_]: Sync] extends Projector[F, UsersCommandEven
     in.collect { case UsersCommandEvent.ForUser(command) =>
       command
     }.evalMap[F, (UUID, UserEvent)] {
-      case command: UserCommandEvent.CreateEncrypted              => toCreate(command).widen
-      case command: UserCommandEvent.UpdateEncrypted              => toUpdate(command).widen
-      case command: UserCommandEvent.Delete                       => toDelete(command).widen
-      case command: UserCommandEvent.RequestEmailUpdateEncrypted  => toRequestEmailUpdate(command).widen
-      case command: UserCommandEvent.ConfirmEmail                 => toConfirmEmail(command).widen
+      case command: UserCommandEvent.CreateEncrypted             => toCreate(command).widen
+      case command: UserCommandEvent.UpdateEncrypted             => toUpdate(command).widen
+      case command: UserCommandEvent.Delete                      => toDelete(command).widen
+      case command: UserCommandEvent.RequestEmailUpdateEncrypted => toRequestEmailUpdate(command).widen
+      case command: UserCommandEvent.ConfirmEmail                => toConfirmEmail(command).widen
     }.map { case (key, value) =>
       key -> UsersEvent.ForUser(value)
     }.handleErrorWith { error =>

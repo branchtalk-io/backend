@@ -206,31 +206,29 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
     event: UserEvent.EmailConfirmed
   ): F[Option[(UUID, UserEvent.EmailConfirmed)]] =
     withCorrelationID(event.correlationID) {
-      {
-        // Fetch the pending email and current token
-        sql"""SELECT pending_email, confirmation_token FROM users WHERE id = ${event.id}"""
-          .queryWithLabel[(Option[User.Email], Option[User.EmailConfirmationToken])](
-            show"Get Users' pending email for ID=${event.id}"
-          )
-          .option
-          .flatMap {
-            case Some((Some(pendingEmail), Some(storedToken))) if storedToken === event.token =>
-              sql"""UPDATE users SET
-                   |  email = $pendingEmail,
-                   |  email_status = ${User.EmailStatus.Confirmed: User.EmailStatus},
-                   |  pending_email = ${Option.empty[User.Email]},
-                   |  confirmation_token = ${Option.empty[User.EmailConfirmationToken]},
-                   |  last_modified_at = ${event.modifiedAt}
-                   |WHERE id = ${event.id}""".stripMargin
-                .updateWithLabel(show"Confirm email for Users' User ID=${event.id}")
-                .run
-                .void
-            case _ =>
-              Sync[ConnectionIO].delay(
-                logger.warn(show"Email confirmation ignored for User ID=${event.id}: token mismatch or no pending email")
-              )
-          }
-      }.as((event.id.unwrap -> event).some).transact(transactor)
+      // Fetch the pending email and current token
+      sql"""SELECT pending_email, confirmation_token FROM users WHERE id = ${event.id}"""
+        .queryWithLabel[(Option[User.Email], Option[User.EmailConfirmationToken])](
+          show"Get Users' pending email for ID=${event.id}"
+        )
+        .option
+        .flatMap {
+          case Some((Some(pendingEmail), Some(storedToken))) if storedToken === event.token =>
+            sql"""UPDATE users SET
+                 |  email = $pendingEmail,
+                 |  email_status = ${User.EmailStatus.Confirmed: User.EmailStatus},
+                 |  pending_email = ${Option.empty[User.Email]},
+                 |  confirmation_token = ${Option.empty[User.EmailConfirmationToken]},
+                 |  last_modified_at = ${event.modifiedAt}
+                 |WHERE id = ${event.id}""".stripMargin
+              .updateWithLabel(show"Confirm email for Users' User ID=${event.id}")
+              .run
+              .void
+          case _ =>
+            Sync[ConnectionIO].delay(
+              logger.warn(show"Email confirmation ignored for User ID=${event.id}: token mismatch or no pending email")
+            )
+        }.as((event.id.unwrap -> event).some).transact(transactor)
     }
 
   private def findKeys(userID: ID[User]): ConnectionIO[Option[(SensitiveData.Algorithm, SensitiveData.Key)]] =

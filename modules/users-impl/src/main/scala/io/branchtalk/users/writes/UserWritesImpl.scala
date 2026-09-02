@@ -150,15 +150,18 @@ final class UserWritesImpl[F[_]: Sync: MDC](
           .unique
           .transact(transactor)
       now <- ModificationTime.now[F]
-      token <- Sync[F].delay(java.util.UUID.randomUUID().toString)
+      token <- Sync[F]
+        .delay(java.util.UUID.randomUUID().toString)
         .flatMap(ParseNewtype[F].parse[User.EmailConfirmationToken](_))
-      command = UserCommandEvent.RequestEmailUpdate(
-        id = id,
-        newEmail = SensitiveData(request.newEmail),
-        token = token,
-        modifiedAt = now,
-        correlationID = correlationID
-      ).encrypt(algorithm, key)
+      command = UserCommandEvent
+        .RequestEmailUpdate(
+          id = id,
+          newEmail = SensitiveData(request.newEmail),
+          token = token,
+          modifiedAt = now,
+          correlationID = correlationID
+        )
+        .encrypt(algorithm, key)
       _ <- postEvent(id, UsersCommandEvent.ForUser(command))
     } yield (UpdateScheduled(id), token)
 
