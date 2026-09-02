@@ -3,7 +3,7 @@ package io.branchtalk.discussions.writes
 import cats.data.NonEmptyList
 import cats.effect.Sync
 import com.typesafe.scalalogging.Logger
-import doobie.Transactor
+import org.typelevel.doobie.Transactor
 import fs2.Stream
 import io.branchtalk.discussions.events.{ DiscussionEvent, PostEvent }
 import io.branchtalk.discussions.infrastructure.DoobieExtensions.{ *, given }

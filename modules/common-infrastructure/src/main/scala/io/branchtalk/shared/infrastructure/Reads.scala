@@ -1,12 +1,12 @@
 package io.branchtalk.shared.infrastructure
 
-import cats.effect.Sync
-import doobie.*
-import doobie.implicits.*
+import cats.effect.Concurrent
+import org.typelevel.doobie.*
+import org.typelevel.doobie.implicits.*
 import fs2.Stream
 
 // Utilities for reads services.
-abstract class Reads[F[_]: Sync, Entity](transactor: Transactor[F]) {
+abstract class Reads[F[_]: Concurrent, Entity](transactor: Transactor[F]) {
 
   // reading from DB Postgres as part of the read model
 

@@ -1,7 +1,8 @@
 package io.branchtalk.shared.infrastructure
 
+import cats.Show
 import cats.effect.{ Sync, SyncIO }
-import doobie.util.log
+import org.typelevel.doobie.util.log
 import io.branchtalk.logging.Logger
 import io.branchtalk.shared.model.*
 import org.tpolecat.typename.TypeName
@@ -10,41 +11,37 @@ import org.tpolecat.typename.TypeName
 // Additionally, provides support for a few useful but missing features.
 object DoobieSupport
 // basic functionalities
-    extends doobie.Aliases,
-      doobie.hi.Modules,
-      doobie.syntax.AllSyntax,
-      doobie.free.Modules,
-      doobie.free.Types,
-      doobie.free.Instances,
+    extends org.typelevel.doobie.Aliases,
+      org.typelevel.doobie.hi.Modules,
+      org.typelevel.doobie.syntax.AllSyntax,
+      org.typelevel.doobie.free.Modules,
+      org.typelevel.doobie.free.Types,
+      org.typelevel.doobie.free.Instances,
       // postgres extensions (without postgis)
-      doobie.postgres.Instances,
-      doobie.postgres.hi.Modules,
-      doobie.postgres.free.Modules,
-      doobie.postgres.free.Types,
-      doobie.postgres.free.Instances,
-      doobie.postgres.syntax.ToPostgresMonadErrorOps,
-      doobie.postgres.syntax.ToFragmentOps,
-      doobie.postgres.syntax.ToPostgresExplainOps,
+      org.typelevel.doobie.postgres.Instances,
+      org.typelevel.doobie.postgres.hi.Modules,
+      org.typelevel.doobie.postgres.free.Modules,
+      org.typelevel.doobie.postgres.free.Types,
+      org.typelevel.doobie.postgres.free.Instances,
+      org.typelevel.doobie.postgres.syntax.ToPostgresMonadErrorOps,
+      org.typelevel.doobie.postgres.syntax.ToFragmentOps,
+      org.typelevel.doobie.postgres.syntax.ToPostgresExplainOps,
       // Java Time extensions
-      doobie.util.meta.MetaConstructors,
-      doobie.util.meta.TimeMetaInstances {
+      org.typelevel.doobie.util.meta.MetaConstructors,
+      org.typelevel.doobie.util.meta.TimeMetaInstances,
+      // doobie RC12 no longer derives Read/Write for case classes by default - opt back in for DAO products
+      org.typelevel.doobie.generic.AutoDerivation {
 
   // enumeratum automatic support
 
   export enumeratum.Doobie.meta as enumeraturmMeta
 
-  // newtype automatic support
+  // newtype automatic support (neotype 0.7 exposes these as named given Get/Put/array instances keyed on WrappedType).
+  // A wildcard export off a package is disallowed, so export by name; arrayGet needs a Show[Array[_]] (provided below).
+  export neotype.interop.doobie.{ arrayGet, arrayPut, get, put, read, write }
 
-  export neotype.interop.doobie.{
-    newtypeArrayGet,
-    newtypeArrayPut,
-    newtypeGet,
-    newtypePut,
-    subtypeArrayGet,
-    subtypeArrayPut,
-    subtypeGet,
-    subtypePut
-  }
+  given showArray[A](using show: Show[A]): Show[Array[A]] =
+    Show.show(_.map(show.show).mkString("[", ", ", "]"))
 
   given [E]: Meta[ID[E]] =
     ID.unsafeMakeF[Meta, E](Meta[UUID])
@@ -99,7 +96,7 @@ object DoobieSupport
   // log results
 
   def doobieLogger[F[_]](logger: Logger[F]): LogHandler[F] = {
-    case doobie.util.log.Success(sql, _, label, exec, processing) =>
+    case org.typelevel.doobie.util.log.Success(sql, _, label, exec, processing) =>
       logger.trace(
         s"""SQL succeeded:
            |${label}
@@ -108,7 +105,7 @@ object DoobieSupport
            |processing: ${processing.toMillis.toString} ms
            |total:      ${(exec + processing).toMillis.toString} ms""".stripMargin
       )
-    case doobie.util.log.ExecFailure(sql, _, label, exec, failure) =>
+    case org.typelevel.doobie.util.log.ExecFailure(sql, _, label, exec, failure) =>
       logger.error(failure)(
         s"""SQL failed at execution:
            |${label}
@@ -117,7 +114,7 @@ object DoobieSupport
            |${failure.getMessage} ms
            |execution:  ${exec.toMillis.toString} ms""".stripMargin
       )
-    case doobie.util.log.ProcessingFailure(sql, _, label, exec, processing, failure) =>
+    case org.typelevel.doobie.util.log.ProcessingFailure(sql, _, label, exec, processing, failure) =>
       logger.error(failure)(
         s"""SQL failed at processing:
            |${label}
