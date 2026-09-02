@@ -12,6 +12,9 @@ Global / excludeLintKeys ++= Set(
   scalacOptions,
   trapExit
 )
+// sbt-native-packager brings Debian/Rpm/Universal-docs packaging configs we don't build, whose keys
+// (name/version/sourceDirectory/executableScriptName/...) sbt 2 then reports as unused on load.
+Global / lintUnusedKeysOnLoad := false
 
 // Common settings:
 
@@ -120,7 +123,7 @@ val tests = Seq(
       Dependencies.spec2Scalacheck % Test
     )
   )
-) ++ inConfig(Test)(scalafmtConfigSettings)
+) ++ scalafmtConfigSettings(Test)
 
 val integrationTests = tests ++ Seq(
   Test / fork := true
@@ -455,21 +458,18 @@ val application = project
     customPredef("scala.util.chaining", "cats.implicits", "neotype")
   )
   .settings(
-    inTask(assembly)(
-      Seq(
-        assemblyJarName := s"${name.value}.jar",
-        assemblyMergeStrategy := {
-          // required for OpenAPIServer to work
-          case PathList("META-INF", "maven", "org.webjars", "swagger-ui", "pom.properties") =>
-            MergeStrategy.singleOrError
-          // conflicts on random crap
-          case "module-info.class" => MergeStrategy.discard
-          // otherwise
-          case strategy => MergeStrategy.defaultMergeStrategy(strategy)
-        },
-        mainClass := Some("io.branchtalk.Main")
-      )
-    )
+    // sbt 2.x removed `inTask`; scope the settings to the assembly task directly.
+    assembly / assemblyJarName := s"${name.value}.jar",
+    assembly / assemblyMergeStrategy := {
+      // required for OpenAPIServer to work
+      case PathList("META-INF", "maven", "org.webjars", "swagger-ui", "pom.properties") =>
+        MergeStrategy.singleOrError
+      // conflicts on random crap
+      case "module-info.class" => MergeStrategy.discard
+      // otherwise
+      case strategy => MergeStrategy.defaultMergeStrategy(strategy)
+    },
+    assembly / mainClass := Some("io.branchtalk.Main")
   )
   .dependsOn(server, discussionsImpl, usersImpl)
 
