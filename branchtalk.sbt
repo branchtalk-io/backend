@@ -164,6 +164,9 @@ lazy val root = project
   .aggregate(commonInfrastructure)
   .aggregate(discussions.projectRefs *)
   .aggregate(discussionsApi.projectRefs *)
+  .aggregate(notifications.projectRefs *)
+  .aggregate(notificationsApi.projectRefs *)
+  .aggregate(notificationsImpl)
   .aggregate(users.projectRefs *)
   .aggregate(usersApi.projectRefs *)
   .aggregate(usersImpl)
@@ -390,6 +393,63 @@ val usersImpl = project
     users.jvm(Dependencies.scalaVersion)
   )
 
+// notifications
+
+val notifications = projectMatrix
+  .in(file("modules/notifications"))
+  .jvmPlatform(List(Dependencies.scalaVersion))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "notifications",
+    description := "Notifications' published language"
+  )
+  .settings(settings)
+  .settings(tests)
+  .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.fs2
+    ),
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
+  )
+  .dependsOn(common)
+
+val notificationsApi = projectMatrix
+  .in(file("modules/notifications-api"))
+  .jvmPlatform(List(Dependencies.scalaVersion))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "notifications-api",
+    description := "Notifications' HTTP API"
+  )
+  .settings(settings)
+  .settings(tests)
+  .settings(
+    libraryDependencies ++= Seq(
+      Dependencies.kindlingsJsoniter
+    ),
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
+  )
+  .dependsOn(commonApi, notifications)
+
+val notificationsImpl = project
+  .in(file("modules/notifications-impl"))
+  .enablePlugins(GitVersioning, GitBranchPrompt)
+  .settings(
+    name := "notifications-impl",
+    description := "Notifications' Reads, Writes and Services' implementations"
+  )
+  .settings(settings)
+  .settings(integrationTests)
+  .settings(
+    customPredef("scala.util.chaining", "cats.implicits", "neotype")
+  )
+  .dependsOn(
+    common.jvm(Dependencies.scalaVersion) % s"$Compile->$Compile ; $Test->$Test",
+    commonInfrastructure % s"$Compile->$Compile ; $Test->$Test",
+    discussions.jvm(Dependencies.scalaVersion),
+    notifications.jvm(Dependencies.scalaVersion)
+  )
+
 // application
 
 val server = project
@@ -435,6 +495,9 @@ val server = project
     discussions.jvm(Dependencies.scalaVersion),
     discussionsApi.jvm(Dependencies.scalaVersion),
     discussionsImpl % s"$Test->$Test",
+    notifications.jvm(Dependencies.scalaVersion),
+    notificationsApi.jvm(Dependencies.scalaVersion),
+    notificationsImpl % s"$Test->$Test",
     users.jvm(Dependencies.scalaVersion),
     usersApi.jvm(Dependencies.scalaVersion),
     usersImpl % s"$Test->$Test"
@@ -480,7 +543,7 @@ val application = project
     },
     assembly / mainClass := Some("io.branchtalk.Main")
   )
-  .dependsOn(server, discussionsImpl, usersImpl)
+  .dependsOn(server, discussionsImpl, notificationsImpl, usersImpl)
 
 // aliases
 
