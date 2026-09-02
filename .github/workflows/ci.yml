@@ -17,7 +17,16 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-          cache: sbt
+      # Cache only dependency artifacts - NOT sbt's global state. sbt 2.x's `test` is incremental (testQuick) and its
+      # "already succeeded" record survives `clean`; caching sbt state would make CI skip tests on unchanged sources
+      # ("No tests to run"), so we deliberately don't restore it and let every CI run execute the full suite.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ivy2/cache
+            ~/.cache/coursier
+          key: sbt-deps-${{ hashFiles('**/*.sbt', 'project/**') }}
+          restore-keys: sbt-deps-
       - uses: sbt/setup-sbt@v1
       - uses: extractions/setup-just@v4
       - name: Start Docker images used in IT tests
