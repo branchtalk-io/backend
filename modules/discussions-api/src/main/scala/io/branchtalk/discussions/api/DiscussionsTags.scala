@@ -6,4 +6,5 @@ object DiscussionsTags {
   val posts         = "Posts"
   val comments      = "Comments"
   val subscriptions = "Subscriptions"
+  val search        = "Search"
 }

@@ -6,7 +6,7 @@ networks:
 
 services:
   postgres-setup:
-    image: 'postgres:12-alpine'
+    image: 'postgres:17-alpine'
     command: >
       sh -c "(psql --host postgres --username postgres --command=\"CREATE DATABASE users\" || true) &&
              (psql --host postgres --username postgres --command=\"CREATE USER users WITH PASSWORD 'password'\" users || true) &&
