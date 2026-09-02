@@ -52,9 +52,7 @@ final class CommentServerPaginationSpec extends Specification, ServerIOTest, Use
           response2.body must beValid(beRight(beAnInstanceOf[Pagination[APIComment]]))
           (response1.body.toValidOpt.flatMap(_.toOption), response2.body.toValidOpt.flatMap(_.toOption))
             .mapN { (pagination1, pagination2) =>
-              (pagination1.entities.toSet ++ pagination2.entities.toSet) === comments
-                .map(APIComment.fromDomain)
-                .toSet
+              (pagination1.entities.toSet ++ pagination2.entities.toSet) === comments.map(APIComment.fromDomain).toSet
             }
             .getOrElse(pass)
         }

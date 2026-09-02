@@ -89,6 +89,7 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
           response <- UserAPIs.paginate.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             None,
+            None,
             None
           )
         } yield {
@@ -105,6 +106,7 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
           // when
           response <- UserAPIs.paginate.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID)),
+            None,
             None,
             None
           )

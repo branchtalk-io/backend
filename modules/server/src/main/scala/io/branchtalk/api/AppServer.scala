@@ -92,11 +92,13 @@ final class AppServer[F[_]: Async: MDC](
   private val metricsRoute: HttpRoutes[F] = {
     import metricsDsl.*
     HttpRoutes.of[F] { case GET -> Root / "metrics" =>
-      Async[F].delay {
-        val writer = new java.io.StringWriter()
-        TextFormat.write004(writer, registry.metricFamilySamples())
-        writer.toString
-      }.flatMap(Ok(_))
+      Async[F]
+        .delay {
+          val writer = new java.io.StringWriter()
+          TextFormat.write004(writer, registry.metricFamilySamples())
+          writer.toString
+        }
+        .flatMap(Ok(_))
     }
   }
 
@@ -129,8 +131,7 @@ final class AppServer[F[_]: Async: MDC](
         .pipe(Metrics[F](metricsOps))
         .pipe(correlationIDOps.httpRoutes)
         .pipe(requestIDOps.httpRoutes)
-    (metricsRoute <+> mainRoutes).orNotFound
-      .pipe(logRoutes)
+    (metricsRoute <+> mainRoutes).orNotFound.pipe(logRoutes)
   }
 }
 object AppServer {

@@ -110,7 +110,8 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               username = creationData.username,
               description = creationData.description,
               password = password
-            )
+            ),
+            None
           )
           _ <- firstResponse.body.toOption
             .flatMap(_.toOption)
@@ -126,13 +127,13 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               username = creationData.username,
               description = creationData.description,
               password = password
-            )
+            ),
+            None
           )
-        } yield {
-          // then - sign-up schedules creation asynchronously, so the endpoint returns Ok
-          // even for duplicate usernames; the conflict is detected later during projection
-          (response.code === StatusCode.Ok) or (response.code === StatusCode.BadRequest)
-        }
+        } yield
+        // then - sign-up schedules creation asynchronously, so the endpoint returns Ok
+        // even for duplicate usernames; the conflict is detected later during projection
+        (response.code === StatusCode.Ok) or (response.code === StatusCode.BadRequest)
       }
     }
 
@@ -183,7 +184,8 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             Authentication.Credentials(
               username = usernameApi2Users.reverseGet(user.data.username),
               password = passwordApi2Users.reverseGet(wrongPasswordRaw)
-            )
+            ),
+            None
           )
         } yield {
           // then
@@ -202,7 +204,8 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             Authentication.Credentials(
               username = usernameApi2Users.reverseGet(nonExistentName),
               password = passwordApi2Users.reverseGet(somePasswordRaw)
-            )
+            ),
+            None
           )
         } yield {
           // then
@@ -451,7 +454,8 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           fakeSessionID <- ID.create[IO, Session]
           // when
           response <- UserAPIs.signIn.toTestCall(
-            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID))
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID)),
+            None
           )
         } yield {
           // then
