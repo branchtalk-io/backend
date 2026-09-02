@@ -118,13 +118,13 @@ Monolith-mode can be demonstrated by running:
 
 ```bash
 > ./sbt application/docker:publishLocal
-> make local-up
+> just local-up
 ```
 or
 ```bash
 > ./sbt application/docker:publishLocal
-> make local-bg
-> LOGS=application make local-logs
+> just local-bg
+> LOGS=application just local-logs
 ```
 and then accessing
 [OpenAPI](http://localhost:8080/docs/index.html?url=/docs/swagger.json).
@@ -133,7 +133,7 @@ and then accessing
 
 Start dependencies in Docker and then run sbt shell
 ```bash
-> make dev-bg
+> just dev-bg
 > ./sbt
 ```
 Then will be able to run IT tests locally (`it:test`) or start application

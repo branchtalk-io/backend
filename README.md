@@ -54,11 +54,11 @@ Building and testing requires java installed. Then
 
 downloads and runs sbt shell.
 
-To run integration tests or local env you need docker and make:
+To run integration tests or local env you need docker and [just](https://github.com/casey/just):
 
 ```bash
-make dev-bg   # starts services in background
-make dev-up   # starts services in terminal (I suggest a separate tab/window)
+just dev-bg   # starts services in background
+just dev-up   # starts services in terminal (I suggest a separate tab/window)
 ```
 
 Then it is possible to run it tests:
@@ -68,7 +68,7 @@ sbt> it:test
 ```
 
 ```bash
-make dev-down # shuts down services
+just dev-down # shuts down services
 ```
 
 ### Local testing
@@ -93,10 +93,10 @@ sbt:branchtalk> application/docker:publishLocal
 
 Once the image is published you can:
 ```bash
-make local-bg # or
-make local-up
+just local-bg # or
+just local-up
 ```
-(If it fails I suggest running `make dev-down` before running local env).
+(If it fails I suggest running `just dev-down` before running local env).
 
 You can use Ctrl+D to gracefully shutdown service. Server will be available at
 http://localhost:8080 and Swagger at
