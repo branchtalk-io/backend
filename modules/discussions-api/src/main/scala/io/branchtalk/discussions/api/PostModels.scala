@@ -45,12 +45,14 @@ object PostModels {
   }
 
   final case class APIPost(
-    id:         ID[Post],
-    channelID:  ID[Channel],
-    urlTitle:   Post.UrlTitle,
-    title:      Post.Title,
-    content:    Post.Content,
-    commentsNr: Post.CommentsNr
+    id:             ID[Post],
+    channelID:      ID[Channel],
+    urlTitle:       Post.UrlTitle,
+    title:          Post.Title,
+    content:        Post.Content,
+    createdAt:      CreationTime,
+    lastModifiedAt: Option[ModificationTime],
+    commentsNr:     Post.CommentsNr
   ) derives DefaultJsCodec,
         JsSchema
   object APIPost {

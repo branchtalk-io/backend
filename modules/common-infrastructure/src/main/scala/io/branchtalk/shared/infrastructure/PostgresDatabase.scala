@@ -55,13 +55,21 @@ final class PostgresDatabase(config: PostgresDatabase.Config) {
           }
         }
       }
-      _ <- Resource.eval(migrate[F] >> healthCheck[F](xa))
+      _ <- Resource.eval(migrate[F](logger) >> healthCheck[F](logger, xa))
     } yield xa
 
-  def migrate[F[_]: Sync]: F[Unit] = flyway[F].map(_.migrate()).void
+  def migrate[F[_]: Sync](logger: Logger[F]): F[Unit] =
+    logger.info(show"Running Flyway migrations for domain=${config.domain}") >>
+      flyway[F].map(_.migrate()).void >>
+      logger.info(show"Flyway migrations completed for domain=${config.domain}")
 
-  def healthCheck[F[_]: Sync](xa: Transactor[F]): F[String] =
-    sql"select now()".queryWithLabel[String]("DB Health Check").unique.transact(xa)
+  def healthCheck[F[_]: Sync](logger: Logger[F], xa: Transactor[F]): F[String] =
+    logger.info(show"Running DB health check for domain=${config.domain}") >>
+      sql"select now()"
+        .queryWithLabel[String]("DB Health Check")
+        .unique
+        .transact(xa)
+        .flatTap(result => logger.info(show"DB health check passed for domain=${config.domain}: $result"))
 }
 object PostgresDatabase {
 

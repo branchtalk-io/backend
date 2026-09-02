@@ -24,6 +24,7 @@ final class UserReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends UserRea
   private val filtered: User.Filter => Fragment = {
     case User.Filter.HasPermission(permission)   => fr"permissions @> jsonb_build_array($permission)"
     case User.Filter.HasPermissions(permissions) => fr"permissions @> $permissions"
+    case User.Filter.NameContains(query)         => fr"username ILIKE ${"%" + query + "%"}"
   }
 
   private val orderBy: User.Sorting => Fragment = {

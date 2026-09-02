@@ -13,7 +13,7 @@ trait UsersFixtures {
     ID.create[IO, Channel]
 
   def passwordCreate(password: String = "pass"): IO[Password] =
-    ParseNewtype[IO].parse[Password.Raw](password.getBytes).map(Password.create)
+    ParseNewtype[IO].parse[Password.Raw](password.getBytes).map(raw => Password.create(raw))
 
   def userCreate: IO[User.Create] =
     (

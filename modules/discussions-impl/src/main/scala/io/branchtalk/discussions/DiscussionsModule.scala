@@ -11,8 +11,10 @@ import io.branchtalk.shared.model.*
 import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.logging.MDC
 import io.prometheus.client.CollectorRegistry
+import org.ekrich.config.ConfigFactory
 
 import scala.annotation.nowarn
+import scala.util.Try
 
 final case class DiscussionsReads[F[_]](
   channelReads:            ChannelReads[F],
@@ -73,8 +75,12 @@ object DiscussionsModule {
     } yield {
       // macwire got removed due to:
       // https://github.com/softwaremill/macwire/blob/abf95284e24138a984a06ef4f08d0788af371825/macros/src/main/scala-3/com/softwaremill/macwire/internals/ConstructorCrimper.scala#L91
+      val urlTitleMaxLength: Int = Try {
+        ConfigFactory.defaultApplication().resolve().getInt("discussions.url-title-max-length")
+      }.getOrElse(100)
+
       val channelWrites:      ChannelWrites[F]      = ChannelWritesImpl[F](internalProducer, transactor)
-      val postWrites:         PostWrites[F]         = PostWritesImpl[F](internalProducer, transactor)
+      val postWrites:         PostWrites[F]         = PostWritesImpl[F](internalProducer, transactor, urlTitleMaxLength)
       val commentWrites:      CommentWrites[F]      = CommentWritesImpl[F](internalProducer, transactor)
       val subscriptionWrites: SubscriptionWrites[F] = SubscriptionWritesImpl[F](internalProducer, transactor)
 

@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import io.branchtalk.api.JsoniterSupport.{ *, given }
 import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.discussions.model.{ Channel, Comment, Post, User }
-import io.branchtalk.shared.model.{ ID, Updatable }
+import io.branchtalk.shared.model.{ CreationTime, ID, ModificationTime, Updatable }
 import io.scalaland.chimney.dsl.*
 
 object CommentModels {
@@ -22,13 +22,15 @@ object CommentModels {
   }
 
   final case class APIComment(
-    id:        ID[Comment],
-    authorID:  ID[User],
-    channelID: ID[Channel],
-    postID:    ID[Post],
-    content:   Comment.Content,
-    replyTo:   Option[ID[Comment]],
-    repliesNr: Comment.RepliesNr
+    id:             ID[Comment],
+    authorID:       ID[User],
+    channelID:      ID[Channel],
+    postID:         ID[Post],
+    content:        Comment.Content,
+    replyTo:        Option[ID[Comment]],
+    createdAt:      CreationTime,
+    lastModifiedAt: Option[ModificationTime],
+    repliesNr:      Comment.RepliesNr
   ) derives DefaultJsCodec,
         JsSchema
   object APIComment {

@@ -90,6 +90,7 @@ object User {
   enum Filter {
     case HasPermission(permission: Permission)
     case HasPermissions(permissions: Permissions)
+    case NameContains(query: String)
   }
 
   enum Sorting derives FastEq, ShowPretty {

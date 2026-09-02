@@ -81,10 +81,14 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
 
   override def authenticateUser(
     auth: api.Authentication
-  ): F[(users.model.User, Option[users.model.Session])] = auth.fold(
-    sessionID => authSessionID(sessionID).map { case (user, session) => user -> session.some },
-    (username, password) => authCredentials(username, password).map(_ -> none[users.model.Session])
-  )
+  ): F[(users.model.User, Option[users.model.Session])] = auth
+    .fold(
+      sessionID => authSessionID(sessionID).map { case (user, session) => user -> session.some },
+      (username, password) => authCredentials(username, password).map(_ -> none[users.model.Session])
+    )
+    .flatTap { case (user, _) =>
+      Sync[F].delay(logger.debug(show"Authenticated access: userID=${user.id}"))
+    }
 
   override def authorizeUser(
     auth:     api.Authentication,

@@ -49,7 +49,7 @@ intended for example app:
 Building and testing requires java installed. Then
 
 ```bash
-./sbt
+sbt
 ```
 
 downloads and runs sbt shell.
@@ -61,10 +61,10 @@ just dev-bg   # starts services in background
 just dev-up   # starts services in terminal (I suggest a separate tab/window)
 ```
 
-Then it is possible to run it tests:
+Then it is possible to run integration tests:
 
 ```bash
-sbt> it:test
+sbt> fullTest
 ```
 
 ```bash

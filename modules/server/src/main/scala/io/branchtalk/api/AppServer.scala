@@ -31,7 +31,10 @@ import org.http4s.server.Server
 import org.http4s.server.middleware.*
 import sttp.tapir.server.ServerEndpoint
 
+import java.util.concurrent.{ Executors, ThreadFactory }
+import java.util.concurrent.atomic.AtomicInteger
 import scala.annotation.nowarn
+import scala.concurrent.ExecutionContext
 
 final class AppServer[F[_]: Async: MDC](
   userServer:              UserServer[F],
@@ -51,7 +54,13 @@ final class AppServer[F[_]: Async: MDC](
 ) {
 
   private val corsConfig = CORS.policy
-    .pipe(if (apiConfig.http.corsAnyOrigin) _.withAllowOriginAll else identity)
+    .pipe { policy =>
+      if (apiConfig.http.corsAnyOrigin) policy.withAllowOriginAll
+      else if (apiConfig.http.corsAllowedOrigins.nonEmpty) {
+        val allowedSet = apiConfig.http.corsAllowedOrigins.map(_.toLowerCase(java.util.Locale.ROOT)).toSet
+        policy.withAllowOriginHostCi(origin => allowedSet.contains(origin.toString.toLowerCase(java.util.Locale.ROOT)))
+      } else policy
+    }
     .withAllowCredentials(apiConfig.http.corsAllowCredentials)
     .withMaxAge(apiConfig.http.corsMaxAge)
 
@@ -189,16 +198,33 @@ object AppServer {
 
       val logger = io.branchtalk.logging.Logger.getLogger[F]
 
-      Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
-        BlazeServerBuilder[F]
-          .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength,
-                            maxHeadersLen = apiConfig.http.maxHeaderLineLength
-          )
-          .bindHttp(port = appArguments.port, host = appArguments.host)
-          .withHttpApp(appServer.routes)
-          .resource
-          .flatTap { server =>
-            Resource.eval(logger.info(s"API server started at ${server.address.toString}"))
+      val httpPoolSize = Runtime.getRuntime.availableProcessors().max(2)
+      @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+      val httpThreadPool: Resource[F, ExecutionContext] = Resource.make {
+        Async[F].delay {
+          val counter = new AtomicInteger(0)
+          val factory: ThreadFactory = (r: Runnable) => {
+            val t = new Thread(r, s"http-pool-${counter.getAndIncrement()}")
+            t.setDaemon(true)
+            t
           }
+          ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(httpPoolSize, factory))
+        }
+      }(ec => Async[F].delay(ec.asInstanceOf[java.util.concurrent.ExecutorService].shutdown()))
+
+      Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
+        httpThreadPool.flatMap { httpEC =>
+          BlazeServerBuilder[F]
+            .withExecutionContext(httpEC)
+            .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength,
+                              maxHeadersLen = apiConfig.http.maxHeaderLineLength
+            )
+            .bindHttp(port = appArguments.port, host = appArguments.host)
+            .withHttpApp(appServer.routes)
+            .resource
+            .flatTap { server =>
+              Resource.eval(logger.info(s"API server started at ${server.address.toString}"))
+            }
+        }
     }
 }

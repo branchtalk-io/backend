@@ -22,20 +22,24 @@ object UserAPIs {
 
   val paginate: AuthedEndpoint[
     Authentication,
-    (Option[Pagination.Offset], Option[Pagination.Limit]),
+    (Option[Pagination.Offset], Option[Pagination.Limit], Option[String]),
     UserError,
     Pagination[APIUser],
     Any
   ] = endpoint
     .name("Fetch Users")
     .summary("Paginate Users by name")
-    .description("Returns paginated Users")
+    .description("Returns paginated Users, optionally filtered by username substring")
     .tags(List(UsersTags.domain, UsersTags.users))
     .get
     .securityIn(authHeader)
     .in(prefix)
     .in(query[Option[Pagination.Offset]]("offset"))
     .in(query[Option[Pagination.Limit]]("limit"))
+    .in(
+      query[Option[String]]("nameContains")
+        .description("Filter users whose username contains this string (case-insensitive)")
+    )
     .out(jsonBody[Pagination[APIUser]])
     .errorOut(errorMapping)
     .requiringPermissions(_ => RequiredPermissions.one(Permission.ModerateUsers))

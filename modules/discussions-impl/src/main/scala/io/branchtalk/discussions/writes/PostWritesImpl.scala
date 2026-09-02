@@ -10,8 +10,9 @@ import io.branchtalk.shared.model.*
 import io.scalaland.chimney.dsl.*
 
 final class PostWritesImpl[F[_]: Sync: MDC](
-  producer:   KafkaEventBus.Producer[F, DiscussionsCommandEvent],
-  transactor: Transactor[F]
+  producer:          KafkaEventBus.Producer[F, DiscussionsCommandEvent],
+  transactor:        Transactor[F],
+  urlTitleMaxLength: Int = 100
 )(using UUID.Generator)
     extends Writes[F, Post, DiscussionsCommandEvent](producer),
       PostWrites[F] {
@@ -19,8 +20,13 @@ final class PostWritesImpl[F[_]: Sync: MDC](
   private val channelCheck = new ParentCheck[Channel]("Channel", transactor)
   private val postCheck    = new EntityCheck("Post", transactor)
 
-  private def titleToUrlTitle(title: Post.Title): F[Post.UrlTitle] =
-    ParseNewtype[F].parse[Post.UrlTitle](NormalizeForUrl(title.unwrap))
+  private def titleToUrlTitle(title: Post.Title): F[Post.UrlTitle] = {
+    val normalized = NormalizeForUrl(title.unwrap)
+    val truncated  = if (normalized.length > urlTitleMaxLength) normalized.take(urlTitleMaxLength) else normalized
+    // Ensure non-empty after truncation (should always hold since urlTitleMaxLength >= 1)
+    val result = if (truncated.isEmpty) normalized.take(1) else truncated
+    ParseNewtype[F].parse[Post.UrlTitle](result)
+  }
 
   override def createPost(newPost: Post.Create): F[CreationScheduled[Post]] =
     for {
