@@ -22,7 +22,8 @@ jobs:
       - name: Start Docker images used in IT tests
         run: make dev-bg
       - name: Clean, check code formatting, compile, test
-        run: sbt clean scalafmtCheck fullTest
+        # sbt 2.x parses one command line: sequence multiple commands with ';' (space-separated no longer works)
+        run: sbt "clean; scalafmtCheckAll; fullTest"
       - name: Stop Docker images used in IT tests
         if: always()
         run: make dev-stop
