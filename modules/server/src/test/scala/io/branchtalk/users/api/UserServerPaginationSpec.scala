@@ -1,5 +1,6 @@
 package io.branchtalk.users.api
 
+import cats.effect.IO
 import io.branchtalk.api.{ Permission => _, RequiredPermissions => _, * }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.mappings.*
@@ -7,7 +8,7 @@ import io.branchtalk.shared.model.*
 import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.users.UsersFixtures
 import io.branchtalk.users.api.UserModels.*
-import io.branchtalk.users.model.{ Permission, RequiredPermissions, User }
+import io.branchtalk.users.model.{ Permission, RequiredPermissions, Session, User }
 import org.specs2.mutable.Specification
 import sttp.model.StatusCode
 
@@ -73,6 +74,44 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
             .getOrElse(pass)
         }
       }
+
+      "fail with NoPermission when called by a non-moderator" in {
+        for {
+          // given - create a regular user without ModerateUsers permission
+          (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+          // when - call paginate without moderator permissions
+          response <- UserAPIs.paginate.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            None,
+            None
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
+        }
+      }
+
+      "fail with BadCredentials when called with an invalid session" in {
+        for {
+          // given
+          fakeSessionID <- ID.create[IO, Session]
+          // when
+          response <- UserAPIs.paginate.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID)),
+            None,
+            None
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.BadCredentials]))
+        }
+      }
     }
 
     "on GET /users/newest" in {
@@ -131,6 +170,44 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
               (pagination1.entities.toSet ++ pagination2.entities.toSet) === users.map(APIUser.fromDomain).toSet
             }
             .getOrElse(pass)
+        }
+      }
+
+      "fail with NoPermission when called by a non-moderator" in {
+        for {
+          // given - create a regular user without ModerateUsers permission
+          (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+          // when - call newest without moderator permissions
+          response <- UserAPIs.newest.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            None,
+            None
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
+        }
+      }
+
+      "fail with BadCredentials when called with an invalid session" in {
+        for {
+          // given
+          fakeSessionID <- ID.create[IO, Session]
+          // when
+          response <- UserAPIs.newest.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID)),
+            None,
+            None
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.BadCredentials]))
         }
       }
     }
