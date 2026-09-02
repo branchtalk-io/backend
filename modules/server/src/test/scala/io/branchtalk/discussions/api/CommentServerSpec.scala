@@ -1,7 +1,7 @@
 package io.branchtalk.discussions.api
 
 import com.softwaremill.quicklens.*
-import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest }
+import io.branchtalk.api.{ Authentication, Pagination, ServerIOTest, SessionID }
 import io.branchtalk.discussions.DiscussionsFixtures
 import io.branchtalk.discussions.api.CommentModels.*
 import io.branchtalk.discussions.model.Comment
@@ -140,7 +140,15 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
             postID,
             creationData.transformInto[CreateCommentRequest]
           )
-          // TODO: check that this creates a new comment eventually!
+          createdCommentID = response.body.toValidOpt.flatMap(_.toOption).map(_.id)
+          _ <- createdCommentID.traverse(commentID =>
+            discussionsReads.commentReads
+              .requireById(commentID)
+              .assert("Created Comment should eventually appear on the read side")(
+                _.data.content eqv creationData.content
+              )
+              .eventually()
+          )
         } yield {
           // then
           response.code === StatusCode.Ok
@@ -409,6 +417,132 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
         } yield
         // then
         response.code === StatusCode.Ok
+      }
+    }
+
+    // Negative-path tests
+
+    "on POST /discussions/channels/{channelID}/posts/{postID}/comments with invalid session" in {
+
+      "return 401 Unauthorized for a non-existent session" in {
+        for {
+          // given
+          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          creationData <- commentCreate(postID)
+          fakeSessionID = SessionID(java.util.UUID.randomUUID())
+          // when
+          response <- CommentAPIs.create.toTestCall.untupled(
+            Authentication.Session(sessionID = fakeSessionID),
+            channelID,
+            postID,
+            creationData.transformInto[CreateCommentRequest]
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[CommentError.BadCredentials]))
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID}/posts/{postID}/comments/{commentID} by non-owner" in {
+
+      "return 401 when User is not the Comment's Author and has no moderator permission" in {
+        for {
+          // given
+          (CreationScheduled(ownerID), CreationScheduled(_)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(ownerID).eventually()
+          (CreationScheduled(otherUserID), CreationScheduled(otherSessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(otherUserID).eventually()
+          _ <- usersReads.sessionReads.requireById(otherSessionID).eventually()
+          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          CreationScheduled(commentID) <- commentCreate(postID)
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(ownerID))) // owned by ownerID
+            .flatMap(discussionsWrites.commentWrites.createComment)
+          _ <- discussionsReads.commentReads.requireById(commentID).eventually()
+          newContent = Comment.Content("unauthorized update")
+          // when
+          response <- CommentAPIs.update.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(otherSessionID)),
+            channelID,
+            postID,
+            commentID,
+            UpdateCommentRequest(
+              newContent = Updatable.Set(newContent)
+            )
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[CommentError.NoPermission]))
+        }
+      }
+    }
+
+    "on GET /discussions/channels/{channelID}/posts/{postID}/comments/{commentID} for non-existent Comment" in {
+
+      "return 404 Not Found" in {
+        for {
+          // given
+          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          fakeCommentID = ID[Comment](java.util.UUID.randomUUID())
+          // when
+          response <- CommentAPIs.read.toTestCall.untupled(None, channelID, postID, fakeCommentID)
+        } yield {
+          // then
+          response.code === StatusCode.NotFound
+          response.body must beValid(beLeft(beAnInstanceOf[CommentError.NotFound]))
+        }
+      }
+    }
+
+    "on DELETE /discussions/channels/{channelID}/posts/{postID}/comments/{commentID} by non-owner" in {
+
+      "return 401 when User is not the Comment's Author and has no moderator permission" in {
+        for {
+          // given
+          (CreationScheduled(ownerID), CreationScheduled(_)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(ownerID).eventually()
+          (CreationScheduled(otherUserID), CreationScheduled(otherSessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(otherUserID).eventually()
+          _ <- usersReads.sessionReads.requireById(otherSessionID).eventually()
+          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+          _ <- discussionsReads.postReads.requireById(postID).eventually()
+          CreationScheduled(commentID) <- commentCreate(postID)
+            .map(_.modify(_.authorID).setTo(userIDUsers2Discussions.get(ownerID))) // owned by ownerID
+            .flatMap(discussionsWrites.commentWrites.createComment)
+          _ <- discussionsReads.commentReads.requireById(commentID).eventually()
+          // when
+          response <- CommentAPIs.delete.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(otherSessionID)),
+            channelID,
+            postID,
+            commentID
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[CommentError.NoPermission]))
+        }
       }
     }
   }
