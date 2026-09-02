@@ -1,20 +1,15 @@
 // git
-addSbtPlugin("com.github.sbt" % "sbt-git" % "2.0.1")
+addSbtPlugin("com.github.sbt" % "sbt-git" % "2.1.0")
 // linters
-addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.4")
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.2")
 addSbtPlugin("org.wartremover" % "sbt-wartremover" % "3.6.1")
-addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.3.1")
-// cross-compile (JVM-only after Scala 3 migration; projectmatrix kept for module matrix)
-addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.11.0")
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.4.4")
+// project matrix is in-sourced into sbt 2.x (no sbt-projectmatrix plugin needed)
 // publishing
-addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "2.1.1")
-addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.9.11")
-// disabling projects in IDE
-addSbtPlugin("org.jetbrains" % "sbt-ide-settings" % "1.1.0")
-// running
-addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
+addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "2.5.0")
+addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.11.7")
+// disabling projects in IDE (groupId moved to org.jetbrains.scala for the sbt 2 build)
+addSbtPlugin("org.jetbrains.scala" % "sbt-ide-settings" % "1.1.4")
+// NOTE: io.spray:sbt-revolver has no sbt 2 build yet - dropped (dev-only convenience)
 
 libraryDependencies += "org.slf4j" % "slf4j-nop" % "1.7.25"
-dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "2.1.0"
-
-ThisBuild / libraryDependencySchemes += "org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always
