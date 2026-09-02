@@ -6,7 +6,7 @@ import cats.effect.{ Async, Resource }
 import fs2.compression.Compression
 import io.branchtalk.auth.{ AuthServices, AuthServicesImpl }
 import io.branchtalk.configs.{ APIConfig, APIPart, AppArguments, PaginationConfig }
-import io.branchtalk.discussions.api.{ ChannelServer, CommentServer, PostServer, SubscriptionServer }
+import io.branchtalk.discussions.api.{ ChannelServer, CommentServer, PostServer, SearchServer, SubscriptionServer }
 import io.branchtalk.discussions.reads.*
 import io.branchtalk.discussions.writes.*
 import io.branchtalk.logging.MDC
@@ -50,6 +50,7 @@ final class AppServer[F[_]: Async: MDC](
   postServer:              PostServer[F],
   commentServer:           CommentServer[F],
   subscriptionServer:      SubscriptionServer[F],
+  searchServer:            SearchServer[F],
   notificationServer:      NotificationServer[F],
   openAPIServer:           OpenAPIServer[F],
   metricsOps:              MetricsOps[F],
@@ -95,6 +96,7 @@ final class AppServer[F[_]: Async: MDC](
         postServer.routes,
         commentServer.routes,
         subscriptionServer.routes,
+        searchServer.routes,
         notificationServer.routes,
         openAPIServer.routes
       )
@@ -142,129 +144,133 @@ object AppServer {
         else Resource.pure(none)
 
       idempotencyRedis.flatMap { redisOpt =>
-      val idempotencyMiddleware: Option[HttpRoutes[F] => HttpRoutes[F]] =
-        redisOpt.map[HttpRoutes[F] => HttpRoutes[F]](redis =>
-          routes => IdempotencyMiddleware(redis, apiConfig.idempotency.ttl)(routes)
+        val idempotencyMiddleware: Option[HttpRoutes[F] => HttpRoutes[F]] =
+          redisOpt.map[HttpRoutes[F] => HttpRoutes[F]](redis =>
+            routes => IdempotencyMiddleware(redis, apiConfig.idempotency.ttl)(routes)
+          )
+
+        val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
+
+        val requestIDOps: RequestIDOps[F] = RequestIDOps[F]
+
+        val authServices: AuthServices[F] = AuthServicesImpl[F](userReads, sessionReads, banReads)
+
+        val userServer: UserServer[F] = UserServer[F](
+          authServices,
+          userReads,
+          sessionReads,
+          userWrites,
+          sessionWrites,
+          apiConfig.safePagination(APIPart.Users)
+        )
+        val userModerationServer: UserModerationServer[F] =
+          UserModerationServer[F](authServices, userReads, userWrites, apiConfig.safePagination(APIPart.Users))
+        val channelModerationServer: ChannelModerationServer[F] =
+          ChannelModerationServer[F](authServices, userReads, userWrites, apiConfig.safePagination(APIPart.Users))
+        val userBanServer:    UserBanServer[F]    = UserBanServer[F](authServices, banReads, banWrites)
+        val channelBanServer: ChannelBanServer[F] = ChannelBanServer[F](authServices, banReads, banWrites)
+        val channelServer: ChannelServer[F] =
+          ChannelServer[F](authServices, channelReads, channelWrites, apiConfig.safePagination(APIPart.Channels))
+        val postServer: PostServer[F] =
+          PostServer[F](authServices, postReads, postWrites, apiConfig.safePagination(APIPart.Posts))
+        val commentServer: CommentServer[F] = CommentServer[F](
+          authServices,
+          postReads,
+          commentReads,
+          commentWrites,
+          apiConfig.safePagination(APIPart.Comments)
+        )
+        val subscriptionServer: SubscriptionServer[F] = SubscriptionServer[F](
+          authServices,
+          postReads,
+          subscriptionReads,
+          subscriptionWrites,
+          apiConfig,
+          apiConfig.safePagination(APIPart.Posts)
+        )
+        val searchServer: SearchServer[F] =
+          SearchServer[F](authServices, postReads, apiConfig.safePagination(APIPart.Posts))
+        val notificationServer: NotificationServer[F] = NotificationServer[F](
+          authServices,
+          notificationReads,
+          notificationWrites,
+          apiConfig.safePagination(APIPart.Notifications)
+        )
+        val notificationWebSocket: NotificationWebSocket[F] = NotificationWebSocket[F](authServices, notificationTopic)
+        val openAPIServer: OpenAPIServer[F] = OpenAPIServer[F](
+          apiConfig.info,
+          NonEmptyList
+            .of(
+              userServer.endpoints,
+              userModerationServer.endpoints,
+              channelModerationServer.endpoints,
+              userBanServer.endpoints,
+              channelBanServer.endpoints,
+              channelServer.endpoints,
+              postServer.endpoints,
+              commentServer.endpoints,
+              subscriptionServer.endpoints,
+              searchServer.endpoints,
+              notificationServer.endpoints
+            )
+            .reduceK
         )
 
-      val correlationIDOps: CorrelationIDOps[F] = CorrelationIDOps[F]
+        val appServer = AppServer[F](
+          userServer,
+          userModerationServer,
+          channelModerationServer,
+          userBanServer,
+          channelBanServer,
+          channelServer,
+          postServer,
+          commentServer,
+          subscriptionServer,
+          searchServer,
+          notificationServer,
+          openAPIServer,
+          metricsOps,
+          correlationIDOps,
+          requestIDOps,
+          idempotencyMiddleware,
+          apiConfig
+        )
 
-      val requestIDOps: RequestIDOps[F] = RequestIDOps[F]
+        val logger = io.branchtalk.logging.Logger.getLogger[F]
 
-      val authServices: AuthServices[F] = AuthServicesImpl[F](userReads, sessionReads, banReads)
-
-      val userServer: UserServer[F] = UserServer[F](
-        authServices,
-        userReads,
-        sessionReads,
-        userWrites,
-        sessionWrites,
-        apiConfig.safePagination(APIPart.Users)
-      )
-      val userModerationServer: UserModerationServer[F] =
-        UserModerationServer[F](authServices, userReads, userWrites, apiConfig.safePagination(APIPart.Users))
-      val channelModerationServer: ChannelModerationServer[F] =
-        ChannelModerationServer[F](authServices, userReads, userWrites, apiConfig.safePagination(APIPart.Users))
-      val userBanServer:    UserBanServer[F]    = UserBanServer[F](authServices, banReads, banWrites)
-      val channelBanServer: ChannelBanServer[F] = ChannelBanServer[F](authServices, banReads, banWrites)
-      val channelServer: ChannelServer[F] =
-        ChannelServer[F](authServices, channelReads, channelWrites, apiConfig.safePagination(APIPart.Channels))
-      val postServer: PostServer[F] =
-        PostServer[F](authServices, postReads, postWrites, apiConfig.safePagination(APIPart.Posts))
-      val commentServer: CommentServer[F] = CommentServer[F](
-        authServices,
-        postReads,
-        commentReads,
-        commentWrites,
-        apiConfig.safePagination(APIPart.Comments)
-      )
-      val subscriptionServer: SubscriptionServer[F] = SubscriptionServer[F](
-        authServices,
-        postReads,
-        subscriptionReads,
-        subscriptionWrites,
-        apiConfig,
-        apiConfig.safePagination(APIPart.Posts)
-      )
-      val notificationServer: NotificationServer[F] = NotificationServer[F](
-        authServices,
-        notificationReads,
-        notificationWrites,
-        apiConfig.safePagination(APIPart.Notifications)
-      )
-      val notificationWebSocket: NotificationWebSocket[F] = NotificationWebSocket[F](authServices, notificationTopic)
-      val openAPIServer: OpenAPIServer[F] = OpenAPIServer[F](
-        apiConfig.info,
-        NonEmptyList
-          .of(
-            userServer.endpoints,
-            userModerationServer.endpoints,
-            channelModerationServer.endpoints,
-            userBanServer.endpoints,
-            channelBanServer.endpoints,
-            channelServer.endpoints,
-            postServer.endpoints,
-            commentServer.endpoints,
-            subscriptionServer.endpoints,
-            notificationServer.endpoints
-          )
-          .reduceK
-      )
-
-      val appServer = AppServer[F](
-        userServer,
-        userModerationServer,
-        channelModerationServer,
-        userBanServer,
-        channelBanServer,
-        channelServer,
-        postServer,
-        commentServer,
-        subscriptionServer,
-        notificationServer,
-        openAPIServer,
-        metricsOps,
-        correlationIDOps,
-        requestIDOps,
-        idempotencyMiddleware,
-        apiConfig
-      )
-
-      val logger = io.branchtalk.logging.Logger.getLogger[F]
-
-      val httpPoolSize = Runtime.getRuntime.availableProcessors().max(2)
-      @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-      val httpThreadPool: Resource[F, ExecutionContext] = Resource.make {
-        Async[F].delay {
-          val counter = new AtomicInteger(0)
-          val factory: ThreadFactory = (r: Runnable) => {
-            val t = new Thread(r, s"http-pool-${counter.getAndIncrement()}")
-            t.setDaemon(true)
-            t
+        val httpPoolSize = Runtime.getRuntime.availableProcessors().max(2)
+        @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
+        val httpThreadPool: Resource[F, ExecutionContext] = Resource.make {
+          Async[F].delay {
+            val counter = new AtomicInteger(0)
+            val factory: ThreadFactory = (r: Runnable) => {
+              val t = new Thread(r, s"http-pool-${counter.getAndIncrement()}")
+              t.setDaemon(true)
+              t
+            }
+            ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(httpPoolSize, factory))
           }
-          ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(httpPoolSize, factory))
-        }
-      }(ec => Async[F].delay(ec.asInstanceOf[java.util.concurrent.ExecutorService].shutdown()))
+        }(ec => Async[F].delay(ec.asInstanceOf[java.util.concurrent.ExecutorService].shutdown()))
 
-      Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
-        httpThreadPool.flatMap { httpEC =>
-          BlazeServerBuilder[F]
-            .withExecutionContext(httpEC)
-            .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength,
-                              maxHeadersLen = apiConfig.http.maxHeaderLineLength
-            )
-            .bindHttp(port = appArguments.port, host = appArguments.host)
-            .withHttpWebSocketApp { wsb =>
-              // websocket route is kept OUTSIDE the tapir/GZip/metrics pipeline; it falls through to the REST app
-              Kleisli { (req: Request[F]) =>
-                notificationWebSocket.routes(wsb).run(req).getOrElseF(appServer.routes.run(req))
+        Resource.make(logger.info("Starting up API server"))(_ => logger.info("API server shut down")) >>
+          httpThreadPool.flatMap { httpEC =>
+            BlazeServerBuilder[F]
+              .withExecutionContext(httpEC)
+              .withLengthLimits(maxRequestLineLen = apiConfig.http.maxRequestLineLength,
+                                maxHeadersLen = apiConfig.http.maxHeaderLineLength
+              )
+              .bindHttp(port = appArguments.port, host = appArguments.host)
+              .withHttpWebSocketApp { wsb =>
+                // websocket route is kept OUTSIDE the tapir/GZip/metrics pipeline; it falls through to the REST app
+                Kleisli { (req: Request[F]) =>
+                  notificationWebSocket.routes(wsb).run(req).getOrElseF(appServer.routes.run(req))
+                }
               }
-            }
-            .resource
-            .flatTap { server =>
-              Resource.eval(logger.info(s"API server started at ${server.address.toString}"))
-            }
-        }
+              .resource
+              .flatTap { server =>
+                Resource.eval(logger.info(s"API server started at ${server.address.toString}"))
+              }
+          }
       } // idempotencyRedis.flatMap
     }
 }

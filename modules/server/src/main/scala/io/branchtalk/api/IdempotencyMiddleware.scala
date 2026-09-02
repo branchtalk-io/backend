@@ -51,9 +51,9 @@ object IdempotencyMiddleware {
       val code    = raw.substring(0, idx).toIntOption
       val bodyB64 = raw.substring(idx + EntrySeparator.length)
       for {
-        c      <- code
+        c <- code
         status <- Status.fromInt(c).toOption
-        body    = Base64.getDecoder.decode(bodyB64)
+        body = Base64.getDecoder.decode(bodyB64)
       } yield (status, body)
     }
   }
@@ -94,35 +94,42 @@ object IdempotencyMiddleware {
             val cacheKey  = s"idempotency:$requestId"
 
             // If Redis is unreachable, fall through to the normal route rather than failing the request.
-            OptionT(redis.get(cacheKey).flatMap {
-              case Some(raw) =>
-                // Cache hit: decode and replay.
-                decodeEntry(raw) match {
-                  case Some((status, body)) =>
-                    Response[F](
-                      status = status,
-                      body = fs2.Stream.chunk(fs2.Chunk.array(body)),
-                      headers = Headers(Header.Raw(replayedHeader, "true"))
-                    ).some.pure[F]
+            OptionT(
+              redis
+                .get(cacheKey)
+                .flatMap {
+                  case Some(raw) =>
+                    // Cache hit: decode and replay.
+                    decodeEntry(raw) match {
+                      case Some((status, body)) =>
+                        Response[F](
+                          status = status,
+                          body = fs2.Stream.chunk(fs2.Chunk.array(body)),
+                          headers = Headers(Header.Raw(replayedHeader, "true"))
+                        ).some.pure[F]
+                      case None =>
+                        // Corrupted cache entry: fall through to execute the route normally.
+                        routes(req).value
+                    }
                   case None =>
-                    // Corrupted cache entry: fall through to execute the route normally.
-                    routes(req).value
+                    // Cache miss: run the route, buffer the body, store the response.
+                    routes(req).semiflatMap { response =>
+                      response.body.compile.toVector.map(_.toArray).flatMap { bodyBytes =>
+                        val encoded = encodeEntry(response.status, bodyBytes)
+                        // Best-effort cache store: if it fails, still return the response.
+                        redis
+                          .setEx(cacheKey, encoded, ttl)
+                          .handleErrorWith(e => logger.warn(e)(s"Failed to cache idempotency response for $requestId"))
+                          .as(response.copy(body = fs2.Stream.chunk(fs2.Chunk.array(bodyBytes))))
+                      }
+                    }.value
                 }
-              case None =>
-                // Cache miss: run the route, buffer the body, store the response.
-                routes(req).semiflatMap { response =>
-                  response.body.compile.toVector.map(_.toArray).flatMap { bodyBytes =>
-                    val encoded = encodeEntry(response.status, bodyBytes)
-                    // Best-effort cache store: if it fails, still return the response.
-                    redis.setEx(cacheKey, encoded, ttl)
-                      .handleErrorWith(e => logger.warn(e)(s"Failed to cache idempotency response for $requestId"))
-                      .as(response.copy(body = fs2.Stream.chunk(fs2.Chunk.array(bodyBytes))))
-                  }
-                }.value
-            }.handleErrorWith { e =>
-              logger.warn(e)(s"Idempotency cache lookup failed for $requestId, proceeding without cache")
-                .flatMap(_ => routes(req).value)
-            })
+                .handleErrorWith { e =>
+                  logger
+                    .warn(e)(s"Idempotency cache lookup failed for $requestId, proceeding without cache")
+                    .flatMap(_ => routes(req).value)
+                }
+            )
         }
       }
     }
