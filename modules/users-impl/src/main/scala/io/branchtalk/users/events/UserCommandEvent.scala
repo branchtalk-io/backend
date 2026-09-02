@@ -115,4 +115,48 @@ object UserCommandEvent {
     deletedAt:     ModificationTime,
     correlationID: CorrelationID
   ) extends UserCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
+
+  final case class RequestEmailUpdate(
+    id:            ID[User],
+    newEmail:      SensitiveData[User.Email],
+    token:         User.EmailConfirmationToken,
+    modifiedAt:    ModificationTime,
+    correlationID: CorrelationID
+  ) derives FastEq,
+        ShowPretty {
+
+    def encrypt(
+      algorithm: SensitiveData.Algorithm,
+      key:       SensitiveData.Key
+    ): RequestEmailUpdateEncrypted = this
+      .into[RequestEmailUpdateEncrypted]
+      .withFieldComputed(_.newEmail, _.newEmail.encrypt(algorithm, key))
+      .transform
+  }
+
+  final case class RequestEmailUpdateEncrypted(
+    id:            ID[User],
+    newEmail:      SensitiveData.Encrypted[User.Email],
+    token:         User.EmailConfirmationToken,
+    modifiedAt:    ModificationTime,
+    correlationID: CorrelationID
+  ) extends UserCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty {
+
+    def decrypt(
+      algorithm: SensitiveData.Algorithm,
+      key:       SensitiveData.Key
+    ): DeserializationResult[RequestEmailUpdate] = this
+      .intoPartial[RequestEmailUpdate]
+      .withFieldComputedPartial(_.newEmail, _.newEmail.decrypt(algorithm, key).asResult)
+      .transform
+      .asEither
+      .leftMap(e => DeserializationError.DecryptionError(this.show, e.asErrorPathMessageStrings.toMap))
+  }
+
+  final case class ConfirmEmail(
+    id:            ID[User],
+    token:         User.EmailConfirmationToken,
+    modifiedAt:    ModificationTime,
+    correlationID: CorrelationID
+  ) extends UserCommandEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 }

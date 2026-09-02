@@ -80,7 +80,8 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               username = creationData.username,
               description = creationData.description,
               password = password
-            )
+            ),
+            Some("test-agent/1.0")
           )
           possibleResult = response.body.toOption.flatMap(_.toOption)
           user <- possibleResult.map(_.userID).traverse(usersReads.userReads.requireById).eventually()
@@ -110,14 +111,16 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           user <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
           // when
-          sessionResponse <- UserAPIs.signIn.toTestCall(
-            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID))
+          sessionResponse <- UserAPIs.signIn.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            Some("test-agent/1.0")
           )
-          credentialsResponse <- UserAPIs.signIn.toTestCall(
+          credentialsResponse <- UserAPIs.signIn.toTestCall.untupled(
             Authentication.Credentials(
               username = usernameApi2Users.reverseGet(user.data.username),
               password = passwordApi2Users.reverseGet(password)
-            )
+            ),
+            Some("test-agent/1.0")
           )
         } yield {
           // then
@@ -245,6 +248,34 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           // then
           response.code === StatusCode.Ok
           response.body must beValid(beRight(be_==(DeleteUserResponse(userID))))
+        }
+      }
+    }
+
+    "on DELETE /users/sessions/{sessionID}" in {
+
+      "delete own session (remote sign-out)" in {
+        for {
+          // given
+          (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+          // create a second session to delete
+          secondSession <- sessionCreate(userID).flatMap(usersWrites.sessionWrites.createSession)
+          _ <- usersReads.sessionReads.requireById(secondSession.id).eventually()
+          // when
+          response <- UserAPIs.deleteSession.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            secondSession.id
+          )
+          deletedSession <- usersReads.sessionReads.requireById(secondSession.id).attempt
+        } yield {
+          // then
+          response.code === StatusCode.Ok
+          response.body must beValid(beRight(be_==(DeleteSessionResponse(secondSession.id))))
+          deletedSession must beLeft[Throwable]
         }
       }
     }

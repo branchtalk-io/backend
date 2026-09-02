@@ -27,7 +27,9 @@ trait UsersFixtures {
     (
       userID.pure[IO],
       (Session.Usage.UserSession: Session.Usage).pure[IO],
-      Session.ExpirationTime.now[IO]
+      Session.ExpirationTime.now[IO],
+      none[Session.IpAddress].pure[IO],
+      none[Session.UserAgent].pure[IO]
     ).mapN(Session.Create.apply)
 
   def banCreate(userID: ID[User], channelID: ID[Channel]): IO[Ban] =

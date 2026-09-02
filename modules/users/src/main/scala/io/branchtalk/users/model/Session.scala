@@ -19,14 +19,18 @@ object Session {
   final case class Data(
     userID:    ID[User],
     usage:     Session.Usage,
-    expiresAt: Session.ExpirationTime
+    expiresAt: Session.ExpirationTime,
+    ipAddress: Option[Session.IpAddress],
+    userAgent: Option[Session.UserAgent]
   ) derives FastEq,
         ShowPretty
 
   final case class Create(
     userID:    ID[User],
     usage:     Session.Usage,
-    expiresAt: Session.ExpirationTime
+    expiresAt: Session.ExpirationTime,
+    ipAddress: Option[Session.IpAddress],
+    userAgent: Option[Session.UserAgent]
   ) derives FastEq,
         ShowPretty
 
@@ -34,6 +38,22 @@ object Session {
     id: ID[Session]
   ) derives FastEq,
         ShowPretty
+
+  type IpAddress = IpAddress.Type
+  object IpAddress extends Newtype[String] {
+    def unapply(ipAddress: IpAddress): Some[String] = Some(ipAddress.unwrap)
+
+    given Show[IpAddress]  = unsafeMakeF[Show](Show[String])
+    given Order[IpAddress] = unsafeMakeF[Order](Order[String])
+  }
+
+  type UserAgent = UserAgent.Type
+  object UserAgent extends Newtype[String] {
+    def unapply(userAgent: UserAgent): Some[String] = Some(userAgent.unwrap)
+
+    given Show[UserAgent]  = unsafeMakeF[Show](Show[String])
+    given Order[UserAgent] = unsafeMakeF[Order](Order[String])
+  }
 
   type ExpirationTime = ExpirationTime.Type
   object ExpirationTime extends Newtype[OffsetDateTime] {

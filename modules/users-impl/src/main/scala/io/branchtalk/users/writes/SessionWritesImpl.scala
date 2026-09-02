@@ -34,14 +34,18 @@ final class SessionWritesImpl[F[_]: Sync: MDC](
                 |  user_id,
                 |  usage_type,
                 |  permissions,
-                |  expires_at
+                |  expires_at,
+                |  ip_address,
+                |  user_agent
                 |)
                 |VALUES (
                 |  ${sessionDao.id},
                 |  ${sessionDao.userID},
                 |  ${sessionDao.usageType},
                 |  ${sessionDao.usagePermissions},
-                |  ${sessionDao.expiresAt}
+                |  ${sessionDao.expiresAt},
+                |  ${sessionDao.ipAddress},
+                |  ${sessionDao.userAgent}
                 |)""".stripMargin.updateWithLabel(show"Create Users' Session ID=$id").run.transact(transactor)
       event = session.data
         .into[SessionEvent.LoggedIn]

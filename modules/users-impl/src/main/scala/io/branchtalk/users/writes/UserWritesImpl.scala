@@ -134,4 +134,46 @@ final class UserWritesImpl[F[_]: Sync: MDC](
         .transform
       _ <- postEvent(id, UsersCommandEvent.ForUser(command))
     } yield DeletionScheduled(id)
+
+  override def requestEmailUpdate(
+    request: User.RequestEmailUpdate
+  ): F[(UpdateScheduled[User], User.EmailConfirmationToken)] =
+    for {
+      correlationID <- CorrelationID.getCurrentOrGenerate[F]
+      id = request.id
+      _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = $id""")
+      (algorithm, key) <-
+        sql"""SELECT enc_algorithm, key_value FROM sensitive_data_keys WHERE user_id = $id"""
+          .queryWithLabel[(SensitiveData.Algorithm, SensitiveData.Key)](
+            show"Get encryption keys for Users' User ID=$id"
+          )
+          .unique
+          .transact(transactor)
+      now <- ModificationTime.now[F]
+      token <- Sync[F].delay(java.util.UUID.randomUUID().toString)
+        .flatMap(ParseNewtype[F].parse[User.EmailConfirmationToken](_))
+      command = UserCommandEvent.RequestEmailUpdate(
+        id = id,
+        newEmail = SensitiveData(request.newEmail),
+        token = token,
+        modifiedAt = now,
+        correlationID = correlationID
+      ).encrypt(algorithm, key)
+      _ <- postEvent(id, UsersCommandEvent.ForUser(command))
+    } yield (UpdateScheduled(id), token)
+
+  override def confirmEmail(confirm: User.ConfirmEmail): F[UpdateScheduled[User]] =
+    for {
+      correlationID <- CorrelationID.getCurrentOrGenerate[F]
+      id = confirm.id
+      _ <- userCheck(id, sql"""SELECT 1 FROM users WHERE id = $id""")
+      now <- ModificationTime.now[F]
+      command = UserCommandEvent.ConfirmEmail(
+        id = id,
+        token = confirm.token,
+        modifiedAt = now,
+        correlationID = correlationID
+      )
+      _ <- postEvent(id, UsersCommandEvent.ForUser(command))
+    } yield UpdateScheduled(id)
 }
