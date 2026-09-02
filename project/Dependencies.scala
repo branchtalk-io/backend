@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
 
   // scala version
-  val scalaVersion = "3.8.4"
+  val scalaVersion = "3.9.0"
 
   // libraries versions
   val catsVersion       = "2.13.0" // https://github.com/typelevel/cats/releases
