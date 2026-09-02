@@ -131,7 +131,11 @@ val tests = Seq(
 ) ++ scalafmtConfigSettings(Test)
 
 val integrationTests = tests ++ Seq(
-  Test / fork := true
+  Test / fork := true,
+  // Integration tests each open Hikari pools against the one shared Postgres; sbt 2.x runs test classes in a forked JVM
+  // more concurrently than sbt 1.x, exhausting Postgres connection slots. Run them sequentially.
+  Test / parallelExecution := false,
+  Test / testForkedParallel := false
 )
 
 def customPredef(imports: String*): Def.Setting[Task[Seq[String]]] =
