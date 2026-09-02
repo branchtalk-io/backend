@@ -16,6 +16,11 @@ Global / excludeLintKeys ++= Set(
 // (name/version/sourceDirectory/executableScriptName/...) sbt 2 then reports as unused on load.
 Global / lintUnusedKeysOnLoad := false
 
+// The integration tests share one Postgres/Kafka/Redis instance; sbt 2.x parallelises test tasks across modules more
+// aggressively than sbt 1.x, which overloads the shared DB (connection exhaustion -> flyway/health-check failures).
+// Run at most one test task at a time.
+Global / concurrentRestrictions += Tags.limit(Tags.Test, 1)
+
 // Common settings:
 
 val settings = Seq(
