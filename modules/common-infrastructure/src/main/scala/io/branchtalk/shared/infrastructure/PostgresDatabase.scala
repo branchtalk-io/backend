@@ -4,9 +4,9 @@ import cats.Show
 import cats.effect.{ Async, Resource, Sync }
 import com.zaxxer.hikari.metrics.{ IMetricsTracker, MetricsTrackerFactory, PoolStats }
 import com.zaxxer.hikari.metrics.prometheus.PrometheusHistogramMetricsTrackerFactory
-import doobie.*
-import doobie.implicits.*
-import doobie.hikari.HikariTransactor
+import org.typelevel.doobie.*
+import org.typelevel.doobie.implicits.*
+import org.typelevel.doobie.hikari.HikariTransactor
 import io.branchtalk.logging.Logger
 import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
 import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
@@ -32,7 +32,7 @@ final class PostgresDatabase(config: PostgresDatabase.Config) {
 
   def transactor[F[_]: Async](logger: Logger[F], registry: CollectorRegistry): Resource[F, HikariTransactor[F]] =
     for {
-      connectEC <- doobie.util.ExecutionContexts.fixedThreadPool[F](config.connectionPool.unwrap)
+      connectEC <- org.typelevel.doobie.util.ExecutionContexts.fixedThreadPool[F](config.connectionPool.unwrap)
       xa <- HikariTransactor.initial[F](connectEC, logHandler = Some(doobieLogger(logger)))
       _ <- Resource.eval {
         xa.configure { ds =>

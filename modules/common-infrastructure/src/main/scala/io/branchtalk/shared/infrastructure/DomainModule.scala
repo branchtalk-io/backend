@@ -4,7 +4,7 @@ import cats.Show
 import cats.effect.std.Dispatcher
 import cats.effect.{ Async, Resource }
 import hearth.kindlings.avroderivation.{ AvroDecoder, AvroEncoder }
-import doobie.util.transactor.Transactor
+import org.typelevel.doobie.util.transactor.Transactor
 import io.branchtalk.logging.Logger
 import io.branchtalk.shared.infrastructure.KafkaSerialization.{ *, given }
 import io.branchtalk.shared.infrastructure.PureconfigSupport.{ *, given }
