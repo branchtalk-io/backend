@@ -468,6 +468,7 @@ val server = project
       Dependencies.kindlingsSconfig,
       Dependencies.kindlingsTapirOpenAPI,
       Dependencies.sttpCats % Test,
+      Dependencies.jakartaMail,
       Dependencies.http4sBlaze,
       Dependencies.http4sPrometheus,
       Dependencies.tapirHttp4s,

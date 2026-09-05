@@ -11,6 +11,7 @@ import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CodePosition, CommonError, ID }
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Password, Session, User }
+import io.branchtalk.users.EmailService
 import io.branchtalk.users.reads.{ SessionReads, UserReads }
 import io.branchtalk.users.writes.{ SessionWrites, UserWrites }
 import io.scalaland.chimney.dsl.*
@@ -24,6 +25,7 @@ final class UserServer[F[_]: Async](
   sessionReads:     SessionReads[F],
   userWrites:       UserWrites[F],
   sessionWrites:    SessionWrites[F],
+  emailService:     EmailService[F],
   paginationConfig: PaginationConfig
 ) {
 
@@ -170,9 +172,7 @@ final class UserServer[F[_]: Async](
     .withUser { case (_, (userID, request)) =>
       for {
         (_, token) <- userWrites.requestEmailUpdate(User.RequestEmailUpdate(userID, request.newEmail))
-        _ = logger.info(
-          s"Email confirmation requested for User=${userID.show} to ${request.newEmail.show} — token included in response (no email service configured)"
-        )
+        _ <- emailService.sendEmailConfirmation(request.newEmail, token)
       } yield RequestEmailUpdateResponse(id = userID, token = token)
     }
 

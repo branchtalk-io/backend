@@ -6,7 +6,9 @@ import cats.effect.implicits.*
 import cats.effect.std.Dispatcher
 import org.ekrich.config.ConfigFactory
 import io.branchtalk.api.AppServer
-import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
+import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration, EmailConfig }
+import io.branchtalk.users.EmailService
+import io.branchtalk.users.email.EmailServiceFactory
 import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.logging.*
@@ -42,23 +44,29 @@ object Program {
     }
 
   def resolveConfigs[F[_]: Sync: Logger]: F[
-    (APIConfig, DomainModule.Config, DomainModule.Config, DomainModule.Config)
+    (APIConfig, EmailConfig, DomainModule.Config, DomainModule.Config, DomainModule.Config)
   ] =
     for {
       apiConfig <- Configuration.readConfig[F, APIConfig]("api")
       _ <- Logger[F].info(show"App configs resolved to: ${apiConfig}")
+      emailConfig <- Configuration.readConfig[F, EmailConfig]("email")
+      _ <- Logger[F].info(show"Email config resolved to: ${emailConfig}")
       usersConfig <- Configuration.readConfig[F, DomainModule.Config]("users")
       _ <- Logger[F].info(show"Users configs resolved to: ${usersConfig}")
       discussionsConfig <- Configuration.readConfig[F, DomainModule.Config]("discussions")
       _ <- Logger[F].info(show"Discussions configs resolved to: ${discussionsConfig}")
       notificationsConfig <- Configuration.readConfig[F, DomainModule.Config]("notifications")
       _ <- Logger[F].info(show"Notifications configs resolved to: ${notificationsConfig}")
-    } yield (apiConfig, usersConfig, discussionsConfig, notificationsConfig)
+    } yield (apiConfig, emailConfig, usersConfig, discussionsConfig, notificationsConfig)
 
   def initializeAndRunModules[F[_]: Async: MDC: Logger](appArguments: AppArguments): F[Unit] = {
     for {
       given Dispatcher[F] <- Dispatcher.parallel[F]
-      (apiConfig, usersConfig, discussionsConfig, notificationsConfig) <- Resource.eval(resolveConfigs[F])
+      (apiConfig, emailConfig, usersConfig, discussionsConfig, notificationsConfig) <- Resource.eval(
+        resolveConfigs[F]
+      )
+      logger <- Resource.eval(Logger.create[F])
+      emailService = EmailServiceFactory.fromConfig[F](emailConfig, logger)
       registry <- Prometheus.collectorRegistry[F]
       notificationTopic <- NotificationTopic.create[F]
       modules <- Resource.make(Logger[F].info("Initializing services"))(_ => Logger[F].info("Services shut down")) >>
@@ -71,12 +79,13 @@ object Program {
           NotificationsModule.reads[F](notificationsConfig, registry),
           NotificationsModule.writes[F](notificationsConfig, discussionsConfig, registry, notificationTopic)
         ).tupled
-    } yield (apiConfig, usersConfig, notificationsConfig, notificationTopic, modules)
-  }.use { case (apiConfig, usersConfig, notificationsConfig, notificationTopic, modules) =>
+    } yield (apiConfig, emailService, usersConfig, notificationsConfig, notificationTopic, modules)
+  }.use { case (apiConfig, emailService, usersConfig, notificationsConfig, notificationTopic, modules) =>
     val run =
       runModules[F](
         appArguments,
         apiConfig,
+        emailService,
         awaitTerminationSignal[F],
         UsersModule.listenToUsers[F](usersConfig),
         NotificationsModule.listenToDiscussions[F](notificationsConfig),
@@ -88,6 +97,7 @@ object Program {
   def runModules[F[_]: Async: MDC: Logger](
     appArguments:      AppArguments,
     apiConfig:         APIConfig,
+    emailService:      EmailService[F],
     terminationSignal: F[Unit],
     makeUsersDiscussionsConsumer: (
       ConsumerStream.Factory[F, DiscussionEvent],
@@ -129,7 +139,8 @@ object Program {
           subscriptionWrites = discussionsWrites.subscriptionWrites,
           notificationReads = notificationsReads.notificationReads,
           notificationWrites = notificationsWrites.notificationWrites,
-          notificationTopic = notificationTopic
+          notificationTopic = notificationTopic,
+          emailService = emailService
         )
         .void
         .conditionally("API server", appArguments.runAPI),

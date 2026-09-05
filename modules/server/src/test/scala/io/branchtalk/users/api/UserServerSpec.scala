@@ -529,5 +529,31 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
         }
       }
     }
+
+    "on POST /users/{userID}/email" in {
+
+      "request email update and dispatch via email service" in {
+        for {
+          // given
+          (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          newEmail <- IO.pure(User.Email.unsafeMake(s"new-${java.util.UUID.randomUUID()}@test.branchtalk.io"))
+          // when
+          response <- UserAPIs.requestEmailUpdate.toTestCall(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            (userID, RequestEmailUpdateRequest(newEmail))
+          )
+          sentEmails <- testEmailService.sentEmails
+        } yield {
+          // then
+          response.code === StatusCode.Ok
+          response.body must beValid(beRight(beAnInstanceOf[RequestEmailUpdateResponse]))
+          sentEmails.size === 1
+          sentEmails.head.to === newEmail
+        }
+      }
+    }
   }
 }
