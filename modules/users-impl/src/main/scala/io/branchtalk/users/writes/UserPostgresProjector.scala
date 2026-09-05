@@ -228,7 +228,9 @@ final class UserPostgresProjector[F[_]: Sync: MDC](transactor: Transactor[F])
             Sync[ConnectionIO].delay(
               logger.warn(show"Email confirmation ignored for User ID=${event.id}: token mismatch or no pending email")
             )
-        }.as((event.id.unwrap -> event).some).transact(transactor)
+        }
+        .as((event.id.unwrap -> event).some)
+        .transact(transactor)
     }
 
   private def findKeys(userID: ID[User]): ConnectionIO[Option[(SensitiveData.Algorithm, SensitiveData.Key)]] =
