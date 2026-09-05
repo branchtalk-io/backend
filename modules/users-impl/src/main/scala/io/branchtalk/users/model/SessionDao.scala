@@ -8,7 +8,9 @@ final case class SessionDao(
   userID:           ID[User],
   usageType:        Session.Usage.Type,
   usagePermissions: Permissions,
-  expiresAt:        Session.ExpirationTime
+  expiresAt:        Session.ExpirationTime,
+  ipAddress:        Option[Session.IpAddress],
+  userAgent:        Option[Session.UserAgent]
 ) {
 
   def toDomain: Session = Session(

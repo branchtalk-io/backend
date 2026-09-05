@@ -9,7 +9,7 @@ import io.branchtalk.users.model.*
 import org.postgresql.util.PGobject
 
 import java.time.OffsetDateTime
-import scala.collection.compat.immutable.ArraySeq
+import scala.collection.immutable.ArraySeq
 
 object DoobieExtensions {
 
@@ -51,6 +51,21 @@ object DoobieExtensions {
 
   given sessionExpirationTime: Meta[Session.ExpirationTime] =
     Session.ExpirationTime.unsafeMakeF(Meta.apply[OffsetDateTime])
+
+  given sessionIpAddressMeta: Meta[Session.IpAddress] =
+    Session.IpAddress.unsafeMakeF(Meta.apply[String])
+
+  given sessionUserAgentMeta: Meta[Session.UserAgent] =
+    Session.UserAgent.unsafeMakeF(Meta.apply[String])
+
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  given emailStatusMeta: Meta[User.EmailStatus] =
+    Meta[String].timap[User.EmailStatus] { name =>
+      User.EmailStatus.valueOf(name)
+    }(_.toString)
+
+  given emailConfirmationTokenMeta: Meta[User.EmailConfirmationToken] =
+    User.EmailConfirmationToken.unsafeMakeF(Meta.apply[String])
 
   @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   given sensitiveDataAlgorithmTypeMeta: Meta[SensitiveData.Algorithm] =

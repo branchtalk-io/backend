@@ -23,9 +23,29 @@
     </encoder>
   </appender>
 
+  <!--
+    Opt-in: ship logs directly to Logstash/Elasticsearch via TCP.
+    Requires adding the logstash-logback-encoder dependency to branchtalk.sbt:
+      "net.logstash.logback" % "logstash-logback-encoder" % "8.0"
+    Then uncomment the appender below and add <appender-ref ref="LOGSTASH"/> to <root>.
+
+    Alternative (no extra dependency): use the Filebeat sidecar provided in
+    docker-compose/monolith-monitoring.yml — it reads the application container's
+    JSON stdout and ships to Elasticsearch automatically.
+  -->
+  <!--
+  <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+    <destination>${LOGSTASH_HOST:-localhost}:${LOGSTASH_PORT:-5044}</destination>
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+      <customFields>{"service":"branchtalk","context":"${BRANCHTALK_CONTEXT_NAME}"}</customFields>
+    </encoder>
+  </appender>
+  -->
+
   <property name="DEFAULT_LOG_LEVEL" value="${DEFAULT_LOG_LEVEL:-INFO}"/>
   <root level="${DEFAULT_LOG_LEVEL}">
     <appender-ref ref="STDOUT"/>
+    <!-- <appender-ref ref="LOGSTASH"/> -->
   </root>
 
   <!-- control Branchtalk logs -->

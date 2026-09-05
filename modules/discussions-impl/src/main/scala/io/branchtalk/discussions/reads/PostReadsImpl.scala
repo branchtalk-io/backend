@@ -1,6 +1,6 @@
 package io.branchtalk.discussions.reads
 
-import cats.data.NonEmptySet
+import cats.data.{ NonEmptyList, NonEmptySet }
 import cats.effect.Sync
 import io.branchtalk.discussions.infrastructure.DoobieExtensions.{ *, given }
 import io.branchtalk.discussions.model.{ Channel, Post, PostDao }
@@ -68,4 +68,22 @@ final class PostReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends PostRea
       .map(_.toDomain)
       .failNotFound("Post", id)
       .transact(transactor)
+
+  override def search(
+    query:     String,
+    channelID: Option[ID[Channel]],
+    offset:    Paginated.Offset,
+    limit:     Paginated.Limit
+  ): F[Paginated[Post]] = {
+    val requiredFilters = NonEmptyList.of(
+      fr"search_vector @@ plainto_tsquery('english', $query)",
+      fr"deleted = FALSE"
+    )
+    val filters = channelID.fold(requiredFilters)(cid => requiredFilters :+ fr"channel_id = $cid")
+    (commonSelect ++ Fragments.whereAnd(filters)
+      ++ fr"ORDER BY ts_rank(search_vector, plainto_tsquery('english', $query)) DESC")
+      .paginate[PostDao](offset, limit, show"Search Discussions' Posts for query from $offset taking $limit")
+      .map(_.map(_.toDomain))
+      .transact(transactor)
+  }
 }

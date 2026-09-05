@@ -40,7 +40,9 @@ object UserModels {
     id:          ID[Session],
     userID:      ID[User],
     sessionType: APISession.SessionType,
-    expiresAt:   Session.ExpirationTime
+    expiresAt:   Session.ExpirationTime,
+    ipAddress:   Option[Session.IpAddress],
+    userAgent:   Option[Session.UserAgent]
   ) derives DefaultJsCodec,
         JsSchema
   object APISession {
@@ -127,4 +129,31 @@ object UserModels {
 
   final case class BanLiftRequest(id: ID[User]) derives DefaultJsCodec, JsSchema
   final case class BanLiftResponse(id: ID[User]) derives DefaultJsCodec, JsSchema
+
+  final case class DeleteSessionResponse(
+    sessionID: ID[Session]
+  ) derives DefaultJsCodec,
+        JsSchema
+
+  // Issue #8 - Email confirmation lifecycle
+  final case class RequestEmailUpdateRequest(
+    newEmail: User.Email
+  ) derives DefaultJsCodec,
+        JsSchema
+
+  final case class RequestEmailUpdateResponse(
+    id:    ID[User],
+    token: User.EmailConfirmationToken
+  ) derives DefaultJsCodec,
+        JsSchema
+
+  final case class ConfirmEmailRequest(
+    token: User.EmailConfirmationToken
+  ) derives DefaultJsCodec,
+        JsSchema
+
+  final case class ConfirmEmailResponse(
+    id: ID[User]
+  ) derives DefaultJsCodec,
+        JsSchema
 }

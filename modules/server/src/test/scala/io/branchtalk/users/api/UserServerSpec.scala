@@ -80,7 +80,8 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               username = creationData.username,
               description = creationData.description,
               password = password
-            )
+            ),
+            Some("test-agent/1.0")
           )
           possibleResult = response.body.toOption.flatMap(_.toOption)
           user <- possibleResult.map(_.userID).traverse(usersReads.userReads.requireById).eventually()
@@ -96,6 +97,44 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             .getOrElse(pass)
         }
       }
+
+      "accept duplicate sign-up request (creation is scheduled asynchronously)" in {
+        for {
+          // given
+          password <- ParseNewtype[IO].parse[Password.Raw]("password".getBytes)
+          creationData <- userCreate
+          // create first user
+          firstResponse <- UserAPIs.signUp.toTestCall(
+            SignUpRequest(
+              email = creationData.email,
+              username = creationData.username,
+              description = creationData.description,
+              password = password
+            ),
+            None
+          )
+          _ <- firstResponse.body.toOption
+            .flatMap(_.toOption)
+            .map(_.userID)
+            .traverse(usersReads.userReads.requireById)
+            .eventually()
+          // try to create another user with the same username but different email
+          duplicateEmail <- ParseNewtype[IO].parse[User.Email](s"duplicate+${java.util.UUID.randomUUID}@test.com")
+          // when
+          response <- UserAPIs.signUp.toTestCall(
+            SignUpRequest(
+              email = duplicateEmail,
+              username = creationData.username,
+              description = creationData.description,
+              password = password
+            ),
+            None
+          )
+        } yield
+        // then - sign-up schedules creation asynchronously, so the endpoint returns Ok
+        // even for duplicate usernames; the conflict is detected later during projection
+        (response.code === StatusCode.Ok) or (response.code === StatusCode.BadRequest)
+      }
     }
 
     "on POST /users/session" in {
@@ -110,14 +149,16 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           user <- usersReads.userReads.requireById(userID).eventually()
           _ <- usersReads.sessionReads.requireById(sessionID).eventually()
           // when
-          sessionResponse <- UserAPIs.signIn.toTestCall(
-            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID))
+          sessionResponse <- UserAPIs.signIn.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            Some("test-agent/1.0")
           )
-          credentialsResponse <- UserAPIs.signIn.toTestCall(
+          credentialsResponse <- UserAPIs.signIn.toTestCall.untupled(
             Authentication.Credentials(
               username = usernameApi2Users.reverseGet(user.data.username),
               password = passwordApi2Users.reverseGet(password)
-            )
+            ),
+            Some("test-agent/1.0")
           )
         } yield {
           // then
@@ -125,6 +166,51 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           sessionResponse.body must beValid(beRight(beAnInstanceOf[SignInResponse]))
           credentialsResponse.code === StatusCode.Ok
           credentialsResponse.body must beValid(beRight(beAnInstanceOf[SignInResponse]))
+        }
+      }
+
+      "fail with BadCredentials on wrong password" in {
+        for {
+          // given
+          password <- ParseNewtype[IO].parse[Password.Raw]("correct-password".getBytes)
+          wrongPasswordRaw <- ParseNewtype[IO].parse[Password.Raw]("wrong-password".getBytes)
+          (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate
+            .map(_.copy(password = Password.create(password)))
+            .flatMap(usersWrites.userWrites.createUser)
+          user <- usersReads.userReads.requireById(userID).eventually()
+          _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+          // when
+          response <- UserAPIs.signIn.toTestCall(
+            Authentication.Credentials(
+              username = usernameApi2Users.reverseGet(user.data.username),
+              password = passwordApi2Users.reverseGet(wrongPasswordRaw)
+            ),
+            None
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.BadCredentials]))
+        }
+      }
+
+      "fail with BadCredentials on non-existent username" in {
+        for {
+          // given
+          nonExistentName <- ParseNewtype[IO].parse[User.Name](s"nonexistent-${java.util.UUID.randomUUID}")
+          somePasswordRaw <- ParseNewtype[IO].parse[Password.Raw]("some-password".getBytes)
+          // when
+          response <- UserAPIs.signIn.toTestCall(
+            Authentication.Credentials(
+              username = usernameApi2Users.reverseGet(nonExistentName),
+              password = passwordApi2Users.reverseGet(somePasswordRaw)
+            ),
+            None
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.BadCredentials]))
         }
       }
     }
@@ -178,6 +264,19 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           response.body must beValid(beRight(be_==(APIUser.fromDomain(user))))
         }
       }
+
+      "return NotFound for a non-existent userID" in {
+        for {
+          // given
+          nonExistentUserID <- ID.create[IO, User]
+          // when
+          response <- UserAPIs.fetchProfile.toTestCall.untupled(None, nonExistentUserID)
+        } yield {
+          // then
+          response.code === StatusCode.NotFound
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.NotFound]))
+        }
+      }
     }
 
     "on PUT /users/{userID}" in {
@@ -223,11 +322,66 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           updatedUser.data.password.verify(newPassword) must beTrue // ...which is why we test it separately
         }
       }
+
+      "fail with NoPermission when updating a non-existent userID (ownership check fails first)" in {
+        for {
+          // given
+          (CreationScheduled(_), CreationScheduled(sessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+          nonExistentUserID <- ID.create[IO, User]
+          newUsername <- ParseNewtype[IO].parse[User.Name]("nonexistent update")
+          // when
+          response <- UserAPIs.updateProfile.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            nonExistentUserID,
+            UpdateUserRequest(
+              newUsername = Updatable.Set(newUsername),
+              newDescription = OptionUpdatable.Keep,
+              newPassword = Updatable.Keep
+            )
+          )
+        } yield {
+          // then - the session's user does not match the non-existent ID, so permission check fails
+          response.code === StatusCode.Forbidden
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
+        }
+      }
+
+      "fail when a different User tries to update another User's profile" in {
+        for {
+          // given
+          (CreationScheduled(userID), CreationScheduled(_)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          (CreationScheduled(_), CreationScheduled(otherSessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.sessionReads.requireById(otherSessionID).eventually()
+          newUsername <- ParseNewtype[IO].parse[User.Name]("unauthorized update")
+          // when - try to update userID using otherSessionID (which belongs to a different user)
+          response <- UserAPIs.updateProfile.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(otherSessionID)),
+            userID,
+            UpdateUserRequest(
+              newUsername = Updatable.Set(newUsername),
+              newDescription = OptionUpdatable.Keep,
+              newPassword = Updatable.Keep
+            )
+          )
+        } yield {
+          // then - should fail with NoPermission (not owner, not moderator)
+          response.code === StatusCode.Forbidden
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
+        }
+      }
     }
 
     "on DELETE /users/{userID}" in {
 
-      "update User's profile if Session belongs to them" in {
+      "delete User's profile if Session belongs to them" in {
         for {
           // given
           (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
@@ -245,6 +399,128 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           // then
           response.code === StatusCode.Ok
           response.body must beValid(beRight(be_==(DeleteUserResponse(userID))))
+        }
+      }
+
+      "fail with NoPermission when deleting a non-existent userID (ownership check fails first)" in {
+        for {
+          // given
+          (CreationScheduled(_), CreationScheduled(sessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+          nonExistentUserID <- ID.create[IO, User]
+          // when
+          response <- UserAPIs.deleteProfile.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            nonExistentUserID
+          )
+        } yield {
+          // then - the session's user does not match the non-existent ID, so permission check fails
+          response.code === StatusCode.Forbidden
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
+        }
+      }
+
+      "fail when a different User tries to delete another User's profile" in {
+        for {
+          // given
+          (CreationScheduled(userID), CreationScheduled(_)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          (CreationScheduled(_), CreationScheduled(otherSessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.sessionReads.requireById(otherSessionID).eventually()
+          // when - try to delete userID using otherSessionID (which belongs to a different user)
+          response <- UserAPIs.deleteProfile.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(otherSessionID)),
+            userID
+          )
+        } yield {
+          // then - should fail with NoPermission (not owner, not moderator)
+          response.code === StatusCode.Forbidden
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
+        }
+      }
+    }
+
+    "on authenticated endpoints with invalid session" in {
+
+      "fail with BadCredentials when using a non-existent session ID" in {
+        for {
+          // given
+          fakeSessionID <- ID.create[IO, Session]
+          // when
+          response <- UserAPIs.signIn.toTestCall(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID)),
+            None
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.BadCredentials]))
+        }
+      }
+
+      "fail with BadCredentials on sign-out with a non-existent session ID" in {
+        for {
+          // given
+          fakeSessionID <- ID.create[IO, Session]
+          // when
+          response <- UserAPIs.signOut.toTestCall(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID))
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.BadCredentials]))
+        }
+      }
+
+      "fail with BadCredentials on sessions listing with a non-existent session ID" in {
+        for {
+          // given
+          fakeSessionID <- ID.create[IO, Session]
+          // when
+          response <- UserAPIs.sessions.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID)),
+            None,
+            None
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[UserError.BadCredentials]))
+        }
+      }
+    }
+
+    "on DELETE /users/sessions/{sessionID}" in {
+
+      "delete own session (remote sign-out)" in {
+        for {
+          // given
+          (CreationScheduled(userID), CreationScheduled(sessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(userID).eventually()
+          _ <- usersReads.sessionReads.requireById(sessionID).eventually()
+          // create a second session to delete
+          secondSession <- sessionCreate(userID).flatMap(usersWrites.sessionWrites.createSession)
+          _ <- usersReads.sessionReads.requireById(secondSession.id).eventually()
+          // when
+          response <- UserAPIs.deleteSession.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
+            secondSession.id
+          )
+          deletedSession <- usersReads.sessionReads.requireById(secondSession.id).attempt
+        } yield {
+          // then
+          response.code === StatusCode.Ok
+          response.body must beValid(beRight(be_==(DeleteSessionResponse(secondSession.id))))
+          deletedSession must beLeft[Throwable]
         }
       }
     }

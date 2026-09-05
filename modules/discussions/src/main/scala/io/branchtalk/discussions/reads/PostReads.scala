@@ -20,4 +20,11 @@ trait PostReads[F[_]] {
   def getById(id: ID[Post], isDeleted: Boolean = false): F[Option[Post]]
 
   def requireById(id: ID[Post], isDeleted: Boolean = false): F[Post]
+
+  def search(
+    query:     String,
+    channelID: Option[ID[Channel]],
+    offset:    Paginated.Offset,
+    limit:     Paginated.Limit
+  ): F[Paginated[Post]]
 }

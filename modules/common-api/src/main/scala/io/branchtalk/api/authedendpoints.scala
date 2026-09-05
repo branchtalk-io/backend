@@ -82,11 +82,16 @@ object AuthedEndpoint {
       authorize:    Authorize[F, A, U]
     ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
       endpoint.serverSecurityLogicPure(_.asRight[E]).serverLogic { (auth: A) => (i: I) =>
-        for {
-          u <- authorize.authorize(auth, makePermissions(i))
-          in = input(i, auth, u)
-          out <- errorHandler(logic(in))
-        } yield out
+        // The whole flow — authorization included — must go through errorHandler, otherwise a CommonError raised while
+        // authenticating/authorizing (InvalidCredentials, InsufficientPermissions, NotFound) escapes as an HTTP 500
+        // instead of being mapped to its proper status code.
+        errorHandler {
+          for {
+            u <- authorize.authorize(auth, makePermissions(i))
+            in = input(i, auth, u)
+            out <- logic(in)
+          } yield out
+        }
       }
   }
 
@@ -136,12 +141,16 @@ object AuthedEndpoint {
       codePosition: CodePosition
     ): ServerEndpoint.Full[A, A, I, E, O, R, F] =
       endpoint.serverSecurityLogicPure(_.asRight[E]).serverLogic { (auth: A) => (i: I) =>
-        for {
-          owner <- ownership(i).orRaise(CommonError.insufficientPermissions("Ownership was not confirmed"))
-          u <- authorize.authorize(auth, makePermissions(i), owner)
-          in = input(i, auth, u)
-          out <- errorHandler(logic(in))
-        } yield out
+        // See PartialServerLogic above: ownership resolution + authorization must run inside errorHandler too, so their
+        // CommonErrors map to proper status codes rather than escaping as HTTP 500.
+        errorHandler {
+          for {
+            owner <- ownership(i).orRaise(CommonError.insufficientPermissions("Ownership was not confirmed"))
+            u <- authorize.authorize(auth, makePermissions(i), owner)
+            in = input(i, auth, u)
+            out <- logic(in)
+          } yield out
+        }
       }
   }
 }

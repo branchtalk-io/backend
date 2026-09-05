@@ -13,6 +13,8 @@ object SessionEvent {
     id:            ID[Session],
     userID:        ID[User],
     expiresAt:     Session.ExpirationTime,
+    ipAddress:     Option[Session.IpAddress],
+    userAgent:     Option[Session.UserAgent],
     correlationID: CorrelationID
   ) extends SessionEvent derives AvroEncoder, AvroDecoder, FastEq, ShowPretty
 

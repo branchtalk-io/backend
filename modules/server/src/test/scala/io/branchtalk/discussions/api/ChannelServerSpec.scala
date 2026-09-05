@@ -39,7 +39,15 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
             creationData.transformInto[CreateChannelRequest]
           )
-          // TODO: check that this creates a new channel eventually!
+          createdChannelID = response.body.toValidOpt.flatMap(_.toOption).map(_.id)
+          _ <- createdChannelID.traverse(channelID =>
+            discussionsReads.channelReads
+              .requireById(channelID)
+              .assert("Created Channel should eventually appear on the read side")(
+                _.data.urlName eqv creationData.urlName
+              )
+              .eventually()
+          )
         } yield {
           // then
           response.code === StatusCode.Ok
@@ -207,6 +215,102 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
           // then
           response.code === StatusCode.Ok
           response.body must beValid(beRight(be_==(RestoreChannelResponse(channelID))))
+        }
+      }
+    }
+
+    // Negative-path tests
+
+    "on POST /discussions/channels with invalid session" in {
+
+      "return 401 Unauthorized for a non-existent session" in {
+        for {
+          // given
+          creationData <- channelCreate
+          fakeSessionID = SessionID(java.util.UUID.randomUUID())
+          // when
+          response <- ChannelAPIs.create.toTestCall.untupled(
+            Authentication.Session(sessionID = fakeSessionID),
+            creationData.transformInto[CreateChannelRequest]
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Unauthorized
+          response.body must beValid(beLeft(beAnInstanceOf[ChannelError.BadCredentials]))
+        }
+      }
+    }
+
+    "on GET /discussions/channels/{channelID} for non-existent Channel" in {
+
+      "return 404 Not Found" in {
+        for {
+          // given
+          fakeChannelID <- ID.create[IO, Channel]
+          // when
+          response <- ChannelAPIs.read.toTestCall.untupled(None, fakeChannelID)
+        } yield {
+          // then
+          response.code === StatusCode.NotFound
+          response.body must beValid(beLeft(beAnInstanceOf[ChannelError.NotFound]))
+        }
+      }
+    }
+
+    "on PUT /discussions/channels/{channelID} by non-owner without moderator permission" in {
+
+      "return 401 when User has no permission to update the Channel" in {
+        for {
+          // given
+          (CreationScheduled(otherUserID), CreationScheduled(otherSessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(otherUserID).eventually()
+          _ <- usersReads.sessionReads.requireById(otherSessionID).eventually()
+          CreationScheduled(channelID) <- channelCreate // authorID is a random user, not otherUserID
+            .flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          newName <- ParseNewtype[IO].parse[Channel.Name]("unauthorized update")
+          // when
+          response <- ChannelAPIs.update.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(otherSessionID)),
+            channelID,
+            UpdateChannelRequest(
+              newUrlName = Updatable.Keep,
+              newName = Updatable.Set(newName),
+              newDescription = OptionUpdatable.Keep
+            )
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Forbidden
+          response.body must beValid(beLeft(beAnInstanceOf[ChannelError.NoPermission]))
+        }
+      }
+    }
+
+    "on DELETE /discussions/channels/{channelID} by non-owner without moderator permission" in {
+
+      "return 401 when User has no permission to delete the Channel" in {
+        for {
+          // given
+          (CreationScheduled(otherUserID), CreationScheduled(otherSessionID)) <- userCreate.flatMap(
+            usersWrites.userWrites.createUser
+          )
+          _ <- usersReads.userReads.requireById(otherUserID).eventually()
+          _ <- usersReads.sessionReads.requireById(otherSessionID).eventually()
+          CreationScheduled(channelID) <- channelCreate // authorID is a random user, not otherUserID
+            .flatMap(discussionsWrites.channelWrites.createChannel)
+          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+          // when
+          response <- ChannelAPIs.delete.toTestCall.untupled(
+            Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(otherSessionID)),
+            channelID
+          )
+        } yield {
+          // then
+          response.code === StatusCode.Forbidden
+          response.body must beValid(beLeft(beAnInstanceOf[ChannelError.NoPermission]))
         }
       }
     }

@@ -44,7 +44,7 @@ object Dependencies {
   val catsEffect       = "org.typelevel" %% "cats-effect" % catsEffectVersion
   val alleycats        = "org.typelevel" %% "alleycats-core" % catsVersion
   val catsLaws         = "org.typelevel" %% "cats-laws" % catsVersion
-  val chimney          = "io.scalaland" %% "chimney" % "1.11.0" // https://github.com/scalalandio/chimney/releases
+  val chimney          = "io.scalaland" %% "chimney" % "2.0.0-RC1" // https://github.com/scalalandio/chimney/releases
   val droste           = "io.higherkindness" %% "droste-core" % drosteVersion
   val enumeratum       = "com.beachape" %% "enumeratum" % enumeratumVersion
   val enumeratumDoobie = "com.beachape" %% "enumeratum-doobie" % "1.9.8"
@@ -54,7 +54,8 @@ object Dependencies {
   val fs2             = "co.fs2" %% "fs2-core" % fs2Version
   val fs2IO           = "co.fs2" %% "fs2-io" % fs2Version
   val neotype         = "io.github.kitlangton" %% "neotype" % neotypeVersion
-  val neotypeChimney  = "io.github.kitlangton" %% "neotype-chimney" % neotypeVersion
+  // neotype-chimney intentionally dropped: Chimney 2.0 is Hearth-based, so the neotype-kindlings Hearth integration
+  // (IsValueTypeProviderForNeotype via StandardMacroExtension) already covers neotype <-> Chimney derivation.
   val neotypeDoobie   = "io.github.kitlangton" %% "neotype-doobie" % neotypeVersion
   val neotypeJsoniter = "io.github.kitlangton" %% "neotype-jsoniter" % neotypeVersion
   val neotypeTapir    = "io.github.kitlangton" %% "neotype-tapir" % neotypeVersion

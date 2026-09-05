@@ -95,16 +95,20 @@ object DoobieSupport
 
   // log results
 
-  def doobieLogger[F[_]](logger: Logger[F]): LogHandler[F] = {
+  /** Default slow-query threshold in milliseconds. Queries exceeding this are logged at WARN. */
+  val defaultSlowQueryThresholdMs: Long = 200L
+
+  def doobieLogger[F[_]](logger: Logger[F], slowQueryThresholdMs: Long = defaultSlowQueryThresholdMs): LogHandler[F] = {
     case org.typelevel.doobie.util.log.Success(sql, _, label, exec, processing) =>
-      logger.trace(
+      val totalMs = (exec + processing).toMillis
+      val msg =
         s"""SQL succeeded:
            |${label}
            |${sql}
            |execution:  ${exec.toMillis.toString} ms
            |processing: ${processing.toMillis.toString} ms
-           |total:      ${(exec + processing).toMillis.toString} ms""".stripMargin
-      )
+           |total:      ${totalMs.toString} ms""".stripMargin
+      if (totalMs > slowQueryThresholdMs) logger.warn(msg) else logger.trace(msg)
     case org.typelevel.doobie.util.log.ExecFailure(sql, _, label, exec, failure) =>
       logger.error(failure)(
         s"""SQL failed at execution:

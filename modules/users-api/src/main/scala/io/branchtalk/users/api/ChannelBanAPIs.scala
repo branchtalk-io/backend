@@ -14,7 +14,7 @@ object ChannelBanAPIs {
 
   private val errorMapping = oneOf[UserError](
     oneOfVariant[UserError.BadCredentials](StatusCode.Unauthorized, jsonBody[UserError.BadCredentials]),
-    oneOfVariant[UserError.NoPermission](StatusCode.Unauthorized, jsonBody[UserError.NoPermission]),
+    oneOfVariant[UserError.NoPermission](StatusCode.Forbidden, jsonBody[UserError.NoPermission]),
     oneOfVariant[UserError.NotFound](StatusCode.NotFound, jsonBody[UserError.NotFound]),
     oneOfVariant[UserError.ValidationFailed](StatusCode.BadRequest, jsonBody[UserError.ValidationFailed])
   )

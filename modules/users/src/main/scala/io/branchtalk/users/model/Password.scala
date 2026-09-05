@@ -39,7 +39,8 @@ object Password {
     private lazy val sr = new SecureRandom()
 
     case object BCrypt extends Algorithm {
-      private val cost = 10 // must be between 4 and 31
+      // Default cost; callers can override via hashRawWithCost / verifyWithCost.
+      private val defaultCost = 10 // must be between 4 and 31
 
       private val hasher   = at.favre.lib.crypto.bcrypt.BCrypt.withDefaults()
       private val verifier = at.favre.lib.crypto.bcrypt.BCrypt.verifyer()
@@ -53,9 +54,15 @@ object Password {
       }
 
       override def hashRaw(raw: Password.Raw, salt: Password.Salt): Password.Hash =
+        hashRawWithCost(raw, salt, defaultCost)
+
+      def hashRawWithCost(raw: Password.Raw, salt: Password.Salt, cost: Int): Password.Hash =
         Password.Hash(hasher.hashRaw(cost, salt.unwrap, raw.unwrap).rawHash)
 
       override def verify(raw: Password.Raw, salt: Password.Salt, hash: Password.Hash): Boolean =
+        verifyWithCost(raw, salt, hash, defaultCost)
+
+      def verifyWithCost(raw: Password.Raw, salt: Password.Salt, hash: Password.Hash, cost: Int): Boolean =
         verifier.verify(raw.unwrap, cost, salt.unwrap, hash.unwrap).verified
     }
 
@@ -94,10 +101,17 @@ object Password {
     given Eq[Raw]   = unsafeMakeF[Eq](arrayEq)
   }
 
-  def create(raw: Password.Raw): Password = {
+  final case class Config(
+    algorithm:  String = "bcrypt",
+    bcryptCost: Int = 10
+  )
+
+  def create(raw: Password.Raw, config: Config = Config()): Password = {
     val algorithm = Password.Algorithm.default
     val salt      = algorithm.createSalt
-    val hash      = algorithm.hashRaw(raw, salt)
+    val hash = algorithm match {
+      case Password.Algorithm.BCrypt => Password.Algorithm.BCrypt.hashRawWithCost(raw, salt, config.bcryptCost)
+    }
     Password(algorithm, hash, salt)
   }
 }

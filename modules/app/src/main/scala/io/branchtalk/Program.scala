@@ -10,6 +10,8 @@ import io.branchtalk.configs.{ APIConfig, AppArguments, Configuration }
 import io.branchtalk.discussions.events.DiscussionEvent
 import io.branchtalk.discussions.{ DiscussionsModule, DiscussionsReads, DiscussionsWrites }
 import io.branchtalk.logging.*
+import io.branchtalk.notifications.{ NotificationsModule, NotificationsReads, NotificationsWrites }
+import io.branchtalk.notifications.writes.NotificationTopic
 import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.UUID
 import io.branchtalk.users.{ UsersModule, UsersReads, UsersWrites }
@@ -39,7 +41,9 @@ object Program {
         ExitCode.Error
     }
 
-  def resolveConfigs[F[_]: Sync: Logger]: F[(APIConfig, DomainModule.Config, DomainModule.Config)] =
+  def resolveConfigs[F[_]: Sync: Logger]: F[
+    (APIConfig, DomainModule.Config, DomainModule.Config, DomainModule.Config)
+  ] =
     for {
       apiConfig <- Configuration.readConfig[F, APIConfig]("api")
       _ <- Logger[F].info(show"App configs resolved to: ${apiConfig}")
@@ -47,25 +51,37 @@ object Program {
       _ <- Logger[F].info(show"Users configs resolved to: ${usersConfig}")
       discussionsConfig <- Configuration.readConfig[F, DomainModule.Config]("discussions")
       _ <- Logger[F].info(show"Discussions configs resolved to: ${discussionsConfig}")
-    } yield (apiConfig, usersConfig, discussionsConfig)
+      notificationsConfig <- Configuration.readConfig[F, DomainModule.Config]("notifications")
+      _ <- Logger[F].info(show"Notifications configs resolved to: ${notificationsConfig}")
+    } yield (apiConfig, usersConfig, discussionsConfig, notificationsConfig)
 
   def initializeAndRunModules[F[_]: Async: MDC: Logger](appArguments: AppArguments): F[Unit] = {
     for {
       given Dispatcher[F] <- Dispatcher.parallel[F]
-      (apiConfig, usersConfig, discussionsConfig) <- Resource.eval(resolveConfigs[F])
+      (apiConfig, usersConfig, discussionsConfig, notificationsConfig) <- Resource.eval(resolveConfigs[F])
       registry <- Prometheus.collectorRegistry[F]
+      notificationTopic <- NotificationTopic.create[F]
       modules <- Resource.make(Logger[F].info("Initializing services"))(_ => Logger[F].info("Services shut down")) >>
         (
           registry.pure[Resource[F, *]],
           UsersModule.reads[F](usersConfig, registry),
           UsersModule.writes[F](discussionsConfig, registry),
           DiscussionsModule.reads[F](discussionsConfig, registry),
-          DiscussionsModule.writes[F](discussionsConfig, registry)
+          DiscussionsModule.writes[F](discussionsConfig, registry),
+          NotificationsModule.reads[F](notificationsConfig, registry),
+          NotificationsModule.writes[F](notificationsConfig, discussionsConfig, registry, notificationTopic)
         ).tupled
-    } yield (apiConfig, usersConfig, discussionsConfig, modules)
-  }.use { case (apiConfig, usersConfig, _, modules) =>
+    } yield (apiConfig, usersConfig, notificationsConfig, notificationTopic, modules)
+  }.use { case (apiConfig, usersConfig, notificationsConfig, notificationTopic, modules) =>
     val run =
-      runModules[F](appArguments, apiConfig, awaitTerminationSignal[F], UsersModule.listenToUsers[F](usersConfig)) _
+      runModules[F](
+        appArguments,
+        apiConfig,
+        awaitTerminationSignal[F],
+        UsersModule.listenToUsers[F](usersConfig),
+        NotificationsModule.listenToDiscussions[F](notificationsConfig),
+        notificationTopic
+      ) _
     run.tupled(modules)
   }
 
@@ -76,13 +92,20 @@ object Program {
     makeUsersDiscussionsConsumer: (
       ConsumerStream.Factory[F, DiscussionEvent],
       StreamRunner.FromConsumerStream[F, DiscussionEvent]
-    ) => StreamRunner[F]
+    ) => StreamRunner[F],
+    makeNotificationsDiscussionsConsumer: (
+      ConsumerStream.Factory[F, DiscussionEvent],
+      StreamRunner.FromConsumerStream[F, DiscussionEvent]
+    ) => StreamRunner[F],
+    notificationTopic: NotificationTopic[F]
   )(
-    registry:          CollectorRegistry,
-    usersReads:        UsersReads[F],
-    usersWrites:       UsersWrites[F],
-    discussionsReads:  DiscussionsReads[F],
-    discussionsWrites: DiscussionsWrites[F]
+    registry:            CollectorRegistry,
+    usersReads:          UsersReads[F],
+    usersWrites:         UsersWrites[F],
+    discussionsReads:    DiscussionsReads[F],
+    discussionsWrites:   DiscussionsWrites[F],
+    notificationsReads:  NotificationsReads[F],
+    notificationsWrites: NotificationsWrites[F]
   ): F[Unit] = {
     (
       AppServer
@@ -103,7 +126,10 @@ object Program {
           commentWrites = discussionsWrites.commentWrites,
           postWrites = discussionsWrites.postWrites,
           channelWrites = discussionsWrites.channelWrites,
-          subscriptionWrites = discussionsWrites.subscriptionWrites
+          subscriptionWrites = discussionsWrites.subscriptionWrites,
+          notificationReads = notificationsReads.notificationReads,
+          notificationWrites = notificationsWrites.notificationWrites,
+          notificationTopic = notificationTopic
         )
         .void
         .conditionally("API server", appArguments.runAPI),
@@ -116,7 +142,15 @@ object Program {
       // run Users projections on a separate thread
       discussionsWrites.runProjecions.asResource.conditionally("Discussions' projections",
                                                                appArguments.runDiscussionsProjections
-      )
+      ),
+      // run Notifications projections on a separate thread
+      notificationsWrites.runProjections.asResource.conditionally("Notifications' projections",
+                                                                  appArguments.runNotificationsProjections
+      ),
+      // run Notifications' Discussions consumer on a separate thread
+      makeNotificationsDiscussionsConsumer(discussionsReads.discussionEventConsumer,
+                                           notificationsWrites.runDiscussionsConsumer
+      ).asResource.conditionally("Notifications' Discussions consumer", appArguments.runNotificationsProjections)
     ).tupled >> logBeforeAfter[F]("Services initialized", "Received exit signal")
   }.use(_ => terminationSignal) // here we are blocking until e.g. user press Ctrl+C
 

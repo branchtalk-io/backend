@@ -5,7 +5,9 @@ import io.branchtalk.users.model.{ Session, User }
 
 trait UserWrites[F[_]] {
 
-  def createUser(newUser:     User.Create): F[(CreationScheduled[User], CreationScheduled[Session])]
-  def updateUser(updatedUser: User.Update): F[UpdateScheduled[User]]
-  def deleteUser(deletedUser: User.Delete): F[DeletionScheduled[User]]
+  def createUser(newUser:         User.Create):             F[(CreationScheduled[User], CreationScheduled[Session])]
+  def updateUser(updatedUser:     User.Update):             F[UpdateScheduled[User]]
+  def deleteUser(deletedUser:     User.Delete):             F[DeletionScheduled[User]]
+  def requestEmailUpdate(request: User.RequestEmailUpdate): F[(UpdateScheduled[User], User.EmailConfirmationToken)]
+  def confirmEmail(confirm:       User.ConfirmEmail):       F[UpdateScheduled[User]]
 }

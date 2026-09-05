@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import io.branchtalk.api.JsoniterSupport.{ *, given }
 import io.branchtalk.api.TapirSupport.{ *, given }
 import io.branchtalk.discussions.model.Channel
-import io.branchtalk.shared.model.{ ID, OptionUpdatable, Updatable }
+import io.branchtalk.shared.model.{ CreationTime, ID, ModificationTime, OptionUpdatable, Updatable }
 import io.scalaland.chimney.dsl.*
 
 object ChannelModels {
@@ -22,10 +22,12 @@ object ChannelModels {
   }
 
   final case class APIChannel(
-    id:          ID[Channel],
-    urlName:     Channel.UrlName,
-    name:        Channel.Name,
-    description: Option[Channel.Description]
+    id:             ID[Channel],
+    urlName:        Channel.UrlName,
+    name:           Channel.Name,
+    description:    Option[Channel.Description],
+    createdAt:      CreationTime,
+    lastModifiedAt: Option[ModificationTime]
   ) derives DefaultJsCodec,
         JsSchema
   object APIChannel {
