@@ -81,7 +81,8 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               description = creationData.description,
               password = password
             ),
-            Some("test-agent/1.0")
+            Some("test-agent/1.0"),
+            None
           )
           possibleResult = response.body.toOption.flatMap(_.toOption)
           user <- possibleResult.map(_.userID).traverse(usersReads.userReads.requireById).eventually()
@@ -111,6 +112,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               description = creationData.description,
               password = password
             ),
+            None,
             None
           )
           _ <- firstResponse.body.toOption
@@ -128,6 +130,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               description = creationData.description,
               password = password
             ),
+            None,
             None
           )
         } yield
@@ -151,14 +154,16 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           // when
           sessionResponse <- UserAPIs.signIn.toTestCall.untupled(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(sessionID)),
-            Some("test-agent/1.0")
+            Some("test-agent/1.0"),
+            None
           )
           credentialsResponse <- UserAPIs.signIn.toTestCall.untupled(
             Authentication.Credentials(
               username = usernameApi2Users.reverseGet(user.data.username),
               password = passwordApi2Users.reverseGet(password)
             ),
-            Some("test-agent/1.0")
+            Some("test-agent/1.0"),
+            None
           )
         } yield {
           // then
@@ -185,7 +190,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               username = usernameApi2Users.reverseGet(user.data.username),
               password = passwordApi2Users.reverseGet(wrongPasswordRaw)
             ),
-            None
+            (None, None)
           )
         } yield {
           // then
@@ -205,7 +210,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
               username = usernameApi2Users.reverseGet(nonExistentName),
               password = passwordApi2Users.reverseGet(somePasswordRaw)
             ),
-            None
+            (None, None)
           )
         } yield {
           // then
@@ -455,7 +460,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           // when
           response <- UserAPIs.signIn.toTestCall(
             Authentication.Session(sessionID = sessionIDApi2Users.reverseGet(fakeSessionID)),
-            None
+            (None, None)
           )
         } yield {
           // then

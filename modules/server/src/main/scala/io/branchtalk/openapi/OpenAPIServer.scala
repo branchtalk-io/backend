@@ -6,12 +6,11 @@ import hearth.kindlings.tapiropenapijsoniter.TapirOpenApi
 import io.branchtalk.api
 import io.branchtalk.configs.APIInfo
 import org.http4s.HttpRoutes
+import com.softwaremill.quicklens.*
 import sttp.apispec.openapi.*
 import sttp.tapir.docs.openapi.*
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.swagger.http4s.SwaggerHttp4s
-
-import scala.collection.immutable.ListMap
 
 final class OpenAPIServer[F[_]: Sync](
   apiInfo:   APIInfo,
@@ -26,8 +25,8 @@ final class OpenAPIServer[F[_]: Sync](
 
   def openAPI: OpenAPI = OpenAPIDocsInterpreter(OpenAPIServer.openAPIDocsOptions)
     .toOpenAPI(endpoints.map(_.endpoint).toList, apiInfo.toOpenAPI)
-    // TODO: quicklens
-    .pipe(oa => oa.copy(paths = oa.paths.copy(pathItems = oa.paths.pathItems.view.mapValues(fixPathItem).to(ListMap))))
+    .modify(_.paths.pathItems.each)
+    .using(fixPathItem)
 
   // Serialization provided by Kindlings' tapir-openapi-jsoniter (replaces the hand-written jsoniter codecs).
   val openAPIJson: String = TapirOpenApi.toJson(openAPI)

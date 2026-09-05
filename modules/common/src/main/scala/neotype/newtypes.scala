@@ -3,7 +3,7 @@ package neotype
 import cats.data.NonEmptyList
 import cats.effect.Sync
 
-// TODO: PR to upstream
+// Higher-kinded newtype variants not yet in upstream neotype
 abstract class NewtypeT[A] { self =>
   opaque type Type[B] = A
 
@@ -29,7 +29,7 @@ abstract class NewtypeT[A] { self =>
   given instance[B]: Newtype.WithType[A, Type[B]] = impl.asInstanceOf[Newtype.WithType[A, Type[B]]]
 }
 
-// TODO: PR to upstream
+// Higher-kinded newtype variants not yet in upstream neotype
 abstract class NewtypeF[F[_]] { self =>
   opaque type Type[A] = F[A]
 

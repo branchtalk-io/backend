@@ -6,7 +6,6 @@ import fs2.kafka.{ ProducerResult, Serializer }
 import io.branchtalk.logging.Logger
 import io.branchtalk.shared.model.UUID
 
-// TODO: move to KafkaEventBus
 final class ConsumerStream[F[_], Event](
   consumer:  KafkaEventBus.Consumer[F, Event],
   committer: KafkaEventBus.Committer[F]

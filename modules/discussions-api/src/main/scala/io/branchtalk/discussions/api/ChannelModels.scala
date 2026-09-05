@@ -45,7 +45,6 @@ object ChannelModels {
 
   final case class CreateChannelResponse(id: ID[Channel]) derives DefaultJsCodec, JsSchema
 
-  // TODO: unify behavior (Channel sets UrlName while Post generates it)
   final case class UpdateChannelRequest(
     newUrlName:     Updatable[Channel.UrlName],
     newName:        Updatable[Channel.Name],

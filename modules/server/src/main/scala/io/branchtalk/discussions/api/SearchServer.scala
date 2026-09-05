@@ -6,9 +6,10 @@ import com.typesafe.scalalogging.Logger
 import io.branchtalk.api.*
 import io.branchtalk.auth.{ *, given }
 import io.branchtalk.configs.PaginationConfig
+import io.branchtalk.discussions.api.CommentModels.APIComment
 import io.branchtalk.discussions.api.PostModels.APIPost
 import io.branchtalk.discussions.api.SearchModels.*
-import io.branchtalk.discussions.reads.PostReads
+import io.branchtalk.discussions.reads.{ CommentReads, PostReads }
 import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CommonError, Paginated }
 import io.branchtalk.users.model.User
@@ -19,6 +20,7 @@ import sttp.tapir.server.ServerEndpoint
 final class SearchServer[F[_]: Async](
   authServices:     AuthServices[F],
   postReads:        PostReads[F],
+  commentReads:     CommentReads[F],
   paginationConfig: PaginationConfig
 ) {
 
@@ -38,8 +40,18 @@ final class SearchServer[F[_]: Async](
     } yield Pagination.fromPaginated(paginated.map(APIPost.fromDomain), offset, limit)
   }
 
+  private val searchComments =
+    SearchAPIs.searchComments.serverLogic[F, Option[User]] { case (q, postID, optOffset, optLimit) =>
+      val offset = paginationConfig.resolveOffset(optOffset)
+      val limit  = paginationConfig.resolveLimit(optLimit)
+      for {
+        paginated <- commentReads.search(q, postID, offset, limit)
+      } yield Pagination.fromPaginated(paginated.map(APIComment.fromDomain), offset, limit)
+    }
+
   def endpoints: NonEmptyList[ServerEndpoint[Any, F]] = NonEmptyList.of[ServerEndpoint[Any, F]](
-    search
+    search,
+    searchComments
   )
 
   val routes: HttpRoutes[F] = Http4sServerInterpreter(serverOptions).toRoutes(endpoints.toList)

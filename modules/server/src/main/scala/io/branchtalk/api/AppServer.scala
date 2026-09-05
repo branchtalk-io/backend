@@ -211,7 +211,7 @@ object AppServer {
           apiConfig.safePagination(APIPart.Posts)
         )
         val searchServer: SearchServer[F] =
-          SearchServer[F](authServices, postReads, apiConfig.safePagination(APIPart.Posts))
+          SearchServer[F](authServices, postReads, commentReads, apiConfig.safePagination(APIPart.Posts))
         val notificationServer: NotificationServer[F] = NotificationServer[F](
           authServices,
           notificationReads,

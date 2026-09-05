@@ -14,8 +14,7 @@ import org.typelevel.doobie.Transactor
 // Consumes discussion events and produces notification command events.
 // - When a comment is created, notify the post author (PostReply).
 // - When a comment is created as a reply to another comment, notify that comment's author (CommentReply).
-// - NewPostInChannel fan-out is a TODO: resolving channel subscribers requires querying the subscriptions table,
-//   which lives in the discussions domain. A cross-domain read is possible but deferred for now.
+// - When a post is created, notify all users subscribed to the channel (NewPostInChannel), excluding the author.
 final class DiscussionsConsumer[F[_]: Sync](transactor: Transactor[F])(using UUID.Generator)
     extends Projector[F, DiscussionEvent, (UUID, NotificationCommandEvent)] {
 
@@ -25,6 +24,8 @@ final class DiscussionsConsumer[F[_]: Sync](transactor: Transactor[F])(using UUI
     in.flatMap {
       case DiscussionEvent.ForComment(event: CommentEvent.Created) =>
         Stream.evalSeq(handleCommentCreated(event))
+      case DiscussionEvent.ForPost(event: PostEvent.Created) =>
+        Stream.evalSeq(handlePostCreated(event))
       case _ =>
         Stream.empty
     }.handleErrorWith { error =>
@@ -99,5 +100,33 @@ final class DiscussionsConsumer[F[_]: Sync](transactor: Transactor[F])(using UUI
     (postReplyNotification, commentReplyNotification).mapN { (postNotif, commentNotif) =>
       List(postNotif, commentNotif).flatten
     }
+  }
+
+  private def handlePostCreated(event: PostEvent.Created): F[List[(UUID, NotificationCommandEvent)]] = {
+    val postAuthorID = ID[User](event.authorID.unwrap)
+
+    // Find all users subscribed to the channel this post was created in, excluding the post author.
+    sql"""SELECT subscriber_id FROM subscriptions WHERE ${event.channelID} = ANY(subscriptions_ids)"""
+      .queryWithLabel[UUID](show"Get channel subscribers for Notification, Channel=${event.channelID}")
+      .to[List]
+      .transact(transactor)
+      .flatMap { subscriberUUIDs =>
+        subscriberUUIDs.filter(_ =!= event.authorID.unwrap).traverse { subscriberUUID =>
+          for {
+            notifID <- ID.create[F, Notification]
+            now <- CreationTime.now[F]
+          } yield notifID.unwrap -> NotificationCommandEvent.Create(
+            id = notifID,
+            recipientID = ID[User](subscriberUUID),
+            kind = Notification.Kind.NewPostInChannel,
+            sourcePostID = Some(ID[Post](event.id.unwrap)),
+            sourceCommentID = None,
+            sourceUserID = Some(postAuthorID),
+            message = Notification.Message.unsafeMake("New post in a channel you follow"),
+            createdAt = now,
+            correlationID = event.correlationID
+          )
+        }
+      }
   }
 }

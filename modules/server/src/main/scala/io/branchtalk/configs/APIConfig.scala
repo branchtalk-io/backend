@@ -44,9 +44,9 @@ final case class APILicense(
 }
 
 final case class APIInfo(
-  title:          String, // TODO: refine
-  version:        String, // TODO: refine
-  description:    String, // TODO: refine
+  title:          String,
+  version:        String,
+  description:    String,
   termsOfService: Post.URL,
   contact:        APIContact,
   license:        APILicense
@@ -70,8 +70,8 @@ final case class APIHttp(
   corsAllowedOrigins:   List[String] = List.empty,
   corsAllowCredentials: Boolean,
   corsMaxAge:           FiniteDuration,
-  maxHeaderLineLength:  Int, // TODO: refine
-  maxRequestLineLength: Int // TODO: refine
+  maxHeaderLineLength:  Int,
+  maxRequestLineLength: Int
 ) derives ConfigReader,
       ShowPretty
 
