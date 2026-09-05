@@ -16,7 +16,7 @@ object CommentAPIs {
 
   private val errorMapping = oneOf[CommentError](
     oneOfVariant[CommentError.BadCredentials](StatusCode.Unauthorized, jsonBody[CommentError.BadCredentials]),
-    oneOfVariant[CommentError.NoPermission](StatusCode.Unauthorized, jsonBody[CommentError.NoPermission]),
+    oneOfVariant[CommentError.NoPermission](StatusCode.Forbidden, jsonBody[CommentError.NoPermission]),
     oneOfVariant[CommentError.NotFound](StatusCode.NotFound, jsonBody[CommentError.NotFound]),
     oneOfVariant[CommentError.ValidationFailed](StatusCode.BadRequest, jsonBody[CommentError.ValidationFailed])
   )

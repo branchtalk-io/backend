@@ -283,7 +283,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
         } yield {
           // then
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[ChannelError.NoPermission]))
         }
       }
@@ -309,7 +309,7 @@ final class ChannelServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
         } yield {
           // then
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[ChannelError.NoPermission]))
         }
       }

@@ -438,7 +438,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[PostError.NoPermission]))
         }
       }
@@ -457,7 +457,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
             response <- PostAPIs.read.toTestCall.untupled(None, channelID, fakePostID)
           } yield {
             // then
-            response.code === StatusCode.Unauthorized
+            response.code === StatusCode.Forbidden
             response.body must beValid(beLeft(beAnInstanceOf[PostError.NoPermission]))
           }
         }
@@ -491,7 +491,7 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[PostError.NoPermission]))
         }
       }

@@ -344,7 +344,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then - the session's user does not match the non-existent ID, so permission check fails
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
         }
       }
@@ -373,7 +373,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then - should fail with NoPermission (not owner, not moderator)
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
         }
       }
@@ -417,7 +417,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then - the session's user does not match the non-existent ID, so permission check fails
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
         }
       }
@@ -440,7 +440,7 @@ final class UserServerSpec extends Specification, ServerIOTest, UsersFixtures, D
           )
         } yield {
           // then - should fail with NoPermission (not owner, not moderator)
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
         }
       }

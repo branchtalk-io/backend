@@ -483,7 +483,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
         } yield {
           // then
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[CommentError.NoPermission]))
         }
       }
@@ -504,7 +504,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
             response <- CommentAPIs.read.toTestCall.untupled(None, channelID, postID, fakeCommentID)
           } yield {
             // then
-            response.code === StatusCode.Unauthorized
+            response.code === StatusCode.Forbidden
             response.body must beValid(beLeft(beAnInstanceOf[CommentError.NoPermission]))
           }
         }
@@ -541,7 +541,7 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
           )
         } yield {
           // then
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[CommentError.NoPermission]))
         }
       }

@@ -94,7 +94,7 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
           )
         } yield {
           // then
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
         }
       }
@@ -193,7 +193,7 @@ final class UserServerPaginationSpec extends Specification, ServerIOTest, UsersF
           )
         } yield {
           // then
-          response.code === StatusCode.Unauthorized
+          response.code === StatusCode.Forbidden
           response.body must beValid(beLeft(beAnInstanceOf[UserError.NoPermission]))
         }
       }

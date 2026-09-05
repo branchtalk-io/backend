@@ -13,7 +13,7 @@ object SubscriptionAPIs {
 
   private val errorMapping = oneOf[SubscriptionError](
     oneOfVariant[SubscriptionError.BadCredentials](StatusCode.Unauthorized, jsonBody[SubscriptionError.BadCredentials]),
-    oneOfVariant[SubscriptionError.NoPermission](StatusCode.Unauthorized, jsonBody[SubscriptionError.NoPermission]),
+    oneOfVariant[SubscriptionError.NoPermission](StatusCode.Forbidden, jsonBody[SubscriptionError.NoPermission]),
     oneOfVariant[SubscriptionError.NotFound](StatusCode.NotFound, jsonBody[SubscriptionError.NotFound]),
     oneOfVariant[SubscriptionError.ValidationFailed](StatusCode.BadRequest,
                                                      jsonBody[SubscriptionError.ValidationFailed]

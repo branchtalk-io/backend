@@ -14,7 +14,7 @@ object NotificationAPIs {
 
   private val errorMapping = oneOf[NotificationError](
     oneOfVariant[NotificationError.BadCredentials](StatusCode.Unauthorized, jsonBody[NotificationError.BadCredentials]),
-    oneOfVariant[NotificationError.NoPermission](StatusCode.Unauthorized, jsonBody[NotificationError.NoPermission]),
+    oneOfVariant[NotificationError.NoPermission](StatusCode.Forbidden, jsonBody[NotificationError.NoPermission]),
     oneOfVariant[NotificationError.NotFound](StatusCode.NotFound, jsonBody[NotificationError.NotFound]),
     oneOfVariant[NotificationError.ValidationFailed](StatusCode.BadRequest,
                                                      jsonBody[NotificationError.ValidationFailed]

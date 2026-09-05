@@ -16,7 +16,7 @@ object PostAPIs {
 
   private[api] val errorMapping = oneOf[PostError](
     oneOfVariant[PostError.BadCredentials](StatusCode.Unauthorized, jsonBody[PostError.BadCredentials]),
-    oneOfVariant[PostError.NoPermission](StatusCode.Unauthorized, jsonBody[PostError.NoPermission]),
+    oneOfVariant[PostError.NoPermission](StatusCode.Forbidden, jsonBody[PostError.NoPermission]),
     oneOfVariant[PostError.NotFound](StatusCode.NotFound, jsonBody[PostError.NotFound]),
     oneOfVariant[PostError.ValidationFailed](StatusCode.BadRequest, jsonBody[PostError.ValidationFailed])
   )
