@@ -9,7 +9,7 @@ import io.branchtalk.users.model.*
 import org.postgresql.util.PGobject
 
 import java.time.OffsetDateTime
-import scala.collection.compat.immutable.ArraySeq
+import scala.collection.immutable.ArraySeq
 
 object DoobieExtensions {
 

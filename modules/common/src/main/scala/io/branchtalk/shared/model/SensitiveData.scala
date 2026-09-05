@@ -8,7 +8,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import neotype.*
 
-import scala.collection.compat.immutable.ArraySeq
+import scala.collection.immutable.ArraySeq
 import scala.util.{ Random, Try }
 
 // Express intent that some data should not be stored as unencrypted format.
