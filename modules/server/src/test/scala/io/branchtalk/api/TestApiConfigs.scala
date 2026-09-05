@@ -13,7 +13,7 @@ import scala.concurrent.duration.*
 
 object TestApiConfigs {
 
-  private val allowedPorts = (23456 to 24000).toSet // TODO: figure out how to obtain it better
+  private val allowedPorts = (23456 to 24000).toSet
   private val takenPorts   = mutable.Set.empty[Int]
 
   private def acquirePort[F[_]: Async]: F[Int] = ().tailRecM[F, Int] { _ =>

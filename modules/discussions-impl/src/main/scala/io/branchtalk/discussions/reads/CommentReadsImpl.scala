@@ -1,5 +1,6 @@
 package io.branchtalk.discussions.reads
 
+import cats.data.NonEmptyList
 import cats.effect.Sync
 import io.branchtalk.discussions.model.{ Comment, Post }
 import io.branchtalk.shared.infrastructure.DoobieSupport.{ *, given }
@@ -72,4 +73,21 @@ final class CommentReadsImpl[F[_]: Sync](transactor: Transactor[F]) extends Comm
       .queryWithLabel[Comment](show"Require Discussions' Comment by ID=$id")
       .failNotFound("Comment", id)
       .transact(transactor)
+
+  override def search(
+    query:  String,
+    postID: Option[ID[Post]],
+    offset: Paginated.Offset,
+    limit:  Paginated.Limit
+  ): F[Paginated[Comment]] = {
+    val requiredFilters = NonEmptyList.of(
+      fr"search_vector @@ plainto_tsquery('english', $query)",
+      fr"deleted = FALSE"
+    )
+    val filters = postID.fold(requiredFilters)(pid => requiredFilters :+ fr"post_id = $pid")
+    (commonSelect ++ Fragments.whereAnd(filters)
+      ++ fr"ORDER BY ts_rank(search_vector, plainto_tsquery('english', $query)) DESC")
+      .paginate[Comment](offset, limit, show"Search Discussions' Comments for query from $offset taking $limit")
+      .transact(transactor)
+  }
 }

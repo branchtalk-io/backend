@@ -20,4 +20,11 @@ trait CommentReads[F[_]] {
   def getById(id: ID[Comment], isDeleted: Boolean = false): F[Option[Comment]]
 
   def requireById(id: ID[Comment], isDeleted: Boolean = false): F[Comment]
+
+  def search(
+    query:  String,
+    postID: Option[ID[Post]],
+    offset: Paginated.Offset,
+    limit:  Paginated.Limit
+  ): F[Paginated[Comment]]
 }

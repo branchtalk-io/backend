@@ -84,7 +84,7 @@ object UserAPIs {
     .errorOut(errorMapping)
     .notRequiringPermissions
 
-  val signUp: Endpoint[Unit, (SignUpRequest, Option[String]), UserError, SignUpResponse, Any] = endpoint
+  val signUp: Endpoint[Unit, (SignUpRequest, Option[String], Option[String]), UserError, SignUpResponse, Any] = endpoint
     .name("Sign up")
     .summary("Allows creation of User's account")
     .description("Schedules User creation and returns future User's ID as well as future Session's handler")
@@ -93,21 +93,24 @@ object UserAPIs {
     .in(prefix)
     .in(jsonBody[SignUpRequest])
     .in(header[Option[String]]("User-Agent"))
+    .in(header[Option[String]]("X-Forwarded-For"))
     .out(jsonBody[SignUpResponse])
     .errorOut(errorMapping)
 
-  val signIn: AuthedEndpoint[Authentication, Option[String], UserError, SignInResponse, Any] = endpoint
-    .name("Sign in")
-    .summary("Allows logging into existing User's account")
-    .description("Returns Session's handler")
-    .tags(List(UsersTags.domain, UsersTags.sessions))
-    .post
-    .securityIn(authHeader)
-    .in(prefix / "session")
-    .in(header[Option[String]]("User-Agent"))
-    .out(jsonBody[SignInResponse])
-    .errorOut(errorMapping)
-    .notRequiringPermissions
+  val signIn: AuthedEndpoint[Authentication, (Option[String], Option[String]), UserError, SignInResponse, Any] =
+    endpoint
+      .name("Sign in")
+      .summary("Allows logging into existing User's account")
+      .description("Returns Session's handler")
+      .tags(List(UsersTags.domain, UsersTags.sessions))
+      .post
+      .securityIn(authHeader)
+      .in(prefix / "session")
+      .in(header[Option[String]]("User-Agent"))
+      .in(header[Option[String]]("X-Forwarded-For"))
+      .out(jsonBody[SignInResponse])
+      .errorOut(errorMapping)
+      .notRequiringPermissions
 
   val signOut: AuthedEndpoint[Authentication, Unit, UserError, SignOutResponse, Any] = endpoint
     .name("Sign out")

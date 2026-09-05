@@ -88,6 +88,8 @@ object Dependencies {
   // config
   val decline = "com.monovore" %% "decline" % declineVersion
   val sconfig = "org.ekrich" %% "sconfig" % "2.0.0" // https://github.com/ekrich/sconfig/releases
+  // email
+  val jakartaMail = "com.sun.mail" % "jakarta.mail" % "2.0.1" // https://github.com/jakartaee/mail-api/releases
   // security
   val bcrypt = "at.favre.lib" % "bcrypt" % "0.10.2"
   // logging

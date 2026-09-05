@@ -89,7 +89,7 @@ object SensitiveData {
     private val defaultKeySize = 32
     private val blowfishCipher = getCipher("Blowfish") _
 
-    def default: Algorithm = Blowfish // TODO: make configurable
+    def default: Algorithm = Blowfish
   }
 
   given [A]: Show[A] = _ => "SENSITIVE DATA"

@@ -5,6 +5,7 @@ import io.branchtalk.discussions.DiscussionsIOTest
 import io.branchtalk.notifications.{ NotificationsModule, TestNotificationsConfig }
 import io.branchtalk.notifications.writes.NotificationTopic
 import io.branchtalk.users.{ UsersIOTest, UsersModule }
+import io.branchtalk.users.email.TestEmailService
 import io.branchtalk.shared.infrastructure.*
 import org.http4s.server.Server
 import org.specs2.matcher.{ OptionLikeCheckedMatcher, OptionLikeMatcher, ValueCheck }
@@ -17,8 +18,9 @@ import sttp.tapir.client.sttp.*
 trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
 
   // populated by resources
-  protected var server: Server               = _
-  protected var client: SttpBackend[IO, Any] = _
+  protected var server:           Server               = _
+  protected var client:           SttpBackend[IO, Any] = _
+  protected var testEmailService: TestEmailService     = _
   protected lazy val sttpBaseUri: Uri = Uri.unsafeApply(
     scheme = server.baseUri.scheme.fold(???)(_.value),
     host = server.baseUri.host.fold(???)(_.value),
@@ -40,6 +42,7 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
       )
       .asResource
     (appArguments, apiConfig) <- TestApiConfigs.asResource[IO]
+    emailService <- Resource.eval(TestEmailService.create).evalTap(e => IO { testEmailService = e })
     _ <- AppServer
       .asResource[IO](
         appArguments = appArguments,
@@ -61,7 +64,8 @@ trait ServerIOTest extends UsersIOTest, DiscussionsIOTest {
         subscriptionWrites = discussionsWrites.subscriptionWrites,
         notificationReads = notificationsReads.notificationReads,
         notificationWrites = notificationsWrites.notificationWrites,
-        notificationTopic = notificationTopic
+        notificationTopic = notificationTopic,
+        emailService = emailService
       )
       .map(server = _)
     _ <- AsyncHttpClientCatsBackend.resource[IO]().map(client = _)

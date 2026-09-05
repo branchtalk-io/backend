@@ -22,6 +22,7 @@ import io.branchtalk.users.api.{
   UserModerationServer,
   UserServer
 }
+import io.branchtalk.users.EmailService
 import io.branchtalk.users.reads.*
 import io.branchtalk.users.writes.*
 import io.prometheus.client.CollectorRegistry
@@ -157,7 +158,8 @@ object AppServer {
     subscriptionWrites: SubscriptionWrites[F],
     notificationReads:  NotificationReads[F],
     notificationWrites: NotificationWrites[F],
-    notificationTopic:  NotificationTopic[F]
+    notificationTopic:  NotificationTopic[F],
+    emailService:       EmailService[F]
   )(using UUID.Generator): Resource[F, Server] =
     Prometheus.metricsOps[F](registry, "server").flatMap { metricsOps =>
       // When idempotency is enabled, create a Redis connection for the response cache.
@@ -183,6 +185,7 @@ object AppServer {
           sessionReads,
           userWrites,
           sessionWrites,
+          emailService,
           apiConfig.safePagination(APIPart.Users)
         )
         val userModerationServer: UserModerationServer[F] =
@@ -211,7 +214,7 @@ object AppServer {
           apiConfig.safePagination(APIPart.Posts)
         )
         val searchServer: SearchServer[F] =
-          SearchServer[F](authServices, postReads, apiConfig.safePagination(APIPart.Posts))
+          SearchServer[F](authServices, postReads, commentReads, apiConfig.safePagination(APIPart.Posts))
         val notificationServer: NotificationServer[F] = NotificationServer[F](
           authServices,
           notificationReads,

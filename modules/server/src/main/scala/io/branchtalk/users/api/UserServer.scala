@@ -11,6 +11,7 @@ import io.branchtalk.shared.infrastructure.*
 import io.branchtalk.shared.model.{ CodePosition, CommonError, ID }
 import io.branchtalk.users.api.UserModels.*
 import io.branchtalk.users.model.{ Password, Session, User }
+import io.branchtalk.users.EmailService
 import io.branchtalk.users.reads.{ SessionReads, UserReads }
 import io.branchtalk.users.writes.{ SessionWrites, UserWrites }
 import io.scalaland.chimney.dsl.*
@@ -24,6 +25,7 @@ final class UserServer[F[_]: Async](
   sessionReads:     SessionReads[F],
   userWrites:       UserWrites[F],
   sessionWrites:    SessionWrites[F],
+  emailService:     EmailService[F],
   paginationConfig: PaginationConfig
 ) {
 
@@ -65,11 +67,11 @@ final class UserServer[F[_]: Async](
     } yield Pagination.fromPaginated(paginated.map(APISession.fromDomain), offset, limit)
   }
 
-  private val signUp = UserAPIs.signUp.serverLogic { case (signup, userAgentHeader) =>
+  // Sign-up sessions are created inside the event pipeline (UserCommandEvent.Create -> UserPostgresProjector),
+  // so IP/User-Agent cannot be threaded through without adding those fields to Avro-serialized events.
+  // The X-Forwarded-For header is accepted here for consistency with sign-in but currently unused.
+  private val signUp = UserAPIs.signUp.serverLogic { case (signup, _userAgentHeader, _xForwardedFor) =>
     errorHandler {
-      // TODO: the session created during sign-up goes through the event pipeline (UserCommandEvent.Create ->
-      // UserPostgresProjector), so IP/User-Agent are not threaded through. To support session metadata for
-      // sign-up sessions, UserCommandEvent.Create and the projector would need to carry these fields.
       for {
         (user, session) <- userWrites.createUser(
           signup.into[User.Create].withFieldConst(_.password, Password.create(signup.password)).transform
@@ -79,28 +81,29 @@ final class UserServer[F[_]: Async](
   }
 
   private val signIn =
-    UserAPIs.signIn.serverLogic[F, (User, Option[Session])].withUser { case ((user, sessionOpt), userAgentHeader) =>
-      // TODO: extract client IP from request when infrastructure supports it
-      val userAgent = userAgentHeader.map(Session.UserAgent(_))
-      for {
-        session <- sessionOpt match {
-          case Some(session) =>
-            session.pure[F]
-          case None =>
-            for {
-              expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
-              session <- sessionWrites.createSession(
-                Session.Create(
-                  userID = user.id,
-                  usage = Session.Usage.UserSession,
-                  expiresAt = expireAt,
-                  ipAddress = None, // TODO: extract client IP
-                  userAgent = userAgent
+    UserAPIs.signIn.serverLogic[F, (User, Option[Session])].withUser {
+      case ((user, sessionOpt), (userAgentHeader, xForwardedFor)) =>
+        val ipAddress = xForwardedFor.flatMap(_.split(",").headOption.map(_.trim)).map(Session.IpAddress(_))
+        val userAgent = userAgentHeader.map(Session.UserAgent(_))
+        for {
+          session <- sessionOpt match {
+            case Some(session) =>
+              session.pure[F]
+            case None =>
+              for {
+                expireAt <- Session.ExpirationTime.now[F].map(_.plusDays(sessionExpiresInDays))
+                session <- sessionWrites.createSession(
+                  Session.Create(
+                    userID = user.id,
+                    usage = Session.Usage.UserSession,
+                    expiresAt = expireAt,
+                    ipAddress = ipAddress,
+                    userAgent = userAgent
+                  )
                 )
-              )
-            } yield session
-        }
-      } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
+              } yield session
+          }
+        } yield session.data.into[SignInResponse].withFieldConst(_.sessionID, session.id).transform
     }
 
   private val signOut = UserAPIs.signOut.serverLogic[F, (User, Option[Session])].justUser { case (user, sessionOpt) =>
@@ -162,8 +165,6 @@ final class UserServer[F[_]: Async](
       } yield DeleteSessionResponse(sessionID)
     }
 
-  // Issue #8: Request email update
-  // TODO: send an actual confirmation email with the token (email dispatch is out of scope)
   private val requestEmailUpdate = UserAPIs.requestEmailUpdate
     .serverLogicWithOwnership[F, User, UserID] { case (userID, _) =>
       userIDApi2Users.reverseGet(userID).pure[F]
@@ -171,6 +172,7 @@ final class UserServer[F[_]: Async](
     .withUser { case (_, (userID, request)) =>
       for {
         (_, token) <- userWrites.requestEmailUpdate(User.RequestEmailUpdate(userID, request.newEmail))
+        _ <- emailService.sendEmailConfirmation(request.newEmail, token)
       } yield RequestEmailUpdateResponse(id = userID, token = token)
     }
 
