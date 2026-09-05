@@ -446,20 +446,21 @@ final class PostServerSpec extends Specification, ServerIOTest, UsersFixtures, D
 
     "on GET /discussions/channels/{channelID}/posts/{postID} for non-existent Post" in {
 
-      "return 404 Not Found" in {
-        for {
-          // given
-          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
-          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-          fakePostID = ID[Post](java.util.UUID.randomUUID())
-          // when
-          response <- PostAPIs.read.toTestCall.untupled(None, channelID, fakePostID)
-        } yield {
-          // then
-          response.code === StatusCode.NotFound
-          response.body must beValid(beLeft(beAnInstanceOf[PostError.NotFound]))
+      "return NoPermission for a non-existent Post (ownership is resolved before existence, so a missing entity " +
+        "surfaces as NoPermission rather than leaking its non-existence)" in {
+          for {
+            // given
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            fakePostID = ID[Post](java.util.UUID.randomUUID())
+            // when
+            response <- PostAPIs.read.toTestCall.untupled(None, channelID, fakePostID)
+          } yield {
+            // then
+            response.code === StatusCode.Unauthorized
+            response.body must beValid(beLeft(beAnInstanceOf[PostError.NoPermission]))
+          }
         }
-      }
     }
 
     "on DELETE /discussions/channels/{channelID}/posts/{postID} by non-owner" in {

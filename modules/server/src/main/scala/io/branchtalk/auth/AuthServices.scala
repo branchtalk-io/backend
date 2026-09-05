@@ -47,10 +47,14 @@ final class AuthServicesImpl[F[_]: Sync](userReads: UserReads[F], sessionReads: 
   }
 
   private def authSessionID(sessionID: api.SessionID) =
-    for {
+    (for {
       session <- sessionReads.requireById(sessionIDApi2Users.get(sessionID))
       user <- userReads.requireById(session.data.userID)
-    } yield (user, session)
+    } yield (user, session)).recoverWith {
+      // An unknown/expired session token is an authentication failure (401), not a missing resource (404).
+      case _: CommonError.NotFound =>
+        CommonError.invalidCredentials.raiseError[F, (users.model.User, users.model.Session)]
+    }
 
   private def authCredentials(username: api.Username, password: api.Password) =
     userReads.authenticate(usernameApi2Users.get(username), passwordApi2Users.get(password))

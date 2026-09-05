@@ -491,22 +491,23 @@ final class CommentServerSpec extends Specification, ServerIOTest, UsersFixtures
 
     "on GET /discussions/channels/{channelID}/posts/{postID}/comments/{commentID} for non-existent Comment" in {
 
-      "return 404 Not Found" in {
-        for {
-          // given
-          CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
-          _ <- discussionsReads.channelReads.requireById(channelID).eventually()
-          CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
-          _ <- discussionsReads.postReads.requireById(postID).eventually()
-          fakeCommentID = ID[Comment](java.util.UUID.randomUUID())
-          // when
-          response <- CommentAPIs.read.toTestCall.untupled(None, channelID, postID, fakeCommentID)
-        } yield {
-          // then
-          response.code === StatusCode.NotFound
-          response.body must beValid(beLeft(beAnInstanceOf[CommentError.NotFound]))
+      "return NoPermission for a non-existent Comment (ownership is resolved before existence, so a missing entity " +
+        "surfaces as NoPermission rather than leaking its non-existence)" in {
+          for {
+            // given
+            CreationScheduled(channelID) <- channelCreate.flatMap(discussionsWrites.channelWrites.createChannel)
+            _ <- discussionsReads.channelReads.requireById(channelID).eventually()
+            CreationScheduled(postID) <- postCreate(channelID).flatMap(discussionsWrites.postWrites.createPost)
+            _ <- discussionsReads.postReads.requireById(postID).eventually()
+            fakeCommentID = ID[Comment](java.util.UUID.randomUUID())
+            // when
+            response <- CommentAPIs.read.toTestCall.untupled(None, channelID, postID, fakeCommentID)
+          } yield {
+            // then
+            response.code === StatusCode.Unauthorized
+            response.body must beValid(beLeft(beAnInstanceOf[CommentError.NoPermission]))
+          }
         }
-      }
     }
 
     "on DELETE /discussions/channels/{channelID}/posts/{postID}/comments/{commentID} by non-owner" in {
